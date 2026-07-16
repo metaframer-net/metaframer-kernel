@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "repository": "metaframer-net/metaframer-kernel",
+  "createdOn": "2026-07-16",
+  "visibility": "PRIVATE",
+  "classification": "PLANNING_ONLY",
+  "adminOverride": {
+    "scope": [
+      "CREATE_REPOSITORY",
+      "PUSH_PLANNING_BOOTSTRAP"
+    ],
+    "doesNotAuthorize": [
+      "RUNTIME_IMPLEMENTATION",
+      "SOURCE_EXTRACTION",
+      "MVP_CLAIM",
+      "RELEASE",
+      "PRODUCTION_DEPLOYMENT"
+    ]
+  },
+  "runtime": {
+    "status": "VALID_BLOCKED",
+    "releaseDecision": "NO_GO",
+    "implemented": false,
+    "mvp": false,
+    "productionReady": false
+  },
+  "decisionGate": {
+    "requiredClosedDecisions": 10,
+    "state": "INCOMPLETE",
+    "canonicalSource": "https://karacaismail.github.io/actionplan/"
+  },
+  "sourceTopology": {
+    "state": "PENDING_HUMAN_DECISION",
+    "currentImplementationWorkspace": "platform monorepo",
+    "standaloneKernelSource": "NOT_SELECTED"
+  }
+}

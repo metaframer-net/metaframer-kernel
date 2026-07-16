@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import { access, readFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+async function exists(relativePath) {
+  try {
+    await access(path.join(root, relativePath), constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const status = JSON.parse(
+  await readFile(path.join(root, "repository-status.json"), "utf8"),
+);
+const packageJson = JSON.parse(
+  await readFile(path.join(root, "package.json"), "utf8"),
+);
+const readme = await readFile(path.join(root, "README.md"), "utf8");
+
+assert.equal(status.repository, "metaframer-net/metaframer-kernel");
+assert.equal(status.visibility, "PRIVATE");
+assert.equal(status.classification, "PLANNING_ONLY");
+assert.deepEqual(status.adminOverride.scope, [
+  "CREATE_REPOSITORY",
+  "PUSH_PLANNING_BOOTSTRAP",
+]);
+assert.equal(status.runtime.status, "VALID_BLOCKED");
+assert.equal(status.runtime.releaseDecision, "NO_GO");
+assert.equal(status.runtime.implemented, false);
+assert.equal(status.runtime.mvp, false);
+assert.equal(status.runtime.productionReady, false);
+assert.equal(status.decisionGate.requiredClosedDecisions, 10);
+assert.equal(status.decisionGate.state, "INCOMPLETE");
+assert.equal(status.sourceTopology.state, "PENDING_HUMAN_DECISION");
+assert.equal(packageJson.private, true);
+
+for (const requiredClaim of [
+  "PLANNING_ONLY",
+  "VALID_BLOCKED",
+  "NO_GO",
+  "Runtime implementation: absent",
+]) {
+  assert.ok(readme.includes(requiredClaim), `README must include ${requiredClaim}`);
+}
+
+for (const runtimePath of ["apps", "src", "packages", "deploy", "migrations"]) {
+  assert.equal(
+    await exists(runtimePath),
+    false,
+    `${runtimePath} must not exist before the runtime decision gate is complete`,
+  );
+}
+
+console.log("repository boundary: PLANNING_ONLY / VALID_BLOCKED / NO_GO");

@@ -1,0 +1,11 @@
+{
+  "name": "@metaframer/kernel",
+  "version": "0.0.0-planning",
+  "private": true,
+  "description": "Planning-only repository reservation for the MetaFramer runtime kernel boundary.",
+  "type": "module",
+  "scripts": {
+    "check": "node tools/check-repository-boundary.mjs",
+    "test": "node --test"
+  }
+}
