@@ -24,10 +24,18 @@ MetaFramer runtime-kernel checkout currently exists:
 | --- | --- |
 | Governance, decisions, WBS, completion evidence | Actionplan |
 | Existing implementation workspace | `platform` monorepo |
-| Future standalone kernel source | Pending explicit human topology decision |
+| Future standalone kernel source | This repository, conditionally, after the canonical gate |
 | This repository | Reserved planning boundary only |
 
 No content in this repository changes those ownership rules by implication.
+
+The topology state is `APPROVED_CONDITIONAL`. The recorded human decision `T01-A` names
+`metaframer-net/metaframer-kernel` as the future owner of kernel runtime and public kernel
+contracts, but that ownership activates only after every canonical KGA decision is closed.
+Until then Actionplan remains the governance owner and the `platform` monorepo remains the
+implementation workspace. History strategy is `CLEAN_START_WITH_PROVENANCE` under `T02-A`:
+no platform history is copied, filtered, mirrored or extracted, and `sourceExtraction`
+remains `false`.
 
 ## Required decision before source arrives
 

@@ -30,8 +30,43 @@
     "canonicalSource": "https://karacaismail.github.io/actionplan/"
   },
   "sourceTopology": {
-    "state": "PENDING_HUMAN_DECISION",
+    "state": "APPROVED_CONDITIONAL",
     "currentImplementationWorkspace": "platform monorepo",
-    "standaloneKernelSource": "NOT_SELECTED"
+    "standaloneKernelSource": "CONDITIONALLY_SELECTED_AFTER_CANONICAL_GATE",
+    "futureOwner": "metaframer-net/metaframer-kernel",
+    "activatesAfter": "all-canonical-KGA-decisions-closed",
+    "governanceOwner": "actionplan",
+    "historyStrategy": "CLEAN_START_WITH_PROVENANCE",
+    "sourceExtraction": false
+  },
+  "planningControlPlane": {
+    "state": "APPROVED_AWAITING_CANONICAL_WRITEBACK",
+    "approvedDecisions": "T01-A, T02-A, D01-A, D04+D09-A, D08-A, D10-A, A01-A",
+    "approvedDecisionsRecordedAt": "2026-07-30",
+    "nextAction": "obtain-actionplan-canonical-writeback-authority",
+    "codingPolicyMode": "CLAUDE_ONLY",
+    "rawInputCount": 40,
+    "uniqueTaskCount": 39,
+    "sourceInventory": "planning/source-inventory.json",
+    "traceability": "planning/traceability-matrix.json",
+    "governanceProposals": "planning/governance-decisions.json",
+    "humanDecisionPackage": "planning/human-decision-request.json",
+    "resumeState": "planning/bootstrap-state.json",
+    "deterministicClosureIds": [
+      "KGA-D02",
+      "KGA-D03",
+      "KGA-D05",
+      "KGA-D06",
+      "KGA-D07"
+    ],
+    "humanDecisionIds": [
+      "KGA-D01",
+      "KGA-D04",
+      "KGA-D08",
+      "KGA-D09",
+      "KGA-D10"
+    ],
+    "canonicalWriteBackAuthorized": false,
+    "runtimeCodeAllowed": false
   }
 }
