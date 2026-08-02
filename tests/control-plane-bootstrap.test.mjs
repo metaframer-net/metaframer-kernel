@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -335,6 +336,7 @@ test("the CLAUDE_ONLY writer lock is machine-enforced and matches AGENTS.md", as
   assert.equal(policy.separateCodeStartAuthorityRequired, true);
 
   assert.equal(policy.writer.agent, "claude");
+  // Immutable historical approval record: preserved byte-faithfully, never retro-fitted.
   assert.equal(policy.writer.invocation, "claude_implement");
   assert.equal(policy.writer.role, "bounded-worker");
   assert.equal(policy.writer.mayOrchestrate, false);
@@ -391,9 +393,27 @@ test("the CLAUDE_ONLY writer lock is machine-enforced and matches AGENTS.md", as
   assert.equal(policy.capabilityUse.mayAlterAuthorityHierarchy, false);
 
   assert.match(agents, /^## Immutable CLAUDE-ONLY writer lock$/m);
+  // Additive current successor invocation, asserted separately from the historical record.
+  const readinessPackage = JSON.parse(
+    readFileSync(path.join(root, "planning/kernel-ai-development-readiness.json"), "utf8"),
+  );
+  const successor = readinessPackage.successorInvocationPolicy;
+  assert.ok(successor, "readiness package must record the successor invocation policy");
+  assert.equal(successor.currentWorkerInvocation, "pane-visible-agent-claude");
+  assert.equal(successor.forbiddenInvocation, "mcp-claude_implement");
+  assert.equal(successor.historicalInvocation, "claude_implement");
+  assert.equal(successor.historicalPolicyRewritten, false);
+  assert.match(agents, /Immutable historical approval record/);
+  assert.match(agents, /Additive current successor invocation/);
+  assert.ok(
+    !/this text and those two mirrors must always agree/.test(agents),
+    "AGENTS.md must not claim the active text and the historical mirrors are identical",
+  );
+
   for (const literal of [
     "CLAUDE_ONLY",
     "claude_implement",
+    "pane-visible-agent-claude",
     "single active writer",
     "no fallback writer",
     "loggedIn=true",

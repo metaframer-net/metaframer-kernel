@@ -5,7 +5,8 @@
   "description": "Planning-only repository reservation for the MetaFramer runtime kernel boundary.",
   "type": "module",
   "scripts": {
-    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs",
+    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs",
+    "check:readiness": "node tools/check-kernel-ai-development-readiness.mjs",
     "check:sources": "node tools/check-source-snapshot.mjs",
     "test": "node --test tests/*.test.mjs"
   }
