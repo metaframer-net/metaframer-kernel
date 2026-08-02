@@ -596,6 +596,7 @@ assert.equal(policy.fallbackWriter, null);
 assert.equal(policy.fallbackWriterAllowed, false);
 assert.equal(policy.separateCodeStartAuthorityRequired, true);
 assert.equal(policy.writer.agent, "claude");
+// Immutable historical approval record: preserved byte-faithfully, never retro-fitted.
 assert.equal(policy.writer.invocation, "claude_implement");
 assert.equal(policy.writer.mayOrchestrate, false);
 assert.deepEqual(policy.writer.forbiddenActions, [
@@ -642,10 +643,34 @@ assert.equal(policy.capabilityUse.evaluateRelevantAgentsSkillsMcps, true);
 assert.equal(policy.capabilityUse.mayAlterAuthorityHierarchy, false);
 
 const agentsDoc = await readFile(path.join(root, "AGENTS.md"), "utf8");
+// Additive current successor invocation: distinct from the immutable historical record above.
+// Both must hold; neither is allowed to be quietly moved onto the other.
+const readinessPackage = JSON.parse(
+  await readFile(path.join(root, "planning/kernel-ai-development-readiness.json"), "utf8"),
+);
+const successor = readinessPackage.successorInvocationPolicy;
+assert.ok(successor, "the readiness package must record the additive successor invocation policy");
+assert.equal(successor.currentWorkerInvocation, "pane-visible-agent-claude");
+assert.equal(successor.forbiddenInvocation, "mcp-claude_implement");
+assert.equal(successor.historicalPolicyRewritten, false);
+assert.equal(successor.historicalInvocation, "claude_implement");
+assert.equal(successor.supersedes, "invocation-mechanism-only");
+assert.equal(policy.mode, "CLAUDE_ONLY");
+assert.equal(policy.singleActiveWriter, true);
+assert.equal(policy.fallbackWriter, null);
+// The active text must distinguish the two records rather than claim they are identical.
+assert.match(agentsDoc, /Immutable historical approval record/);
+assert.match(agentsDoc, /Additive current successor invocation/);
+assert.ok(
+  !/this text and those two mirrors must always agree/.test(agentsDoc),
+  "AGENTS.md must not claim the active text and the historical mirrors are identical",
+);
+
 assert.match(agentsDoc, /^## Immutable CLAUDE-ONLY writer lock$/m);
 for (const literal of [
   "CLAUDE_ONLY",
   "claude_implement",
+  "pane-visible-agent-claude",
   "single active writer",
   "no fallback writer",
   "loggedIn=true",

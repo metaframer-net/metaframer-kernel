@@ -37,16 +37,36 @@ npm run check
 ## Immutable CLAUDE-ONLY writer lock
 
 This lock is repository-specific, persistent, active and immutable. It is not a per-turn
-preference and it may not be relaxed, suspended or reinterpreted by any agent. Its
-machine-readable mirror is `codingPolicy` in `planning/bootstrap-state.json` and in the
-approval provenance at `planning/human-decision-request.json` under `response.codingPolicy`;
-this text and those two mirrors must always agree, and `npm test` enforces that parity.
+preference and it may not be relaxed, suspended or reinterpreted by any agent.
+
+Two records exist and they are deliberately **not identical**:
+
+- **Immutable historical approval record (2026-07-30).** `codingPolicy` in
+  `planning/bootstrap-state.json` and `response.codingPolicy` in
+  `planning/human-decision-request.json` record the approval exactly as it was given, with
+  `writer.invocation = claude_implement`. That provenance is preserved byte-faithfully and is
+  never rewritten to match later instructions.
+- **Additive current successor invocation.** A later direct User/Admin instruction supersedes
+  only the *invocation mechanism*: the current worker invocation is
+  `pane-visible-agent-claude` and MCP `claude_implement` is forbidden. This is recorded
+  additively in `planning/kernel-ai-development-readiness.json` and attested by external
+  collector event `37e87ad17327e4e5f004`, which itself states that the historical policy
+  remains byte-faithful.
+
+`npm test` enforces both: the historical mirrors must still read `claude_implement`
+byte-faithfully, and the current successor invocation must read `pane-visible-agent-claude`
+in this text, the readiness package and the collector record. Everything else in this lock —
+mode, single writer, bounded worker, no fallback, the account gate and the forbidden actions —
+is unchanged by the successor instruction.
 
 - Mode is `CLAUDE_ONLY`. Claude is the single active writer for every repository file
   modification that forms a coding or implementation package: code, tests, tools, scripts,
   schemas, config, migrations, and the planning/docs artifacts that ship with them.
-- Claude writes only through the bounded `claude_implement` worker invocation. Claude is a
-  bounded worker: it may not orchestrate, delegate to another agent, or commit, push, merge,
+- Claude currently writes only through the bounded `pane-visible-agent-claude` worker
+  invocation: a user-visible Pane started with `--agent claude`, never an MCP
+  `claude_implement` call. The historical approval recorded `claude_implement`; that record
+  stands unaltered and this successor instruction governs the mechanism from now on. Claude is
+  a bounded worker: it may not orchestrate, delegate to another agent, or commit, push, merge,
   release or deploy.
 - Codex is MASTER. Codex owns scope, rollback and final review, and is the final authority.
   Within this writing scope Codex is not a writer and is explicitly not a fallback writer.
