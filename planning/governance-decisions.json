@@ -1,0 +1,623 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-30",
+  "authority": {
+    "canonicalOwner": "actionplan",
+    "canonicalRef": "refs/remotes/origin/main",
+    "canonicalSha": "508746955159955c6d3bbd653287045f033bc2e2",
+    "canonicalRegistry": "reports/kernel-governance-decision-registry-2026-07-15.json",
+    "localRole": "closure-proposal-only",
+    "canonicalWriteBackRequired": true
+  },
+  "status": "human-decisions-recorded-canonical-pending",
+  "verdict": "NO_GO",
+  "humanDecisionResponse": {
+    "requestRef": "planning/human-decision-request.json",
+    "packageId": "kernel-bootstrap-human-decisions-2026-07-30",
+    "decider": "user-admin",
+    "recordedAt": "2026-07-30",
+    "selectionLine": "T01-A, T02-A, D01-A, D04+D09-A, D08-A, D10-A, A01-A",
+    "scope": "local planning projection only",
+    "canonicalWriteBackAuthorized": false,
+    "note": "Recording the human response closes the local decision blockers. Every canonicalStatus below stays `pending` until an authorized Actionplan write-back passes Actionplan's own checks."
+  },
+  "deterministicClosureIds": [
+    "KGA-D02",
+    "KGA-D03",
+    "KGA-D05",
+    "KGA-D06",
+    "KGA-D07"
+  ],
+  "humanDecisionIds": [
+    "KGA-D01",
+    "KGA-D04",
+    "KGA-D08",
+    "KGA-D09",
+    "KGA-D10"
+  ],
+  "decisions": [
+    {
+      "id": "KGA-D01",
+      "humanDecisionRecord": {
+        "decider": "user-admin",
+        "recordedAt": "2026-07-30",
+        "requestRef": "planning/human-decision-request.json",
+        "selectedOptionId": "D01-A",
+        "effect": "All 33 pending module parents are explicitly deferred as non-code-bearing for this bootstrap. No code-bearing descendant is invented or authorized; each later descendant requires its own exact human-approved ledger row with parent, level, owner, test and rollback contract.",
+        "canonicalWriteBackAuthorized": false
+      },
+      "topic": "code-bearing descendants for 33 module parents",
+      "canonicalStatus": "pending",
+      "resolutionClass": "human",
+      "proposalStatus": "human-decision-recorded",
+      "proposedDecision": "Approve a 33-row descendant ledger. Each module parent must either name at least one canonical archetype-or-lower code-bearing descendant with implementation/test ownership, or receive an explicit justified defer/reject disposition. Do not treat module parents or the URLP example program as implementation units.",
+      "rationale": [
+        "The canonical measurement is 38 kernel module parents, 5 covered and 33 pending.",
+        "The 40 exports contain only 39 unique tasks: 17 logical kernel modules, four WBS demonstration records and 18 URLP/platform handoff records; they cannot silently invent the missing product decomposition.",
+        "Actionplan rules reserve app/module creation and scope selection for human approval."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-code-bearing-descendant-handoff-2026-07-15.json",
+          "pointer": "/measurement",
+          "claim": "38/5/33 live measurement and empty selection ledger"
+        },
+        {
+          "repository": "metaframer-kernel",
+          "path": "planning/traceability-matrix.json",
+          "pointer": "/coverageSummary",
+          "claim": "39 unique requirements projections are inventoried without creating WBS nodes"
+        }
+      ],
+      "risks": [
+        "Invented descendants would turn planning inference into unauthorized product scope.",
+        "Module-level code would violate the canonical granularity contract.",
+        "Using URLP platform handoffs as generic kernel descendants would leak platform scope into kernel."
+      ],
+      "acceptanceCriteria": [
+        "Exactly 33 canonical parent rows have one approved disposition and approval reference.",
+        "Every selected descendant is archetype, feature, component, work_unit or micro_step and has a canonical owner.",
+        "Every selected descendant names an implementation boundary, test command/evidence contract and rollback owner.",
+        "No app/module node is created or reparented without the consolidated human approval.",
+        "Actionplan registry remains codeStartAllowed=false until the approved ledger is written back and revalidated."
+      ],
+      "rollback": {
+        "trigger": "The 38/5/33 measurement drifts, a selected child lacks approval, or platform-only scope is imported.",
+        "action": "Revert the descendant-ledger write-back as one planning shard, restore every affected parent/edge, and keep KGA-D01 pending."
+      },
+      "humanApprovalRequired": true,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D02",
+      "topic": "k-surface dependency semantics and SDK ordering",
+      "canonicalStatus": "pending",
+      "resolutionClass": "deterministic",
+      "proposalStatus": "proposed-deterministic-closure",
+      "proposedDecision": "Apply the locked direction Edition/App -> SDK -> Kernel. `k-surface` is a kernel contract and must not depend on `be-sdk` or `stack-editions`; those are downstream consumers. Remove those two IDs from `k-surface.dependsOn`, retain or derive the inverse downstream block relation, and validate a cycle-free graph.",
+      "rationale": [
+        "The repository boundary locks dependency direction as Edition/App -> SDK -> Kernel.",
+        "The canonical delivery sequence requires Kernel before SDK and SDK before app/edition composition.",
+        "`k-surface` currently contains both `dependsOn` and `blocks` edges for `be-sdk` and `stack-editions`, which asserts both orders at once."
+      ],
+      "evidence": [
+        {
+          "repository": "metaframer-kernel",
+          "path": "docs/repository-boundary.md",
+          "claim": "The topology decision must preserve Edition/App -> SDK -> Kernel."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "docs/kernel-sdk-app-delivery-sequence.md",
+          "lines": "14-24",
+          "claim": "Kernel precedes SDK and app delivery."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "src/data/generated/nodes/k-surface.json",
+          "claim": "be-sdk and stack-editions appear in both dependsOn and blocks."
+        }
+      ],
+      "risks": [
+        "Reversing the edge would make the kernel depend on its SDK/app consumers.",
+        "Editing only one projection could leave generated/public graph drift.",
+        "Other dependency conflicts remain governed by KGA-D07."
+      ],
+      "acceptanceCriteria": [
+        "`k-surface.dependsOn` excludes `be-sdk` and `stack-editions` in the canonical source.",
+        "The inverse downstream relation is derived consistently without a dependsOn/blocks intersection.",
+        "The Actionplan dependency graph is acyclic and its data-quality checks pass.",
+        "The canonical KGA-D02 record carries the decision, rationale and approval/write-back evidence.",
+        "No runtime readiness claim is added."
+      ],
+      "rollback": {
+        "trigger": "Graph checks fail, a consumer-to-kernel import direction is reversed, or a generated projection drifts.",
+        "action": "Revert the edge/source write-back and all regenerated projections together; restore KGA-D02 to pending."
+      },
+      "humanApprovalRequired": false,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D03",
+      "topic": "PR-07 capability versus module-registry ownership",
+      "canonicalStatus": "pending",
+      "resolutionClass": "deterministic",
+      "proposalStatus": "proposed-deterministic-closure",
+      "proposedDecision": "Preserve two bounded owners: `k-mod-l` owns module registry, manifest validation and module health; `k-capability` owns capability/entitlement resolution and fail-closed visibility decisions. PR-07 may remain an integration tranche, but its WBS/evidence must identify both owners and keep their contract tests separate.",
+      "rationale": [
+        "The existing WBS titles already distinguish Module Registry + Manifest from Capability / Entitlement.",
+        "The PR-07 handoff currently combines both responsibilities while naming only `k-capability`, creating evidence ownership ambiguity.",
+        "Separating ownership follows bounded-context responsibility without renumbering the queue."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "src/data/generated/nodes/k-mod-l.json",
+          "claim": "Canonical node title is Module Registry + Manifest."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "src/data/generated/nodes/k-capability.json",
+          "claim": "Canonical node title is Capability / Entitlement."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "docs/platform-pr07-capability-registry-agent-pack-2026-07-09.md",
+          "lines": "31-40",
+          "claim": "Current PR-07 scope mixes module registry/manifest and entitlement responsibilities."
+        }
+      ],
+      "risks": [
+        "A single owner would blur registry lifecycle and commercial/authorization decisions.",
+        "Splitting into new PR identities without approval would mutate the canonical queue.",
+        "Shared integration tests could be misreported as complete evidence for both owners."
+      ],
+      "acceptanceCriteria": [
+        "PR-07 WBS references include both `k-mod-l` and `k-capability` without merging the nodes.",
+        "Registry/manifest/health acceptance evidence is owned by `k-mod-l`.",
+        "Capability/entitlement/fail-closed visibility acceptance evidence is owned by `k-capability`.",
+        "Integration tests prove the published contract between the two owners.",
+        "PR numbering/order remains unchanged unless separately approved."
+      ],
+      "rollback": {
+        "trigger": "Ownership is recombined, PR identities change without approval, or evidence cannot be attributed to one owner.",
+        "action": "Revert the PR-07 WBS/evidence mapping shard and restore KGA-D03 to pending; do not alter runtime code."
+      },
+      "humanApprovalRequired": false,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D04",
+      "humanDecisionRecord": {
+        "decider": "user-admin",
+        "recordedAt": "2026-07-30",
+        "requestRef": "planning/human-decision-request.json",
+        "selectedOptionId": "D04+D09-A",
+        "effect": "Every candidate identity named in this proposal is rejected. No WBS node and no alias is created for any of them, execution references stay removed or disabled, and each directive document remains non-executable requirements evidence.",
+        "identityNameReconciliation": {
+          "issue": "This proposal names seven candidate identities using proposal-local spellings that do not all match the shared 13-row KGA-D09 missing-node set. The mismatch is resolved explicitly here rather than by silent renaming.",
+          "authoritativeSet": "KGA-D09 missingNodeId values in planning/human-decision-request.json",
+          "mappings": [
+            {
+              "proposalIdentity": "k-kms",
+              "missingNodeId": "k-kms",
+              "mappingType": "direct",
+              "disposition": "reject",
+              "directiveRef": "docs/k-kms-directive.md"
+            },
+            {
+              "proposalIdentity": "k-legal-hold",
+              "missingNodeId": "k-legal-hold-retention",
+              "mappingType": "renamed",
+              "disposition": "reject",
+              "directiveRef": "docs/k-legal-hold-retention-directive.md"
+            },
+            {
+              "proposalIdentity": "k-provider-adapter",
+              "missingNodeId": "k-provider-adapter",
+              "mappingType": "direct",
+              "disposition": "reject",
+              "directiveRef": "docs/k-provider-adapter-directive.md"
+            },
+            {
+              "proposalIdentity": "k-signature-trust",
+              "missingNodeId": "k-signature",
+              "mappingType": "renamed",
+              "disposition": "reject",
+              "directiveRef": "docs/k-signature-trust-directive.md"
+            },
+            {
+              "proposalIdentity": "k-evidence-seal",
+              "missingNodeId": "k-evidence",
+              "mappingType": "renamed",
+              "disposition": "reject",
+              "directiveRef": "docs/k-evidence-seal-directive.md"
+            },
+            {
+              "proposalIdentity": "k-migration-bridge",
+              "missingNodeId": "k-migration-bridge",
+              "mappingType": "direct",
+              "disposition": "reject",
+              "directiveRef": "docs/k-migration-bridge-directive.md"
+            },
+            {
+              "proposalIdentity": "k-obligation",
+              "missingNodeId": "k-obligation",
+              "mappingType": "direct",
+              "disposition": "reject",
+              "directiveRef": "docs/k-obligation-commitment-directive.md"
+            }
+          ],
+          "effect": "A mapping never creates, aliases or folds a node. Each mapped row carries the same reject disposition as its KGA-D09 row and the directive stays non-executable requirements evidence."
+        },
+        "canonicalWriteBackAuthorized": false
+      },
+      "topic": "unowned kernel directive module identities",
+      "canonicalStatus": "pending",
+      "resolutionClass": "human",
+      "proposalStatus": "human-decision-recorded",
+      "proposedDecision": "For each of `k-kms`, `k-legal-hold`, `k-provider-adapter`, `k-signature-trust`, `k-evidence-seal`, `k-migration-bridge` and `k-obligation`, choose exactly one existing canonical owner or explicitly approve a new WBS identity and parent. No node is inferred from a directive filename.",
+      "rationale": [
+        "Seven directive identities have no approved canonical WBS owner.",
+        "Creating or updating module scope is a human decision under the Actionplan contract.",
+        "Directive text is evidence/data, not authority to create product scope."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-gap-inventory-2026-07-14.json",
+          "pointer": "/structuralGaps/4/candidateOwnerIds",
+          "claim": "Seven candidate owner identities are unselected."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-ghost-wbs-directive-bindings-2026-07-15.json",
+          "claim": "Directive bindings are candidates and node creation is disabled."
+        }
+      ],
+      "risks": [
+        "Filename-derived ownership can duplicate an existing bounded context.",
+        "Creating module nodes can expand product scope and effort silently.",
+        "A directive could become a second independent canonical source."
+      ],
+      "acceptanceCriteria": [
+        "All seven identities have an approved bind/create/fold/reject disposition.",
+        "Every create choice names parent, owner, level, non-goals and canonical directive reference.",
+        "No directive body is duplicated into a node as a second canonical contract.",
+        "No app/module is created before the human approval is recorded.",
+        "Actionplan traceability checks pass after write-back."
+      ],
+      "rollback": {
+        "trigger": "An identity lacks approval, duplicates scope, or creates a second canonical contract.",
+        "action": "Revert all seven ownership/node placements as one governance shard and keep KGA-D04 pending."
+      },
+      "humanApprovalRequired": true,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D05",
+      "topic": "PR-10 scaffold-only and PR-11 walking-skeleton exit semantics",
+      "canonicalStatus": "pending",
+      "resolutionClass": "deterministic",
+      "proposalStatus": "proposed-deterministic-closure",
+      "proposedDecision": "PR-10 exits only as a versioned public SDK contract/scaffold with deterministic generation and contract tests; it does not prove SDK-ready. PR-11 exits only as a tenant-aware API/UI walking skeleton with boot/smoke and rollback evidence; it does not prove app-buildable, MVP or runtime-ready.",
+      "rationale": [
+        "The canonical gap report already labels PR-10 scaffold-only and PR-11 a walking skeleton.",
+        "Repository completion semantics separate planning, build, runtime, release and live evidence.",
+        "Non-vacuous evidence labels can be defined without selecting product behavior."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-gap-inventory-2026-07-14.json",
+          "pointer": "/queueAudit/semanticFindings",
+          "claim": "PR-10 proves scaffold only and PR-11 proves a walking skeleton only."
+        },
+        {
+          "repository": "metaframer-kernel",
+          "path": "docs/repository-boundary.md",
+          "claim": "Planning checks cannot prove runtime, MVP, release or production."
+        }
+      ],
+      "risks": [
+        "A green generator or boot smoke can be mislabeled as runtime readiness.",
+        "Evidence may be accepted without a commit/CI/runtime binding.",
+        "Walking-skeleton rollback can be omitted because no production claim is intended."
+      ],
+      "acceptanceCriteria": [
+        "PR-10 evidence is labeled `scaffold-only` and binds version, generator determinism and contract tests.",
+        "PR-11 evidence is labeled `walking-skeleton-only` and binds tenant context, API/UI smoke and rollback.",
+        "Neither exit changes kernelReady, sdkReady, appBuildable, MVP or productionReady to true.",
+        "Later readiness gates require separate real runtime/CI/deployment evidence.",
+        "The canonical registry records these semantics without opening code-start by itself."
+      ],
+      "rollback": {
+        "trigger": "A scaffold/smoke result is promoted to readiness or evidence labels lose their source SHA/CI binding.",
+        "action": "Revert the exit-semantics write-back, invalidate derived readiness evidence, and restore KGA-D05 to pending."
+      },
+      "humanApprovalRequired": false,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D06",
+      "topic": "DB substrate before durable tenancy/outbox/audit evidence",
+      "canonicalStatus": "pending",
+      "resolutionClass": "deterministic",
+      "proposalStatus": "proposed-deterministic-closure",
+      "proposedDecision": "Select `early-minimal-db-substrate`: after the CI baseline, establish the approved PostgreSQL/Alembic transaction and deny-by-default RLS substrate before durable tenancy, outbox and audit primitives; then build kernel primitives, SDK and walking skeleton in that order.",
+      "rationale": [
+        "This repository's binding gate explicitly locks DB/RLS/transaction/outbox/audit before kernel primitives, SDK and walking skeleton.",
+        "PR-02, PR-04 and PR-06 cannot produce durable evidence before a DB/transaction substrate exists.",
+        "Choosing provisional evidence and replay would preserve a known evidence-order contradiction."
+      ],
+      "evidence": [
+        {
+          "repository": "metaframer-kernel",
+          "path": "AGENTS.md",
+          "claim": "Binding runtime sequence starts with DB/RLS/transaction/outbox/audit."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-db-substrate-queue-handoff-2026-07-15.json",
+          "pointer": "/options/0",
+          "claim": "early-minimal-db-substrate is the option consistent with durable predecessor evidence."
+        }
+      ],
+      "risks": [
+        "The old PR numbering/order cannot be mutated silently even when the technical order is locked.",
+        "A minimal substrate can expand into premature domain schema.",
+        "RLS policy can appear present without cross-tenant negative tests."
+      ],
+      "acceptanceCriteria": [
+        "The approved execution queue places the minimal DB/Alembic/transaction/RLS substrate before PR-02 durable isolation evidence.",
+        "The substrate contains no app/domain feature tables beyond the approved kernel primitive boundary.",
+        "Cross-tenant negative tests prove deny-by-default RLS before outbox/audit evidence is accepted.",
+        "Outbox and audit evidence bind to real transaction rollback/commit behavior.",
+        "The queue amendment is separately approved and written to Actionplan before runtime code starts."
+      ],
+      "rollback": {
+        "trigger": "The queue contradicts DB-first order, scope expands into app/domain schema, or RLS negative evidence is absent.",
+        "action": "Revert the queue amendment and DB-substrate planning shard, invalidate downstream durable claims, and keep runtime code-start blocked."
+      },
+      "humanApprovalRequired": false,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D07",
+      "topic": "dependsOn/blocks direction and 46 conflicting edges",
+      "canonicalStatus": "pending",
+      "resolutionClass": "deterministic",
+      "proposalStatus": "proposed-deterministic-closure",
+      "proposedDecision": "Use the canonical relation contract: `A.dependsOn B` means B must finish first; `A.blocks C` means A must finish first and is normally the derived inverse of `C.dependsOn A`. A pair cannot be present in both directions on the same node. `related` never affects order.",
+      "rationale": [
+        "The Actionplan WBS field semantics already define direction, inverse derivation and DAG requirements.",
+        "The 46 intersections are data contradictions under that existing contract, not an open product choice.",
+        "A deterministic repair can derive blocks from dependsOn after edge-by-edge owner review."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "docs/wbs-field-semantics.md",
+          "lines": "10-29",
+          "claim": "Canonical dependsOn/blocks/related meaning and DAG invariant."
+        },
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-governance-gap-addendum-2026-07-15.json",
+          "claim": "35 nodes contain 46 same-node dependsOn/blocks intersections."
+        }
+      ],
+      "risks": [
+        "Blind bulk removal can erase an intended prerequisite rather than the derived inverse.",
+        "Fixing generated nodes instead of canonical owners would reintroduce drift.",
+        "Cycles can remain even after same-node intersections are removed."
+      ],
+      "acceptanceCriteria": [
+        "All 46 reported intersections receive a source-owned edge disposition.",
+        "No node contains the same target in both dependsOn and blocks.",
+        "blocks is regenerated as the inverse projection of dependsOn where applicable.",
+        "The dependsOn graph is acyclic with no dangling references.",
+        "Data-quality, dependency and generated/source parity checks pass after canonical write-back."
+      ],
+      "rollback": {
+        "trigger": "A prerequisite is lost, a cycle/dangling edge appears, or generated/source parity fails.",
+        "action": "Revert the edge repair and regenerated projections as one shard, restore the prior graph snapshot, and keep KGA-D07 pending."
+      },
+      "humanApprovalRequired": false,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D08",
+      "humanDecisionRecord": {
+        "decider": "user-admin",
+        "recordedAt": "2026-07-30",
+        "requestRef": "planning/human-decision-request.json",
+        "selectedOptionId": "D08-A",
+        "effect": "Every colliding short ADR ID is quarantined and marked deprecated and is forbidden as an approvalRef. A later authorized canonical write-back allocates unique registry IDs to each topic and migrates machine consumers atomically.",
+        "canonicalWriteBackAuthorized": false
+      },
+      "topic": "ADR identity, status and supersession authority",
+      "canonicalStatus": "pending",
+      "resolutionClass": "human",
+      "proposalStatus": "human-decision-recorded",
+      "proposedDecision": "Choose the canonical topic/identity for each collision cluster (`ADR-E1`, `ADR-M1`, `ADR-S1`, `ADR-X1`, `ADR-A5/ADR-0022`), assign new unique IDs to the non-canonical topics, and approve an alias/supersession plus machine-consumer migration ledger.",
+      "rationale": [
+        "Five ADR identity clusters bind different topics to the same identifier.",
+        "Renumbering and supersession affect canonical documents and machine consumers.",
+        "Only the human owner can decide which historical identity remains canonical."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-adr-collision-source-bindings-2026-07-15.json",
+          "pointer": "/collisions",
+          "claim": "Five ambiguous collision clusters have canonicalTopic=null."
+        }
+      ],
+      "risks": [
+        "Wrong canonical selection can attach approvals to the wrong architecture decision.",
+        "Renumbering without aliases can break tests, docs and generated references.",
+        "Keeping duplicate IDs makes machine consumption unsafe."
+      ],
+      "acceptanceCriteria": [
+        "All five clusters have one approved canonical topic and unique identity.",
+        "Every displaced topic has an approved new ID and alias/supersession record.",
+        "All listed machine consumers and doc references migrate atomically.",
+        "No ambiguous ADR ID remains in governance checks.",
+        "Approval references are enabled only after the migration passes."
+      ],
+      "rollback": {
+        "trigger": "A consumer still resolves an old ID ambiguously, an alias loops, or approval references bind to the wrong topic.",
+        "action": "Revert the ADR identity/consumer migration shard, restore the collision snapshot, disable approval references and keep KGA-D08 pending."
+      },
+      "humanApprovalRequired": true,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D09",
+      "humanDecisionRecord": {
+        "decider": "user-admin",
+        "recordedAt": "2026-07-30",
+        "requestRef": "planning/human-decision-request.json",
+        "selectedOptionId": "D04+D09-A",
+        "effect": "The exact 13-row missing-node set is rejected in full. No node or alias is created for any row, execution references stay removed or disabled, and every directive document remains non-executable requirements evidence.",
+        "rejectedMissingNodeCount": 13,
+        "rejectedMissingNodeIds": [
+          "archetype-agreement",
+          "archetype-document-composition",
+          "k-event-projection",
+          "k-evidence",
+          "k-exec-context",
+          "k-kms",
+          "k-legal-hold-retention",
+          "k-migration-bridge",
+          "k-module-security",
+          "k-obligation",
+          "k-provider-adapter",
+          "k-signature",
+          "privacy-retention-matrix"
+        ],
+        "sharedWith": "KGA-D04",
+        "canonicalWriteBackAuthorized": false
+      },
+      "topic": "ghost WBS create/alias/fold/reject ledger",
+      "canonicalStatus": "pending",
+      "resolutionClass": "human",
+      "proposalStatus": "human-decision-recorded",
+      "proposedDecision": "Choose create, alias, fold or reject separately for each of the 13 ghost WBS claims. A create must name level/parent/owner; an alias must name one existing canonical ID; a fold must name the owning scope; reject must record why the directive claim is non-canonical.",
+      "rationale": [
+        "Thirteen directive claims point to absent WBS identities.",
+        "Only some have proposed canonical IDs; the rest require product-scope judgement.",
+        "Bulk creation or filename-derived aliases would violate human scope authority."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-ghost-wbs-directive-bindings-2026-07-15.json",
+          "pointer": "/bindings",
+          "claim": "Thirteen bindings are candidate-unselected and node creation is disabled."
+        }
+      ],
+      "risks": [
+        "Bulk create inflates the kernel WBS with duplicate modules.",
+        "Wrong alias/fold choices can hide genuinely separate bounded contexts.",
+        "Rejecting without repairing directive references leaves dangling governance claims."
+      ],
+      "acceptanceCriteria": [
+        "Exactly 13 rows have one approved create/alias/fold/reject disposition.",
+        "Create rows include level, parent, owner, non-goals and canonical source.",
+        "Alias/fold rows point to existing canonical IDs with no cycles.",
+        "Reject rows include rationale and directive-reference cleanup.",
+        "No ghost reference remains unresolved after canonical write-back."
+      ],
+      "rollback": {
+        "trigger": "A created node duplicates scope, an alias/fold is cyclic or dangling, or a rejected reference remains active.",
+        "action": "Revert the 13-row WBS/directive binding shard, restore missing-node guards and keep KGA-D09 pending."
+      },
+      "humanApprovalRequired": true,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    },
+    {
+      "id": "KGA-D10",
+      "humanDecisionRecord": {
+        "decider": "user-admin",
+        "recordedAt": "2026-07-30",
+        "requestRef": "planning/human-decision-request.json",
+        "selectedOptionId": "D10-A",
+        "effect": "Fixed shared-schema topology with a `tenant_id` discriminator and deny-by-default PostgreSQL RLS. The threshold disposition is not-applicable-fixed-topology, no tenant-count trigger exists and no automatic promotion exists; any dedicated schema or database exception is a new human-approved topology decision.",
+        "physicalStrategy": "shared-schema-rls",
+        "thresholdDisposition": "not-applicable-fixed-topology",
+        "automaticPromotion": false,
+        "canonicalWriteBackAuthorized": false
+      },
+      "topic": "tenancy physical storage and isolation strategy",
+      "canonicalStatus": "pending",
+      "resolutionClass": "human",
+      "proposalStatus": "human-decision-recorded",
+      "proposedDecision": "Select shared-schema+RLS, schema-per-tenant+RLS or hybrid as the physical strategy; define tenant-count/risk thresholds, migration and noisy-neighbor escape criteria. PostgreSQL RLS deny-by-default remains mandatory in every option. The 18 URLP exports that embed `tenantStrategy=hybrid` are provisional task projections and do not close this decision.",
+      "rationale": [
+        "The canonical physicalStrategy and threshold are null.",
+        "Storage topology changes cost, isolation, operations, migration and rollback.",
+        "Raw export fields are publication projections and cannot outrank the canonical decision registry."
+      ],
+      "evidence": [
+        {
+          "repository": "actionplan",
+          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "path": "reports/kernel-tenancy-authority-inventory-2026-07-15.json",
+          "pointer": "/tenancy",
+          "claim": "physicalStrategy=null, threshold=null and mandatoryRls=true."
+        },
+        {
+          "repository": "metaframer-kernel",
+          "path": "planning/traceability-matrix.json",
+          "claim": "URLP tenantStrategy values are mapped as provisional requirements, not decisions."
+        }
+      ],
+      "risks": [
+        "Shared schema can amplify noisy-neighbor and blast-radius risk.",
+        "Schema-per-tenant can raise migration and operational cost sharply.",
+        "Hybrid without objective thresholds becomes inconsistent manual topology.",
+        "Treating URLP hybrid metadata as authority would silently close a human decision."
+      ],
+      "acceptanceCriteria": [
+        "One physical strategy and objective threshold/exception policy are approved.",
+        "RLS deny-by-default and cross-tenant negative tests remain mandatory in every tier.",
+        "Migration, backup/restore, observability and incident ownership are defined per tier.",
+        "Cutover and rollback drills cover both metadata and tenant data.",
+        "All provisional tenantStrategy projections either conform to or are migrated under the approved canonical decision."
+      ],
+      "rollback": {
+        "trigger": "Cross-tenant isolation fails, migration cannot be reversed safely, thresholds are undefined, or topology differs from the approved record.",
+        "action": "Stop tenant onboarding/cutover, route writes to the last verified topology, restore metadata from the pre-cutover snapshot, run isolation checks, and keep KGA-D10 pending until a new human decision."
+      },
+      "humanApprovalRequired": true,
+      "canonicalWriteBackApprovalRequired": true,
+      "codeStartAllowed": false
+    }
+  ]
+}

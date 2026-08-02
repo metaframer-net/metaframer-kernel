@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-30",
+  "lifecycleState": "APPROVED_AWAITING_CANONICAL_WRITEBACK",
+  "currentPhase": "planning-bootstrap",
+  "phaseStatus": "validated-decisions-recorded",
+  "repository": {
+    "name": "metaframer-net/metaframer-kernel",
+    "path": "/Users/karaca/DEV/mimari/metaframer-kernel",
+    "branch": "agent/kernel-control-plane-reconcile",
+    "baselineSha": "90e5f6ac2b8beb4d8be1064390ba433b2bbdd434",
+    "upstreamSha": "90e5f6ac2b8beb4d8be1064390ba433b2bbdd434",
+    "preExistingDirtyFiles": [
+      ".gitignore",
+      "AGENTS.md"
+    ],
+    "preExistingChangesPreserved": true
+  },
+  "classification": "PLANNING_ONLY",
+  "runtimeStatus": "VALID_BLOCKED",
+  "releaseDecision": "NO_GO",
+  "runtimeCodeAllowed": false,
+  "canonicalPlanningSource": {
+    "repository": "karacaismail/actionplan",
+    "ref": "refs/remotes/origin/main",
+    "sha": "508746955159955c6d3bbd653287045f033bc2e2",
+    "workingCheckoutIgnoredForCanonicalReads": true
+  },
+  "rawInputSnapshot": {
+    "configuredPath": "/Users/karaca/Downloads",
+    "readOnly": true,
+    "fileCount": 40,
+    "uniqueTaskCount": 39,
+    "totalBytes": 7894060,
+    "inventoryRef": "planning/source-inventory.json",
+    "traceabilityRef": "planning/traceability-matrix.json"
+  },
+  "governance": {
+    "canonicalStatus": "pending",
+    "proposalRef": "planning/governance-decisions.json",
+    "deterministicClosureIds": [
+      "KGA-D02",
+      "KGA-D03",
+      "KGA-D05",
+      "KGA-D06",
+      "KGA-D07"
+    ],
+    "humanDecisionIds": [
+      "KGA-D01",
+      "KGA-D04",
+      "KGA-D08",
+      "KGA-D09",
+      "KGA-D10"
+    ],
+    "canonicalWriteBackAuthorized": false
+  },
+  "blockers": [
+    {
+      "id": "KGA-D01",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "D01-A",
+      "canonicalStatus": "pending"
+    },
+    {
+      "id": "KGA-D04",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "D04+D09-A",
+      "canonicalStatus": "pending"
+    },
+    {
+      "id": "KGA-D08",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "D08-A",
+      "canonicalStatus": "pending"
+    },
+    {
+      "id": "KGA-D09",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "D04+D09-A",
+      "canonicalStatus": "pending"
+    },
+    {
+      "id": "KGA-D10",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "D10-A",
+      "canonicalStatus": "pending"
+    },
+    {
+      "id": "TOPOLOGY-HISTORY-EXTRACTION",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "T01-A + T02-A"
+    },
+    {
+      "id": "EXTERNAL-MUTATION-AUTHORITY",
+      "type": "human-decision",
+      "status": "closed-locally",
+      "resolvedBy": "A01-A"
+    }
+  ],
+  "approvedDecisions": {
+    "requestRef": "planning/human-decision-request.json",
+    "responsePointer": "response",
+    "packageId": "kernel-bootstrap-human-decisions-2026-07-30",
+    "decider": "user-admin",
+    "recordedAt": "2026-07-30",
+    "selectionLine": "T01-A, T02-A, D01-A, D04+D09-A, D08-A, D10-A, A01-A",
+    "selectedOptionIds": [
+      "T01-A",
+      "T02-A",
+      "D01-A",
+      "D04+D09-A",
+      "D08-A",
+      "D10-A",
+      "A01-A"
+    ],
+    "standingAuthorization": false,
+    "canonicalWriteBackAuthorized": false,
+    "oneShotGitAuthorizationRef": "response.oneShotGitAuthorization",
+    "oneShotGitAuthorizationScope": "one-shot-commit-push-single-branch",
+    "oneShotGitAuthorizationBranch": "agent/kernel-control-plane-reconcile",
+    "oneShotGitAuthorizationExecutor": "codex",
+    "oneShotGitAuthorizationReuseAllowed": false,
+    "oneShotGitAuthorizationConsumableByClaude": false,
+    "remoteAuditRef": "response.remoteAudit"
+  },
+  "sourceTopology": {
+    "state": "APPROVED_CONDITIONAL",
+    "futureOwner": "metaframer-net/metaframer-kernel",
+    "activatesAfter": "all-canonical-KGA-decisions-closed",
+    "currentImplementationWorkspace": "platform monorepo",
+    "governanceOwner": "actionplan",
+    "historyStrategy": "CLEAN_START_WITH_PROVENANCE",
+    "sourceExtraction": false
+  },
+  "codingPolicy": {
+    "mode": "CLAUDE_ONLY",
+    "persistent": true,
+    "active": true,
+    "immutable": true,
+    "singleActiveWriter": true,
+    "fallbackWriter": null,
+    "fallbackWriterAllowed": false,
+    "separateCodeStartAuthorityRequired": true,
+    "writer": {
+      "agent": "claude",
+      "invocation": "claude_implement",
+      "role": "bounded-worker",
+      "mayOrchestrate": false,
+      "forbiddenActions": [
+        "commit",
+        "push",
+        "merge",
+        "release",
+        "deploy"
+      ]
+    },
+    "master": {
+      "agent": "codex",
+      "role": "MASTER",
+      "finalReviewer": true,
+      "ownsScopeAndRollback": true,
+      "mayWriteFilesInScope": false,
+      "isFallbackWriter": false
+    },
+    "scope": {
+      "trigger": "any repository file modification that forms a coding or implementation package",
+      "appliesTo": [
+        "code",
+        "tests",
+        "tools",
+        "scripts",
+        "schemas",
+        "config",
+        "migrations",
+        "associated-planning-docs"
+      ]
+    },
+    "authGate": {
+      "loggedIn": true,
+      "authMethod": "claude.ai",
+      "apiProvider": "firstParty",
+      "subscriptionType": "max"
+    },
+    "prohibitedAuthPaths": [
+      "anthropic-api-key",
+      "api-credits",
+      "auth-token-override",
+      "bedrock",
+      "vertex",
+      "foundry",
+      "proxy",
+      "provider-fallback"
+    ],
+    "providerFallbackAllowed": false,
+    "onAuthFailure": "fail-closed-no-other-writer",
+    "capabilityUse": {
+      "evaluateRelevantAgentsSkillsMcps": true,
+      "mayAlterAuthorityHierarchy": false
+    }
+  },
+  "nextAction": "obtain-actionplan-canonical-writeback-authority",
+  "nextActionRef": "planning/human-decision-request.json",
+  "requiredChecks": [
+    "npm test",
+    "npm run check"
+  ],
+  "testResults": {
+    "redEvidenceHistory": [
+      {
+        "phase": "initial-bootstrap",
+        "observedOn": "2026-07-30",
+        "command": "node --test tests/control-plane-bootstrap.test.mjs",
+        "observed": "5 tests, 0 pass, 5 fail",
+        "failingTestCount": 5,
+        "reason": "Required planning and resume artifacts did not yet exist."
+      },
+      {
+        "phase": "approval-reconciliation",
+        "observedOn": "2026-07-30",
+        "command": "npm test",
+        "observed": "7 failing tests",
+        "failingTestCount": 7,
+        "failingTestNames": [
+          "governance closure proposals preserve the human decision boundary",
+          "approved human decisions are recorded with durable provenance",
+          "the one-shot publish grant never becomes standing or Claude-consumable",
+          "the CLAUDE_ONLY writer lock is machine-enforced and matches AGENTS.md",
+          "resume state records the approved decisions and stays fail-closed",
+          "no artifact still presents the human decision as the current state",
+          "repository status stays fail-closed until the runtime decision gate is complete"
+        ],
+        "reason": "The approval, coding-policy, one-shot-grant and topology assertions were written before the artifacts recorded the human response."
+      }
+    ],
+    "greenEvidence": {
+      "status": "passed",
+      "observedOn": "2026-07-30",
+      "commands": [
+        "npm test",
+        "npm run check"
+      ],
+      "testsPassed": 12,
+      "testsFailed": 0,
+      "result": "12 tests passed; repository-boundary and control-plane checks passed"
+    },
+    "sourceVerification": {
+      "status": "passed",
+      "observedOn": "2026-07-30",
+      "command": "npm run check:sources",
+      "result": "40 raw files, 39 unique tasks and actionplan@5087469 verified read-only"
+    }
+  },
+  "effectiveAuthorization": {
+    "scope": "standing",
+    "description": "Standing authorization only. Every standing action stays default-deny under A01-A. The separately recorded one-shot Git grant is referenced, never merged into these booleans, and never sets a standing flag true.",
+    "oneShotGitAuthorizationRef": "response.oneShotGitAuthorization",
+    "standingActions": {
+      "commit": false,
+      "push": false,
+      "merge": false,
+      "release": false,
+      "deploy": false,
+      "actionplanWriteBack": false,
+      "downloadsWrite": false,
+      "runtimeImplementation": false
+    },
+    "oneShotGitAuthorization": {
+      "sourceRef": "planning/human-decision-request.json#/response/oneShotGitAuthorization",
+      "scope": "one-shot",
+      "grantedAfter": "A01-A",
+      "ref": "refs/heads/agent/kernel-control-plane-reconcile",
+      "expectedBaseSha": "90e5f6ac2b8beb4d8be1064390ba433b2bbdd434",
+      "pushMode": "normal-non-force",
+      "executor": "codex",
+      "consumableByClaude": false,
+      "reuseAllowed": false,
+      "pullRequest": false,
+      "consumptionAuthority": "remote-ref-absence-before-first-push",
+      "prePushVerificationCommand": "git ls-remote --heads origin refs/heads/agent/kernel-control-plane-reconcile",
+      "prePushRule": "Before the authorized push, `git ls-remote --heads origin refs/heads/agent/kernel-control-plane-reconcile` MUST return no matching ref and no output. If that ref exists at any SHA the grant is already spent: stop immediately and perform no push, re-push, amend or force. Only empty output proves the grant is still unconsumed.",
+      "postPushEvidenceRule": "After the authorized push the remote ref refs/heads/agent/kernel-control-plane-reconcile must equal the local commit and must descend from expected base 90e5f6ac2b8beb4d8be1064390ba433b2bbdd434. Remote state, not the committed field, remains authoritative.",
+      "consumptionStatus": "unconsumed",
+      "consumptionStatusAuthority": "snapshot-evidence-only",
+      "consumptionStatusNote": "This mirrored consumptionStatus is snapshot evidence only; it is deliberately not mutated after the push and is never sufficient authority after publication. Resolve consumption from remote-ref state through prePushVerificationCommand.",
+      "summary": "One Codex-executed commit and one normal non-force push of this exact planning package to the granted ref. Consumability is fenced by remote-ref absence before the push, not by the static consumptionStatus field; it never becomes a standing action and never authorizes merge, PR creation, main push, tags, force, release, deploy, Actionplan write-back or runtime."
+    }
+  },
+  "security": {
+    "rawContentTrust": "untrusted-data",
+    "promptOrDirectiveExecutionAllowed": false,
+    "sourceHashRefreshMode": "fail-closed-manual-review"
+  },
+  "rollback": {
+    "scope": [
+      "planning/*",
+      "docs/control-plane-bootstrap.md",
+      "docs/human-decision-package.md",
+      "docs/resume-runbook.md",
+      "tests/control-plane-bootstrap.test.mjs",
+      "tools/check-control-plane-bootstrap.mjs",
+      "tools/check-source-snapshot.mjs",
+      "README.md planning links",
+      "package.json test/check wiring",
+      "repository-status.json planningControlPlane"
+    ],
+    "preserve": [
+      ".gitignore pre-existing user change",
+      "AGENTS.md Pane-managed user change",
+      "/Users/karaca/DEV/mimari/actionplan",
+      "/Users/karaca/Downloads/*.json"
+    ],
+    "runtimeDataImpact": "none"
+  }
+}

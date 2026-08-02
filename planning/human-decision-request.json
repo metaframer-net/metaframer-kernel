@@ -1,0 +1,611 @@
+{
+  "schemaVersion": 1,
+  "packageId": "kernel-bootstrap-human-decisions-2026-07-30",
+  "status": "answered-recorded",
+  "canonicalWriteBackAuthorized": false,
+  "responseFormat": "Reply once with T01, T02, D01, D04+D09, D08, D10 and A01 option codes. Use T02-N when T01-B is selected. Custom selections may be stated next to any code.",
+  "deterministicClosuresNotAsked": [
+    "KGA-D02",
+    "KGA-D03",
+    "KGA-D05",
+    "KGA-D06",
+    "KGA-D07"
+  ],
+  "questions": [
+    {
+      "id": "T01",
+      "topic": "canonical runtime repository and topology",
+      "recommendedOption": "T01-A",
+      "options": [
+        {
+          "id": "T01-A",
+          "label": "Standalone kernel after gate",
+          "decision": "`metaframer-kernel` becomes canonical owner of kernel runtime and public kernel contracts after governance closure; Actionplan remains governance owner; platform consumes through versioned SDK/public ports."
+        },
+        {
+          "id": "T01-B",
+          "label": "Platform monorepo remains canonical",
+          "decision": "Runtime stays in `platform`; this repository remains planning-only and never receives runtime source."
+        }
+      ],
+      "whyHuman": "This changes canonical source ownership, dependency boundaries, CI/release ownership and rollback authority."
+    },
+    {
+      "id": "T02",
+      "topic": "history and extraction strategy",
+      "recommendedOption": "T02-A",
+      "selectionRule": "T01-A requires T02-A, T02-B or T02-C. T01-B requires T02-N because no extraction into this repository will occur.",
+      "options": [
+        {
+          "id": "T02-A",
+          "label": "Clean start with provenance",
+          "decision": "Do not copy/filter/mirror platform history. Start authorized kernel packages in this repository only after the gate, with a provenance ledger referencing source decisions and any selectively reimplemented contracts."
+        },
+        {
+          "id": "T02-B",
+          "label": "Filtered history extraction",
+          "decision": "After an approved path audit identifies an isolated boundary, use a reviewed filtered-history extraction with commit map and rollback tag."
+        },
+        {
+          "id": "T02-C",
+          "label": "Subtree or mirror transition",
+          "decision": "Keep platform canonical during a time-boxed subtree/mirror transition, then cut over through explicit dual-write prohibition and rollback gates."
+        },
+        {
+          "id": "T02-N",
+          "label": "Not applicable",
+          "decision": "Valid only with T01-B: platform remains canonical, this repository remains planning-only, and no history extraction or runtime cutover is performed."
+        }
+      ],
+      "whyHuman": "No isolated runtime-kernel source exists today; choosing history shape affects auditability and cutover risk."
+    },
+    {
+      "id": "D01",
+      "topic": "33 code-bearing descendant dispositions",
+      "recommendedOption": "D01-A",
+      "selectionRule": "D01-A approves defer for every parent in recommendedDeferredParentIds. D01-B is valid only when the same response supplies a complete 33-row override with an exact approved descendant or explicit defer/reject disposition for every parent.",
+      "recommendedDeferredParentIds": [
+        "k-actor",
+        "k-agent-runtime",
+        "k-archetype-bayraklari",
+        "k-archetype-computation",
+        "k-archetype-fieldtypes",
+        "k-archetype-mode-profile",
+        "k-authz",
+        "k-boyut1-ops-panel",
+        "k-boyut2-developer-panel",
+        "k-boyut3-tenant-panel",
+        "k-bus",
+        "k-calendar-capacity",
+        "k-computation",
+        "k-control-planes",
+        "k-edge-gateway",
+        "k-genealogy-graph",
+        "k-jurisdiction",
+        "k-kpi-registry",
+        "k-mdm",
+        "k-mod-l",
+        "k-mode",
+        "k-party",
+        "k-plugin",
+        "k-policy-pdp",
+        "k-schema",
+        "k-search",
+        "k-sequence",
+        "k-sozlesme",
+        "k-storage",
+        "k-surface",
+        "k-surface-consumer",
+        "k-terminoloji",
+        "k-worker"
+      ],
+      "recommendedDisposition": {
+        "disposition": "defer",
+        "selectedDescendantId": null,
+        "effect": "No code-bearing descendant is invented or authorized in this bootstrap; the parent remains planning-only until a later exact human-approved replacement decision."
+      },
+      "options": [
+        {
+          "id": "D01-A",
+          "label": "Defer all pending parents",
+          "decision": "Record all 33 parents as explicitly deferred/non-code-bearing for the bootstrap. No generic child is invented; each later descendant requires a task-specific human-approved ledger row."
+        },
+        {
+          "id": "D01-B",
+          "label": "Provide a custom 33-row matrix",
+          "decision": "In this same response, provide every parent with either an exact approved descendant ID, level, owner, test and rollback contract, or an explicit defer/reject disposition. A named subset or partial matrix is not a valid closure decision."
+        }
+      ],
+      "whyHuman": "Selecting WBS decomposition is product scope and the 40 exports do not contain enough evidence to invent all 33 descendants."
+    },
+    {
+      "id": "D04+D09",
+      "topic": "unowned directives and ghost WBS disposition",
+      "recommendedOption": "D04+D09-A",
+      "selectionRule": "D04+D09-A approves the complete 13-row matrix below. D04+D09-B is valid only when the same response supplies create, alias, fold or reject plus canonical owner for every one of the 13 rows.",
+      "recommendedDispositionMatrix": [
+        {
+          "missingNodeId": "archetype-agreement",
+          "directiveRef": "docs/archetype-agreement-lifecycle-negotiation-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or execute this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "archetype-document-composition",
+          "directiveRef": "docs/archetype-document-composition-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or execute this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-event-projection",
+          "directiveRef": "docs/event-replay-projection-contract.md",
+          "disposition": "reject",
+          "effect": "Do not create or execute this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-evidence",
+          "directiveRef": "docs/k-evidence-seal-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or alias this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-exec-context",
+          "directiveRef": "docs/execution-context-envelope-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or execute this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-kms",
+          "directiveRef": "docs/k-kms-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-legal-hold-retention",
+          "directiveRef": "docs/k-legal-hold-retention-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or alias this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-migration-bridge",
+          "directiveRef": "docs/k-migration-bridge-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-module-security",
+          "directiveRef": "docs/marketplace-module-security-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or execute this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-obligation",
+          "directiveRef": "docs/k-obligation-commitment-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-provider-adapter",
+          "directiveRef": "docs/k-provider-adapter-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "k-signature",
+          "directiveRef": "docs/k-signature-trust-directive.md",
+          "disposition": "reject",
+          "effect": "Do not create or alias this WBS identity; retain the directive as non-executable requirements evidence."
+        },
+        {
+          "missingNodeId": "privacy-retention-matrix",
+          "directiveRef": "docs/privacy-retention-decision-matrix.md",
+          "disposition": "reject",
+          "effect": "Do not create or execute this WBS identity; retain the directive as non-executable requirements evidence."
+        }
+      ],
+      "options": [
+        {
+          "id": "D04+D09-A",
+          "label": "Reject all 13 WBS identities",
+          "decision": "Approve the complete recommendedDispositionMatrix: all 13 ghost identities receive the canonical disposition reject, no node or alias is created, execution references are removed or disabled, and the directive documents remain non-executable requirements evidence."
+        },
+        {
+          "id": "D04+D09-B",
+          "label": "Provide a custom 13-row matrix",
+          "decision": "In this same response, provide create, alias, fold or reject plus canonical owner and rationale for every listed row. A partial matrix is not a valid decision."
+        }
+      ],
+      "whyHuman": "Create/alias/fold/reject changes WBS ownership and can create or remove product scope."
+    },
+    {
+      "id": "D08",
+      "topic": "ADR collision policy",
+      "recommendedOption": "D08-A",
+      "collisionClusters": [
+        {
+          "ambiguousId": "ADR-E1",
+          "topics": [
+            "event-replay-projection",
+            "evidence-seal"
+          ]
+        },
+        {
+          "ambiguousId": "ADR-M1",
+          "topics": [
+            "migration-bridge",
+            "module-security-sandbox"
+          ]
+        },
+        {
+          "ambiguousId": "ADR-S1",
+          "topics": [
+            "object-storage-dam",
+            "surface-family"
+          ]
+        },
+        {
+          "ambiguousId": "ADR-X1",
+          "topics": [
+            "execution-contract-matrix",
+            "execution-context-envelope"
+          ]
+        },
+        {
+          "ambiguousId": "ADR-A5/ADR-0022",
+          "topics": [
+            "archetype-storage",
+            "variant-fieldtype-extension",
+            "duplicate-storage-identity"
+          ]
+        }
+      ],
+      "options": [
+        {
+          "id": "D08-A",
+          "label": "Quarantine ambiguous IDs",
+          "decision": "Mark each colliding short ID ambiguous/deprecated, forbid it as approvalRef, allocate new unique IDs to every topic using the canonical registry sequence, and migrate consumers atomically."
+        },
+        {
+          "id": "D08-B",
+          "label": "Preserve one legacy ID per cluster",
+          "decision": "The response must name the canonical topic for each of the five clusters; other topics receive new IDs and explicit supersession aliases."
+        }
+      ],
+      "whyHuman": "Only the owner can decide which historical identity and approval lineage is canonical."
+    },
+    {
+      "id": "D10",
+      "topic": "tenancy physical storage and isolation",
+      "recommendedOption": "D10-A",
+      "options": [
+        {
+          "id": "D10-A",
+          "label": "Shared schema plus RLS",
+          "physicalStrategy": "shared-schema-rls",
+          "thresholdDisposition": "not-applicable-fixed-topology",
+          "decisionOwner": "user-admin",
+          "decision": "Use shared schema with tenant_id and deny-by-default PostgreSQL RLS as the fixed topology. No tenant-count threshold or automatic promotion exists; any dedicated schema/database exception is a new human-approved topology decision."
+        },
+        {
+          "id": "D10-B",
+          "label": "Schema per tenant",
+          "physicalStrategy": "schema-per-tenant-rls",
+          "thresholdDisposition": "not-applicable-fixed-topology",
+          "decisionOwner": "user-admin",
+          "decision": "Use schema-per-tenant plus mandatory RLS defense-in-depth as the fixed topology, with centralized migration orchestration. No tenant-count threshold or automatic topology change exists."
+        },
+        {
+          "id": "D10-C",
+          "label": "Hybrid",
+          "physicalStrategy": "hybrid",
+          "thresholdDisposition": {
+            "tenantCountTrigger": "none",
+            "regulatoryTrigger": "a binding contract or compliance classification requires dedicated physical isolation",
+            "resourceTrigger": "one tenant sustains at least 20 percent of the validated database resource budget for three consecutive 15-minute windows after rate-limit and noisy-neighbor mitigations",
+            "approvalOwner": "user-admin",
+            "evidenceOwner": "data-reliability-owner"
+          },
+          "decisionOwner": "user-admin",
+          "decision": "Use shared schema by default. Promote a tenant only when the regulatoryTrigger or resourceTrigger is evidenced, a reversible migration dry-run passes and user-admin approves the cutover; tenant count alone never triggers promotion."
+        }
+      ],
+      "invariant": "PostgreSQL RLS deny-by-default remains mandatory for every option.",
+      "whyHuman": "The choice changes isolation, compliance, operations, migration cost and rollback shape."
+    },
+    {
+      "id": "A01",
+      "topic": "future Git, release and deployment authority",
+      "recommendedOption": "A01-A",
+      "options": [
+        {
+          "id": "A01-A",
+          "label": "Exact-action approvals",
+          "decision": "Keep commit, push, merge, release and deploy unauthorized by default. A later planning commit, push, canonical Actionplan write-back, release or deploy each requires its own exact target/action approval."
+        },
+        {
+          "id": "A01-B",
+          "label": "Allow future local planning commits",
+          "decision": "After required checks pass, Codex may make local planning-only commits in `metaframer-kernel`; push/merge/release/deploy and Actionplan write-back still require separate exact approval."
+        }
+      ],
+      "currentTurn": {
+        "commit": false,
+        "push": false,
+        "merge": false,
+        "release": false,
+        "deploy": false,
+        "actionplanWriteBack": false
+      },
+      "whyHuman": "These actions create durable or external state and this turn explicitly forbids them."
+    }
+  ],
+  "response": {
+    "packageId": "kernel-bootstrap-human-decisions-2026-07-30",
+    "recordedAt": "2026-07-30",
+    "decider": "user-admin",
+    "channel": "direct-admin-instruction",
+    "requestRef": "planning/human-decision-request.json",
+    "requestArtifactRetained": true,
+    "selectionLine": "T01-A, T02-A, D01-A, D04+D09-A, D08-A, D10-A, A01-A",
+    "selectedOptionIds": [
+      "T01-A",
+      "T02-A",
+      "D01-A",
+      "D04+D09-A",
+      "D08-A",
+      "D10-A",
+      "A01-A"
+    ],
+    "selections": [
+      {
+        "questionId": "T01",
+        "optionId": "T01-A",
+        "governanceRefs": [],
+        "effect": "The standalone `metaframer-net/metaframer-kernel` repository becomes the future owner of kernel runtime and public kernel contracts only after every canonical KGA decision is closed. Actionplan remains the governance owner and the platform monorepo remains the implementation workspace until that gate passes."
+      },
+      {
+        "questionId": "T02",
+        "optionId": "T02-A",
+        "governanceRefs": [],
+        "effect": "Clean start with provenance. No platform history is copied, filtered, mirrored or extracted; authorized kernel packages may only be created here after the gate, tracked by a provenance ledger."
+      },
+      {
+        "questionId": "D01",
+        "optionId": "D01-A",
+        "governanceRefs": [
+          "KGA-D01"
+        ],
+        "effect": "All 33 pending module parents are explicitly deferred as non-code-bearing for this bootstrap. No descendant is invented; each later descendant needs its own exact human-approved ledger row."
+      },
+      {
+        "questionId": "D04+D09",
+        "optionId": "D04+D09-A",
+        "governanceRefs": [
+          "KGA-D04",
+          "KGA-D09"
+        ],
+        "effect": "All 13 ghost identities are rejected as WBS identities. No node or alias is created, execution references stay removed or disabled, and each directive document remains non-executable requirements evidence."
+      },
+      {
+        "questionId": "D08",
+        "optionId": "D08-A",
+        "governanceRefs": [
+          "KGA-D08"
+        ],
+        "effect": "Every colliding short ADR ID is quarantined and deprecated and is forbidden as an approvalRef. A later authorized canonical write-back allocates unique registry IDs per topic and migrates consumers atomically."
+      },
+      {
+        "questionId": "D10",
+        "optionId": "D10-A",
+        "governanceRefs": [
+          "KGA-D10"
+        ],
+        "effect": "Fixed shared-schema topology with a `tenant_id` discriminator and deny-by-default PostgreSQL RLS. The threshold disposition is not-applicable-fixed-topology and no automatic promotion exists; any dedicated isolation exception is a new human-approved topology decision."
+      },
+      {
+        "questionId": "A01",
+        "optionId": "A01-A",
+        "governanceRefs": [],
+        "effect": "No standing mutation permission is created. Commit, push, merge, release, deploy and Actionplan write-back remain default-deny and each later action needs its own exact target approval. The `currentTurn` booleans on the A01 question record the standing default at request time. A separate later exact user instruction, recorded in `oneShotGitAuthorization`, grants Codex exactly one normal non-force, no-tag commit and push of this exact planning package to `agent/kernel-control-plane-reconcile` from expected base 90e5f6ac2b8beb4d8be1064390ba433b2bbdd434; it is not reusable, does not apply to main, does not extend to Claude and leaves pull-request creation, merge, release, deploy, Actionplan write-back and runtime unauthorized. Its remaining consumability is proven by remote-ref absence before the push, not by the committed consumptionStatus field.",
+        "oneShotGitAuthorizationRef": "response.oneShotGitAuthorization"
+      }
+    ],
+    "effects": {
+      "d01DeferredParentCount": 33,
+      "d01InventedDescendants": 0,
+      "d01DeferredParentIds": [
+        "k-actor",
+        "k-agent-runtime",
+        "k-archetype-bayraklari",
+        "k-archetype-computation",
+        "k-archetype-fieldtypes",
+        "k-archetype-mode-profile",
+        "k-authz",
+        "k-boyut1-ops-panel",
+        "k-boyut2-developer-panel",
+        "k-boyut3-tenant-panel",
+        "k-bus",
+        "k-calendar-capacity",
+        "k-computation",
+        "k-control-planes",
+        "k-edge-gateway",
+        "k-genealogy-graph",
+        "k-jurisdiction",
+        "k-kpi-registry",
+        "k-mdm",
+        "k-mod-l",
+        "k-mode",
+        "k-party",
+        "k-plugin",
+        "k-policy-pdp",
+        "k-schema",
+        "k-search",
+        "k-sequence",
+        "k-sozlesme",
+        "k-storage",
+        "k-surface",
+        "k-surface-consumer",
+        "k-terminoloji",
+        "k-worker"
+      ],
+      "d04d09RejectedIdentityCount": 13,
+      "d04d09RejectedIdentityIds": [
+        "archetype-agreement",
+        "archetype-document-composition",
+        "k-event-projection",
+        "k-evidence",
+        "k-exec-context",
+        "k-kms",
+        "k-legal-hold-retention",
+        "k-migration-bridge",
+        "k-module-security",
+        "k-obligation",
+        "k-provider-adapter",
+        "k-signature",
+        "privacy-retention-matrix"
+      ],
+      "d04d09DirectiveDisposition": "non-executable-requirements-evidence",
+      "d08Policy": "quarantine-deprecate-and-reallocate",
+      "d08AmbiguousIdsUsableAsApprovalRef": false,
+      "d10PhysicalStrategy": "shared-schema-rls",
+      "d10TenantDiscriminator": "tenant_id",
+      "d10RlsDenyByDefault": true,
+      "d10ThresholdDisposition": "not-applicable-fixed-topology",
+      "d10AutomaticPromotion": false,
+      "topologyState": "APPROVED_CONDITIONAL",
+      "topologyFutureOwner": "metaframer-net/metaframer-kernel",
+      "topologyActivatesAfter": "all-canonical-KGA-decisions-closed",
+      "currentImplementationWorkspace": "platform monorepo",
+      "governanceOwner": "actionplan",
+      "historyStrategy": "CLEAN_START_WITH_PROVENANCE",
+      "sourceExtraction": false,
+      "canonicalWriteBackAuthorized": false,
+      "runtimeCodeAllowed": false,
+      "codeStartAllowed": false,
+      "releaseDecision": "NO_GO",
+      "a01StandingAuthorization": false,
+      "a01OneShotGitAuthorizationRef": "response.oneShotGitAuthorization",
+      "a01OneShotReuseAllowed": false,
+      "a01OneShotExecutor": "codex"
+    },
+    "remoteAudit": {
+      "auditedBy": "codex",
+      "auditedOn": "2026-07-30",
+      "method": "gh after fetch",
+      "repository": "metaframer-net/metaframer-kernel",
+      "visibility": "private",
+      "defaultBranch": "main",
+      "mainSha": "90e5f6ac2b8beb4d8be1064390ba433b2bbdd434",
+      "otherRemoteBranches": 0,
+      "pullRequests": 0,
+      "releases": 0,
+      "actionsRuns": 0,
+      "remoteRuntimeDevelopmentObserved": false
+    },
+    "oneShotGitAuthorization": {
+      "scope": "one-shot",
+      "grantedBy": "user-admin",
+      "grantedOn": "2026-07-30",
+      "grantedAfter": "A01-A",
+      "action": "one normal commit and push of this exact planning package",
+      "repository": "metaframer-net/metaframer-kernel",
+      "branch": "agent/kernel-control-plane-reconcile",
+      "ref": "refs/heads/agent/kernel-control-plane-reconcile",
+      "expectedBaseSha": "90e5f6ac2b8beb4d8be1064390ba433b2bbdd434",
+      "pushMode": "normal-non-force",
+      "force": false,
+      "tags": false,
+      "commit": true,
+      "push": true,
+      "defaultBranchPush": false,
+      "pullRequest": false,
+      "grantee": "codex",
+      "executor": "codex",
+      "consumableByClaude": false,
+      "standingAuthorization": false,
+      "reuseAllowed": false,
+      "consumptionAuthority": "remote-ref-absence-before-first-push",
+      "consumptionRule": "Consumed by the first successful normal non-force push of this exact planning package to refs/heads/agent/kernel-control-plane-reconcile. Consumption is fenced by remote-ref state, not by the committed consumptionStatus field. Once consumed the grant is spent; any further commit, push, re-push, amended push, force push or push to any other ref requires a new exact human approval.",
+      "prePushVerificationCommand": "git ls-remote --heads origin refs/heads/agent/kernel-control-plane-reconcile",
+      "prePushRule": "Before the authorized push, `git ls-remote --heads origin refs/heads/agent/kernel-control-plane-reconcile` MUST return no matching ref and no output. If that ref exists at any SHA the grant is already spent: stop immediately and perform no push, re-push, amend or force. Only empty output proves the grant is still unconsumed.",
+      "evidenceRule": "Consumption is evidenced by the remote branch refs/heads/agent/kernel-control-plane-reconcile existing with a tip SHA that is a descendant of expected base 90e5f6ac2b8beb4d8be1064390ba433b2bbdd434. A non-descendant tip, a force push, a pushed tag, a push to main or a push to any other branch is outside this grant.",
+      "postPushEvidenceRule": "After the authorized push the remote ref refs/heads/agent/kernel-control-plane-reconcile must equal the local commit and must descend from expected base 90e5f6ac2b8beb4d8be1064390ba433b2bbdd434. Remote state, not the committed field, remains authoritative.",
+      "consumptionStatus": "unconsumed",
+      "consumptionStatusAuthority": "snapshot-evidence-only",
+      "consumptionStatusNote": "The committed consumptionStatus is deliberately not mutated after the push, so it is snapshot evidence only and is never sufficient authority after publication. A later checkout must resolve consumption from remote-ref state through prePushVerificationCommand.",
+      "consumedAt": null,
+      "merge": false,
+      "release": false,
+      "deploy": false,
+      "actionplanWriteBack": false,
+      "runtimeImplementation": false,
+      "note": "This grant is one-shot and branch-scoped. It never becomes standing authority, never applies to main, and never converts an approval into runtime, release or Actionplan write-back authority."
+    },
+    "codingPolicy": {
+      "mode": "CLAUDE_ONLY",
+      "persistent": true,
+      "active": true,
+      "immutable": true,
+      "singleActiveWriter": true,
+      "fallbackWriter": null,
+      "fallbackWriterAllowed": false,
+      "separateCodeStartAuthorityRequired": true,
+      "writer": {
+        "agent": "claude",
+        "invocation": "claude_implement",
+        "role": "bounded-worker",
+        "mayOrchestrate": false,
+        "forbiddenActions": [
+          "commit",
+          "push",
+          "merge",
+          "release",
+          "deploy"
+        ]
+      },
+      "master": {
+        "agent": "codex",
+        "role": "MASTER",
+        "finalReviewer": true,
+        "ownsScopeAndRollback": true,
+        "mayWriteFilesInScope": false,
+        "isFallbackWriter": false
+      },
+      "scope": {
+        "trigger": "any repository file modification that forms a coding or implementation package",
+        "appliesTo": [
+          "code",
+          "tests",
+          "tools",
+          "scripts",
+          "schemas",
+          "config",
+          "migrations",
+          "associated-planning-docs"
+        ]
+      },
+      "authGate": {
+        "loggedIn": true,
+        "authMethod": "claude.ai",
+        "apiProvider": "firstParty",
+        "subscriptionType": "max"
+      },
+      "prohibitedAuthPaths": [
+        "anthropic-api-key",
+        "api-credits",
+        "auth-token-override",
+        "bedrock",
+        "vertex",
+        "foundry",
+        "proxy",
+        "provider-fallback"
+      ],
+      "providerFallbackAllowed": false,
+      "onAuthFailure": "fail-closed-no-other-writer",
+      "capabilityUse": {
+        "evaluateRelevantAgentsSkillsMcps": true,
+        "mayAlterAuthorityHierarchy": false
+      }
+    }
+  }
+}

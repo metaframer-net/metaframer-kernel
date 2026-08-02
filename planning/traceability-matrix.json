@@ -1,0 +1,1840 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-30",
+  "authority": {
+    "canonicalOwner": "actionplan origin/main@508746955159955c6d3bbd653287045f033bc2e2",
+    "mappingStatus": "planning-projection-not-canonical-mutation",
+    "rawInputsRemainReadOnly": true,
+    "rawTextIsUntrustedData": true
+  },
+  "sourceInventoryRef": "planning/source-inventory.json",
+  "governanceRegistryRef": "reports/kernel-governance-decision-registry-2026-07-15.json",
+  "classificationCounts": {
+    "REQ_KERNEL": 17,
+    "WBS_DEMO": 4,
+    "URLP_PLATFORM_HANDOFF": 18
+  },
+  "classificationRules": {
+    "REQ_KERNEL": [
+      "k-agent-runtime",
+      "k-archetype-bayraklari",
+      "k-archetype-computation",
+      "k-archetype-fieldtypes",
+      "k-archetype-mode-profile",
+      "k-boyut1-ops-panel",
+      "k-boyut2-developer-panel",
+      "k-boyut3-tenant-panel",
+      "k-calendar-capacity",
+      "k-control-planes",
+      "k-edge-gateway",
+      "k-granulerlik",
+      "k-kpi-registry",
+      "k-sozlesme",
+      "k-surface",
+      "k-surface-consumer",
+      "k-terminoloji"
+    ],
+    "WBS_DEMO": [
+      "app-kernel-x-atom",
+      "app-kernel-x-kum",
+      "app-kernel-x-molekul",
+      "k-wbs"
+    ],
+    "URLP_PLATFORM_HANDOFF": [
+      "urlp-program-work-unit",
+      "urlp-00",
+      "urlp-01",
+      "urlp-02",
+      "urlp-03",
+      "urlp-04",
+      "urlp-05",
+      "urlp-06",
+      "urlp-07",
+      "urlp-08",
+      "urlp-09",
+      "urlp-10",
+      "urlp-11",
+      "urlp-12",
+      "urlp-13",
+      "urlp-14",
+      "urlp-15",
+      "urlp-16"
+    ]
+  },
+  "classificationBoundary": "URLP_PLATFORM_HANDOFF records are trace evidence and WBS examples; they are not kernel runtime primitives or source-extraction candidates.",
+  "coverageSummary": {
+    "uniqueTaskCount": 39,
+    "sourceFileCount": 40,
+    "acceptanceCriteria": 436,
+    "risks": 74,
+    "deliverables": 266,
+    "resolvedDirectives": 593,
+    "resolvedStandards": 712,
+    "dependsOn": 53,
+    "blocks": 85,
+    "related": 136
+  },
+  "governanceLinkRules": {
+    "KGA-D01": "Module parents and available feature/component/work-unit/micro-step records constrain code-bearing WBS decomposition.",
+    "KGA-D02": "Surface, consumer, control-plane and URL routing records constrain Kernel -> SDK -> Edition/App dependency direction.",
+    "KGA-D03": "Route/module registry and contract records distinguish module-manifest ownership from capability/entitlement ownership.",
+    "KGA-D04": "Directive-rich module exports expose unowned kernel identities but do not authorize node creation.",
+    "KGA-D05": "Contract, test-first, walking-skeleton and rollout records define non-vacuous exit evidence.",
+    "KGA-D06": "Persistence, event, industrial-edge and tenant records require DB/RLS/transaction/outbox/audit before durable claims.",
+    "KGA-D07": "Every dependency-bearing record is interpreted through the canonical dependsOn/blocks inverse-direction contract.",
+    "KGA-D08": "Terminology, canonical/alias and contract-version records constrain ADR identity and supersession policy without choosing identities.",
+    "KGA-D09": "WBS, granularity, alias and migration records expose create/alias/fold/reject choices without selecting them.",
+    "KGA-D10": "Tenant-facing, routing, mode-profile and edge records expose isolation requirements; embedded hybrid values remain provisional while physicalStrategy is null."
+  },
+  "entries": [
+    {
+      "sourceFiles": [
+        "12.1-k-agent-runtime-raw.json"
+      ],
+      "taskId": "k-agent-runtime",
+      "wbsCode": "12.1",
+      "level": "module",
+      "title": "Agent Runtime — MCP, Araç Kaydı, Bellek, Orkestrasyon",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "agent",
+        "mcp",
+        "llm",
+        "runtime",
+        "vector",
+        "orchestration"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 1,
+        "deliverables": 2,
+        "resolvedDirectives": 4,
+        "resolvedStandards": 13,
+        "dependsOn": 4,
+        "blocks": 16,
+        "related": 8
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D04",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-agent-runtime.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.2-k-archetype-bayraklari-raw.json"
+      ],
+      "taskId": "k-archetype-bayraklari",
+      "wbsCode": "12.2",
+      "level": "module",
+      "title": "ArcheType Bayrakları — Zaman ve Veri Yaşamı",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "archetype",
+        "bayrak",
+        "bitemporal",
+        "pii",
+        "retention",
+        "audit"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 14,
+        "dependsOn": 1,
+        "blocks": 2,
+        "related": 6
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D04",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-archetype-bayraklari.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.3-k-control-planes-raw.json"
+      ],
+      "taskId": "k-control-planes",
+      "wbsCode": "12.3",
+      "level": "module",
+      "title": "Dört Boyut — Kontrol Düzlemleri (Control Planes)",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "control-plane",
+        "panel",
+        "boyut",
+        "developer",
+        "tenant",
+        "frontpages"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 1,
+        "deliverables": 2,
+        "resolvedDirectives": 4,
+        "resolvedStandards": 21,
+        "dependsOn": 1,
+        "blocks": 5,
+        "related": 7
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-control-planes.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.3.1-k-boyut1-ops-panel-raw.json"
+      ],
+      "taskId": "k-boyut1-ops-panel",
+      "wbsCode": "12.3.1",
+      "level": "module",
+      "title": "Boyut 1 — Ops/DevOps Operatör Konsolu",
+      "parentId": "k-control-planes",
+      "requirementDomains": [
+        "boyut1",
+        "ops",
+        "devops",
+        "panel",
+        "operatör",
+        "olay"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 1,
+        "resolvedStandards": 19,
+        "dependsOn": 3,
+        "blocks": 0,
+        "related": 7
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-boyut1-ops-panel.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.3.2-k-boyut2-developer-panel-raw.json"
+      ],
+      "taskId": "k-boyut2-developer-panel",
+      "wbsCode": "12.3.2",
+      "level": "module",
+      "title": "Boyut 2 — Developer-admin Paneli",
+      "parentId": "k-control-planes",
+      "requirementDomains": [
+        "boyut2",
+        "developer",
+        "admin",
+        "archetype",
+        "panel",
+        "şema"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 3,
+        "resolvedStandards": 21,
+        "dependsOn": 4,
+        "blocks": 0,
+        "related": 8
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-boyut2-developer-panel.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.3.3-k-boyut3-tenant-panel-raw.json"
+      ],
+      "taskId": "k-boyut3-tenant-panel",
+      "wbsCode": "12.3.3",
+      "level": "module",
+      "title": "Boyut 3 — Tenant/Müşteri-admin Paneli",
+      "parentId": "k-control-planes",
+      "requirementDomains": [
+        "boyut3",
+        "tenant",
+        "müşteri",
+        "admin",
+        "panel",
+        "paneli"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 3,
+        "resolvedStandards": 19,
+        "dependsOn": 3,
+        "blocks": 0,
+        "related": 7
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-boyut3-tenant-panel.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4-k-granulerlik-raw (1).json",
+        "12.4-k-granulerlik-raw.json"
+      ],
+      "taskId": "k-granulerlik",
+      "wbsCode": "12.4",
+      "level": "module",
+      "title": "Granülerlik Zinciri — Ada'dan Atom'a",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "granulerlik",
+        "wbs",
+        "story-point",
+        "vibecoding",
+        "taksonomi",
+        "granülerlik"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 170,
+        "resolvedStandards": 13,
+        "dependsOn": 1,
+        "blocks": 5,
+        "related": 5
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D04",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D09"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-granulerlik.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1-k-wbs-raw.json"
+      ],
+      "taskId": "k-wbs",
+      "wbsCode": "12.4.1",
+      "level": "feature",
+      "title": "WBS Örneği — Ada'dan Atom'a Görsel Kırılım",
+      "parentId": "k-granulerlik",
+      "requirementDomains": [
+        "wbs",
+        "granulerlik",
+        "echarts",
+        "ağaç",
+        "örneği",
+        "ağacı"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 174,
+        "resolvedStandards": 10,
+        "dependsOn": 2,
+        "blocks": 2,
+        "related": 4
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D04",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D09"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-wbs.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1-app-kernel-x-kum-raw.json"
+      ],
+      "taskId": "app-kernel-x-kum",
+      "wbsCode": "12.4.1.1",
+      "level": "component",
+      "title": "Kum — Kernel örnek kırılımı",
+      "parentId": "k-wbs",
+      "requirementDomains": [
+        "7-seviye",
+        "molekül",
+        "bileşen",
+        "girdi",
+        "capability",
+        "bağlanır"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 14,
+        "risks": 2,
+        "deliverables": 8,
+        "resolvedDirectives": 7,
+        "resolvedStandards": 9,
+        "dependsOn": 0,
+        "blocks": 0,
+        "related": 0
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/app-kernel-x-kum.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.1-app-kernel-x-molekul-raw.json"
+      ],
+      "taskId": "app-kernel-x-molekul",
+      "wbsCode": "12.4.1.1.1",
+      "level": "work_unit",
+      "title": "Molekül — Kernel örnek kırılımı",
+      "parentId": "app-kernel-x-kum",
+      "requirementDomains": [
+        "7-seviye",
+        "doğrulaması",
+        "alanı",
+        "girdi",
+        "anında",
+        "doğrulama"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 14,
+        "risks": 2,
+        "deliverables": 8,
+        "resolvedDirectives": 7,
+        "resolvedStandards": 10,
+        "dependsOn": 0,
+        "blocks": 0,
+        "related": 0
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/app-kernel-x-molekul.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.1.1-app-kernel-x-atom-raw.json"
+      ],
+      "taskId": "app-kernel-x-atom",
+      "wbsCode": "12.4.1.1.1.1",
+      "level": "micro_step",
+      "title": "Atom — Kernel örnek kırılımı",
+      "parentId": "app-kernel-x-molekul",
+      "requirementDomains": [
+        "7-seviye",
+        "atom",
+        "biçim",
+        "değeri",
+        "doğrulaması",
+        "tipi"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 14,
+        "risks": 2,
+        "deliverables": 8,
+        "resolvedDirectives": 7,
+        "resolvedStandards": 9,
+        "dependsOn": 0,
+        "blocks": 0,
+        "related": 0
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/app-kernel-x-atom.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2-urlp-program-work-unit-raw.json"
+      ],
+      "taskId": "urlp-program-work-unit",
+      "wbsCode": "12.4.1.1.2",
+      "level": "work_unit",
+      "title": "URL Policy Implementation Programı — 17 Fazlık Molekül",
+      "parentId": "app-kernel-x-kum",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "waterfall"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 20,
+        "dependsOn": 0,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-program-work-unit.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.1-urlp-00-raw.json"
+      ],
+      "taskId": "urlp-00",
+      "wbsCode": "12.4.1.1.2.1",
+      "level": "micro_step",
+      "title": "URLP-00 — Repo Gerçekliği ve Yanlış Varsayımların Temizlenmesi",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-00"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 19,
+        "dependsOn": 0,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-00.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.2-urlp-01-raw.json"
+      ],
+      "taskId": "urlp-01",
+      "wbsCode": "12.4.1.1.2.2",
+      "level": "micro_step",
+      "title": "URLP-01 — Platform URL Architecture Profile",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-01"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 20,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-01.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.3-urlp-02-raw.json"
+      ],
+      "taskId": "urlp-02",
+      "wbsCode": "12.4.1.1.2.3",
+      "level": "micro_step",
+      "title": "URLP-02 — Kernel Şemaları ve Kırmızı Contract Testleri",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-02"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 18,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-02.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.4-urlp-03-raw.json"
+      ],
+      "taskId": "urlp-03",
+      "wbsCode": "12.4.1.1.2.4",
+      "level": "micro_step",
+      "title": "URLP-03 — Host ve Tenant Resolution",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-03"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 19,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-03.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.5-urlp-04-raw.json"
+      ],
+      "taskId": "urlp-04",
+      "wbsCode": "12.4.1.1.2.5",
+      "level": "micro_step",
+      "title": "URLP-04 — App ve Module Route Registry SDK",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-04"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 19,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D03",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-04.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.6-urlp-05-raw.json"
+      ],
+      "taskId": "urlp-05",
+      "wbsCode": "12.4.1.1.2.6",
+      "level": "micro_step",
+      "title": "URLP-05 — Public ID ve Bounded Context Entegrasyonu",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-05"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 19,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-05.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.7-urlp-06-raw.json"
+      ],
+      "taskId": "urlp-06",
+      "wbsCode": "12.4.1.1.2.7",
+      "level": "micro_step",
+      "title": "URLP-06 — Slug, Canonical ve Alias Motoru",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-06"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 21,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D08",
+        "KGA-D09"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-06.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.8-urlp-07-raw.json"
+      ],
+      "taskId": "urlp-07",
+      "wbsCode": "12.4.1.1.2.8",
+      "level": "micro_step",
+      "title": "URLP-07 — FastAPI ve GraphQL Edge Entegrasyonu",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-07"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 21,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-07.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.9-urlp-08-raw.json"
+      ],
+      "taskId": "urlp-08",
+      "wbsCode": "12.4.1.1.2.9",
+      "level": "micro_step",
+      "title": "URLP-08 — TanStack Router Entegrasyonu",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-08"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 23,
+        "risks": 2,
+        "deliverables": 13,
+        "resolvedDirectives": 10,
+        "resolvedStandards": 28,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-08.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.10-urlp-09-raw.json"
+      ],
+      "taskId": "urlp-09",
+      "wbsCode": "12.4.1.1.2.10",
+      "level": "micro_step",
+      "title": "URLP-09 — Custom Domain ve TLS Control Plane",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-09"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 23,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-09.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.11-urlp-10-raw.json"
+      ],
+      "taskId": "urlp-10",
+      "wbsCode": "12.4.1.1.2.11",
+      "level": "micro_step",
+      "title": "URLP-10 — Session, SSO ve Origin Modeli",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-10"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 20,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-10.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.12-urlp-11-raw.json"
+      ],
+      "taskId": "urlp-11",
+      "wbsCode": "12.4.1.1.2.12",
+      "level": "micro_step",
+      "title": "URLP-11 — i18n ve L10n URL Entegrasyonu",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-11"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 20,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-11.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.13-urlp-12-raw.json"
+      ],
+      "taskId": "urlp-12",
+      "wbsCode": "12.4.1.1.2.13",
+      "level": "micro_step",
+      "title": "URLP-12 — Listing, Facet ve Search Parity",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-12"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 22,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-12.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.14-urlp-13-raw.json"
+      ],
+      "taskId": "urlp-13",
+      "wbsCode": "12.4.1.1.2.14",
+      "level": "micro_step",
+      "title": "URLP-13 — Public Renderer ve SEO",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-13"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 23,
+        "risks": 2,
+        "deliverables": 13,
+        "resolvedDirectives": 10,
+        "resolvedStandards": 30,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-13.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.15-urlp-14-raw.json"
+      ],
+      "taskId": "urlp-14",
+      "wbsCode": "12.4.1.1.2.15",
+      "level": "micro_step",
+      "title": "URLP-14 — App Entegrasyon Dalgaları",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-14"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 23,
+        "risks": 2,
+        "deliverables": 13,
+        "resolvedDirectives": 10,
+        "resolvedStandards": 29,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D03",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-14.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.16-urlp-15-raw.json"
+      ],
+      "taskId": "urlp-15",
+      "wbsCode": "12.4.1.1.2.16",
+      "level": "micro_step",
+      "title": "URLP-15 — Tenant URL Yönetim Yüzeyi",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-15"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 23,
+        "risks": 2,
+        "deliverables": 13,
+        "resolvedDirectives": 10,
+        "resolvedStandards": 28,
+        "dependsOn": 1,
+        "blocks": 1,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-15.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.4.1.1.2.17-urlp-16-raw.json"
+      ],
+      "taskId": "urlp-16",
+      "wbsCode": "12.4.1.1.2.17",
+      "level": "micro_step",
+      "title": "URLP-16 — Fuzz, Migration ve Rollout",
+      "parentId": "urlp-program-work-unit",
+      "requirementDomains": [
+        "url-policy",
+        "k-route-policy",
+        "implementation-program",
+        "urlp-16"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 19,
+        "risks": 2,
+        "deliverables": 11,
+        "resolvedDirectives": 8,
+        "resolvedStandards": 22,
+        "dependsOn": 1,
+        "blocks": 0,
+        "related": 2
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07",
+        "KGA-D09",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/urlp-16.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.5-k-sozlesme-raw.json"
+      ],
+      "taskId": "k-sozlesme",
+      "wbsCode": "12.5",
+      "level": "module",
+      "title": "Sözleşme Yetenekleri — Pinleme, Üretilmiş Test, Projection",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "archetype",
+        "sozlesme",
+        "pinleme",
+        "kontrat-testi",
+        "projection",
+        "conformance"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 1,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 15,
+        "dependsOn": 4,
+        "blocks": 12,
+        "related": 8
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D03",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D08"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-sozlesme.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.6-k-surface-raw.json"
+      ],
+      "taskId": "k-surface",
+      "wbsCode": "12.6",
+      "level": "module",
+      "title": "Surface, Domain ve Workflow — ArcheType'ın Özgürleştiği Yer",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "surface",
+        "domain",
+        "workflow",
+        "archetype",
+        "headless",
+        "deny"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 1,
+        "deliverables": 2,
+        "resolvedDirectives": 3,
+        "resolvedStandards": 14,
+        "dependsOn": 4,
+        "blocks": 15,
+        "related": 8
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-surface.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.7-k-terminoloji-raw.json"
+      ],
+      "taskId": "k-terminoloji",
+      "wbsCode": "12.7",
+      "level": "module",
+      "title": "Terminoloji — Kernel, Core, App, Module, SDK",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "terminoloji",
+        "core",
+        "sdk",
+        "terim",
+        "sözlük",
+        "kalbi"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 20,
+        "dependsOn": 1,
+        "blocks": 11,
+        "related": 6
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D03",
+        "KGA-D04",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D08",
+        "KGA-D09"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-terminoloji.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.8-k-archetype-mode-profile-raw.json"
+      ],
+      "taskId": "k-archetype-mode-profile",
+      "wbsCode": "12.8",
+      "level": "module",
+      "title": "Mode-Profile — Runtime İş-Modeli Anahtarı (B2C↔B2B↔C2C)",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "mode-profile",
+        "edition",
+        "b2b",
+        "b2c",
+        "c2c",
+        "d2c"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 18,
+        "dependsOn": 2,
+        "blocks": 0,
+        "related": 4
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-archetype-mode-profile.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.9-k-archetype-computation-raw.json"
+      ],
+      "taskId": "k-archetype-computation",
+      "wbsCode": "12.9",
+      "level": "module",
+      "title": "Computation / Derivation — Hesap Hattı Sözleşmesi",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "computation",
+        "derivation",
+        "pricing",
+        "tax",
+        "bom",
+        "bordro"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 16,
+        "dependsOn": 1,
+        "blocks": 0,
+        "related": 5
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-archetype-computation.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.10-k-archetype-fieldtypes-raw.json"
+      ],
+      "taskId": "k-archetype-fieldtypes",
+      "wbsCode": "12.10",
+      "level": "module",
+      "title": "Alan Tipi Genişletme — money / measure / i18n-text / geo / attribute-set (EAV)",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "field-type",
+        "money",
+        "measure",
+        "unit-of-measure",
+        "i18n",
+        "eav"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 15,
+        "dependsOn": 1,
+        "blocks": 0,
+        "related": 4
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D04",
+        "KGA-D05",
+        "KGA-D07",
+        "KGA-D08",
+        "KGA-D09"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-archetype-fieldtypes.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.11-k-surface-consumer-raw.json"
+      ],
+      "taskId": "k-surface-consumer",
+      "wbsCode": "12.11",
+      "level": "module",
+      "title": "Consumer-Surface — Tüketici Yüzeyleri + Custom Kaçış Kapısı + Render Sözleşmesi",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "surface",
+        "consumer",
+        "feed",
+        "video",
+        "map",
+        "chat"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 4,
+        "resolvedStandards": 15,
+        "dependsOn": 1,
+        "blocks": 0,
+        "related": 4
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D02",
+        "KGA-D05",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-surface-consumer.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.12-k-edge-gateway-raw.json"
+      ],
+      "taskId": "k-edge-gateway",
+      "wbsCode": "12.12",
+      "level": "module",
+      "title": "Edge Gateway — ISA-95 / OPC-UA / MQTT + Offline-First Fabrika Senkronu",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "edge",
+        "isa-95",
+        "opc-ua",
+        "mqtt",
+        "plc",
+        "offline-first"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 16,
+        "dependsOn": 2,
+        "blocks": 0,
+        "related": 3
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07",
+        "KGA-D10"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-edge-gateway.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.13-k-kpi-registry-raw.json"
+      ],
+      "taskId": "k-kpi-registry",
+      "wbsCode": "12.13",
+      "level": "module",
+      "title": "KPI Registry — ISO 22400 Formül-Tabanlı, Versiyonlu OEE/Verimlilik",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "kpi",
+        "oee",
+        "iso-22400",
+        "formül",
+        "verimlilik",
+        "registry"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 14,
+        "dependsOn": 1,
+        "blocks": 0,
+        "related": 3
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-kpi-registry.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    },
+    {
+      "sourceFiles": [
+        "12.14-k-calendar-capacity-raw.json"
+      ],
+      "taskId": "k-calendar-capacity",
+      "wbsCode": "12.14",
+      "level": "module",
+      "title": "Üretim Takvimi + İş-Merkezi Kapasitesi + Business-Time",
+      "parentId": "app-kernel",
+      "requirementDomains": [
+        "calendar",
+        "capacity",
+        "business-time",
+        "vardiya",
+        "iş-merkezi",
+        "takvim"
+      ],
+      "requirementPointers": [
+        "/task/summary",
+        "/task/deliverables",
+        "/task/acceptanceCriteria",
+        "/task/risks",
+        "/task/dimensions",
+        "/resolvedStandards",
+        "/resolvedDirectives"
+      ],
+      "coverage": {
+        "acceptanceCriteria": 2,
+        "risks": 2,
+        "deliverables": 2,
+        "resolvedDirectives": 6,
+        "resolvedStandards": 13,
+        "dependsOn": 1,
+        "blocks": 0,
+        "related": 3
+      },
+      "governanceDecisionIds": [
+        "KGA-D01",
+        "KGA-D05",
+        "KGA-D06",
+        "KGA-D07"
+      ],
+      "canonicalNodeRef": "src/data/generated/nodes/k-calendar-capacity.json",
+      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+    }
+  ]
+}

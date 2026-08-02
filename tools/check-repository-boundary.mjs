@@ -37,7 +37,16 @@ assert.equal(status.runtime.mvp, false);
 assert.equal(status.runtime.productionReady, false);
 assert.equal(status.decisionGate.requiredClosedDecisions, 10);
 assert.equal(status.decisionGate.state, "INCOMPLETE");
-assert.equal(status.sourceTopology.state, "PENDING_HUMAN_DECISION");
+assert.equal(status.sourceTopology.state, "APPROVED_CONDITIONAL");
+assert.equal(
+  status.sourceTopology.standaloneKernelSource,
+  "CONDITIONALLY_SELECTED_AFTER_CANONICAL_GATE",
+);
+assert.equal(status.sourceTopology.futureOwner, "metaframer-net/metaframer-kernel");
+assert.equal(status.sourceTopology.activatesAfter, "all-canonical-KGA-decisions-closed");
+assert.equal(status.sourceTopology.currentImplementationWorkspace, "platform monorepo");
+assert.equal(status.sourceTopology.historyStrategy, "CLEAN_START_WITH_PROVENANCE");
+assert.equal(status.sourceTopology.sourceExtraction, false);
 assert.equal(packageJson.private, true);
 
 for (const requiredClaim of [
