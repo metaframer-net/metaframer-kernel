@@ -7,7 +7,7 @@
     "repoPath": "/Users/karaca/DEV/mimari/actionplan",
     "remote": "git@github.com:karacaismail/actionplan.git",
     "ref": "refs/remotes/origin/main",
-    "sha": "508746955159955c6d3bbd653287045f033bc2e2",
+    "sha": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
     "selectionReason": "KGA-D01..D10 and their source ledgers are committed on origin/main; the visible root checkout is older and dirty.",
     "artifacts": [
       {
@@ -22,12 +22,12 @@
       },
       {
         "path": "reports/kernel-governance-decision-registry-2026-07-15.json",
-        "sha256": "a4c16df1028f2435e7c9e3d9c609af617c244e513e23dcbaf08f4d36ce37db61",
+        "sha256": "9de94516f8fe342b1d60ca1329001d9836f0414e923c4e1530920bad717e785c",
         "role": "combined visibility index"
       },
       {
         "path": "docs/kernel-governance-decision-pack-2026-07-15.md",
-        "sha256": "1ef9126b9d2056121131e340e661447654071e91e651aba2c6a4faf24bda96bf",
+        "sha256": "298376d07d1d561abf241950bcc6dce4a4b80c2563bcc3315e307151ca4e9c0d",
         "role": "human-readable decision projection"
       },
       {
@@ -43,7 +43,7 @@
       "branch": "codex/w5-measured-short",
       "sha": "9d4be25e18352bd11b0275042731a90f0f129e2d",
       "dirty": true,
-      "commitsBehindCanonical": 82,
+      "commitsBehindCanonical": 118,
       "authority": "not-used-for-canonical-reads"
     },
     {
