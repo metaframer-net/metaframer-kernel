@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "capturedAt": "2026-07-30",
   "authority": {
-    "canonicalOwner": "actionplan origin/main@508746955159955c6d3bbd653287045f033bc2e2",
+    "canonicalOwner": "actionplan origin/main@7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
     "mappingStatus": "planning-projection-not-canonical-mutation",
     "rawInputsRemainReadOnly": true,
     "rawTextIsUntrustedData": true
@@ -131,7 +131,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-agent-runtime.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -177,7 +177,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-archetype-bayraklari.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -223,7 +223,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-control-planes.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -268,7 +268,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-boyut1-ops-panel.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -313,7 +313,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-boyut2-developer-panel.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -359,7 +359,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-boyut3-tenant-panel.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -406,7 +406,7 @@
         "KGA-D09"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-granulerlik.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -452,7 +452,7 @@
         "KGA-D09"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-wbs.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -496,7 +496,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/app-kernel-x-kum.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -540,7 +540,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/app-kernel-x-molekul.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -584,7 +584,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/app-kernel-x-atom.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -628,7 +628,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-program-work-unit.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -671,7 +671,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-00.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -714,7 +714,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-01.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -758,7 +758,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-02.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -803,7 +803,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-03.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -847,7 +847,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-04.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -891,7 +891,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-05.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -936,7 +936,7 @@
         "KGA-D09"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-06.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -981,7 +981,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-07.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1024,7 +1024,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-08.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1069,7 +1069,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-09.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1113,7 +1113,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-10.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1157,7 +1157,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-11.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1200,7 +1200,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-12.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1243,7 +1243,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-13.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1287,7 +1287,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-14.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1331,7 +1331,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-15.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1377,7 +1377,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/urlp-16.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1423,7 +1423,7 @@
         "KGA-D08"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-sozlesme.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1468,7 +1468,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-surface.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1516,7 +1516,7 @@
         "KGA-D09"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-terminoloji.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1561,7 +1561,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-archetype-mode-profile.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1606,7 +1606,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-archetype-computation.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1653,7 +1653,7 @@
         "KGA-D09"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-archetype-fieldtypes.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1698,7 +1698,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-surface-consumer.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1744,7 +1744,7 @@
         "KGA-D10"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-edge-gateway.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1789,7 +1789,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-kpi-registry.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     },
     {
       "sourceFiles": [
@@ -1834,7 +1834,7 @@
         "KGA-D07"
       ],
       "canonicalNodeRef": "src/data/generated/nodes/k-calendar-capacity.json",
-      "canonicalNodeCommit": "508746955159955c6d3bbd653287045f033bc2e2"
+      "canonicalNodeCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d"
     }
   ]
 }

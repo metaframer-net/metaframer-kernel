@@ -30,9 +30,12 @@ The kernel checkout was inspected on branch `main` at
 Two pre-existing user changes, `.gitignore` and `AGENTS.md`, were recorded and preserved.
 This bootstrap does not claim those changes.
 
-The canonical planning snapshot is pinned to Actionplan
-`refs/remotes/origin/main@508746955159955c6d3bbd653287045f033bc2e2`. The visible root
-Actionplan checkout was dirty and 82 commits behind that ref, so it was not used as the
+The canonical planning snapshot is currently pinned to Actionplan
+`refs/remotes/origin/main@7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d`. The original
+2026-07-30 bootstrap run verified the then-current pin
+`refs/remotes/origin/main@508746955159955c6d3bbd653287045f033bc2e2`; that dated evidence is
+kept as recorded and is not restated against the newer ref. Against the current pin the
+visible root Actionplan checkout is dirty and 118 commits behind, so it is not used as the
 canonical read surface. A separate clean local kernel branch was also observed two commits
 ahead of canonical but unpublished; it is supporting evidence only. Exact artifact hashes
 are recorded in `planning/source-inventory.json`.

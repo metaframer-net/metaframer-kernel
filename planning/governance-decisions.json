@@ -4,7 +4,7 @@
   "authority": {
     "canonicalOwner": "actionplan",
     "canonicalRef": "refs/remotes/origin/main",
-    "canonicalSha": "508746955159955c6d3bbd653287045f033bc2e2",
+    "canonicalSha": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
     "canonicalRegistry": "reports/kernel-governance-decision-registry-2026-07-15.json",
     "localRole": "closure-proposal-only",
     "canonicalWriteBackRequired": true
@@ -59,7 +59,7 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-code-bearing-descendant-handoff-2026-07-15.json",
           "pointer": "/measurement",
           "claim": "38/5/33 live measurement and empty selection ledger"
@@ -111,14 +111,14 @@
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "docs/kernel-sdk-app-delivery-sequence.md",
           "lines": "14-24",
           "claim": "Kernel precedes SDK and app delivery."
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "src/data/generated/nodes/k-surface.json",
           "claim": "be-sdk and stack-editions appear in both dependsOn and blocks."
         }
@@ -158,19 +158,19 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "src/data/generated/nodes/k-mod-l.json",
           "claim": "Canonical node title is Module Registry + Manifest."
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "src/data/generated/nodes/k-capability.json",
           "claim": "Canonical node title is Capability / Entitlement."
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "docs/platform-pr07-capability-registry-agent-pack-2026-07-09.md",
           "lines": "31-40",
           "claim": "Current PR-07 scope mixes module registry/manifest and entitlement responsibilities."
@@ -275,14 +275,14 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-gap-inventory-2026-07-14.json",
           "pointer": "/structuralGaps/4/candidateOwnerIds",
           "claim": "Seven candidate owner identities are unselected."
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-ghost-wbs-directive-bindings-2026-07-15.json",
           "claim": "Directive bindings are candidates and node creation is disabled."
         }
@@ -322,7 +322,7 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-gap-inventory-2026-07-14.json",
           "pointer": "/queueAudit/semanticFindings",
           "claim": "PR-10 proves scaffold only and PR-11 proves a walking skeleton only."
@@ -373,7 +373,7 @@
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-db-substrate-queue-handoff-2026-07-15.json",
           "pointer": "/options/0",
           "claim": "early-minimal-db-substrate is the option consistent with durable predecessor evidence."
@@ -414,14 +414,14 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "docs/wbs-field-semantics.md",
           "lines": "10-29",
           "claim": "Canonical dependsOn/blocks/related meaning and DAG invariant."
         },
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-governance-gap-addendum-2026-07-15.json",
           "claim": "35 nodes contain 46 same-node dependsOn/blocks intersections."
         }
@@ -469,7 +469,7 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-adr-collision-source-bindings-2026-07-15.json",
           "pointer": "/collisions",
           "claim": "Five ambiguous collision clusters have canonicalTopic=null."
@@ -535,7 +535,7 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-ghost-wbs-directive-bindings-2026-07-15.json",
           "pointer": "/bindings",
           "claim": "Thirteen bindings are candidate-unselected and node creation is disabled."
@@ -587,7 +587,7 @@
       "evidence": [
         {
           "repository": "actionplan",
-          "ref": "508746955159955c6d3bbd653287045f033bc2e2",
+          "ref": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
           "path": "reports/kernel-tenancy-authority-inventory-2026-07-15.json",
           "pointer": "/tenancy",
           "claim": "physicalStrategy=null, threshold=null and mandatoryRls=true."

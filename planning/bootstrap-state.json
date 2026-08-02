@@ -23,7 +23,7 @@
   "canonicalPlanningSource": {
     "repository": "karacaismail/actionplan",
     "ref": "refs/remotes/origin/main",
-    "sha": "508746955159955c6d3bbd653287045f033bc2e2",
+    "sha": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
     "workingCheckoutIgnoredForCanonicalReads": true
   },
   "rawInputSnapshot": {
