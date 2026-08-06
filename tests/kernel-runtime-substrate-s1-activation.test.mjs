@@ -225,26 +225,83 @@ test("the tag authority is declared, and the writer may neither create nor verif
   assert.ok(gap.rootProcedure.length >= 6, "the root procedure must be spelled out");
 });
 
-test("the reader is bounded, non-interactive, and never reaches the network from a feature branch", () => {
+// POST-MERGE REGRESSION RED — test-design evidence, NOT activation evidence.
+//
+// On exact main/origin-main commit 89528cd0b815711e49553682f457326e9b171b03 this focused suite ran
+// 27 pass / 1 fail. The failure was here: the test read the repository it happened to be running in
+// and asserted `isExactOriginMain=false` with the message "this is a feature branch", while the
+// actual value was `true`. That was correct behaviour from the production reader — the checkout
+// really was exact main — and a wrong assumption in the test, which had baked in the branch it was
+// authored on. No production defect was found, and tools/check-kernel-runtime-substrate-s1.mjs is
+// unchanged.
+//
+// This note records a test-design regression only. It is not evidence about activation, and nothing
+// about it belongs in a canonical or history artifact.
+//
+// The correction below never inspects the repository running the test. Both directions are proven
+// in the isolated scratch fixture instead, where the branch is something the test creates rather
+// than something it inherits.
+
+test("the reader is bounded, non-interactive, and admits exact main", (t) => {
   const declared = gap.reader;
   assert.equal(declared.nonInteractive, true);
   assert.equal(declared.failureIsNotEffectiveNotAnException, true);
   assert.ok(Number.isInteger(declared.boundedTimeoutMs) && declared.boundedTimeoutMs > 0);
   assert.match(declared.shortCircuitsBeforeAnyNetworkCall, /not exact origin\/main/i);
 
-  // Read this very working tree. It is a feature branch, so no lookup may be attempted at all.
+  const fixture = buildFixture();
+  t.after(() => rmSync(fixture.scratch, { recursive: true, force: true }));
+  // The clone sits on main at the commit origin/main points to: the shape a verification checkout
+  // has, and the only one that may ever be admitted.
+  assert.equal(git(fixture.work, ["rev-parse", "--abbrev-ref", "HEAD"]), "main");
+  assert.equal(git(fixture.work, ["rev-parse", "HEAD"]), fixture.originMainCommit);
+
   const started = Date.now();
-  const resolved = verifier.resolveActivation({ root });
+  const resolved = verifier.resolveActivation({
+    root: fixture.work,
+    expectedRemote: fixture.origin,
+  });
   const elapsed = Date.now() - started;
 
-  assert.equal(resolved.facts.checkout.isExactOriginMain, false, "this is a feature branch");
-  assert.equal(resolved.facts.lookupPerformed, false, "a feature branch must not reach the network");
+  assert.equal(resolved.facts.checkout.isExactOriginMain, true, "exact main must be admitted");
+  assert.equal(resolved.facts.checkout.branch, "main");
+  assert.ok(
+    !resolved.errors.includes("not-on-exact-origin-main"),
+    `exact main must not be refused as off-main: ${JSON.stringify(resolved.errors)}`,
+  );
+  assert.ok(elapsed < declared.boundedTimeoutMs, `reading took ${elapsed}ms`);
+  // Admitted is not activated: there is no tag here, so nothing becomes effective.
+  assert.equal(resolved.effective, false);
+  assert.ok(resolved.errors.includes("tag-absent"));
+});
+
+test("a branch that is not main never reaches the network, even at the same commit", (t) => {
+  const declared = gap.reader;
+  const fixture = buildFixture();
+  t.after(() => rmSync(fixture.scratch, { recursive: true, force: true }));
+
+  // Same commit as origin/main, different branch. This is the case HEAD-equality alone would get
+  // wrong, and the one that made the old assumption look right for the wrong reason.
+  git(fixture.work, ["checkout", "-q", "-b", "post-merge-feature"]);
+  assert.equal(git(fixture.work, ["rev-parse", "HEAD"]), fixture.originMainCommit);
+  assert.equal(git(fixture.work, ["rev-parse", "--abbrev-ref", "HEAD"]), "post-merge-feature");
+
+  const started = Date.now();
+  const resolved = verifier.resolveActivation({
+    root: fixture.work,
+    expectedRemote: fixture.origin,
+  });
+  const elapsed = Date.now() - started;
+
+  assert.equal(resolved.facts.checkout.isExactOriginMain, false, "a non-main branch is not exact main");
+  assert.equal(resolved.facts.lookupPerformed, false, "a non-main branch must not reach the network");
   assert.equal(resolved.effective, false);
   assert.ok(resolved.errors.includes("not-on-exact-origin-main"));
   assert.ok(elapsed < declared.boundedTimeoutMs, `reading took ${elapsed}ms`);
   // Whatever it decided, it decided without throwing and with the stronger flags shut.
   assert.equal(resolved.state.runtimeImplementationStarted, false);
   assert.equal(resolved.state.appBuildable, false);
+  for (const flag of SHUT_FLAGS) assert.equal(resolved.state[flag], false, `${flag} must stay false`);
 });
 
 test("a remote that cannot be reached is a verdict, not a crash", (t) => {
