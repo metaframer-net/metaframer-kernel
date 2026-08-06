@@ -4,8 +4,24 @@ These rules add to the profile-level MASTER -> PM/worker -> Claude authority con
 
 ## Scope
 
-- This repository is `PLANNING_ONLY`, `VALID_BLOCKED`, and `NO_GO`.
-- Repository creation is authorized; runtime implementation and source extraction are not.
+- The `PLANNING_ONLY`, `VALID_BLOCKED` and `NO_GO` tokens in `repository-status.json` and in
+  `planning/kernel-ai-development-readiness.json` are an **immutable historical snapshot** taken at
+  `actionplan@7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d`. They record the authority in force at that
+  commit and are never rewritten. Read them as history, not as the boundary in force now.
+- The **current effective authority** is `GO-KERNEL-DEVELOPMENT-ONLY` at chain head seq 4
+  (`AUTHORITY-SUPERSESSION-04`), read from `karacaismail/actionplan` at commit
+  `811505b0229705cf39edbf0d6b60248c46a72091`. Kernel development is open:
+  `codeStartAllowed` and `runtimeCodeAllowed` are true.
+- **Runtime implementation has not started.** `kernelReady`, `sdkReady`, `appBuildable`,
+  `releaseAllowed`, `deployAllowed` and `productionAllowed` all stay false, `gapClosed` is false,
+  and SDK, app-core, app and module remain excluded targets. This consumer-sync package starts no
+  runtime itself; the next authorized work is the separate substrate package named below.
+- Runtime implementation **is** authorized under the current verdict, but only through a
+  separately scoped, test-first, single-writer change gate carrying its own machine-readable
+  scope, non-goals, RED/GREEN, rollback, allowed target areas and exit criteria. Runtime code
+  written outside such a package is unauthorized.
+- Source extraction and repository topology changes remain separately human-gated; this verdict
+  does not open them.
 - Do not describe this repository as runtime-ready, MVP, buildable, releasable, or
   production-ready.
 - Do not copy `atonota/kernel`; it is an unrelated Metawork CI/CD project.
@@ -24,6 +40,28 @@ DB/RLS/transaction/outbox/audit -> kernel primitives -> SDK -> walking skeleton.
 Every change is test-first, uses a single active writer, preserves user changes, and is
 independently verified by Codex. Commit, push, merge, release, deployment, destructive Git,
 and human decisions require explicit authority.
+
+## Current-authority consumer sync
+
+`planning/kernel-runtime-pilot-consumer-sync.json` is the additive overlay that binds this
+repository to the current effective authority, and
+`tools/check-kernel-runtime-pilot-consumer-sync.mjs` is its fail-closed verifier. The verifier
+reads every canonical document by `git show` at the exact pinned Actionplan commit; a local
+checkout is a discovery hint only, admitted on repository identity and commit object, never on a
+mutable ref such as `main`.
+
+- The overlay is additive. It rewrites no historical artifact and creates no EPOCH evidence file.
+- On a branch the package state is `prepared-awaiting-main-activation`. It becomes effective only
+  when the artifact is present on Kernel `main`, `npm test` and `npm run check` pass there, and
+  independent Codex verification evidence exists — with no in-repo status flip and no
+  self-referential commit SHA.
+- `GRP-01` of the frozen ten-gate promotion contract stays RED here and is evaluated externally by
+  Codex MASTER. The writer never closes or verifies it.
+- `GO-RUNTIME-PILOT` needs 10/10 GREEN gates plus an independent verifier plus a human
+  countersign; production is a separate post-pilot stage and is not reachable from that contract.
+- This package starts no runtime. The next runtime-start work is a separate change package:
+  PostgreSQL/RLS/transaction/outbox/audit substrate, then primitives/typed action/PDP, then the
+  generated SDK, then one golden slice.
 
 ## Required checks
 

@@ -853,6 +853,10 @@ assert.ok(
   "the resume runbook must keep the post-push expected-base ancestry proof",
 );
 
+// The checks above are unchanged; only their reporting is labelled. These tokens are a verified
+// historical snapshot, not the verdict in force — the current one is printed last by
+// tools/check-kernel-runtime-pilot-consumer-sync.mjs.
 console.log(
-  "control plane: 40 files -> 39 tasks -> KGA-D01..D10 pending / APPROVED_AWAITING_CANONICAL_WRITEBACK / CLAUDE_ONLY / NO_GO / one-shot fence = remote-ref absence",
+  "HISTORICAL SNAPSHOT (verified, non-effective; not the current verdict): " +
+    "control plane: 40 files -> 39 tasks -> KGA-D01..D10 pending / APPROVED_AWAITING_CANONICAL_WRITEBACK / CLAUDE_ONLY / NO_GO / one-shot fence = remote-ref absence",
 );

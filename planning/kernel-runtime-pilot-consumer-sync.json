@@ -1,0 +1,316 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-runtime-pilot-consumer-sync-2026-08-06",
+  "generatedAt": "2026-08-06",
+  "packageKind": "current-authority-consumer-sync-overlay",
+  "packageState": "prepared-awaiting-main-activation",
+  "overlayMode": "additive-non-destructive",
+
+  "sourceIdentity": {
+    "actionplan": {
+      "repository": "karacaismail/actionplan",
+      "remote": "git@github.com:karacaismail/actionplan.git",
+      "commit": "811505b0229705cf39edbf0d6b60248c46a72091",
+      "readMode": "git-show-at-exact-commit",
+      "mutationAllowed": false,
+      "localPathIsIdentity": false,
+      "localPathRole": "discovery-hint-only",
+      "mutableRefResolutionRequired": false,
+      "note": "Identity is repository + exact commit object. A local checkout is a discovery hint whose origin identity and commit object are validated before any read; no mutable ref such as main is required to equal or contain the commit."
+    },
+    "kernel": {
+      "repository": "metaframer-kernel",
+      "commit": "f62dc8e8cbacaa510aea1187212dc7171cbffa0a",
+      "access": "read-only",
+      "mutationAllowed": false,
+      "rootPathRecorded": false
+    },
+    "canonicalDigests": {
+      "CONTRACT": {
+        "path": "reports/kernel-runtime-pilot-promotion-contract-2026-08-06.json",
+        "sha256": "ba7e5bcc36899681d840e5f4d28e859693354440c45e26eee9a6595593eb3a8f"
+      },
+      "CHAIN": {
+        "path": "reports/kernel-effective-authority-chain-2026-07-31.json",
+        "sha256": "5d060052f2769dd32ff15d9fc79e3790d6bbaf8e456b7517c72fd87bef147794"
+      },
+      "STATE": {
+        "path": "reports/kernel-governance-application-state-2026-08-01.json",
+        "sha256": "9f6f3989fbc2d61cf5f9fa23ab89eeaf77831bf8c441cc0ff1c3fc9599fc1be4"
+      }
+    }
+  },
+
+  "historicalSnapshot": {
+    "role": "historical-immutable-non-effective",
+    "effective": false,
+    "mutationAllowed": false,
+    "rewritten": false,
+    "actionplanCommit": "7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d",
+    "epochId": "AUTHORITY-SUPERSESSION-03",
+    "seq": 3,
+    "chainFileSha256": "8d7f6a79342101397d925ff5f4861f5422c354e2f35ca0b3823e1f4f8c204715",
+    "verdict": "NO-GO",
+    "kernelLocalVerdictToken": "NO_GO",
+    "readinessStatus": "BLOCKED",
+    "classification": "PLANNING_ONLY",
+    "runtimeStatus": "VALID_BLOCKED",
+    "codeStartAllowed": false,
+    "runtimeCodeAllowed": false,
+    "artifacts": [
+      { "path": "planning/kernel-ai-development-readiness.json", "sha256": "532b780bac4049b852def1a76298b0e1ac63cc27c8748a786b65c509b137f297" },
+      { "path": "docs/kernel-ai-development-readiness.md", "sha256": "984d5544ac8d288ce21e98dbdb61e746b89520ad0135e4438df867221018e75f" }
+    ],
+    "supersededBy": "AUTHORITY-SUPERSESSION-04",
+    "supersededDimensions": ["codeStart", "runtimeCode", "verdict"],
+    "pinnedByEpoch04": true,
+    "note": "This candidate is a sealed historical snapshot taken at actionplan@7312ac0b. Its NO-GO/NO_GO verdict, BLOCKED status and closed code-start floors describe the authority in force at that commit, not the authority in force now. EPOCH-04 pins its digest as evidence; nothing rewrites it and it is never read as the current boundary."
+  },
+
+  "currentEffectiveAuthority": {
+    "actionplanCommit": "811505b0229705cf39edbf0d6b60248c46a72091",
+    "chainRef": "reports/kernel-effective-authority-chain-2026-07-31.json",
+    "chainFileSha256": "5d060052f2769dd32ff15d9fc79e3790d6bbaf8e456b7517c72fd87bef147794",
+    "chainInternalSha256": "f2315ba09192e3614e272bb7256ae41a288f1a6fdc435cb67aca74954ec3a1b8",
+    "headSeq": 4,
+    "headEpochId": "AUTHORITY-SUPERSESSION-04",
+    "headStatus": "effective",
+    "headEntrySha256": "90a0a9ba795fcff67d48829d9d0083cbac956e4d1b277527862fa19586228c37",
+    "headNormalizedTextSha256": "f7b92d21da22dccf0ca99e0efbebc5e9f0556ba5b2a96657737e057848c2953d",
+    "stateRef": "reports/kernel-governance-application-state-2026-08-01.json",
+    "stateFileSha256": "9f6f3989fbc2d61cf5f9fa23ab89eeaf77831bf8c441cc0ff1c3fc9599fc1be4",
+    "stateStatus": "partial-application-no-go",
+    "stateSummary": { "total": 10, "applied": 10, "pending": 0, "canonical": 10 },
+    "effectiveVerdictCount": 1,
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "codeStartAllowed": true,
+    "runtimeCodeAllowed": true,
+    "runtimeImplementationStarted": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "excludedTargets": ["SDK", "APP_CORE", "APP", "MODULE"],
+    "immovableFloors": {
+      "claudeAuthGate": "CLAUDE_AI_FIRSTPARTY_MAX_PER_INVOCATION_NO_FALLBACK",
+      "deploy": "NO",
+      "gitMode": "NONFORCE_NO_TAGS_CI_GATED",
+      "historicalApprovalMutation": "FORBIDDEN",
+      "platformProductWriter": "HUMAN_DEVELOPER_ONLY",
+      "release": "NO"
+    },
+    "note": "Exactly one verdict is effective now: GO-KERNEL-DEVELOPMENT-ONLY at chain head seq 4. Kernel development is open and runtime implementation has not started; every downstream stage stays shut."
+  },
+
+  "promotionContractBinding": {
+    "ref": "reports/kernel-runtime-pilot-promotion-contract-2026-08-06.json",
+    "sha256": "ba7e5bcc36899681d840e5f4d28e859693354440c45e26eee9a6595593eb3a8f",
+    "gateSetSha256": "3f8c98150e66d2e9b4ea4f453eff58045fc0c16d069a4fa8d0f5d1650881b4f6",
+    "gateCount": 10,
+    "gateSetClosedAt": 10,
+    "gateAdditionAllowed": false,
+    "authorityAnchorCommit": "673a23c3093cf254d9d59b5c109f065f93416d29",
+    "gates": [
+      { "order": 1, "id": "GRP-01", "definition": "authority/consumer sync" },
+      { "order": 2, "id": "GRP-02", "definition": "contract, dependency and Onion boundary lock" },
+      { "order": 3, "id": "GRP-03", "definition": "one pilot app/module/archetype scope" },
+      { "order": 4, "id": "GRP-04", "definition": "baseline, SLO, RTO, RPO" },
+      { "order": 5, "id": "GRP-05", "definition": "PostgreSQL, RLS, transaction, outbox, audit baseline" },
+      { "order": 6, "id": "GRP-06", "definition": "typed action/envelope, PDP, primitive contracts" },
+      { "order": 7, "id": "GRP-07", "definition": "generated SDK" },
+      { "order": 8, "id": "GRP-08", "definition": "golden-slice end-to-end evidence" },
+      { "order": 9, "id": "GRP-09", "definition": "security, rollback, independent verification" },
+      { "order": 10, "id": "GRP-10", "definition": "atomic promotion and human countersign" }
+    ],
+    "promotionRule": {
+      "requiredGreenGates": 10,
+      "requiresIndependentVerifier": true,
+      "requiresHumanCountersign": true,
+      "humanCountersignDefault": false,
+      "writerMaySelfClose": false,
+      "writerMaySelfVerify": false,
+      "targetVerdict": "GO-RUNTIME-PILOT",
+      "impliesProduction": false
+    },
+    "laterTopicPolicy": {
+      "classifications": ["existing-gate-evidence", "post-pilot-backlog", "production-blocker"],
+      "newGateAllowed": false,
+      "gateSetClosedAt": 10
+    },
+    "productionPolicy": {
+      "reachableFromThisPackage": false,
+      "reachableFromRuntimePilot": false,
+      "separatePostPilotStage": true,
+      "forbiddenVerdicts": ["GO-PRODUCTION"]
+    },
+    "claimedVerdict": null,
+    "claimsRuntimePilot": false,
+    "claimsProduction": false,
+    "note": "This overlay consumes the frozen contract and never amends it. GO-RUNTIME-PILOT needs 10/10 GREEN plus an independent verifier plus a human countersign together; production is a separate post-pilot stage that this contract cannot reach."
+  },
+
+  "gate01": {
+    "id": "GRP-01",
+    "definition": "authority/consumer sync",
+    "claimedStatus": "RED",
+    "preclaimedGreen": false,
+    "selfClosedByWriter": false,
+    "writerMaySelfClose": false,
+    "writerMaySelfVerify": false,
+    "independentVerifierRecorded": false,
+    "evaluator": "codex-master",
+    "externallyEvaluableWhen": [
+      "artifact-present-on-kernel-main",
+      "npm-test-passes-on-kernel-main",
+      "npm-run-check-passes-on-kernel-main",
+      "independent-codex-verification-evidence-exists"
+    ],
+    "note": "GRP-01 is evaluated externally by Codex MASTER, never by the writer and never from this branch. Nothing here preclaims GREEN."
+  },
+
+  "activation": {
+    "state": "prepared-awaiting-main-activation",
+    "effective": false,
+    "deterministic": true,
+    "inRepoStatusFlipCommitRequired": false,
+    "selfReferentialCommitShaRecorded": false,
+    "activatedBy": null,
+    "effectiveFrom": null,
+    "predicates": [
+      { "id": "artifact-present-on-kernel-main", "satisfiedOnThisBranch": false, "evaluator": "codex-master", "evidence": "planning/kernel-runtime-pilot-consumer-sync.json and tools/check-kernel-runtime-pilot-consumer-sync.mjs are present on the Kernel main branch" },
+      { "id": "npm-test-passes-on-kernel-main", "satisfiedOnThisBranch": false, "evaluator": "codex-master", "evidence": "npm test exits zero on that main" },
+      { "id": "npm-run-check-passes-on-kernel-main", "satisfiedOnThisBranch": false, "evaluator": "codex-master", "evidence": "npm run check exits zero on that main" },
+      { "id": "independent-codex-verification-evidence-exists", "satisfiedOnThisBranch": false, "evaluator": "codex-master", "evidence": "an independent Codex verification record whose verifier is not the writer" }
+    ],
+    "rule": "when every predicate is externally true the package is effective; activation adds no in-repo status flip commit and records no self-referential commit SHA",
+    "note": "Activation is a deterministic function of external predicates. This branch neither flips a status field nor pins its own commit, so the package cannot vouch for its own effectiveness."
+  },
+
+  "architectureContract": {
+    "onion": {
+      "appliesTo": "code-bearing-backend-and-archetype-only",
+      "dependencyDirection": "inward",
+      "layers": [
+        { "order": 1, "name": "Domain", "position": "innermost", "dependsOn": [] },
+        { "order": 2, "name": "Application", "position": "inner", "dependsOn": ["Domain"] },
+        { "order": 3, "name": "Adapters", "position": "outer", "dependsOn": ["Application"] },
+        { "order": 4, "name": "Delivery", "position": "outermost", "dependsOn": ["Adapters"] }
+      ],
+      "outerMembers": [
+        { "name": "Surface", "layer": "Delivery", "outer": true },
+        { "name": "ai-agent-adapter", "layer": "Adapters", "outer": true },
+        { "name": "infrastructure-adapter", "layer": "Adapters", "outer": true }
+      ],
+      "invariants": [
+        "Dependencies point inward only: Domain <- Application <- Adapters <- Delivery, and no inner layer names an outer one.",
+        "Surface is Delivery and therefore outer; it is never an inner layer and never a layer of its own.",
+        "AI agent and infrastructure concerns are outer adapters, never Domain or Application.",
+        "The Onion applies to code-bearing backend and archetype work only; planning, prompt and governance material is not placed in a layer."
+      ]
+    },
+    "metaFrameworkAxes": [
+      { "axis": "wbs-metaphor", "isOnionLayer": false, "members": [] },
+      { "axis": "lifecycle-phases", "isOnionLayer": false, "members": ["requirements", "test-plan", "db-schema", "development", "test-qa", "verification", "release-maintenance"] },
+      { "axis": "prompts", "isOnionLayer": false, "members": [] },
+      { "axis": "multi-agent", "isOnionLayer": false, "members": [] },
+      { "axis": "evidence", "isOnionLayer": false, "members": [] },
+      { "axis": "governance", "isOnionLayer": false, "members": [] },
+      { "axis": "planes", "isOnionLayer": false, "members": ["control", "data", "ai"] }
+    ],
+    "axisInvariants": [
+      "The WBS metaphor, the seven lifecycle phases, prompts, multi-agent, evidence, governance and the Control/Data/AI planes are separate meta-framework axes.",
+      "No axis is an Onion layer and no Onion layer is an axis; mapping one onto the other is a category error and fails closed.",
+      "An axis may cut across every Onion layer without changing the inward dependency direction."
+    ]
+  },
+
+  "nextRuntimeStartPackage": {
+    "separatePackage": true,
+    "startsRuntimeInThisPackage": false,
+    "thisPackageStartsNoRuntime": true,
+    "blockedUntil": "this consumer sync is effective and its own change package is authorised under GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequence": [
+      {
+        "order": 1,
+        "id": "postgresql-rls-transaction-outbox-audit-substrate",
+        "scope": "One PostgreSQL substrate: schema baseline, row-level security policies per tenant, explicit transaction boundaries, a transactional outbox table with a relay contract, and an append-only audit trail.",
+        "nonGoals": ["no kernel primitive", "no typed action or PDP", "no SDK generation", "no app, module or surface", "no release, deploy or production path"],
+        "red": "Failing migration, RLS-isolation, transaction-atomicity, outbox-delivery and audit-append tests exist and fail before any schema or policy is written.",
+        "green": "Those tests pass against a real PostgreSQL instance with RLS forced, transactions atomic, outbox rows written in the same transaction as their source change, and audit rows append-only.",
+        "rollback": "Revert the migration, the RLS policies, the outbox and audit objects and their tests as one shard; no dependent code exists yet.",
+        "allowedTargetAreas": ["migrations", "db", "tests", "tools"],
+        "exitCriteria": ["all RED tests are GREEN", "npm test and npm run check pass", "independent Codex verification is recorded", "no primitive, SDK, app or surface file is touched"]
+      },
+      {
+        "order": 2,
+        "id": "kernel-primitives-typed-action-pdp",
+        "scope": "Kernel primitives with typed action and envelope contracts and a policy decision point, built on the substrate from step 1.",
+        "nonGoals": ["no SDK generation", "no app, module or surface", "no schema redesign", "no release, deploy or production path"],
+        "red": "Failing contract tests for primitive boundaries, typed action and envelope shape, and PDP allow/deny decisions exist first.",
+        "green": "Primitives expose typed actions through validated envelopes and every action is authorised by the PDP against the RLS-backed substrate.",
+        "rollback": "Revert the primitives, the typed action and envelope contracts, the PDP and their tests as one shard; the substrate stays untouched.",
+        "allowedTargetAreas": ["src/domain", "src/application", "tests", "tools"],
+        "exitCriteria": ["all RED tests are GREEN", "no adapter or delivery concern leaks inward", "npm test and npm run check pass", "independent Codex verification is recorded"]
+      },
+      {
+        "order": 3,
+        "id": "generated-sdk",
+        "scope": "One generated SDK derived from the typed action and envelope contracts of step 2, with a pinned public boundary.",
+        "nonGoals": ["no hand-written client surface", "no app or module", "no contract change smuggled through generation", "no release, deploy or production path"],
+        "red": "Failing generation-determinism, public-boundary and contract-parity tests exist first.",
+        "green": "The SDK regenerates byte-identically from the pinned contracts, exposes only the declared public boundary and stays in parity with the primitives.",
+        "rollback": "Revert the generator, the generated SDK and their tests as one shard; primitives and substrate stay untouched.",
+        "allowedTargetAreas": ["src/sdk", "tools", "tests"],
+        "exitCriteria": ["all RED tests are GREEN", "regeneration is deterministic", "npm test and npm run check pass", "independent Codex verification is recorded"]
+      },
+      {
+        "order": 4,
+        "id": "one-golden-slice",
+        "scope": "Exactly one end-to-end golden slice through Delivery -> Adapters -> Application -> Domain and back, using the SDK from step 3 against the substrate from step 1.",
+        "nonGoals": ["no second slice", "no product build-out", "no release, deploy or production path", "no GO-PRODUCTION claim"],
+        "red": "A failing end-to-end test for the single slice exists first, covering authorisation, transaction, outbox and audit evidence.",
+        "green": "The one slice passes end to end with tenant isolation held, the transaction atomic, an outbox row emitted and an audit row appended.",
+        "rollback": "Revert the slice and its test as one shard; SDK, primitives and substrate stay untouched.",
+        "allowedTargetAreas": ["src/delivery", "src/adapters", "tests"],
+        "exitCriteria": ["the single slice is GREEN end to end", "no second slice is added", "npm test and npm run check pass", "independent Codex verification is recorded"]
+      }
+    ],
+    "note": "This consumer sync starts no runtime. It records the ordering the runtime-start package must follow and is not itself that package."
+  },
+
+  "preservation": {
+    "byteFaithful": [
+      { "path": "planning/bootstrap-state.json", "sha256": "fd3bbee02b19e8307755504648a0833a0ccc533e69e0a766420db04a47e6b574" },
+      { "path": "planning/governance-decisions.json", "sha256": "ec9e8318f786f36376409704f9c0fd03ad3d5c99b6b0929c34761771ecca8b9c" },
+      { "path": "planning/kernel-ai-development-readiness.json", "sha256": "532b780bac4049b852def1a76298b0e1ac63cc27c8748a786b65c509b137f297" },
+      { "path": "docs/kernel-ai-development-readiness.md", "sha256": "984d5544ac8d288ce21e98dbdb61e746b89520ad0135e4438df867221018e75f" }
+    ],
+    "historicalEpochEvidence": {
+      "rule": "absent",
+      "pattern": "epoch",
+      "expectedMatches": 0,
+      "note": "No EPOCH evidence file is created, copied or mirrored into this repository. EPOCH records live in Actionplan and are read there at the pinned commit."
+    }
+  },
+
+  "nonGoals": [
+    "do not read this overlay as a promotion, as GRP-01 GREEN, or as evidence that any promotion gate is satisfied",
+    "do not claim GO-RUNTIME-PILOT or GO-PRODUCTION; neither is reachable from this package",
+    "do not start runtime implementation, write runtime or product source, or open SDK, app, module, release or deploy",
+    "do not rewrite, reinterpret or supersede the historical NO_GO readiness candidate or any sealed Actionplan EPOCH entry",
+    "do not add, rename, reorder or redefine a promotion gate, and do not create an eleventh gate",
+    "do not treat a local Actionplan checkout path, or any mutable ref such as main, as identity",
+    "do not stage, commit, push, tag, merge or otherwise mutate Git from this shard"
+  ],
+
+  "rollback": {
+    "owner": "codex-master",
+    "trigger": "the pinned Actionplan commit, the contract or gate-set digest, the authority head, the application-state binding, the preserved byte-faithful set or the not-effective package state drifts",
+    "action": "revert planning/kernel-runtime-pilot-consumer-sync.json, tools/check-kernel-runtime-pilot-consumer-sync.mjs, tests/kernel-runtime-pilot-consumer-sync.test.mjs and the AGENTS.md and package.json wiring as one logical shard",
+    "blastRadius": "planning-only; no runtime, schema, migration or product artifact exists to revert",
+    "runtimeDataImpact": "none"
+  }
+}

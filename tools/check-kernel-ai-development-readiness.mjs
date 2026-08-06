@@ -787,8 +787,12 @@ for (const forbidden of ["CI passed","tests passed","PASS:","production-ready","
   assert.ok(!doc.includes(forbidden), `human-readable projection claims or embeds ${forbidden}`);
 }
 
+// The checks above are unchanged; only their reporting is labelled. This candidate is a verified
+// historical snapshot pinned at actionplan@7312ac0, not the verdict in force — the current one is
+// printed last by tools/check-kernel-runtime-pilot-consumer-sync.mjs.
 console.log(
-  `readiness candidate: ${CARD_COUNT} cards / ${AXES.length} axes / ${graphEdges.length} ledger-projected edges / ` +
+  "HISTORICAL SNAPSHOT (verified, non-effective; not the current verdict): " +
+    `readiness candidate: ${CARD_COUNT} cards / ${AXES.length} axes / ${graphEdges.length} ledger-projected edges / ` +
     `${EXTERNAL_COUNT} external refs / ${verifiedRefs.size} canonical digests verified at ${ACTIONPLAN_SHA.slice(0, 7)} / ` +
     `${plannedPathCount} planned test paths absent / D07 overlap ${trueOverlap.length}/${rd.kernelNodeIds.length} / ` +
     `${readiness.readinessStatus} / ${readiness.verdict} (kernel-local ${readiness.verdictTokenMap.kernelLocal}) / code start denied`,
