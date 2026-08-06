@@ -1,0 +1,893 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-runtime-substrate-s1-2026-08-06",
+  "generatedAt": "2026-08-06",
+  "packageKind": "runtime-substrate-change-package",
+  "packageState": "prepared-awaiting-main-activation",
+  "packageMode": "additive-non-destructive",
+  "phase": "B-GREEN",
+  "phaseStatus": {
+    "redSpecified": true,
+    "redProven": true,
+    "greenImplemented": true,
+    "greenSuitePassesOnThisBranch": true,
+    "greenIndependentlyVerified": false,
+    "externallyEffective": false,
+    "note": "Phase A specified the behaviour and proved it absent against a real PostgreSQL 16 instance; Phase B implements it and the same suite now passes unchanged. Passing here is a local fact about a feature branch. It is not independent verification, it is not activation, and it is not a promotion gate."
+  },
+  "productionSurface": {
+    "package": "db/metaframer_kernel_db",
+    "importRoot": "metaframer_kernel_db",
+    "headRevision": "0001_runtime_substrate",
+    "revisionCount": 1,
+    "modules": [
+      {
+        "path": "db/metaframer_kernel_db/__init__.py",
+        "role": "package marker and version"
+      },
+      {
+        "path": "db/metaframer_kernel_db/schema.py",
+        "role": "logical-to-physical names for the substrate's objects"
+      },
+      {
+        "path": "db/metaframer_kernel_db/migrations.py",
+        "role": "Alembic configuration and the head revision identifier"
+      },
+      {
+        "path": "db/metaframer_kernel_db/session.py",
+        "role": "the controlled transaction boundary and its attested tenant context"
+      },
+      {
+        "path": "db/metaframer_kernel_db/outbox.py",
+        "role": "the safe FOR UPDATE SKIP LOCKED claim"
+      },
+      {
+        "path": "db/metaframer_kernel_db/alembic/env.py",
+        "role": "Alembic online environment"
+      },
+      {
+        "path": "db/metaframer_kernel_db/alembic/versions/0001_runtime_substrate.py",
+        "role": "the single cohesive baseline revision"
+      }
+    ],
+    "runtimeTables": [
+      "transactional_outbox",
+      "audit_log"
+    ],
+    "supportObjects": [
+      {
+        "name": "mfk_context_key",
+        "kind": "table",
+        "role": "the per-database signing secret; owned by the migration role and granted to no one else"
+      },
+      {
+        "name": "mfk_object_owner",
+        "kind": "function",
+        "role": "identifies the administrative owner identity"
+      },
+      {
+        "name": "mfk_attestation",
+        "kind": "function",
+        "role": "the keyed signature; executable by the owner alone"
+      },
+      {
+        "name": "mfk_begin_tenant_context",
+        "kind": "function",
+        "role": "the controlled entry point that establishes a tenant context"
+      },
+      {
+        "name": "mfk_current_tenant",
+        "kind": "function",
+        "role": "what the policy consults; returns NULL and therefore denies when the context is not trusted"
+      },
+      {
+        "name": "mfk_audit_append_only",
+        "kind": "function",
+        "role": "the append-only invariant, fired by a statement-level trigger"
+      }
+    ],
+    "tenantContextMechanism": {
+      "design": "hmac-sha256 over (tenant, transaction id), keyed by a secret generated per database inside the migration",
+      "secretInVersionControl": false,
+      "secretGeneratedPer": "database, by the migration, using gen_random_bytes(32)",
+      "secretReadableByRuntimeRole": false,
+      "rawSettingWritableByRuntimeRole": true,
+      "rawSettingSufficientForAccess": false,
+      "boundToTransaction": true,
+      "ownerExemptFromAttestation": true,
+      "ownerExemptFromTenantFilter": false,
+      "residualRisk": "The runtime role can still call the controlled entry point for any tenant, because it is one database role and that function is its entry point. What the attestation removes is the ability to assume a tenant by writing a setting. Deciding which tenant a caller may ask for is authorisation, and belongs to the policy decision point in a later package."
+    },
+    "notShipped": [
+      "no business or domain table",
+      "no domain, application or delivery layer",
+      "no HTTP, FastAPI, SDK, app, module, UI or GraphQL surface",
+      "no outbox consumer, relay, retry policy, dead-letter queue, worker, broker or event bus",
+      "no generic framework, no platform extraction and no topology change"
+    ]
+  },
+  "authorityBinding": {
+    "actionplan": {
+      "repository": "karacaismail/actionplan",
+      "commit": "811505b0229705cf39edbf0d6b60248c46a72091",
+      "headSeq": 4,
+      "headId": "AUTHORITY-SUPERSESSION-04",
+      "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+      "readMode": "git-show-at-exact-commit",
+      "mutationAllowed": false,
+      "verifiedBy": "tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+      "note": "This package pins the same exact Actionplan commit that the current-authority consumer sync pins, and delegates the canonical read of that commit to the consumer-sync verifier rather than re-deriving authority for itself."
+    },
+    "kernelBase": {
+      "repository": "metaframer-kernel",
+      "commit": "20941b1ef2590000eef909fefd907b8a40248ffe",
+      "role": "pre-existing-base-commit-this-package-branches-from",
+      "selfReferential": false,
+      "access": "read-only",
+      "rootPathRecorded": false,
+      "note": "This is the base commit the branch started from, verified as an existing git commit object. It is never this package's own future commit, so no self-referential SHA is recorded anywhere."
+    },
+    "selfReferentialCommitShaRecorded": false
+  },
+  "activationBase": {
+    "role": "current-effective-authority-in-force-now",
+    "artifact": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "artifactSha256": "38983e74032d3bb0ea2f3207881978245848773891ab99758701e5e8ff2e2f74",
+    "verifier": "tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+    "verifierSha256": "16952b66ec5fbe003c22650b4620ebbd310f437195e99f558ecbfba00d75ef64",
+    "rewritten": false,
+    "mutationAllowed": false,
+    "state": {
+      "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+      "codeStartAllowed": true,
+      "runtimeCodeAllowed": true,
+      "runtimeImplementationStarted": false,
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false
+    },
+    "note": "The activation base is the state in force on this repository right now. This package rewrites none of it: not repository-status.json, not the readiness or bootstrap or human-decision artifacts, and not planning/kernel-runtime-pilot-consumer-sync.json. It is read, digest-pinned and left byte-identical."
+  },
+  "desiredState": {
+    "role": "branch-candidate-desired-state-on-activation",
+    "effective": false,
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "codeStartAllowed": true,
+    "runtimeCodeAllowed": true,
+    "runtimeImplementationStarted": true,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "note": "The desired state after external activation. Exactly one dimension moves and every downstream stage stays shut. This block is a desire, not a claim: nothing on this branch is effective, and the verifier refuses to read it as the state in force."
+  },
+  "stateDelta": {
+    "changedDimensions": [
+      "runtimeImplementationStarted"
+    ],
+    "from": {
+      "runtimeImplementationStarted": false
+    },
+    "to": {
+      "runtimeImplementationStarted": true
+    },
+    "unchangedDimensions": [
+      "verdict",
+      "codeStartAllowed",
+      "runtimeCodeAllowed",
+      "kernelReady",
+      "sdkReady",
+      "appBuildable",
+      "releaseAllowed",
+      "deployAllowed",
+      "productionAllowed",
+      "gapClosed"
+    ],
+    "note": "Starting the authorized runtime substrate is the only dimension this package moves. It opens no downstream stage and claims no promotion gate."
+  },
+  "boundedScope": {
+    "database": "PostgreSQL 16",
+    "language": "Python 3.12",
+    "orm": "SQLAlchemy 2.0 / SQLModel",
+    "migrations": "Alembic",
+    "capabilities": [
+      "transaction boundary",
+      "fail-closed transaction-local tenant context",
+      "FORCE RLS for a non-owner NOBYPASSRLS runtime role",
+      "outbox persistence with a safe FOR UPDATE SKIP LOCKED claim under at-least-once semantics",
+      "append-only audit",
+      "real upgrade -> downgrade -> re-upgrade",
+      "additive runtime-start state and current-effective composition"
+    ],
+    "httpSurface": "none-required",
+    "forbiddenTechnologies": [
+      "Prisma",
+      "Next.js",
+      "Supabase",
+      "SQLite",
+      "mock database",
+      "in-memory database",
+      "domain primitives",
+      "SDK",
+      "app",
+      "app-core",
+      "module",
+      "UI",
+      "GraphQL",
+      "worker",
+      "broker",
+      "AI runtime",
+      "deploy",
+      "release"
+    ]
+  },
+  "scope": {
+    "summary": "One PostgreSQL 16 runtime substrate for the MetaFramer Kernel: schema baseline under Alembic, FORCE row-level security bound to a fail-closed transaction-local tenant context, explicit transaction boundaries, a transactional outbox with a safe concurrent claim, and an append-only audit trail.",
+    "sequenceId": "postgresql-rls-transaction-outbox-audit-substrate",
+    "sequenceOrder": 1,
+    "sequenceSource": "planning/kernel-runtime-pilot-consumer-sync.json#nextRuntimeStartPackage.sequence[0]",
+    "runtimeTables": [
+      "transactional_outbox",
+      "audit_log"
+    ],
+    "runtimeTablesNote": "This package owns exactly two runtime tables, named here as they exist in the database. No business or domain table is invented: a substrate package has no domain, so transaction-boundary and row-level-security behaviour is exercised against the tables the substrate itself owns. Every row-level-security obligation below is enumerated over precisely this list.",
+    "phaseAScope": "Test harness, pinned dependency lock, deterministic real PostgreSQL 16 Docker lifecycle, this contract, its fail-closed verifier, repository script integration, and failing behavioural tests. Nothing else.",
+    "phaseBScope": "The production substrate that turns the Phase A tests green. Not authorized to be written until Phase A RED is accepted."
+  },
+  "nonGoals": [
+    "do not add any production Alembic revision in Phase A",
+    "do not add any production ORM model or SQLModel table in Phase A",
+    "do not add any production transaction, session or tenant-context implementation in Phase A",
+    "do not add any production RLS policy, outbox or audit implementation in Phase A",
+    "do not add any other production runtime capability in Phase A",
+    "do not invent a domain or business table to stand in for the substrate's own tables; a substrate package has no domain, and the only runtime tables are the outbox and the audit table it owns",
+    "do not promise once-only persistence, claim, delivery or drain anywhere; the guarantee is at-least-once with a stable identifier for downstream deduplication, because a crash or an expired claim lease legitimately redelivers a row",
+    "do not treat a raw tenant setting written by the runtime role as an accepted tenant context; the policy must fail closed without an unforgeable controlled-API attestation",
+    "do not rewrite repository-status.json or any historical readiness, bootstrap or human-decision artifact",
+    "do not rewrite planning/kernel-runtime-pilot-consumer-sync.json or its verifier",
+    "do not claim GRP-01 or any other promotion gate, GO-RUNTIME-PILOT, or GO-PRODUCTION",
+    "do not record an in-repo independent verification or a human countersign",
+    "do not record a self-referential commit SHA",
+    "do not create an HTTP, FastAPI, SDK, app, module, UI, GraphQL, worker, broker or AI surface",
+    "do not substitute SQLite, a mock or an in-memory database for the real PostgreSQL 16 instance",
+    "do not stage, commit, push, tag, merge, release or deploy from this package"
+  ],
+  "allowedTargets": [
+    "db",
+    "tests",
+    "tools",
+    "package.json",
+    "AGENTS.md",
+    ".gitignore"
+  ],
+  "allowedTargetsNote": "The substrate is package-local under db/ rather than at the repository root because the historical repository-boundary snapshot fences root-level migrations/, src/, apps/, packages/ and deploy/. That fence is upheld, not relaxed: db/ is the allowed target area named by the consumer-sync runtime-start sequence, and the production revisions live at db/metaframer_kernel_db/alembic/versions, never at the repository root.",
+  "forbiddenInPhaseA": {
+    "role": "historical-phase-a-record",
+    "paths": [
+      "db/migrations/versions",
+      "db/src",
+      "db/metaframer_kernel_db",
+      "migrations",
+      "src",
+      "apps",
+      "packages",
+      "deploy"
+    ],
+    "note": "What Phase A required to be absent, kept as the record of what the RED actually proved. db/metaframer_kernel_db is present now by design; its absence then is what made the 29 MissingSubstrateCapability failures meaningful. The standing constraint is forbiddenAlways."
+  },
+  "red": {
+    "phase": "A",
+    "statement": "Against a real, healthy, deterministically started PostgreSQL 16 instance with separated migration/admin and non-owner NOBYPASSRLS runtime roles, the behavioural substrate tests fail because the declared production capabilities are absent — not because Docker, authentication, dependency installation, Python, uv or the harness is broken.",
+    "provenBy": [
+      "the environment suite passes, proving the container, the server version, the role separation and the authenticated connections are all real and healthy",
+      "each behavioural suite then fails with MissingSubstrateCapability, naming the capability id, its declared target and the live database health evidence"
+    ],
+    "notProvenBy": [
+      "file-presence assertions alone",
+      "a skipped or deselected test",
+      "an error raised before the database was reached"
+    ],
+    "exitCriteria": [
+      "npm test and npm run check still pass unchanged",
+      "the environment suite passes against the real instance",
+      "every behavioural suite fails with MissingSubstrateCapability and no other cause",
+      "no production migration, model, session, RLS, outbox or audit implementation exists"
+    ],
+    "role": "historical-phase-a-record"
+  },
+  "green": {
+    "phase": "B",
+    "statement": "The same behavioural tests pass unchanged against a real PostgreSQL 16 instance: Alembic upgrades, downgrades and re-upgrades cleanly; FORCE RLS isolates tenants on every runtime table against the non-owner NOBYPASSRLS runtime role, fails closed when the tenant context is missing or invalid, and cannot be defeated by a runtime role forging that context outside the controlled transaction API; transactions are atomic across the audit and outbox writes made inside one boundary, and the SET LOCAL tenant context never leaks past it; concurrent outbox claimers never receive the same row within one claim attempt and never cross tenants, under at-least-once semantics; and audit rows cannot be updated or deleted, including by a privileged role.",
+    "notReachableFromPhaseA": true,
+    "exitCriteria": [
+      "every Phase A behavioural test is green without being rewritten to accommodate the implementation",
+      "npm test and npm run check pass",
+      "no primitive, SDK, app, module or surface file is touched",
+      "independent Codex verification is recorded externally, never in this repository by the writer"
+    ],
+    "role": "current-phase-b-obligation"
+  },
+  "requiredCapabilities": [
+    {
+      "id": "migration.alembic_config",
+      "target": "metaframer_kernel_db.migrations:alembic_config",
+      "kind": "callable",
+      "contract": "alembic_config(sqlalchemy_url: str) -> alembic.config.Config configured against the production revision tree",
+      "proves": "a real Alembic upgrade -> downgrade -> re-upgrade against PostgreSQL 16",
+      "absentInPhaseA": true,
+      "implementedInPhaseB": true,
+      "implementedIn": "db/metaframer_kernel_db/migrations.py"
+    },
+    {
+      "id": "migration.head_revision",
+      "target": "metaframer_kernel_db.migrations:HEAD_REVISION",
+      "kind": "value",
+      "contract": "the identifier of the production head revision, so a round trip can assert it returns to head",
+      "proves": "the downgrade is real and the re-upgrade lands back on the same head",
+      "absentInPhaseA": true,
+      "implementedInPhaseB": true,
+      "implementedIn": "db/metaframer_kernel_db/migrations.py"
+    },
+    {
+      "id": "schema.contract",
+      "target": "metaframer_kernel_db.schema:SCHEMA_CONTRACT",
+      "kind": "mapping",
+      "contract": "a mapping declaring tenant_setting, outbox_table, audit_table, tenant_column, id_column, payload_column and claimed_column, so behavioural tests address the schema by logical name rather than by guessing physical names. It declares only the tables this package owns; no domain or business table is named.",
+      "proves": "the behavioural tests bind to the production schema rather than to a fixture schema",
+      "absentInPhaseA": true,
+      "implementedInPhaseB": true,
+      "implementedIn": "db/metaframer_kernel_db/schema.py"
+    },
+    {
+      "id": "runtime.tenant_context_attestation",
+      "target": "metaframer_kernel_db.session:TENANT_CONTEXT_ATTESTATION",
+      "kind": "mapping",
+      "contract": "a mapping declaring policy_settings (every setting the row-level-security policy consults when deciding a tenant identity), runtime_writable (whether the runtime role can write each of them at all) and forgeable_by_runtime_role (which must be false). The mechanism is Phase B's choice and is deliberately not specified here; the required property is that no sequence of statements available to the runtime role outside the controlled transaction API can produce an accepted tenant context, even where writing the raw setting itself is permitted.",
+      "proves": "the tenant context fails closed unless it carries an attestation the runtime role cannot forge, so row-level security cannot be defeated by SET, SET LOCAL or set_config",
+      "absentInPhaseA": true,
+      "implementedInPhaseB": true,
+      "implementedIn": "db/metaframer_kernel_db/session.py"
+    },
+    {
+      "id": "runtime.tenant_transaction",
+      "target": "metaframer_kernel_db.session:tenant_transaction",
+      "kind": "context-manager",
+      "contract": "tenant_transaction(sqlalchemy_url: str, tenant_id: str | None) -> ContextManager[sqlalchemy.Connection] opening one explicit transaction with the tenant context applied via SET LOCAL, failing closed when tenant_id is None",
+      "proves": "the transaction boundary, the fail-closed transaction-local tenant context and SET LOCAL non-leakage",
+      "absentInPhaseA": true,
+      "implementedInPhaseB": true,
+      "implementedIn": "db/metaframer_kernel_db/session.py"
+    },
+    {
+      "id": "outbox.claim_batch",
+      "target": "metaframer_kernel_db.outbox:claim_batch",
+      "kind": "callable",
+      "contract": "claim_batch(connection: sqlalchemy.Connection, limit: int) -> list[Mapping] claiming unclaimed outbox rows with FOR UPDATE SKIP LOCKED inside the caller's transaction and tenant context",
+      "proves": "a safe concurrent claim that never double-claims and never crosses tenants",
+      "absentInPhaseA": true,
+      "implementedInPhaseB": true,
+      "implementedIn": "db/metaframer_kernel_db/outbox.py"
+    }
+  ],
+  "behavioralContract": [
+    {
+      "id": "environment",
+      "module": "tests/test_substrate_environment.py",
+      "marker": "substrate",
+      "phaseAOutcome": "pass",
+      "requiresCapabilities": [],
+      "assertions": [
+        "the instance is a real postgres:16-alpine container with a unique per-run name",
+        "server_version_num is within the PostgreSQL 16 range",
+        "the migration role and the runtime role both authenticate over TCP with scram-sha-256",
+        "the runtime role is NOSUPERUSER and NOBYPASSRLS",
+        "the runtime role owns neither the database nor the schema and holds no CREATE on it",
+        "the migration role owns the database and the schema",
+        "the harness used no host psql binary and persisted no secret"
+      ],
+      "phaseBOutcome": "pass"
+    },
+    {
+      "id": "migration-roundtrip",
+      "module": "tests/test_migration_roundtrip.py",
+      "marker": "migration",
+      "phaseAOutcome": "red-missing-capability",
+      "requiresCapabilities": [
+        "migration.alembic_config",
+        "migration.head_revision"
+      ],
+      "assertions": [
+        "upgrade to head creates the declared runtime tables, which in this package are the outbox table and the audit table",
+        "downgrade to base removes them, proving the downgrade is real rather than a stub",
+        "re-upgrade returns to the same head revision",
+        "the round trip runs as the migration role, never as a superuser"
+      ],
+      "phaseBOutcome": "pass"
+    },
+    {
+      "id": "rls-isolation",
+      "module": "tests/test_rls_isolation.py",
+      "marker": "rls",
+      "phaseAOutcome": "red-missing-capability",
+      "requiresCapabilities": [
+        "migration.alembic_config",
+        "schema.contract",
+        "runtime.tenant_transaction",
+        "runtime.tenant_context_attestation"
+      ],
+      "assertions": [
+        "every runtime table this package owns — the outbox table and the audit table — has row-level security both ENABLEd and FORCEd, enumerated over the declared runtime table list rather than spot-checked",
+        "a tenant reads only its own rows in both the outbox table and the audit table, through the non-owner NOBYPASSRLS runtime role",
+        "negative proof: tenant A cannot SELECT a tenant B row in either runtime table",
+        "negative proof: tenant A cannot UPDATE or DELETE a tenant B outbox row",
+        "negative proof: tenant A cannot INSERT a row carrying tenant B's identifier into either runtime table",
+        "negative proof: with no tenant context set the runtime role is denied both reads and writes on every runtime table, so the policy fails closed rather than open",
+        "negative proof: an invalid or empty tenant context is denied both reads and writes, exactly as a missing one is",
+        "negative proof: the runtime role forging a tenant context directly with SET, SET LOCAL or set_config outside the controlled transaction API gains no tenant B read or write access; the policy fails closed without an unforgeable controlled-API attestation, and the assertion is on the access outcome rather than on any SQL text",
+        "FORCE is proven behaviourally as well as from the catalogue: the table-owning migration role is also subject to the policy"
+      ],
+      "phaseBOutcome": "pass"
+    },
+    {
+      "id": "transaction-atomicity",
+      "module": "tests/test_transaction_atomicity.py",
+      "marker": "transaction",
+      "phaseAOutcome": "red-missing-capability",
+      "requiresCapabilities": [
+        "migration.alembic_config",
+        "schema.contract",
+        "runtime.tenant_transaction"
+      ],
+      "assertions": [
+        "an audit row and an outbox row written inside one transaction boundary are both rolled back when that transaction raises, leaving neither behind",
+        "an audit row and an outbox row written inside one transaction boundary are both persisted when that transaction commits",
+        "the tenant context is applied with SET LOCAL and is therefore transaction-local",
+        "non-leakage: after the transaction ends the tenant setting is no longer in force on the same physical backend",
+        "non-leakage: a subsequent transaction never inherits the previous transaction's tenant context"
+      ],
+      "phaseBOutcome": "pass"
+    },
+    {
+      "id": "outbox-claim",
+      "module": "tests/test_outbox_claim.py",
+      "marker": "outbox",
+      "phaseAOutcome": "red-missing-capability",
+      "requiresCapabilities": [
+        "migration.alembic_config",
+        "schema.contract",
+        "runtime.tenant_transaction",
+        "outbox.claim_batch"
+      ],
+      "assertions": [
+        "an outbox row is written in the same transaction boundary as the audit row it accompanies, and is rolled back with it",
+        "two concurrent claimers do not receive the same row within one claim attempt, so a single claim lease never overlaps another",
+        "concurrent claimers do not block each other, proving FOR UPDATE SKIP LOCKED rather than a plain FOR UPDATE",
+        "a claimer in tenant A never claims an outbox row belonging to tenant B",
+        "persistence and claim semantics are at-least-once: every enqueued row is eventually claimed, and redelivery after a crash or an expired claim lease is permitted rather than excluded",
+        "a claim lease that expires without the row being published makes that row claimable again, carrying the same identifier and an incremented attempt count, so a dead consumer strands nothing",
+        "an expired claim is never reclaimed across the tenant boundary, so lease expiry is not a hole in tenant isolation",
+        "a published row is never handed out again, whether or not its lease has expired",
+        "each outbox row carries a stable identifier that survives claiming and reclaiming, so a Phase B consumer can deduplicate redeliveries"
+      ],
+      "phaseBOutcome": "pass"
+    },
+    {
+      "id": "audit-immutability",
+      "module": "tests/test_audit_immutability.py",
+      "marker": "audit",
+      "phaseAOutcome": "red-missing-capability",
+      "requiresCapabilities": [
+        "migration.alembic_config",
+        "schema.contract",
+        "runtime.tenant_transaction"
+      ],
+      "assertions": [
+        "an audit row can be appended",
+        "the runtime role cannot UPDATE an existing audit row",
+        "the runtime role cannot DELETE an existing audit row",
+        "the privileged invariant: the table-owning migration role also cannot UPDATE or DELETE an audit row, so immutability is enforced by the database rather than by a revoked grant alone",
+        "an append-only violation aborts its transaction rather than silently succeeding"
+      ],
+      "phaseBOutcome": "pass"
+    }
+  ],
+  "databaseLifecycle": {
+    "image": "postgres:16-alpine",
+    "majorVersion": 16,
+    "engine": "docker",
+    "harness": "db/tests/_harness/docker_postgres.py",
+    "containerNamePrefix": "mfk-substrate-s1-",
+    "uniquelyNamedPerRun": true,
+    "readinessPolled": true,
+    "readinessSignals": [
+      "in-container pg_isready over 127.0.0.1 TCP, which the socket-only initialisation server cannot satisfy",
+      "a real authenticated psycopg connection from the host"
+    ],
+    "boundedTimeouts": true,
+    "cleanedOnFailure": true,
+    "cleanupMechanisms": [
+      "explicit stop in the fixture finaliser",
+      "stop on any BaseException during startup",
+      "an atexit sweep of anything still registered",
+      "a startup sweep of stopped containers this harness left behind earlier"
+    ],
+    "hostPsqlUsed": false,
+    "committedSecrets": false,
+    "secretHandling": "every password is generated per run with the secrets module, the superuser password reaches Docker through the process environment rather than argv, and no password is written to disk or included in any repr",
+    "portBinding": "127.0.0.1 with an ephemeral published port",
+    "roles": {
+      "migration": {
+        "name": "mfk_migration",
+        "ownsDatabase": true,
+        "ownsSchema": true,
+        "superuser": false,
+        "bypassRls": false,
+        "purpose": "migration and admin DDL"
+      },
+      "runtime": {
+        "name": "mfk_runtime",
+        "ownsDatabase": false,
+        "ownsSchema": false,
+        "superuser": false,
+        "bypassRls": false,
+        "createOnSchema": false,
+        "purpose": "the application runtime role that FORCE RLS must constrain"
+      }
+    }
+  },
+  "rollback": {
+    "owner": "codex-master",
+    "trigger": "the pinned Actionplan authority, the pinned kernel base commit, the digest-pinned activation base, the declared production surface, or the not-effective package state drifts",
+    "action": "run `alembic downgrade base` with metaframer_kernel_db.migrations.alembic_config against every database the substrate was applied to, then revert db/, tools/check-kernel-runtime-substrate-s1.mjs, tests/kernel-runtime-substrate-s1.test.mjs and the package.json and .gitignore wiring as one logical shard",
+    "blastRadius": "the substrate schema and the package: both runtime tables with their policies and indexes, the append-only trigger, the context key table and the four attestation functions. pgcrypto is a shared database-level object and is deliberately left in place.",
+    "runtimeDataImpact": "DESTRUCTIVE. The downgrade drops transactional_outbox and audit_log, so every outbox row and every audit record in that database is permanently lost; unclaimed rows are discarded undelivered and the audit trail cannot be reconstructed. Dropping mfk_context_key destroys the per-database signing key, so any attestation minted before the rollback is worthless afterwards. Take a backup before rolling back any database holding real data.",
+    "dependentCode": "none: no primitive, SDK, app, module or surface consumes this substrate yet, so reverting it breaks no caller",
+    "reversibilityNote": "The code rollback is clean; the data rollback is not. On this branch the substrate has only ever been applied to per-test containers that are destroyed either way, so the destructive impact is prospective — it applies from the first durable deployment onward, not to anything that exists today.",
+    "note": "Phase A could claim a rollback with no runtime data impact because no schema existed. That is no longer true and this block no longer says it: a substrate that owns an audit trail cannot be un-applied without destroying one."
+  },
+  "activation": {
+    "state": "prepared-awaiting-main-activation",
+    "effective": false,
+    "deterministic": true,
+    "inRepoStatusFlipCommitRequired": false,
+    "selfReferentialCommitShaRecorded": false,
+    "activatedBy": null,
+    "effectiveFrom": null,
+    "predicates": [
+      {
+        "id": "artifact-present-on-kernel-main",
+        "satisfiedOnThisBranch": false,
+        "evaluator": "codex-master",
+        "evidence": "db/kernel-runtime-substrate-s1.json and tools/check-kernel-runtime-substrate-s1.mjs are present on the Kernel main branch"
+      },
+      {
+        "id": "npm-test-passes-on-kernel-main",
+        "satisfiedOnThisBranch": false,
+        "evaluator": "codex-master",
+        "evidence": "npm test exits zero on that main"
+      },
+      {
+        "id": "npm-run-check-passes-on-kernel-main",
+        "satisfiedOnThisBranch": false,
+        "evaluator": "codex-master",
+        "evidence": "npm run check exits zero on that main"
+      },
+      {
+        "id": "independent-codex-verification-evidence-exists",
+        "satisfiedOnThisBranch": false,
+        "evaluator": "codex-master",
+        "evidence": "an independent Codex verification record whose verifier is not the writer"
+      }
+    ],
+    "rule": "when every predicate is externally true the package is effective; activation adds no in-repo status flip commit and records no self-referential commit SHA",
+    "note": "Activation is a deterministic function of external predicates evaluated off this branch. Nothing here can vouch for its own effectiveness."
+  },
+  "independentVerification": {
+    "recorded": false,
+    "evaluator": "codex-master",
+    "writerMaySelfVerify": false,
+    "inRepoEvidenceCreated": false,
+    "note": "No independent-verification record is invented in this repository. Verification is external and belongs to Codex MASTER."
+  },
+  "humanCountersign": {
+    "required": true,
+    "recorded": false,
+    "default": false,
+    "owner": "human",
+    "writerMayCountersign": false,
+    "note": "No human countersign is invented in this repository."
+  },
+  "promotionClaims": {
+    "claimedVerdict": null,
+    "claimedGates": [],
+    "claimsGate01": false,
+    "claimsRuntimePilot": false,
+    "claimsProduction": false,
+    "note": "This package claims no promotion gate and no verdict. The frozen ten-gate contract is consumed, never amended."
+  },
+  "preservation": {
+    "rewritesHistoricalArtifacts": false,
+    "readOnly": [
+      "repository-status.json",
+      "planning/bootstrap-state.json",
+      "planning/governance-decisions.json",
+      "planning/human-decision-request.json",
+      "planning/kernel-ai-development-readiness.json",
+      "planning/kernel-runtime-pilot-consumer-sync.json",
+      "planning/source-inventory.json",
+      "planning/traceability-matrix.json",
+      "docs/kernel-ai-development-readiness.md"
+    ],
+    "note": "Every file listed here is read and left byte-identical by this package. The existing checks that guard them are extended, never bypassed."
+  },
+  "checkComposition": {
+    "verifier": "tools/check-kernel-runtime-substrate-s1.mjs",
+    "position": "before tools/compose-current-effective.mjs",
+    "emitsCurrentEffectiveLine": false,
+    "emitsBranchCandidateLine": true,
+    "finalCurrentEffectiveLineOwner": "tools/compose-current-effective.mjs",
+    "activationBaseLineOwner": "tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+    "note": "Ownership of the final line moved when the compositor arrived. The consumer-sync verifier still emits its own CURRENT EFFECTIVE line when run directly, and that line is the activation base — but inside npm run check the compositor consumes that output, relabels the line as the activation base, and emits the one final CURRENT EFFECTIVE line itself. This verifier runs before the compositor and emits no current-effective line of its own; it contributes a distinct BRANCH CANDIDATE line that is explicitly non-effective."
+  },
+  "knownHazards": [
+    {
+      "id": "venv-filename-collides-with-epoch-fence",
+      "description": "The consumer-sync verifier fails closed if any file anywhere in the repository has a name matching /epoch/i. The Python virtual environment under db/.venv is inside that walk, so a future transitive dependency shipping such a filename would trip a governance check for an unrelated reason.",
+      "mitigation": "This verifier checks the same condition first and reports it as a dependency filename collision rather than as fabricated historical evidence, so the failure is diagnosable instead of misleading.",
+      "bypassesExistingCheck": false
+    }
+  ],
+  "forbiddenAlways": [
+    "migrations",
+    "src",
+    "apps",
+    "packages",
+    "deploy"
+  ],
+  "staticAnalysis": {
+    "script": "check:substrate-s1:static",
+    "command": "cd db && uv lock --check && uv run --frozen ruff check metaframer_kernel_db tests && uv run --frozen ruff format --check metaframer_kernel_db tests && PYTHONPYCACHEPREFIX=\"${TMPDIR:-/tmp}/mfk-substrate-s1-pycache\" uv run --frozen python -m compileall -q metaframer_kernel_db tests",
+    "configuredIn": "db/pyproject.toml",
+    "packagePinned": true,
+    "ephemeralToolInvocationAllowed": false,
+    "cacheArtifactsWrittenIntoTree": false,
+    "pinnedVersions": {
+      "ruff": "0.14.14"
+    },
+    "tools": [
+      {
+        "name": "uv",
+        "role": "lock-consistency",
+        "invocation": "uv lock --check",
+        "pinnedIn": "not-applicable-checks-the-lock-itself"
+      },
+      {
+        "name": "ruff",
+        "role": "lint",
+        "invocation": "ruff check metaframer_kernel_db tests",
+        "pinnedIn": "db/uv.lock"
+      },
+      {
+        "name": "ruff",
+        "role": "format",
+        "invocation": "ruff format --check metaframer_kernel_db tests",
+        "pinnedIn": "db/uv.lock"
+      },
+      {
+        "name": "compileall",
+        "role": "compile",
+        "invocation": "python -m compileall -q metaframer_kernel_db tests",
+        "pinnedIn": "python-3.12-standard-library"
+      }
+    ],
+    "note": "The static toolchain is pinned in db/pyproject.toml and resolved exactly in db/uv.lock, and every step runs through `uv run --frozen` from that resolved environment. An ephemeral `uvx ruff` would lint with whatever version the machine happened to fetch, which is not a reproducible check and is refused here. Ruff's settings live in db/pyproject.toml so the commands carry no flags and two people running them get the same answer. compileall writes its bytecode to PYTHONPYCACHEPREFIX outside the working tree, so the check leaves no artifact behind to be tracked."
+  },
+  "redFollowUps": {
+    "phase": "GREEN",
+    "implementationAuthorised": true,
+    "note": "Both follow-ups were declared RED and failing, and are now implemented. The key keeps its name because that is where they came from: each gap records the RED that specified it and the GREEN that satisfied it, and the verifier now enforces the opposite of what it enforced before — the implementations must be present, and a contract still claiming they are absent fails the run.",
+    "gaps": [
+      {
+        "id": "GAP1-outbox-claim-fencing",
+        "kind": "runtime-capability",
+        "module": "tests/test_outbox_claim_fencing.py",
+        "marker": "outbox",
+        "phaseRedOutcome": "red-missing-capability",
+        "statement": "The shipped release and publish paths take identifiers only, so they cannot distinguish the current claimant of a row from a previous one. After a lease expires and a second claimant reclaims the row, the stale claimant can still release the live claim back to the queue or mark work published that is still in progress. A fenced API compares the caller's claim token against the one stored on the row and affects zero rows when they differ.",
+        "declaredCapabilities": [
+          {
+            "id": "outbox.release_claim",
+            "target": "metaframer_kernel_db.outbox:release_claim",
+            "kind": "callable",
+            "contract": "release_claim(connection, ids, *, claim_token) -> list[id] releasing only rows whose stored claim token equals claim_token, inside the caller's transaction and tenant context",
+            "proves": "a stale claimant cannot hand a live claim back to the queue",
+            "implemented": true,
+            "implementedIn": "db/metaframer_kernel_db/outbox.py"
+          },
+          {
+            "id": "outbox.publish_claim",
+            "target": "metaframer_kernel_db.outbox:publish_claim",
+            "kind": "callable",
+            "contract": "publish_claim(connection, ids, *, claim_token) -> list[id] marking published only rows whose stored claim token equals claim_token, inside the caller's transaction and tenant context",
+            "proves": "a stale claimant cannot record work as finished that another claimant is still doing",
+            "implemented": true,
+            "implementedIn": "db/metaframer_kernel_db/outbox.py"
+          }
+        ],
+        "provableWithoutTheNewCapability": [
+          "a claim lease expires and the row becomes claimable again",
+          "the second claimant receives the same row carrying a different claim token",
+          "the row records the current claimant's token and a higher attempt count"
+        ],
+        "assertions": [
+          "a stale claimant's fenced release affects zero rows and leaves the current claim's token, claimed_at and claim_expires_at untouched",
+          "a stale claimant's fenced publish affects zero rows and leaves the row unpublished and the current claim intact",
+          "the current claim token can release its own claim, after which the row is unclaimed and returns to circulation",
+          "the current claim token can publish its own claim, after which the row leaves circulation and a stale release still affects zero rows",
+          "a fenced mutation never crosses the tenant boundary: tenant A holding tenant B's genuine current token still affects zero rows, because row-level security denies the row before any token is compared"
+        ],
+        "status": "green",
+        "phaseGreenOutcome": "pass",
+        "fencingPredicate": "claim_token = CAST(:claim_token AS uuid)",
+        "idsOnlyMutationPathRemoved": true,
+        "removedApis": [
+          "release_batch",
+          "mark_published"
+        ],
+        "publicMutationApis": [
+          "release_claim",
+          "publish_claim"
+        ],
+        "rowLevelSecurityRemainsDecisive": true,
+        "boundaryNote": "The package offers no unfenced mutation path: both public mutations require a claim token and raise rather than default when one is absent. Raw SQL remains available to whoever holds the table grant — that is what a grant means — and row-level security is what constrains it, denying another tenant's row before any token is compared. Per-statement authorisation of a caller that legitimately holds the grant is the policy decision point's job, not the substrate's."
+      },
+      {
+        "id": "GAP2-external-tag-activation",
+        "kind": "governance-composition",
+        "module": "tests/kernel-runtime-substrate-s1-activation.test.mjs",
+        "phaseRedOutcome": "red-missing-evaluator",
+        "statement": "Activation currently has predicates but no deterministic evaluator, and no compositor to turn one into a single authoritative line. The record of activation must be one annotated Git tag created by the root Codex MASTER after merge and published on the canonical origin, never an in-repository status flip, never a commit that records its own hash, and never a tag that exists only locally.",
+        "tagAuthority": {
+          "tagName": "kernel-runtime-substrate-s1-activated",
+          "tagType": "annotated",
+          "location": "external-git-tag-on-the-kernel-repository",
+          "createdBy": "root-codex-master",
+          "writerMayCreate": false,
+          "writerMaySelfVerify": false,
+          "inRepoStatusFlipCommitRequired": false,
+          "selfReferentialCommitShaRecorded": false,
+          "lightweightTagAccepted": false,
+          "checkoutMustEqualExactOriginMain": true,
+          "remoteIdentityCheckRequired": true,
+          "targetMustBeAncestorOrEqualOfExactOriginMain": true,
+          "targetMustBeVerifiedPackageCommit": true,
+          "requiredMessageHeader": "KERNEL-RUNTIME-SUBSTRATE-S1-ACTIVATION",
+          "requiredMessageFields": [
+            "packageId",
+            "packageCommit",
+            "independentVerification",
+            "verifiedCommands",
+            "results"
+          ],
+          "requiredPackageId": "kernel-runtime-substrate-s1-2026-08-06",
+          "requiredIndependentVerification": "root-codex",
+          "requiredVerifiedCommands": [
+            "npm test",
+            "npm run check",
+            "npm run check:substrate-s1:static",
+            "npm run test:substrate-s1"
+          ],
+          "requiredResult": "GREEN",
+          "canonicalRemote": "git@github.com:metaframer-net/metaframer-kernel.git",
+          "expectedRemoteInjectableInTests": true,
+          "tagMustBePublishedOnCanonicalOrigin": true,
+          "localOnlyTagAccepted": false,
+          "remoteTagObjectMustMatchLocal": true,
+          "remoteLookupIsBounded": true,
+          "remoteLookupFailureIsNotEffective": true,
+          "remoteLookupFailureIsNotATestFailure": true,
+          "note": "A tag that exists only in a working copy proves nothing: anyone holding the checkout can create one, so a local tag is evidence about that machine, not about the project. The activation record is the tag object published on the canonical origin, and the reader must confirm it is there. That confirmation is a bounded remote lookup; if it errors, times out, finds nothing, or finds a tag object that differs from the local one, the answer is that the package is not effective. It is never a failure of the check itself — an unreachable network must not be able to activate anything, and must not be able to break the run either."
+        },
+        "rootProcedure": [
+          "1. Root Codex MASTER merges the package to Kernel main through the normal review gate; the writer never merges.",
+          "2. Root Codex MASTER checks out the exact origin/main commit, having first verified the remote identity is the canonical Kernel repository.",
+          "3. Root Codex MASTER runs npm test, npm run check, npm run check:substrate-s1:static and npm run test:substrate-s1 on that checkout and records the results.",
+          "4. Only if all four are GREEN, root Codex MASTER creates the annotated tag kernel-runtime-substrate-s1-activated on the verified package commit, with the strict structured message binding the package id, the package commit, the independent verification identity and the exact commands and their GREEN results.",
+          "5. Root Codex MASTER pushes the tag to the canonical origin. Until that push lands the tag is local and activates nothing. No status-flip commit is made and no commit records its own hash.",
+          "6. Any later verifier run resolves the tag object on the canonical origin through a bounded lookup and computes effectiveness deterministically; it never asks a repository file whether it is effective, and it treats an unreachable origin as not-effective rather than as an error."
+        ],
+        "evaluator": {
+          "export": "evaluateExternalTagActivation",
+          "module": "tools/check-kernel-runtime-substrate-s1.mjs",
+          "implemented": true,
+          "inputs": [
+            "expectedRemote",
+            "remote",
+            "checkout",
+            "tag",
+            "package"
+          ],
+          "returns": "{ effective: boolean, errors: string[], state: object }",
+          "implementedIn": "tools/check-kernel-runtime-substrate-s1.mjs"
+        },
+        "invariantsUnderActivation": [
+          "historical artifacts stay byte-identical; activation rewrites nothing",
+          "the composed output ends with exactly one CURRENT EFFECTIVE line, counted from the output itself",
+          "every stronger flag stays false: kernelReady, sdkReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed, gapClosed",
+          "no appReady flag is introduced anywhere, and appBuildable is never raised",
+          "activation moves runtimeImplementationStarted only"
+        ],
+        "assertions": [
+          "a feature branch is never effective, even carrying a forged tag of the right name",
+          "a tag that exists only locally never activates, even on an exact origin/main checkout, because a local tag is evidence about one machine rather than about the project",
+          "an exact origin/main checkout with no tag is not effective",
+          "an exact origin/main checkout whose remote identity was not verified is not effective",
+          "a lightweight tag of the right name is not effective, because it carries no message to bind",
+          "a tag whose message is malformed or missing a required field is not effective",
+          "a tag targeting a commit other than the verified package commit is not effective",
+          "a tag whose target is not an ancestor of, or equal to, the exact origin/main commit is not effective",
+          "a tag whose message binds the wrong package id, a wrong package commit, an independent verification other than root-codex, an incomplete command set, or a result other than GREEN is not effective",
+          "a tag not published on the canonical origin is not effective, and neither is one whose published tag object differs from the local one",
+          "a remote lookup that errors, times out or finds nothing yields not-effective rather than an error, so an unreachable network can neither activate the package nor break the check",
+          "only an exact origin/main checkout, admitted after an exact remote identity check, carrying a valid annotated tag that is published on the canonical origin, targets the verified package commit and binds every required field, can be effective",
+          "when it is effective, every stronger flag stays false, appBuildable included, no appReady flag is introduced, no in-repository status flip is required and no self-referential commit hash is recorded",
+          "the compositor emits exactly one final CURRENT EFFECTIVE line in both the activated and the unactivated case, proven by counting the lines it emits rather than by trusting a reported count",
+          "the compositor relabels the consumer-sync CURRENT EFFECTIVE line as the activation base and rewrites no historical artifact"
+        ],
+        "compositor": {
+          "module": "tools/compose-current-effective.mjs",
+          "export": "composeCurrentEffective",
+          "implemented": true,
+          "consumes": "tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+          "consumedOutputIsImmutable": true,
+          "behaviour": [
+            "takes the consumer-sync verifier's output verbatim and rewrites none of its artifacts",
+            "relabels the consumer-sync CURRENT EFFECTIVE line as the activation base, so the state in force before activation stays visible and clearly historical",
+            "emits exactly one final CURRENT EFFECTIVE line, in both the activated and the unactivated case",
+            "the final line reports runtimeImplementationStarted=false when the package is not activated, and true only when an exact origin/main checkout carries a valid, remotely published tag",
+            "every stronger flag stays false on that line in both cases, including appBuildable"
+          ],
+          "assertedBy": "counting the lines the compositor actually emits, never a self-reported count",
+          "implementedIn": "tools/compose-current-effective.mjs"
+        },
+        "forbiddenFlags": {
+          "appReady": "never introduced and never claimed; the canonical flag is appBuildable and it stays false",
+          "appBuildable": "false, in every branch of the composition"
+        },
+        "status": "green",
+        "phaseGreenOutcome": "pass",
+        "reader": {
+          "export": "readActivationFacts",
+          "module": "tools/check-kernel-runtime-substrate-s1.mjs",
+          "implemented": true,
+          "proves": [
+            "HEAD equals refs/remotes/origin/main and the checkout is on main or detached there",
+            "the origin remote URL equals the pinned canonical origin exactly",
+            "the package commit, derived from the commit that introduced the S1 artifact on origin/main",
+            "the local tag object type, target commit, ancestry and structured message",
+            "the same tag object published on the canonical origin, via non-interactive bounded git ls-remote"
+          ],
+          "boundedTimeoutMs": 15000,
+          "nonInteractive": true,
+          "shortCircuitsBeforeAnyNetworkCall": "when the checkout is not exact origin/main",
+          "failureIsNotEffectiveNotAnException": true
+        },
+        "checkWiring": {
+          "script": "check",
+          "invocation": "node tools/compose-current-effective.mjs tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+          "activationBaseVerifierEdited": false,
+          "activationBaseArtifactEdited": false,
+          "note": "The compositor wraps the consumer-sync verifier rather than replacing it: the verifier is named as the compositor's argument, so it still runs, still exits non-zero on its own findings, and its file and artifact stay byte-identical."
+        }
+      }
+    ],
+    "originallyRed": true
+  }
+}

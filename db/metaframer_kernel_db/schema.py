@@ -1,0 +1,38 @@
+"""Logical-to-physical names for the substrate's objects.
+
+Callers and tests address the schema through this mapping rather than by hard-coding physical
+names, so a rename is a one-line change here instead of a sweep through every query.
+
+Exactly two runtime tables exist, and both are tenant-owned. There is no business or domain table:
+a substrate has no domain, so transaction and policy behaviour is exercised against the tables the
+substrate itself owns.
+"""
+
+from __future__ import annotations
+
+from typing import Final, Mapping
+
+#: The transaction-local setting carrying the tenant identity.
+TENANT_SETTING: Final = "mfk.tenant_id"
+#: The transaction-local setting carrying the attestation that makes that identity trustworthy.
+ATTESTATION_SETTING: Final = "mfk.tenant_attestation"
+
+OUTBOX_TABLE: Final = "transactional_outbox"
+AUDIT_TABLE: Final = "audit_log"
+#: Holds the per-database signing secret. Owned by the migration role, granted to no one else.
+CONTEXT_KEY_TABLE: Final = "mfk_context_key"
+
+#: Every table this package owns, in the order the package contract enumerates them.
+RUNTIME_TABLES: Final = (OUTBOX_TABLE, AUDIT_TABLE)
+
+SCHEMA_CONTRACT: Final[Mapping[str, str]] = {
+    "tenant_setting": TENANT_SETTING,
+    "attestation_setting": ATTESTATION_SETTING,
+    "outbox_table": OUTBOX_TABLE,
+    "audit_table": AUDIT_TABLE,
+    # Columns present, under the same name, in both runtime tables.
+    "tenant_column": "tenant_id",
+    "id_column": "id",
+    "payload_column": "event_type",
+    "claimed_column": "claimed_at",
+}

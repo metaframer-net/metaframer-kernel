@@ -5,10 +5,13 @@
   "description": "Current-authority consumer for the Actionplan governance chain and the MetaFramer runtime-kernel boundary.",
   "type": "module",
   "scripts": {
-    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs && node tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs && node tools/check-kernel-runtime-substrate-s1.mjs && node tools/compose-current-effective.mjs tools/check-kernel-runtime-pilot-consumer-sync.mjs",
     "check:readiness": "node tools/check-kernel-ai-development-readiness.mjs",
     "check:consumer-sync": "node tools/check-kernel-runtime-pilot-consumer-sync.mjs",
     "check:sources": "node tools/check-source-snapshot.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "check:substrate-s1": "node tools/check-kernel-runtime-substrate-s1.mjs",
+    "check:substrate-s1:static": "cd db && uv lock --check && uv run --frozen ruff check metaframer_kernel_db tests && uv run --frozen ruff format --check metaframer_kernel_db tests && PYTHONPYCACHEPREFIX=\"${TMPDIR:-/tmp}/mfk-substrate-s1-pycache\" uv run --frozen python -m compileall -q metaframer_kernel_db tests",
+    "test": "node --test tests/*.test.mjs",
+    "test:substrate-s1": "cd db && uv run --frozen pytest"
   }
 }
