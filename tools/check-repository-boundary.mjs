@@ -66,4 +66,10 @@ for (const runtimePath of ["apps", "src", "packages", "deploy", "migrations"]) {
   );
 }
 
-console.log("repository boundary: PLANNING_ONLY / VALID_BLOCKED / NO_GO");
+// The checks above are unchanged; only their reporting is labelled. These tokens are a verified
+// historical snapshot, not the verdict in force — the current one is printed last by
+// tools/check-kernel-runtime-pilot-consumer-sync.mjs.
+console.log(
+  "HISTORICAL SNAPSHOT (verified, non-effective; not the current verdict): " +
+    "repository boundary: PLANNING_ONLY / VALID_BLOCKED / NO_GO",
+);

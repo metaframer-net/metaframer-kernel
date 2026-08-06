@@ -2,11 +2,12 @@
   "name": "@metaframer/kernel",
   "version": "0.0.0-planning",
   "private": true,
-  "description": "Planning-only repository reservation for the MetaFramer runtime kernel boundary.",
+  "description": "Current-authority consumer for the Actionplan governance chain and the MetaFramer runtime-kernel boundary.",
   "type": "module",
   "scripts": {
-    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs",
+    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs && node tools/check-kernel-runtime-pilot-consumer-sync.mjs",
     "check:readiness": "node tools/check-kernel-ai-development-readiness.mjs",
+    "check:consumer-sync": "node tools/check-kernel-runtime-pilot-consumer-sync.mjs",
     "check:sources": "node tools/check-source-snapshot.mjs",
     "test": "node --test tests/*.test.mjs"
   }
