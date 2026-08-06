@@ -7,3 +7,13 @@ coverage/
 dist/
 *.log
 /worktrees/
+
+# Python substrate harness (db/). The virtual environment and caches are build products; the
+# pinned dependency lock (db/uv.lock) is committed and is the reproducible input.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Ruff writes its own .gitignore inside this directory, so git ignores it either way. The rule is
+# stated here too rather than relying on a tool to keep ignoring its own output.
+.ruff_cache/

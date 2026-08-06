@@ -1,0 +1,59 @@
+# MetaFramer Kernel runtime substrate S1.
+#
+# Phase A shipped the harness, the pinned dependency set and the failing behavioural contract, with
+# no production package at all. Phase B adds exactly one: `metaframer_kernel_db`, the substrate
+# itself. It is a real installable package now, so the capability targets the behavioural suites
+# resolve are ordinary imports rather than a path trick.
+#
+# The substrate lives under db/ rather than at the repository root because the historical
+# repository-boundary snapshot (tests/repository-boundary.test.mjs) fences root-level
+# migrations/, src/, apps/, packages/ and deploy/. That fence is never relaxed.
+
+[project]
+name = "metaframer-kernel-db"
+version = "0.1.0"
+description = "MetaFramer Kernel PostgreSQL 16 RLS/transaction/outbox/audit runtime substrate."
+requires-python = "==3.12.*"
+
+dependencies = [
+    "sqlalchemy>=2.0.36,<2.1.0",
+    "sqlmodel>=0.0.22,<0.1.0",
+    "alembic>=1.14.0,<2.0.0",
+    "psycopg[binary]>=3.2.3,<4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4,<9.0.0",
+    # Pinned here and resolved exactly in uv.lock. An ephemeral `uvx ruff` would lint with
+    # whatever version the machine happened to fetch, which is not a reproducible check.
+    "ruff>=0.14.0,<0.15.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["metaframer_kernel_db"]
+
+# Every setting the static check depends on lives here, so the commands take no flags and two
+# people running them get the same answer.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# --strict-markers and --strict-config keep the RED suite from silently degrading into a
+# no-op: an unknown marker or a typo in this config is an error, not a skip.
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "substrate: a behavioural test that requires the real PostgreSQL 16 substrate",
+    "rls: row-level security isolation behaviour",
+    "transaction: transaction boundary and tenant-context behaviour",
+    "outbox: transactional outbox claim behaviour",
+    "audit: append-only audit behaviour",
+    "migration: Alembic upgrade/downgrade/re-upgrade behaviour",
+]
