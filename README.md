@@ -1,9 +1,112 @@
 # MetaFramer Kernel
 
-This private repository reserves the `metaframer-net/metaframer-kernel` identity for the
-future MetaFramer runtime-kernel boundary.
+Under the decisions currently in force, `metaframer-net/metaframer-kernel` is the canonical
+destination — the target repository — for the MetaFramer runtime kernel and its generated
+SDK. That names where this work belongs, not a claim that it has arrived: no source has been
+extracted from the `platform` monorepo, that extraction stays behind a human gate, and
+kernel development proceeds here only through separately scoped change packages. Development
+is open under the current effective authority; every stage beyond the implemented substrate
+is still closed.
 
 ## Current status
+
+Current effective authority: `GO-KERNEL-DEVELOPMENT-ONLY`, chain head seq 4
+(`AUTHORITY-SUPERSESSION-04`), read from `karacaismail/actionplan` at commit
+`811505b0229705cf39edbf0d6b60248c46a72091`.
+
+- `codeStartAllowed=true`
+- `runtimeCodeAllowed=true`
+- `runtimeImplementationStarted=true`
+- `kernelReady=false`
+- `sdkReady=false`
+- `appBuildable=false`
+- `releaseAllowed=false`
+- `deployAllowed=false`
+- `productionAllowed=false`
+- `gapClosed=false`
+
+The record of activation is external to this repository and is one published annotated Git
+tag, never an in-repository status flip:
+
+- tag `kernel-runtime-substrate-s1-activated`, tag object
+  `c34fabc84aaeac80b61d27c777fcc6db0cc8f99b`, published on the canonical origin
+- tag target: substrate commit `89528cd0b815711e49553682f457326e9b171b03`, merged into and
+  reachable from canonical `main`
+
+Both hashes are immutable objects. The commit `main` currently points at is deliberately not
+pinned here: it moves whenever anything lands, so a SHA written into this file would be false
+by the time it was read. Read it from the canonical origin instead.
+
+`runtimeImplementationStarted=true` records that one authorized change package started
+runtime work and was activated externally. It moves that one dimension and nothing else. It
+is not a readiness claim: this repository is not runtime-ready, kernel-ready, SDK-ready, an
+MVP, a buildable application, releasable, deployable, pilot-approved, or production-ready,
+and nothing here may be read as such a claim.
+
+The activation reader consults the published tag only from an exact `origin/main` checkout.
+Run from a branch or worktree it short-circuits before any network call and reports
+`activationRecord=absent`; that is a statement about the checkout in hand, not a denial of
+the published tag.
+
+## Implemented substrate (S1)
+
+Stage S1 — the PostgreSQL substrate — is implemented in `db/metaframer_kernel_db` and
+activated. Its contract is `db/kernel-runtime-substrate-s1.json`.
+
+- one cohesive Alembic baseline at head revision `0001_runtime_substrate`, proven by a real
+  upgrade → downgrade → re-upgrade round trip against PostgreSQL 16
+- the runtime tables `transactional_outbox` and `audit_log` under `ENABLE` **and** `FORCE`
+  row-level security
+- a controlled transaction boundary whose tenant context is attested with a keyed
+  HMAC-SHA256 signature, so the raw setting the runtime role can write is not sufficient for
+  access and an untrusted context denies
+- the transactional outbox claim taken with `FOR UPDATE SKIP LOCKED`
+- an append-only audit invariant enforced by a statement-level trigger
+
+Everything after S1 remains closed. The authorized order is: DB / RLS / transaction / outbox
+/ audit (S1, implemented) → kernel primitives, typed action and PDP → generated SDK → one
+walking-skeleton golden slice. Each stage needs its own separately scoped, test-first,
+single-writer change package with its own RED/GREEN, rollback and exit criteria; runtime code
+written outside such a package is unauthorized.
+
+`GO-RUNTIME-PILOT` is a separate contract needing 10/10 GREEN gates, an independent verifier
+and a human countersign — `GRP-01` is RED and is evaluated externally. Production is a
+separate post-pilot stage and is not reachable from that contract.
+
+## Current-authority consumer overlay
+
+`planning/kernel-runtime-pilot-consumer-sync.json` is the additive overlay that binds this
+repository to the current effective authority, verified by
+`tools/check-kernel-runtime-pilot-consumer-sync.mjs` against the pinned Actionplan commit. It
+binds the chain-head `GO-KERNEL-DEVELOPMENT-ONLY` verdict, rewrites no historical artifact,
+and is not edited by this or any later package.
+
+One field needs reading with care. The overlay's embedded `runtimeImplementationStarted=false`
+is pre-activation package evidence — the state the substrate package started from, recorded
+before it was activated — and not the current value. The published activation tag, not the
+overlay, supplies the current `runtimeImplementationStarted=true`. `npm run check` shows the
+distinction directly: the overlay's line is relabelled `ACTIVATION BASE`, and the composed
+`CURRENT EFFECTIVE` line printed last is the authoritative one.
+
+## Boundaries in force
+
+- This repository does not copy or rename `atonota/kernel`; that is an unrelated Metawork
+  CI/CD project.
+- It does not copy, move, split, or extract the current `platform` monorepo.
+  `sourceExtraction=false`, and topology or extraction changes stay human-gated.
+- The [Actionplan publication](https://karacaismail.github.io/actionplan/) remains the
+  canonical governance and decision owner — decision records, WBS content, and
+  completion-gate evidence live there until an explicit human decision changes ownership.
+
+## Historical bootstrap record (2026-07-16 to 2026-07-30, historical and non-effective)
+
+Everything in this section is a dated record of the authority in force during the
+planning-only bootstrap, taken at `actionplan@7312ac0b17bbddf3bd92d9aa53a73c6a9578f45d`. It
+is preserved verbatim in `repository-status.json` and the `planning/` artifacts, which are
+immutable and are never rewritten. It is **not** the current status; the current status is
+the section above.
+
+The bootstrap-era classification was:
 
 - Classification: `PLANNING_ONLY`
 - Runtime: `VALID_BLOCKED`
@@ -11,51 +114,34 @@ future MetaFramer runtime-kernel boundary.
 - Runtime implementation: absent
 - MVP / buildable application / production readiness: not claimed
 
-The initial push contains governance and repository-boundary material only. It does not
-copy or rename the unrelated `atonota/kernel` project, and it does not move the current
-`platform` monorepo into this repository.
+An explicit Admin instruction on 2026-07-16 authorized creating this repository and pushing
+that bootstrap. As recorded then, it did not yet select this repository as the canonical
+runtime source, authorize a code split or extraction, close the governance decision gate, or
+authorize runtime, deployment, release or production work. The bootstrap-era entry gate held
+runtime work until all ten kernel governance decisions were closed and a human-approved
+topology decision named the canonical source owner.
 
-## Scope of the repository-creation override
+The consolidated human response `T01-A, T02-A, D01-A, D04+D09-A, D08-A, D10-A, A01-A` was
+recorded on 2026-07-30 by `user-admin`; topology became `APPROVED_CONDITIONAL` and history
+`CLEAN_START_WITH_PROVENANCE`.
 
-An explicit Admin instruction on 2026-07-16 authorizes creating this repository and
-pushing this planning-only bootstrap. That instruction overrides the prior prohibition on
-the *existence* of a separate repository for this narrow purpose only.
+[Repository Boundary](docs/repository-boundary.md) belongs to this record. It is preserved
+unchanged and is dated, historical and non-effective: it states the source and authority
+limits of the bootstrap, in the vocabulary of that period, and it is **not** the boundary in
+force. For the current boundary read **Current status** and **Boundaries in force** above.
 
-It does not yet:
+Later authority superseded the bootstrap verdict on the code-start dimension only. The
+stronger flags listed under **Current status** remain false, and these historical tokens must
+never be presented as the verdict in force — `tools/check-repository-boundary.mjs` asserts
+that separation structurally.
 
-- select this repository as the canonical runtime source;
-- authorize a code split or extraction from the `platform` monorepo;
-- close the full kernel governance decision gate;
-- authorize runtime, deployment, release, or production work; or
-- make local, CI, runtime, or deployment evidence exist.
+## Planning control plane — historical bootstrap snapshot, non-effective
 
-## Runtime entry gate
-
-Runtime work remains blocked until all ten kernel governance decisions are closed in the
-canonical decision registry and a human-approved topology/extraction decision names the
-canonical source owner. Authorized implementation order after that gate is:
-
-1. DB / RLS / transaction / outbox / audit
-2. kernel primitives
-3. SDK
-4. walking skeleton
-
-Production `GO` additionally requires real PR, CI, runtime, deployment, rollback, and
-completion-gate evidence with exit code `0`.
-
-## Canonical planning source
-
-Kernel governance, decision records, WBS content, and completion-gate evidence remain in
-the [Actionplan publication](https://karacaismail.github.io/actionplan/) until an explicit
-human decision changes their ownership.
-
-See [Repository Boundary](docs/repository-boundary.md) for the exact source and authority
-limits of this bootstrap.
-
-## Persistent planning control plane
-
-The planning-only bootstrap keeps an auditable, resumable snapshot without copying runtime
-source or changing Actionplan:
+The planning control plane is the auditable, resumable snapshot taken during the bootstrap
+period. It copied no runtime source and changed no Actionplan artifact. Everything in this
+section is dated snapshot evidence recorded on or before 2026-07-30, not the state in force;
+the state in force is under **Current status** above. The artifacts themselves are immutable
+and are never rewritten:
 
 - [Control-plane status](docs/control-plane-bootstrap.md)
 - [Consolidated human decision package](docs/human-decision-package.md)
@@ -66,37 +152,40 @@ source or changing Actionplan:
   KGA-D01..D10
 - `planning/governance-decisions.json` — closure proposals with risk, acceptance criteria
   and rollback
-- `planning/bootstrap-state.json` — machine-readable current state, blockers, next action,
-  authorization and test evidence
-
+- `planning/bootstrap-state.json` — machine-readable snapshot state, blockers, recorded next
+  action, authorization and test evidence
 - `planning/human-decision-request.json` — the consolidated decision request and its
   recorded `response`, coding policy, remote audit and one-shot publish grant
 
-The consolidated human response `T01-A, T02-A, D01-A, D04+D09-A, D08-A, D10-A, A01-A` was
-recorded on 2026-07-30 by `user-admin`. The local lifecycle state is therefore
-`APPROVED_AWAITING_CANONICAL_WRITEBACK` and the next action is to obtain separate Actionplan
-write-back authority. Topology is `APPROVED_CONDITIONAL` and history is
-`CLEAN_START_WITH_PROVENANCE` with `sourceExtraction=false`.
+As recorded in that snapshot, every `KGA-D01`..`KGA-D10` `canonicalStatus` was `pending`, the
+local lifecycle state was `APPROVED_AWAITING_CANONICAL_WRITEBACK`, and the recorded next
+action was to obtain separate Actionplan write-back authority. Those values are the snapshot's
+own projections as of 2026-07-30; they closed nothing in the canonical governance registry and
+authorized no Actionplan write-back, merge, release or deploy. Read the canonical registry, not
+this section, for what any `KGA` decision says today.
 
-These records are local planning projections. Every `KGA-D01`..`KGA-D10` `canonicalStatus`
-remains `pending`. They do not close the canonical governance
-registry and do not authorize Actionplan write-back, runtime source, merge, release or
-deploy.
-
-`A01-A` denies standing mutation authority, so no action is permitted by default. A later
-exact user instruction grants one Codex-executed commit and one normal non-force push of
-this exact planning package to `refs/heads/agent/kernel-control-plane-reconcile` from base
+`A01-A` denied standing mutation authority, so no action was permitted by default. A later
+exact user instruction granted one Codex-executed commit and one normal non-force push of that
+planning package to `refs/heads/agent/kernel-control-plane-reconcile` from base
 `90e5f6ac2b8beb4d8be1064390ba433b2bbdd434`, recorded in
-`planning/human-decision-request.json` under `response.oneShotGitAuthorization`. The grant
-is spent on the first successful push and is not reusable; Claude may never consume it.
-Pull-request creation (`pullRequest=false`), any push to `main`, tags, force pushes, merge,
-release, deploy, Actionplan write-back and runtime implementation remain unauthorized.
+`planning/human-decision-request.json` under `response.oneShotGitAuthorization`. The grant was
+single-use: spent on the first successful push, never reusable, and never consumable by Claude.
 
-Consumption is fenced by remote-ref state, not by the committed `consumptionStatus` field:
-before the push, `git ls-remote --heads origin refs/heads/agent/kernel-control-plane-reconcile`
-must return no matching ref and empty output. If that ref exists at any SHA the grant is
-already spent and execution must stop. The static `unconsumed` value is snapshot evidence
-only. No push has been performed by this planning package.
+**That grant is now spent.** Consumption was always fenced by remote-ref state rather than by
+the committed `consumptionStatus` field, and the fence now reads consumed: the canonical origin
+publishes `refs/heads/agent/kernel-control-plane-reconcile` at
+`2abf6c910fd11d53c4f28e23d64f7c9c9abb446b`, and that commit is an ancestor of `main`. The
+committed `unconsumed` value and the snapshot's "no push has been performed" wording are
+therefore pre-push evidence only, not current truth. The fence command stays the way to read
+this, and it now returns a ref rather than empty output:
+
+```sh
+git ls-remote --heads origin refs/heads/agent/kernel-control-plane-reconcile
+```
+
+Nothing about that grant is revivable. Pull-request creation (`pullRequest=false`), any push to
+`main`, tags, force pushes, merge, release, deploy and Actionplan write-back were never
+authorized by it and remain unauthorized.
 
 ## Writer lock
 
@@ -107,9 +196,23 @@ writer.
 
 ## Local verification
 
+Governance and boundary checks, required before accepting any change:
+
 ```sh
 npm test
 npm run check
+```
+
+`npm run check` prints the labelled historical snapshots first and exactly one authoritative
+`CURRENT EFFECTIVE` line last.
+
+The S1 substrate has its own checks. The behavioural suite needs a Docker daemon and a real
+PostgreSQL 16 container, so it stays out of `npm test`:
+
+```sh
+npm run check:substrate-s1          # the substrate contract and its declared surface
+npm run check:substrate-s1:static   # pinned lock, ruff lint/format, bytecode compile
+npm run test:substrate-s1           # behavioural suite against real PostgreSQL 16
 ```
 
 When the recorded read-only external sources are available, their exact snapshot can be
