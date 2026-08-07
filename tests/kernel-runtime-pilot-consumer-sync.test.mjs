@@ -668,8 +668,8 @@ test("AGENTS.md separates the historical snapshot from the current effective aut
   for (const token of ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "immutable historical snapshot"]) {
     assert.ok(agents.includes(token), `AGENTS.md must keep the historical snapshot token ${token}`);
   }
-  // Runtime start stays closed, and the current authorization boundary is stated exactly.
-  assert.ok(agents.includes("Runtime implementation has not started"), "AGENTS.md must keep runtime start closed");
+  // The current authorization boundary is stated exactly. What that boundary now says about
+  // runtime start is bound by the current-authority test below, not here.
   assert.ok(agents.includes("codeStartAllowed"), "AGENTS.md must name the open code-start floor");
   assert.ok(agents.includes("runtimeCodeAllowed"), "AGENTS.md must name the open runtime-code floor");
   assert.ok(
@@ -689,6 +689,59 @@ test("AGENTS.md separates the historical snapshot from the current effective aut
   assert.ok(agents.includes("pane-visible-agent-claude"));
   assert.ok(agents.includes("claude_implement"));
   assert.ok(agents.includes("Mode is `CLAUDE_ONLY`"));
+});
+
+// The one published annotated tag that records activation. Both are immutable Git objects; the
+// commit `main` points at is deliberately not pinned, because it moves whenever anything lands.
+const ACTIVATION_TAG_OBJECT = "c34fabc84aaeac80b61d27c777fcc6db0cc8f99b";
+const ACTIVATION_TAG_TARGET = "89528cd0b815711e49553682f457326e9b171b03";
+const SHUT_FLAGS = [
+  "kernelReady", "sdkReady", "appBuildable", "releaseAllowed", "deployAllowed",
+  "productionAllowed", "gapClosed",
+];
+
+test("AGENTS.md states the activated exact-main authority, not a stale runtime-not-started claim", async () => {
+  const agents = flatten(await readFile(path.join(root, "AGENTS.md"), "utf8"));
+
+  // The live claim is stale: one authorized package started runtime work on exact main and was
+  // activated externally. Left standing, this sentence denies the published activation record.
+  assert.ok(
+    !agents.includes("Runtime implementation has not started"),
+    "AGENTS.md must not keep the stale live claim that runtime implementation has not started",
+  );
+
+  // The current exact-main project authority, stated as machine-readable dimensions.
+  assert.ok(agents.includes(CURRENT_VERDICT), "AGENTS.md must record the current effective verdict");
+  for (const token of [
+    "codeStartAllowed=true", "runtimeCodeAllowed=true",
+    "runtimeImplementationStarted=true", "activationRecord=external-annotated-tag",
+  ]) {
+    assert.ok(agents.includes(token), `AGENTS.md must state ${token} as current exact-main project authority`);
+  }
+
+  // Activation moved exactly one dimension. Every stronger dimension stays shut, and no readiness,
+  // release, deployment or production claim may ride along with it.
+  for (const flag of SHUT_FLAGS) {
+    assert.ok(agents.includes(`${flag}=false`), `AGENTS.md must keep ${flag} false`);
+    assert.ok(!agents.includes(`${flag}=true`), `AGENTS.md must not claim ${flag}=true`);
+  }
+  assert.ok(!agents.includes(FORBIDDEN_VERDICT), `AGENTS.md must not name ${FORBIDDEN_VERDICT} as reachable`);
+
+  // The record of activation is external: one published annotated tag object with a fixed target,
+  // never an in-repository status flip.
+  assert.match(agents, /annotated (Git )?tag/i, "AGENTS.md must name the annotated tag as the activation record");
+  assert.ok(agents.includes(ACTIVATION_TAG_OBJECT), `AGENTS.md must pin the activation tag object ${ACTIVATION_TAG_OBJECT}`);
+  assert.ok(agents.includes(ACTIVATION_TAG_TARGET), `AGENTS.md must pin the tag target commit ${ACTIVATION_TAG_TARGET}`);
+
+  // A feature checkout composes its own projection: the activation reader consults the published
+  // tag only from an exact origin/main checkout, so a branch reports the unactivated pair. That is
+  // a statement about the checkout in hand, never the project's authority.
+  for (const token of ["runtimeImplementationStarted=false", "activationRecord=absent"]) {
+    assert.ok(agents.includes(token), `AGENTS.md must show ${token} as the branch projection, not as project authority`);
+  }
+  assert.match(agents, /origin\/main/, "AGENTS.md must state that activation is looked up from exact origin/main");
+  assert.match(agents, /checkout-local projection/i, "AGENTS.md must name the branch value a checkout-local projection");
+  assert.match(agents, /not (the )?project authority/i, "AGENTS.md must deny that the checkout-local projection is project authority");
 });
 
 // =====================================================================================

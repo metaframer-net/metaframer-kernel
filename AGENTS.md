@@ -10,16 +10,29 @@ These rules add to the profile-level MASTER -> PM/worker -> Claude authority con
   commit and are never rewritten. Read them as history, not as the boundary in force now.
 - The **current effective authority** is `GO-KERNEL-DEVELOPMENT-ONLY` at chain head seq 4
   (`AUTHORITY-SUPERSESSION-04`), read from `karacaismail/actionplan` at commit
-  `811505b0229705cf39edbf0d6b60248c46a72091`. Kernel development is open:
-  `codeStartAllowed` and `runtimeCodeAllowed` are true.
-- **Runtime implementation has not started.** `kernelReady`, `sdkReady`, `appBuildable`,
-  `releaseAllowed`, `deployAllowed` and `productionAllowed` all stay false, `gapClosed` is false,
+  `811505b0229705cf39edbf0d6b60248c46a72091`. Kernel development is open. Read on exact
+  `origin/main`, the project authority is `codeStartAllowed=true`, `runtimeCodeAllowed=true`,
+  `runtimeImplementationStarted=true`, `activationRecord=external-annotated-tag`.
+- The record of activation is external to this repository and is one published annotated Git
+  tag, never an in-repository status flip: tag object
+  `c34fabc84aaeac80b61d27c777fcc6db0cc8f99b` targets commit
+  `89528cd0b815711e49553682f457326e9b171b03`, which is reachable from canonical `main`.
+  Activation moved only `runtimeImplementationStarted`. It moved no other dimension and it is
+  not a readiness claim.
+- **Everything stronger stays shut.** `kernelReady=false`, `sdkReady=false`, `appBuildable=false`,
+  `releaseAllowed=false`, `deployAllowed=false`, `productionAllowed=false` and `gapClosed=false`,
   and SDK, app-core, app and module remain excluded targets. This consumer-sync package starts no
-  runtime itself; the next authorized work is the separate substrate package named below.
-- Runtime implementation **is** authorized under the current verdict, but only through a
-  separately scoped, test-first, single-writer change gate carrying its own machine-readable
-  scope, non-goals, RED/GREEN, rollback, allowed target areas and exit criteria. Runtime code
-  written outside such a package is unauthorized.
+  runtime itself; that stays true of the package, and runtime work began in the separately scoped
+  substrate package named below.
+- From a feature branch or worktree, the activation reader consults the published tag only from
+  an exact `origin/main` checkout and short-circuits otherwise, so it may compose
+  `runtimeImplementationStarted=false` and `activationRecord=absent`. That pair is a
+  checkout-local projection of the checkout in hand: it is not project authority and it denies
+  no published tag.
+- Runtime implementation beyond the activated substrate **is** authorized under the current
+  verdict, but only through a separately scoped, test-first, single-writer change gate carrying
+  its own machine-readable scope, non-goals, RED/GREEN, rollback, allowed target areas and exit
+  criteria. Runtime code written outside such a package is unauthorized.
 - Source extraction and repository topology changes remain separately human-gated; this verdict
   does not open them.
 - Do not describe this repository as runtime-ready, MVP, buildable, releasable, or
@@ -59,9 +72,10 @@ mutable ref such as `main`.
   Codex MASTER. The writer never closes or verifies it.
 - `GO-RUNTIME-PILOT` needs 10/10 GREEN gates plus an independent verifier plus a human
   countersign; production is a separate post-pilot stage and is not reachable from that contract.
-- This package starts no runtime. The next runtime-start work is a separate change package:
-  PostgreSQL/RLS/transaction/outbox/audit substrate, then primitives/typed action/PDP, then the
-  generated SDK, then one golden slice.
+- This package starts no runtime. The first runtime-start package after it — the
+  PostgreSQL/RLS/transaction/outbox/audit substrate (S1) — is implemented and externally
+  activated. Everything after S1 remains separately gated and keeps its order:
+  primitives/typed action/PDP, then the generated SDK, then one golden slice.
 
 ## Required checks
 
