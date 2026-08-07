@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
-import { constants, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { constants, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -45,8 +45,8 @@ test("repository status stays fail-closed until the runtime decision gate is com
 
 // `src` is deliberately not in this list any more. It is the one root path whose absence is no
 // longer the rule — see the root first-child topology section at the end of this file, which
-// states what the narrowed rule actually is and separately asserts that this checkout still has
-// no root `src` at all.
+// states what the narrowed rule actually is and separately asserts the compliant root `src/domain`
+// this checkout now materializes.
 test("planning bootstrap contains no runtime source tree", async () => {
   for (const runtimePath of ["apps", "packages", "deploy", "migrations"]) {
     assert.equal(
@@ -566,9 +566,10 @@ test("the checker CLI still runs its assertions and reports the historical snaps
 //
 // The old fence was one flat list — apps, src, packages, deploy, migrations, absent always. Four
 // of those five are unchanged. `src` is not: a root `src` may exist, and `domain` is the only first
-// child it may ever hold. An absent root `src` stays fully compliant — opening a door is not
-// walking through it, and this checkout has not. Nothing beneath `src/domain` is classified here,
-// and no authority or readiness state moves.
+// child it may ever hold. An absent root `src` stays fully compliant — opening a door is not walking
+// through it — and P-M1-01 now walks through it exactly once, materializing `src/domain` and nothing
+// beside it. Nothing beneath `src/domain` is classified here, and no authority or readiness state
+// moves: a materialized domain package is a source file, not a readiness claim.
 //
 // Rows are injected facts, so the matrix states the rule rather than describing this tree; the
 // reader rows prove a real directory reaches the same verdict. An unclassified first child fails
@@ -676,10 +677,20 @@ test("the narrowed root topology is decided from injected facts", () => {
   for (const [label, given, expected] of TOPOLOGY_ROWS) assertRow(rootTopologyViolations(given), expected, label);
 });
 
-test("a real tree reaches the same verdict, and this checkout still has no root src", (t) => {
+test("a real tree reaches the same verdict, and this checkout materializes a compliant src/domain", (t) => {
   assert.equal(typeof checkRootTopology, "function", `${checkerRelative} must export checkRootTopology(rootDirectory) — nothing reads a real tree into the narrowed root first-child facts yet`);
   for (const [label, layout, expected] of READER_ROWS) assertRow(checkRootTopology(scratchTree(t, layout)), expected, `scratch: ${label}`);
-  // The narrowing permits a root src; it does not create one, and that stays asserted not assumed.
-  assert.equal(existsSync(path.join(root, "src")), false, "this checkout must still have no root src at all");
+  // The narrowing permitted a root src; P-M1-01 creates one, and what it creates stays asserted
+  // rather than assumed — exactly `domain`, holding the identity primitives and no second layer.
+  const src = path.join(root, "src");
+  assert.ok(existsSync(src) && statSync(src).isDirectory(), "this checkout must carry a real root src directory");
+  assert.deepEqual(readdirSync(src).sort(), SRC_PERMITTED, "domain must be the only first child of the materialized root src");
+  const domain = path.join(src, "domain");
+  assert.ok(statSync(path.join(domain, "identity-primitives.mjs")).isFile(), "src/domain must hold the identity primitives module as a file");
+  for (const entry of readdirSync(domain, { withFileTypes: true })) {
+    assert.ok(entry.isFile() && entry.name.endsWith(".mjs"), `src/domain may hold only .mjs modules, found ${entry.name}`);
+  }
+  // The four protected roots are untouched by the materialization.
+  for (const absent of ABSENT_ROOTS) assert.equal(existsSync(path.join(root, absent)), false, `${absent} must stay absent`);
   assertRow(checkRootTopology(root), [], "the real checkout");
 });

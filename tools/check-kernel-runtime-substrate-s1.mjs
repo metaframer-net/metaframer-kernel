@@ -1205,9 +1205,10 @@ const PACKAGE_ROOT_PATH_FINDING = "fenced-root-path-present:";
  * The production surface is exactly one substrate package, in exactly one place.
  *
  * The repository-root topology holds in every phase, and is decided by the shared reader: the four
- * fenced root paths must be absent, and a root `src` — permitted now, though this repository has
- * none — may hold `src/domain` and nothing else. A forbidden or unclassified first child is named
- * in its own finding. Nothing beneath `src/domain` is classified here.
+ * fenced root paths must be absent, and a root `src` — permitted now, and this checkout now
+ * materializes `src/domain` for P-M1-01 — may hold `src/domain` and nothing else. A forbidden or
+ * unclassified first child is named in its own finding. Nothing beneath `src/domain` is classified
+ * here.
  *
  * Inside db/, the package must exist with the modules it declares and no second copy of itself, and
  * the revision tree must hold exactly the one cohesive revision — a second revision file appearing

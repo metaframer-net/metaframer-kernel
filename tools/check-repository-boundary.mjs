@@ -17,7 +17,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Three limits are deliberate:
 //
 //   - An absent root `src` is fully compliant. The narrowing permits a root `src`; it does not
-//     require one, and this repository still has none.
+//     require one, and this checkout now materializes exactly `src/domain` for P-M1-01.
 //   - Nothing beneath `src/domain` is classified. This is the first-child topology and no more.
 //   - Nothing about authority, readiness or activation moves with it.
 //
@@ -819,7 +819,8 @@ async function main() {
   // apps, packages, deploy and root migrations stay absent because they are outside the target
   // areas of the currently authorized package, and SDK, app-core, app and module remain excluded
   // targets that no verdict so far has opened. Root `src` is no longer one of them: it is
-  // constrained to `src/domain` only, and this repository still has no root `src` at all.
+  // constrained to `src/domain` only, and this checkout now materializes exactly `src/domain`
+  // for P-M1-01.
   //
   // The decision comes from the shared reader above, not from a second list kept down here. The
   // CLI and the exported contract cannot disagree if there is only one of them.

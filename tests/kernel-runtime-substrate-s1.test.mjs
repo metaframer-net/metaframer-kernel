@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -448,9 +448,10 @@ test("the narrowed repository boundary is respected by living under db/", () => 
   // a second hardcoded list is exactly how a narrowing gets half-applied.
   //
   // Root `src` is deliberately not among them any more. It is constrained to `src/domain`, not
-  // forbidden, so its absence is no longer what this test is about. Whether this checkout has a
-  // root `src` is asserted separately and explicitly in the P-M1-00 section below, where the
-  // point is that this package creates none.
+  // forbidden, so its absence is no longer what this test is about. What this checkout's root
+  // `src` holds is asserted separately and explicitly in the P-M1-00 section below, where the
+  // point is that the `src/domain` now present belongs to P-M1-01 and this package created none
+  // of it: the substrate stays under db/ either way.
   for (const fenced of FORBIDDEN_ROOT_PATHS) {
     assert.equal(existsSync(path.join(root, fenced)), false, `${fenced} must not exist at the root`);
   }
@@ -1106,8 +1107,9 @@ test("npm run check ends with exactly one checkout-local projection, owned by th
 // P-M1-00 — the narrowed root fence, as this package sees it
 //
 // This substrate lives under db/ because the root fence said a root `src` never exists. That
-// reason is stale in exactly one place: `src/domain` is permitted now. Nothing else moves — the
-// package stays under db/, ships the same modules, starts no primitive and claims no readiness.
+// reason is stale in exactly one place: `src/domain` is permitted now, and P-M1-01 has
+// materialized it. Nothing else moves — the package stays under db/, ships the same modules,
+// owns none of `src/domain`, starts no primitive and claims no readiness.
 // What changes is only what this verifier, the contract and the pyproject comment may say about
 // the root. Prose is not cosmetic here: a comment asserting the fence is "never relaxed" is the
 // file telling a reader something untrue once the fence has been relaxed.
@@ -1228,8 +1230,13 @@ test("the verifier's own comments and the substrate pyproject state the narrowed
   assert.deepEqual(bareSrc, [], `the comment may only refer to root src as src/domain, found ${JSON.stringify(bareSrc)}`);
 });
 
-test("the real checkout still has no root src, and this narrowing moves no state", () => {
-  assert.equal(existsSync(path.join(root, "src")), false, "the narrowed fence permits a root src; it does not create one");
+test("the real checkout carries exactly src/domain, and this narrowing moves no state", () => {
+  const src = path.join(root, "src");
+  assert.ok(existsSync(src) && statSync(src).isDirectory(), "the narrowed fence permits a root src, and P-M1-01 materializes it");
+  assert.deepEqual(readdirSync(src).sort(), S1_SRC_PERMITTED, "domain must remain the only first child of the materialized root src");
+  assert.ok(statSync(path.join(src, "domain/identity-primitives.mjs")).isFile(), "src/domain must hold the identity primitives module as a file");
+  // The substrate did not follow it out of db/: a second production home is still the failure.
+  assert.ok(!existsSync(path.join(src, "domain", PRODUCTION_IMPORT_ROOT)), "the substrate package must not appear under src/domain");
   assert.deepEqual(checkProductionSurface(root), [], "the real production surface stays clean");
   for (const flag of SHUT_FLAGS) assert.equal(contract.desiredState[flag], false, `${flag} must stay false through this narrowing`);
   assert.deepEqual(contract.stateDelta.changedDimensions, MOVED_DIMENSIONS, "no new dimension may move here");
