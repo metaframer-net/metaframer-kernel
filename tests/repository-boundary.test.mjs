@@ -570,7 +570,8 @@ test("the checker CLI still runs its assertions and reports the historical snaps
 // `sdk` stay refused by name — they are the outer rings, and opening them is a separate decision
 // no package has taken. An absent root `src` stays fully compliant — opening a door is not walking
 // through it — and the kernel now walks through it exactly twice: P-M1-01 materialized `src/domain`
-// and P-M1-02 materializes `src/application`, one flat module in each and nothing beside them.
+// and P-M1-02 materializes `src/application`. What each ring may hold is a closed manifest named
+// below, so a ring grows only by a package that says which module it added and why.
 // Nothing beneath either ring is classified here, and no authority or readiness state moves: a
 // materialized source package is a source file, not a readiness claim.
 //
@@ -595,6 +596,20 @@ const SRC_PERMITTED = ["domain", "application"];
 const SRC_FORBIDDEN = ["adapters", "delivery", "sdk"];
 /** The one name this package moves across the line, named once so both attacks can cite it. */
 const MOVED_CHILD = "application";
+/**
+ * The closed per-ring module manifest: which flat modules each materialized ring may hold.
+ *
+ * A first child of `src` is classified by the root topology rule; what lives *inside* a ring is
+ * not, so it is closed here instead. The list is exhaustive in both directions — a listed module
+ * that is missing is a finding, and an unlisted third file is a finding — because "which module
+ * owns this" stops being answerable from the tree the moment a ring can grow without saying so.
+ * P-M1-01 entered `identity-primitives.mjs`, P-M1-02 entered `action-primitives.mjs`, and P-M1-03
+ * enters `use-case.mjs` beside it.
+ */
+const RING_MODULE_MANIFEST = [
+  ["domain", ["identity-primitives.mjs"]],
+  ["application", ["action-primitives.mjs", "use-case.mjs"]],
+];
 const sortedNames = (values) => [...(values ?? [])].sort();
 const refuseChild = (child) => [`forbidden-root-src-child:${child}`];
 const refuseRoot = (name) => [`forbidden-root-path-present:${name}`];
@@ -729,23 +744,28 @@ test("a real tree reaches the same verdict, and this checkout materializes both 
   for (const [label, layout, expected] of READER_ROWS) assertRow(checkRootTopology(scratchTree(t, layout)), expected, `scratch: ${label}`);
   // The narrowing permitted a root src; P-M1-01 created `domain` and P-M1-02 creates
   // `application`. What they create stays asserted rather than assumed — exactly those two first
-  // children, one flat .mjs module in each, and no second layer under either.
+  // children, exactly the manifest modules in each, and no second layer under either.
   const src = path.join(root, "src");
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "this checkout must carry a real root src directory");
   assert.deepEqual(readdirSync(src).sort(), sortedNames(SRC_PERMITTED), "domain and application must be the only first children of the materialized root src");
-  const MODULES = [["domain", "identity-primitives.mjs"], ["application", "action-primitives.mjs"]];
-  for (const [ring, moduleName] of MODULES) {
+  for (const [ring, manifest] of RING_MODULE_MANIFEST) {
     const dir = path.join(src, ring);
     assert.ok(existsSync(dir) && statSync(dir).isDirectory(), `src/${ring} must exist as a real directory`);
-    assert.ok(statSync(path.join(dir, moduleName)).isFile(), `src/${ring} must hold ${moduleName} as a file`);
+    for (const moduleName of manifest) {
+      const modulePath = path.join(dir, moduleName);
+      assert.ok(existsSync(modulePath) && statSync(modulePath).isFile(), `src/${ring} must hold ${moduleName} as a file`);
+    }
     const entries = readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       assert.ok(entry.isFile() && entry.name.endsWith(".mjs"), `src/${ring} may hold only flat .mjs modules, found ${entry.name}`);
     }
-    // One module per ring. A second file is not refused by the first-child topology, so it is
-    // refused here instead: two modules in a ring is the point where "which one owns this" starts
-    // being answered by convention rather than by the tree.
-    assert.deepEqual(entries.map((e) => e.name).sort(), [moduleName], `src/${ring} must hold exactly ${moduleName} and nothing beside it`);
+    // The manifest is closed, so an unlisted third file is refused here — the first-child topology
+    // classifies nothing at this depth, and a ring that could grow silently is a ring where "which
+    // module owns this" is answered by convention rather than by the tree.
+    assert.deepEqual(
+      entries.map((e) => e.name).sort(), sortedNames(manifest),
+      `src/${ring} must hold exactly ${manifest.join(", ")} and nothing beside them`,
+    );
   }
   // The four protected roots are untouched by the materialization.
   for (const absent of ABSENT_ROOTS) assert.equal(existsSync(path.join(root, absent)), false, `${absent} must stay absent`);
