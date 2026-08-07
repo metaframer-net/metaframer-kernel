@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { checkRootTopology } from "./check-repository-boundary.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const grantedRef = "refs/heads/agent/kernel-control-plane-reconcile";
@@ -29,15 +30,6 @@ const humanIds = [
 
 async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));
-}
-
-async function exists(relativePath) {
-  try {
-    await access(path.join(root, relativePath), constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 const [inventory, traceability, governance, humanRequest, state, status] =
@@ -810,13 +802,16 @@ assert.deepEqual(status.planningControlPlane.humanDecisionIds, humanIds);
 assert.equal(status.planningControlPlane.canonicalWriteBackAuthorized, false);
 assert.equal(status.planningControlPlane.runtimeCodeAllowed, false);
 
-for (const runtimePath of ["apps", "src", "packages", "deploy", "migrations"]) {
-  assert.equal(
-    await exists(runtimePath),
-    false,
-    `${runtimePath} must remain absent while the decision gate is incomplete`,
-  );
-}
+// The root topology is decided by the one shared reader in tools/check-repository-boundary.mjs,
+// never by a second list here. apps, packages, deploy and root migrations must remain absent while
+// the decision gate is incomplete; root `src` is constrained to `src/domain` only, and an
+// unreadable or unclassified first child is a finding rather than an all-clear.
+const rootTopologyViolations = checkRootTopology(root);
+assert.deepEqual(
+  rootTopologyViolations,
+  [],
+  `the repository root topology is violated:\n  - ${rootTopologyViolations.join("\n  - ")}`,
+);
 
 for (const relativePath of [
   "docs/control-plane-bootstrap.md",

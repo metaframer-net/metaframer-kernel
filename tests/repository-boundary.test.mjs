@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { constants, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -42,8 +43,12 @@ test("repository status stays fail-closed until the runtime decision gate is com
   assert.equal(status.sourceTopology.sourceExtraction, false);
 });
 
+// `src` is deliberately not in this list any more. It is the one root path whose absence is no
+// longer the rule — see the root first-child topology section at the end of this file, which
+// states what the narrowed rule actually is and separately asserts that this checkout still has
+// no root `src` at all.
 test("planning bootstrap contains no runtime source tree", async () => {
-  for (const runtimePath of ["apps", "src", "packages", "deploy", "migrations"]) {
+  for (const runtimePath of ["apps", "packages", "deploy", "migrations"]) {
     assert.equal(
       await exists(runtimePath),
       false,
@@ -69,8 +74,10 @@ test("planning bootstrap contains no runtime source tree", async () => {
 // because the claim is refused wherever it stands.
 // =====================================================================================
 
-const checkerUrl = pathToFileURL(path.join(root, "tools/check-repository-boundary.mjs")).href;
-const { readmeContractViolations } = await import(checkerUrl);
+const checkerRelative = "tools/check-repository-boundary.mjs";
+const checkerUrl = pathToFileURL(path.join(root, checkerRelative)).href;
+const boundary = await import(checkerUrl);
+const { readmeContractViolations } = boundary;
 const README = await readFile(path.join(root, "README.md"), "utf8");
 
 /** The four live claims every heading attack tries to shelter. */
@@ -552,4 +559,127 @@ test("the checker CLI still runs its assertions and reports the historical snaps
   assert.equal(result.status, 0, `the CLI must pass on the real repository: ${result.stderr}`);
   assert.match(result.stdout, /HISTORICAL SNAPSHOT/);
   assert.match(result.stdout, /repository boundary/);
+});
+
+// =====================================================================================
+// P-M1-00 — the root first-child topology
+//
+// The old fence was one flat list — apps, src, packages, deploy, migrations, absent always. Four
+// of those five are unchanged. `src` is not: a root `src` may exist, and `domain` is the only first
+// child it may ever hold. An absent root `src` stays fully compliant — opening a door is not
+// walking through it, and this checkout has not. Nothing beneath `src/domain` is classified here,
+// and no authority or readiness state moves.
+//
+// Rows are injected facts, so the matrix states the rule rather than describing this tree; the
+// reader rows prove a real directory reaches the same verdict. An unclassified first child fails
+// closed and names itself, because a name nobody classified is where guessing costs most.
+// =====================================================================================
+
+const {
+  ROOT_ABSENT_PATHS, ROOT_SRC_PERMITTED_CHILDREN, ROOT_SRC_FORBIDDEN_CHILDREN,
+  rootTopologyViolations, checkRootTopology,
+} = boundary;
+
+const ABSENT_ROOTS = ["apps", "packages", "deploy", "migrations"];
+const SRC_PERMITTED = ["domain"];
+const SRC_FORBIDDEN = ["application", "adapters", "delivery", "sdk"];
+const sortedNames = (values) => [...(values ?? [])].sort();
+const refuseChild = (child) => [`forbidden-root-src-child:${child}`];
+const refuseRoot = (name) => [`forbidden-root-path-present:${name}`];
+
+// A protected root spelled with a different case is the same directory. On the case-insensitive
+// filesystems this repository is developed on, `Apps/` and `apps/` are one directory, so a fence
+// that compares names exactly can be walked straight past by capitalising a single letter — and
+// the tree that results is a real root `apps`, not a near-miss. The finding must still name the
+// canonical lowercase path, because that is the path the fence is about; reporting `Apps` would
+// make the finding depend on how the offender spelled it.
+//
+// This is about the four protected roots only. A first child of `src` in an unexpected case is
+// already refused as unclassified, which is the correct answer for it.
+const CASE_VARIANT_ROOTS = ABSENT_ROOTS.map((name) => [
+  `${name[0].toUpperCase()}${name.slice(1)}`,
+  name,
+]);
+
+/** `srcChildren`: null means root src is absent; an array means it holds exactly those children. */
+const facts = (srcChildren, extraRoots = []) => ({
+  rootChildren: ["db", "tools", ...(srcChildren === null ? [] : ["src"]), ...extraRoots],
+  srcChildren,
+});
+
+/** [label, injected facts, findings that must be present — `[]` means the row must be clean]. */
+const TOPOLOGY_ROWS = [
+  ["absent root src", facts(null), []],
+  ["empty root src", facts([]), []],
+  ["root src holding only domain", facts(["domain"]), []],
+  ...SRC_FORBIDDEN.map((c) => [`src/${c} beside domain`, facts(["domain", c]), refuseChild(c)]),
+  ["every forbidden sibling at once", facts(SRC_FORBIDDEN), SRC_FORBIDDEN.flatMap(refuseChild)],
+  ["an unknown first child", facts(["infra"]), ["unknown-root-src-child:infra"]],
+  ["domain beside an unknown child", facts(["domain", "infra"]), ["unknown-root-src-child:infra"]],
+  ...ABSENT_ROOTS.map((p) => [`root ${p} beside a compliant src`, facts(["domain"], [p]), refuseRoot(p)]),
+  // Malformed facts fail closed: answering "no findings" to input it cannot read would be an
+  // all-clear, which is worse than having no evaluator at all.
+  ["absent facts", undefined, ["root-topology-facts-missing"]],
+  ["src facts omitted", { rootChildren: ["db"] }, ["root-src-children-malformed"]],
+  ["src listed but unread", { rootChildren: ["db", "src"], srcChildren: null }, ["root-src-children-unreadable"]],
+  ...CASE_VARIANT_ROOTS.map(([variant, canonical]) => [
+    `root ${variant} is root ${canonical}`, facts(["domain"], [variant]), refuseRoot(canonical),
+  ]),
+];
+
+/** [label, scratch layout, findings that must be present — `[]` means the row must be clean]. */
+const READER_ROWS = [
+  ["no root src", { db: "dir" }, []],
+  ["empty root src", { src: "dir" }, []],
+  // Depth stays unclassified: whatever sits under domain changes nothing here.
+  ["src/domain with nested content", { "src/domain/order/order.ts": "file" }, []],
+  ["src/application beside domain", { "src/domain": "dir", "src/application": "dir" }, refuseChild("application")],
+  ["src/sdk beside domain", { "src/domain": "dir", "src/sdk": "dir" }, refuseChild("sdk")],
+  ["an unknown first child", { "src/domain": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
+  ["root apps", { apps: "dir" }, refuseRoot("apps")],
+  ["root migrations", { migrations: "dir" }, refuseRoot("migrations")],
+  ...CASE_VARIANT_ROOTS.map(([variant, canonical]) => [
+    `root ${variant} is root ${canonical}`, { [variant]: "dir" }, refuseRoot(canonical),
+  ]),
+];
+
+/** A scratch tree outside this checkout, removed by the calling test's own after hook. */
+function scratchTree(t, layout) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "kernel-root-topology-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  for (const [relative, kind] of Object.entries(layout)) {
+    const full = path.join(dir, relative);
+    mkdirSync(kind === "dir" ? full : path.dirname(full), { recursive: true });
+    if (kind !== "dir") writeFileSync(full, "");
+  }
+  return dir;
+}
+
+function assertRow(found, expected, label) {
+  const seen = JSON.stringify(found);
+  if (expected.length === 0) return assert.deepEqual(found, [], `${label}: expected no findings, got ${seen}`);
+  for (const one of expected) assert.ok(found.includes(one), `${label}: expected ${one}, got ${seen}`);
+  assert.ok(!found.some((f) => f.endsWith(":domain")), `${label}: domain is permitted and must never be blamed, got ${seen}`);
+}
+
+test("the checker names the narrowed root topology, and drops the flat five-path fence", async () => {
+  assert.deepEqual(sortedNames(ROOT_ABSENT_PATHS), sortedNames(ABSENT_ROOTS), `${checkerRelative} must export ROOT_ABSENT_PATHS holding the four paths whose absence is unchanged`);
+  assert.ok(!(ROOT_ABSENT_PATHS ?? []).includes("src"), "root src is no longer absent-by-fence: its permitted first child governs it instead");
+  assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(SRC_PERMITTED), `${checkerRelative} must export ROOT_SRC_PERMITTED_CHILDREN naming domain and only domain`);
+  assert.deepEqual(sortedNames(ROOT_SRC_FORBIDDEN_CHILDREN), sortedNames(SRC_FORBIDDEN), `${checkerRelative} must export ROOT_SRC_FORBIDDEN_CHILDREN naming each refused sibling`);
+  const source = await readFile(path.join(root, checkerRelative), "utf8");
+  assert.ok(!source.includes('["apps", "src", "packages", "deploy", "migrations"]'), "the CLI still carries the pre-narrowing five-path literal, so it and the constants would disagree about whether a root src is permitted");
+});
+
+test("the narrowed root topology is decided from injected facts", () => {
+  assert.equal(typeof rootTopologyViolations, "function", `${checkerRelative} must export rootTopologyViolations({ rootChildren, srcChildren }) — the narrowed root first-child topology is not expressed as a pure evaluator yet`);
+  for (const [label, given, expected] of TOPOLOGY_ROWS) assertRow(rootTopologyViolations(given), expected, label);
+});
+
+test("a real tree reaches the same verdict, and this checkout still has no root src", (t) => {
+  assert.equal(typeof checkRootTopology, "function", `${checkerRelative} must export checkRootTopology(rootDirectory) — nothing reads a real tree into the narrowed root first-child facts yet`);
+  for (const [label, layout, expected] of READER_ROWS) assertRow(checkRootTopology(scratchTree(t, layout)), expected, `scratch: ${label}`);
+  // The narrowing permits a root src; it does not create one, and that stays asserted not assumed.
+  assert.equal(existsSync(path.join(root, "src")), false, "this checkout must still have no root src at all");
+  assertRow(checkRootTopology(root), [], "the real checkout");
 });

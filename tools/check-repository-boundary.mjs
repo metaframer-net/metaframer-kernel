@@ -1,18 +1,135 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-async function exists(relativePath) {
-  try {
-    await access(path.join(root, relativePath), constants.F_OK);
-    return true;
-  } catch {
-    return false;
+// =====================================================================================
+// The repository root topology — stated once, here, and read from here by everything else
+//
+// The fence used to be one flat list: apps, src, packages, deploy, migrations, absent always.
+// Four of those five are unchanged. `src` is not. A root `src` may exist, and `domain` is the
+// only first child it may ever hold — `src/application`, `src/adapters`, `src/delivery` and
+// `src/sdk` are refused by name, and any first child nobody has classified is refused too.
+//
+// Three limits are deliberate:
+//
+//   - An absent root `src` is fully compliant. The narrowing permits a root `src`; it does not
+//     require one, and this repository still has none.
+//   - Nothing beneath `src/domain` is classified. This is the first-child topology and no more.
+//   - Nothing about authority, readiness or activation moves with it.
+//
+// The rule is split into a pure evaluator over injected facts and a reader that turns a real
+// directory into those facts, so the same decision can be tested without a tree and enforced
+// against one. Every consumer — this CLI, the control-plane checker, the substrate verifier —
+// calls the reader. A second copy of the rule, however careful, is a second thing to drift.
+// =====================================================================================
+
+/** Root paths whose absence the narrowing leaves completely untouched. */
+export const ROOT_ABSENT_PATHS = ["apps", "packages", "deploy", "migrations"];
+/** The one root directory governed by its first children rather than by its absence. */
+export const ROOT_SRC_DIRECTORY = "src";
+/** The only first child a root `src` may hold. */
+export const ROOT_SRC_PERMITTED_CHILDREN = ["domain"];
+/** First children refused by name, so a finding says which one was added. */
+export const ROOT_SRC_FORBIDDEN_CHILDREN = ["application", "adapters", "delivery", "sdk"];
+
+/**
+ * Fold A–Z to a–z and touch nothing else.
+ *
+ * Deliberately not `toLowerCase()`: that applies full Unicode case mapping, where a few characters
+ * fold across scripts or change length, so what counts as a match would depend on characters this
+ * fence has no opinion about. Every path this compares is ASCII, so an ASCII-only fold is the whole
+ * rule — deterministic, locale-independent, and with no behaviour outside A–Z to reason about.
+ */
+const asciiLower = (value) =>
+  value.replace(/[A-Z]/g, (letter) => String.fromCharCode(letter.charCodeAt(0) + 32));
+
+/**
+ * Decide the root topology from facts alone.
+ *
+ * `rootChildren` is the first-level entry names at the repository root. `srcChildren` is the
+ * first-level entry names inside root `src`, or `null` when there is no readable root `src`.
+ *
+ * Fail-closed in both directions: facts this function cannot read produce a finding rather than
+ * an empty list, because an empty list is an all-clear and an all-clear is the one answer that
+ * must never be reachable by accident. A `src` that is listed at the root but whose children are
+ * unknown is refused for the same reason — the permitted-child rule cannot be checked at all.
+ */
+export function rootTopologyViolations(facts) {
+  const violations = [];
+  if (facts === null || typeof facts !== "object" || !Array.isArray(facts.rootChildren)) {
+    return ["root-topology-facts-missing"];
   }
+
+  // The four protected roots are matched without regard to case, because on a case-insensitive
+  // filesystem `Apps/` and `apps/` are one directory: an exact comparison would let the fence be
+  // walked past by capitalising a letter, and the tree that results is a real root `apps`. The
+  // finding always names the canonical lowercase path, so it describes the path that is fenced
+  // rather than the spelling that happened to be used. A non-string entry is skipped rather than
+  // folded, so malformed facts cannot throw their way out of the check.
+  //
+  // This applies to these four names only. First children of `src` are matched exactly, which
+  // leaves an unexpected case classified as unknown — already the correct answer for them.
+  for (const absent of ROOT_ABSENT_PATHS) {
+    const present = facts.rootChildren.some(
+      (child) => typeof child === "string" && asciiLower(child) === absent,
+    );
+    if (present) violations.push(`forbidden-root-path-present:${absent}`);
+  }
+
+  const { srcChildren } = facts;
+  if (srcChildren === null) {
+    if (facts.rootChildren.includes(ROOT_SRC_DIRECTORY)) violations.push("root-src-children-unreadable");
+    return violations;
+  }
+  if (!Array.isArray(srcChildren)) {
+    violations.push("root-src-children-malformed");
+    return violations;
+  }
+
+  for (const child of srcChildren) {
+    if (ROOT_SRC_PERMITTED_CHILDREN.includes(child)) continue;
+    violations.push(
+      ROOT_SRC_FORBIDDEN_CHILDREN.includes(child)
+        ? `forbidden-root-src-child:${child}`
+        : `unknown-root-src-child:${child}`,
+    );
+  }
+  return violations;
+}
+
+/**
+ * Read a real directory into the facts above.
+ *
+ * Every failure resolves to facts the evaluator refuses, never to facts it accepts: an unreadable
+ * root yields no `rootChildren` at all, and a `src` that cannot be listed as a directory — because
+ * it is a file, or because the read failed — yields `srcChildren: null` while `src` still appears
+ * at the root, which the evaluator reports as unreadable.
+ */
+export function readRootTopologyFacts(rootDirectory = root) {
+  let rootChildren;
+  try {
+    rootChildren = readdirSync(rootDirectory).sort();
+  } catch {
+    return { rootChildren: null, srcChildren: null };
+  }
+
+  const srcPath = path.join(rootDirectory, ROOT_SRC_DIRECTORY);
+  try {
+    if (!statSync(srcPath).isDirectory()) return { rootChildren, srcChildren: null };
+    return { rootChildren, srcChildren: readdirSync(srcPath).sort() };
+  } catch {
+    // An absent root src lands here too, and is compliant: `src` is simply not in rootChildren.
+    return { rootChildren, srcChildren: null };
+  }
+}
+
+/** The rule applied to a real tree. This is what every consumer calls. */
+export function checkRootTopology(rootDirectory = root) {
+  return rootTopologyViolations(readRootTopologyFacts(rootDirectory));
 }
 
 // =====================================================================================
@@ -699,19 +816,18 @@ async function main() {
     `README current/history contract violated:\n  - ${violations.join("\n  - ")}`,
   );
 
-  // The fence itself is unchanged. Its old wording — "before the runtime decision gate is
-  // complete" — is stale: runtime code is authorized now, and one substrate package has been
-  // implemented and activated. These root paths stay absent because they are outside the target
+  // apps, packages, deploy and root migrations stay absent because they are outside the target
   // areas of the currently authorized package, and SDK, app-core, app and module remain excluded
-  // targets that no verdict so far has opened.
-  for (const runtimePath of ["apps", "src", "packages", "deploy", "migrations"]) {
-    assert.equal(
-      await exists(runtimePath),
-      false,
-      `${runtimePath} must not exist: it is outside the target areas of the currently authorized ` +
-        "package, and the excluded targets stay closed",
-    );
-  }
+  // targets that no verdict so far has opened. Root `src` is no longer one of them: it is
+  // constrained to `src/domain` only, and this repository still has no root `src` at all.
+  //
+  // The decision comes from the shared reader above, not from a second list kept down here. The
+  // CLI and the exported contract cannot disagree if there is only one of them.
+  const topologyViolations = checkRootTopology(root);
+  assert.ok(
+    topologyViolations.length === 0,
+    `repository root topology violated:\n  - ${topologyViolations.join("\n  - ")}`,
+  );
 
   // The repository-status.json and runtime-path checks above are unchanged; only their reporting
   // is labelled. These tokens are a verified historical snapshot, not the verdict in force — the

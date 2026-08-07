@@ -267,7 +267,7 @@
     "AGENTS.md",
     ".gitignore"
   ],
-  "allowedTargetsNote": "The substrate is package-local under db/ rather than at the repository root because the historical repository-boundary snapshot fences root-level migrations/, src/, apps/, packages/ and deploy/. That fence is upheld, not relaxed: db/ is the allowed target area named by the consumer-sync runtime-start sequence, and the production revisions live at db/metaframer_kernel_db/alembic/versions, never at the repository root.",
+  "allowedTargetsNote": "The substrate is package-local under db/ rather than at the repository root because the repository-boundary rule fences root-level apps/, packages/, deploy/ and migrations/, and constrains root src to only src/domain. db/ is the allowed target area named by the consumer-sync runtime-start sequence, so the substrate would live there whatever the root permitted, and the production revisions live at db/metaframer_kernel_db/alembic/versions, never at the repository root.",
   "forbiddenInPhaseA": {
     "role": "historical-phase-a-record",
     "paths": [
@@ -645,12 +645,26 @@
     }
   ],
   "forbiddenAlways": [
-    "migrations",
-    "src",
     "apps",
     "packages",
-    "deploy"
+    "deploy",
+    "migrations"
   ],
+  "rootSourceTopology": {
+    "permittedFirstChildren": [
+      "domain"
+    ],
+    "forbiddenFirstChildren": [
+      "application",
+      "adapters",
+      "delivery",
+      "sdk"
+    ],
+    "unknownFirstChildRefused": true,
+    "nestedContentClassified": false,
+    "owner": "tools/check-repository-boundary.mjs",
+    "note": "Root src is no longer forbidden outright; it is constrained to src/domain and nothing else. An absent root src stays fully compliant and this repository still has none. The named siblings are refused by name and any unclassified first child fails closed. Nothing beneath src/domain is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
+  },
   "staticAnalysis": {
     "script": "check:substrate-s1:static",
     "command": "cd db && uv lock --check && uv run --frozen ruff check metaframer_kernel_db tests && uv run --frozen ruff format --check metaframer_kernel_db tests && PYTHONPYCACHEPREFIX=\"${TMPDIR:-/tmp}/mfk-substrate-s1-pycache\" uv run --frozen python -m compileall -q metaframer_kernel_db tests",

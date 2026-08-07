@@ -31,6 +31,13 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import {
+  ROOT_ABSENT_PATHS,
+  ROOT_SRC_PERMITTED_CHILDREN,
+  ROOT_SRC_FORBIDDEN_CHILDREN,
+  checkRootTopology,
+} from "./check-repository-boundary.mjs";
+
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const CONTRACT_PATH = "db/kernel-runtime-substrate-s1.json";
 
@@ -95,9 +102,14 @@ export const READ_ONLY_FILES = [
   "docs/kernel-ai-development-readiness.md",
 ];
 
-// Fenced at the repository root by the historical boundary snapshot, in every phase. The
-// substrate is package-local under db/ precisely so this fence is upheld rather than relaxed.
-export const FORBIDDEN_ROOT_PATHS = ["migrations", "src", "apps", "packages", "deploy"];
+// The root topology is owned by tools/check-repository-boundary.mjs and re-exported here, so this
+// package reads the rule rather than keeping a second copy of it. apps, packages, deploy and root
+// migrations stay fenced in every phase. Root `src` is constrained to `src/domain` only — that is
+// the one part of the old flat fence that narrowed, and the substrate stays package-local under
+// db/ regardless: db/ is the allowed target area this package was scoped to, not a way around the
+// root.
+export const FORBIDDEN_ROOT_PATHS = ROOT_ABSENT_PATHS;
+export { ROOT_SRC_PERMITTED_CHILDREN, ROOT_SRC_FORBIDDEN_CHILDREN };
 // Never legitimate anywhere: a second home for the production package would mean two substrates.
 export const FORBIDDEN_PACKAGE_PATHS = ["db/src", "db/tests/metaframer_kernel_db"];
 
@@ -171,7 +183,7 @@ export const CONTRACT_ROOT_KEYS = [
   "requiredCapabilities", "behavioralContract", "databaseLifecycle", "rollback", "activation",
   "independentVerification", "humanCountersign", "promotionClaims", "preservation",
   "checkComposition", "knownHazards", "phaseStatus", "productionSurface", "forbiddenAlways",
-  "staticAnalysis", "redFollowUps",
+  "rootSourceTopology", "staticAnalysis", "redFollowUps",
 ];
 
 // Declared RED follow-ups. Each names work that is specified and failing, never work that is done.
@@ -373,6 +385,25 @@ export function evaluateContract({ contract } = {}) {
   }
   // The standing root fence, and the Phase A record kept explicitly as history.
   if (canonicalJson(contract.forbiddenAlways) !== canonicalJson(FORBIDDEN_ROOT_PATHS)) push("forbidden-always-drift");
+
+  // The narrowed root-source topology, stated in the contract and closed on all four sides: the
+  // permitted child cannot be widened, the refused siblings cannot be dropped, an unclassified
+  // first child cannot be admitted, and the clause cannot claim authority over what lives beneath
+  // src/domain — that depth belongs to a later package, not this one.
+  const rootTopology = contract.rootSourceTopology;
+  if (rootTopology === null || typeof rootTopology !== "object") push("root-source-topology-missing");
+  else {
+    if (canonicalJson(rootTopology.permittedFirstChildren) !== canonicalJson(ROOT_SRC_PERMITTED_CHILDREN)) {
+      push("root-source-topology-drift:permittedFirstChildren");
+    }
+    if (canonicalJson(rootTopology.forbiddenFirstChildren) !== canonicalJson(ROOT_SRC_FORBIDDEN_CHILDREN)) {
+      push("root-source-topology-drift:forbiddenFirstChildren");
+    }
+    if (rootTopology.unknownFirstChildRefused !== true) push("root-source-topology-admits-unknown-first-child");
+    if (rootTopology.nestedContentClassified !== false) push("root-source-topology-overreaches-into-nested-content");
+    if (!nonEmptyString(rootTopology.note)) push("root-source-topology-note-missing");
+  }
+
   const phaseAFence = contract.forbiddenInPhaseA ?? {};
   if (phaseAFence.role !== "historical-phase-a-record") push("forbidden-phase-a-not-marked-historical");
   if (!nonEmptyArray(phaseAFence.paths)) push("forbidden-phase-a-paths-missing");
@@ -1164,18 +1195,32 @@ export function checkNoHistoricalRewrite(root = ROOT, sha = KERNEL_BASE_SHA) {
   return errors;
 }
 
+// The shared rule reports the four absent root paths as `forbidden-root-path-present:`. This
+// package has always named them `fenced-root-path-present:`, and its recorded findings and messages
+// keep that spelling; only the decision is shared, not the wording.
+const SHARED_ROOT_PATH_FINDING = "forbidden-root-path-present:";
+const PACKAGE_ROOT_PATH_FINDING = "fenced-root-path-present:";
+
 /**
  * The production surface is exactly one substrate package, in exactly one place.
  *
- * The repository-root fence holds in every phase. Inside db/, the package must exist with the
- * modules it declares and no second copy of itself, and the revision tree must hold exactly the
- * one cohesive revision — a second revision file appearing without the contract's revisionCount
- * moving with it is drift, not progress.
+ * The repository-root topology holds in every phase, and is decided by the shared reader: the four
+ * fenced root paths must be absent, and a root `src` — permitted now, though this repository has
+ * none — may hold `src/domain` and nothing else. A forbidden or unclassified first child is named
+ * in its own finding. Nothing beneath `src/domain` is classified here.
+ *
+ * Inside db/, the package must exist with the modules it declares and no second copy of itself, and
+ * the revision tree must hold exactly the one cohesive revision — a second revision file appearing
+ * without the contract's revisionCount moving with it is drift, not progress.
  */
 export function checkProductionSurface(root = ROOT) {
   const errors = [];
-  for (const relative of FORBIDDEN_ROOT_PATHS) {
-    if (existsSync(path.join(root, relative))) errors.push(`fenced-root-path-present:${relative}`);
+  for (const finding of checkRootTopology(root)) {
+    errors.push(
+      finding.startsWith(SHARED_ROOT_PATH_FINDING)
+        ? `${PACKAGE_ROOT_PATH_FINDING}${finding.slice(SHARED_ROOT_PATH_FINDING.length)}`
+        : finding,
+    );
   }
   for (const relative of FORBIDDEN_PACKAGE_PATHS) {
     if (existsSync(path.join(root, relative))) errors.push(`forbidden-package-path-present:${relative}`);

@@ -25,7 +25,13 @@ const {
   canonicalJson, sha256, validateKernelBase, evaluateContract, checkNoHistoricalRewrite,
   checkProductionSurface, checkSourceCrossBinding, checkBehavioralModules, checkForbiddenTokens,
   checkStaticAnalysisWiring,
+  ROOT_SRC_PERMITTED_CHILDREN, ROOT_SRC_FORBIDDEN_CHILDREN,
 } = verifier;
+
+// The root topology is owned by the repository-boundary checker. This suite imports it so the two
+// verifiers can be held to one rule instead of two copies of a rule that drift apart.
+const boundaryPath = "tools/check-repository-boundary.mjs";
+const boundary = await import(pathToFileURL(path.join(root, boundaryPath)).href);
 
 const readJson = async (relative) => JSON.parse(await readFile(path.join(root, relative), "utf8"));
 const contract = await readJson(contractPath);
@@ -437,9 +443,15 @@ test("passing on this branch is not verification, activation, or a gate", () => 
   }
 });
 
-test("the historical repository boundary is upheld, not relaxed, by living under db/", () => {
-  // The boundary snapshot fences these at the repository root; the substrate is package-local.
-  for (const fenced of ["apps", "src", "packages", "deploy", "migrations"]) {
+test("the narrowed repository boundary is respected by living under db/", () => {
+  // The four protected roots stay absent, read from the shared rule rather than re-listed here —
+  // a second hardcoded list is exactly how a narrowing gets half-applied.
+  //
+  // Root `src` is deliberately not among them any more. It is constrained to `src/domain`, not
+  // forbidden, so its absence is no longer what this test is about. Whether this checkout has a
+  // root `src` is asserted separately and explicitly in the P-M1-00 section below, where the
+  // point is that this package creates none.
+  for (const fenced of FORBIDDEN_ROOT_PATHS) {
     assert.equal(existsSync(path.join(root, fenced)), false, `${fenced} must not exist at the root`);
   }
   assert.ok(existsSync(path.join(root, "db")), "the substrate package must live under db/");
@@ -1088,4 +1100,137 @@ test("npm run check ends with exactly one checkout-local projection, owned by th
   for (const overreach of ["GO-RUNTIME-PILOT", "GO-PRODUCTION"]) {
     assert.ok(!candidates[0].includes(overreach), `the candidate line overreaches with ${overreach}`);
   }
+});
+
+// =====================================================================================
+// P-M1-00 — the narrowed root fence, as this package sees it
+//
+// This substrate lives under db/ because the root fence said a root `src` never exists. That
+// reason is stale in exactly one place: `src/domain` is permitted now. Nothing else moves — the
+// package stays under db/, ships the same modules, starts no primitive and claims no readiness.
+// What changes is only what this verifier, the contract and the pyproject comment may say about
+// the root. Prose is not cosmetic here: a comment asserting the fence is "never relaxed" is the
+// file telling a reader something untrue once the fence has been relaxed.
+// =====================================================================================
+
+const S1_ABSENT_ROOTS = ["migrations", "apps", "packages", "deploy"];
+const S1_SRC_PERMITTED = ["domain"];
+const S1_SRC_FORBIDDEN = ["application", "adapters", "delivery", "sdk"];
+const sortedNames = (values) => [...(values ?? [])].sort();
+/** Only root-topology findings are in scope; a scratch tree has no substrate package at all. */
+const rootFindings = (found) => found.filter((f) => /root-src-child|root-path-present:/.test(f));
+
+/** [label, scratch layout, findings that must be present — `[]` means no root-topology finding]. */
+const SURFACE_ROWS = [
+  ["a root src holding only domain", { "src/domain/order/order.ts": "file" }, []],
+  ["an empty root src", { src: "dir" }, []],
+  ...S1_SRC_FORBIDDEN.map((c) => [`src/${c} beside domain`, { "src/domain": "dir", [`src/${c}`]: "dir" }, [`forbidden-root-src-child:${c}`]]),
+  ["an unknown first child", { "src/domain": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
+  ...S1_ABSENT_ROOTS.map((p) => [`root ${p}`, { "src/domain": "dir", [p]: "dir" }, [`fenced-root-path-present:${p}`]]),
+  // A protected root spelled with a different case is the same directory on the case-insensitive
+  // filesystems this repository is developed on, so `Apps/` is a real root `apps` and must be
+  // reported as one — under the canonical lowercase name, translated into this package's own
+  // finding prefix. Case variants of src children are a different question and stay unclassified.
+  ...S1_ABSENT_ROOTS.map((p) => [
+    `root ${p[0].toUpperCase()}${p.slice(1)} is root ${p}`,
+    { "src/domain": "dir", [`${p[0].toUpperCase()}${p.slice(1)}`]: "dir" },
+    [`fenced-root-path-present:${p}`],
+  ]),
+];
+
+/** [label, patch applied to rootSourceTopology (`null` deletes the clause), expected finding]. */
+const CLAUSE_ATTACKS = [
+  ["no root topology clause at all", null, "root-source-topology-missing"],
+  ["a widened permit", { permittedFirstChildren: ["domain", "sdk"] }, "root-source-topology-drift:permittedFirstChildren"],
+  ["an unclassified first child admitted", { unknownFirstChildRefused: false }, "root-source-topology-admits-unknown-first-child"],
+  ["nested src/domain content claimed as classified", { nestedContentClassified: true }, "root-source-topology-overreaches-into-nested-content"],
+];
+
+test("the root topology is one rule, shared with the boundary checker", () => {
+  assert.deepEqual(sortedNames(FORBIDDEN_ROOT_PATHS), sortedNames(S1_ABSENT_ROOTS), "FORBIDDEN_ROOT_PATHS must narrow to the four paths whose absence is unchanged");
+  assert.ok(!FORBIDDEN_ROOT_PATHS.includes("src"), "root src is no longer forbidden outright: its permitted first child governs it instead");
+  assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(S1_SRC_PERMITTED), `${verifierPath} must export ROOT_SRC_PERMITTED_CHILDREN naming domain and only domain`);
+  assert.deepEqual(sortedNames(ROOT_SRC_FORBIDDEN_CHILDREN), sortedNames(S1_SRC_FORBIDDEN), `${verifierPath} must export ROOT_SRC_FORBIDDEN_CHILDREN naming each refused sibling`);
+  // Two lists that merely happen to agree today are a drift waiting to happen.
+  for (const [what, mine, theirs] of [
+    ["which root paths stay absent", FORBIDDEN_ROOT_PATHS, boundary.ROOT_ABSENT_PATHS],
+    ["which first child is permitted", ROOT_SRC_PERMITTED_CHILDREN, boundary.ROOT_SRC_PERMITTED_CHILDREN],
+    ["which siblings are refused", ROOT_SRC_FORBIDDEN_CHILDREN, boundary.ROOT_SRC_FORBIDDEN_CHILDREN],
+  ]) {
+    assert.deepEqual(sortedNames(mine), sortedNames(theirs), `${verifierPath} and ${boundaryPath} disagree about ${what}`);
+  }
+});
+
+test("the production surface stops fencing src/domain while still refusing every sibling", (t) => {
+  for (const [label, layout, expected] of SURFACE_ROWS) {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "kernel-substrate-root-src-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    for (const [relative, kind] of Object.entries(layout)) {
+      const full = path.join(dir, relative);
+      execFileSync("mkdir", ["-p", kind === "dir" ? full : path.dirname(full)]);
+      if (kind !== "dir") writeFileSync(full, "");
+    }
+    const found = checkProductionSurface(dir);
+    const seen = JSON.stringify(rootFindings(found));
+    if (expected.length === 0) {
+      assert.deepEqual(rootFindings(found), [], `${label}: expected no root-topology finding, got ${seen}`);
+      continue;
+    }
+    for (const one of expected) assert.ok(found.includes(one), `${label}: expected ${one}, got ${seen}`);
+    assert.ok(!found.some((f) => f.endsWith(":domain")), `${label}: domain is permitted and must never be blamed, got ${seen}`);
+  }
+});
+
+test("the contract carries a closed rootSourceTopology clause, and Phase A keeps its own history", () => {
+  const topology = contract.rootSourceTopology;
+  assert.ok(topology && typeof topology === "object", `${contractPath} must carry a rootSourceTopology clause stating the narrowed truth`);
+  assert.deepEqual(sortedNames(topology.permittedFirstChildren), sortedNames(S1_SRC_PERMITTED));
+  assert.deepEqual(sortedNames(topology.forbiddenFirstChildren), sortedNames(S1_SRC_FORBIDDEN));
+  assert.equal(topology.unknownFirstChildRefused, true, "an unclassified first child must fail closed");
+  // This prerequisite opens the first-child topology only; claiming more would license a depth
+  // that no package has authorized.
+  assert.equal(topology.nestedContentClassified, false);
+  assert.match(String(topology.note ?? ""), /domain/, "the clause needs a note saying what narrowed and what did not");
+  assert.deepEqual(contract.forbiddenAlways, FORBIDDEN_ROOT_PATHS);
+  assert.ok(!contract.forbiddenAlways.includes("src"), "forbiddenAlways must no longer list bare src");
+  // History is not rewritten to match the narrowing: src was on the Phase A list, and stays on it.
+  assert.equal(contract.forbiddenInPhaseA.role, "historical-phase-a-record");
+  assert.ok(contract.forbiddenInPhaseA.paths.includes("src"), "the Phase A record must keep src exactly as it was recorded");
+});
+
+test("the verifier refuses every way of loosening the root topology clause", () => {
+  for (const [label, patch, expected] of CLAUSE_ATTACKS) {
+    const candidate = clone(contract);
+    if (patch === null) delete candidate.rootSourceTopology;
+    else candidate.rootSourceTopology = { ...(contract.rootSourceTopology ?? {}), ...patch };
+    const { errors, ok } = evaluateContract({ contract: candidate });
+    assert.equal(ok, false, `${label} must be rejected`);
+    assert.ok(errors.includes(expected), `${label}: expected ${expected}, got ${JSON.stringify(errors)}`);
+  }
+});
+
+test("the verifier's own comments and the substrate pyproject state the narrowed truth", async () => {
+  const source = await readFile(path.join(root, verifierPath), "utf8");
+  assert.ok(!source.includes('["migrations", "src", "apps", "packages", "deploy"]'), "the pre-narrowing five-path root fence literal must be gone");
+  assert.ok(!/upheld rather than relaxed/.test(source), "the comment explaining why the substrate lives under db/ still claims the root fence is upheld rather than relaxed, which is no longer what the fence says");
+  assert.match(source, /src\/domain/, "the verifier must name src/domain as the one permitted first child");
+
+  const comment = (await readFile(path.join(root, "db/pyproject.toml"), "utf8"))
+    .split("\n").filter((line) => line.trimStart().startsWith("#")).join("\n");
+  assert.ok(!/never relaxed/i.test(comment), "the pyproject comment still says the root src fence is never relaxed; it has been relaxed for src/domain");
+  for (const absent of S1_ABSENT_ROOTS) {
+    assert.match(comment, new RegExp(`\\b${absent}/`), `the comment must still name root-level ${absent}/ as fenced`);
+  }
+  assert.match(comment, /src\/domain/, "the comment must name src/domain as the one permitted first child");
+  // Root src may appear only as `src/domain`; a bare `src/` would restate the flat fence the
+  // narrowing replaced. `db/src` is a different path, and the lookbehind excludes it.
+  const bareSrc = comment.match(/(?<![\w/])src\/(?!domain)/g) ?? [];
+  assert.deepEqual(bareSrc, [], `the comment may only refer to root src as src/domain, found ${JSON.stringify(bareSrc)}`);
+});
+
+test("the real checkout still has no root src, and this narrowing moves no state", () => {
+  assert.equal(existsSync(path.join(root, "src")), false, "the narrowed fence permits a root src; it does not create one");
+  assert.deepEqual(checkProductionSurface(root), [], "the real production surface stays clean");
+  for (const flag of SHUT_FLAGS) assert.equal(contract.desiredState[flag], false, `${flag} must stay false through this narrowing`);
+  assert.deepEqual(contract.stateDelta.changedDimensions, MOVED_DIMENSIONS, "no new dimension may move here");
 });
