@@ -7,9 +7,10 @@
 #
 # The substrate lives under db/ rather than at the repository root because the repository-boundary
 # rule (tools/check-repository-boundary.mjs, proven by tests/repository-boundary.test.mjs) fences
-# root-level apps/, packages/, deploy/ and migrations/, and constrains root source to only
-# src/domain. Nothing else may sit beside it, and an unclassified first child is refused. db/ is
-# the allowed target area this package was scoped to, so the substrate belongs here either way.
+# root-level apps/, packages/, deploy/ and migrations/, and constrains root source to the two inner
+# onion rings src/domain and src/application. The outer rings are still refused by name, and an
+# unclassified first child is refused too. db/ is the allowed target area this package was scoped
+# to, so the substrate belongs here either way.
 
 [project]
 name = "metaframer-kernel-db"

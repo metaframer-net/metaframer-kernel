@@ -804,8 +804,9 @@ assert.equal(status.planningControlPlane.runtimeCodeAllowed, false);
 
 // The root topology is decided by the one shared reader in tools/check-repository-boundary.mjs,
 // never by a second list here. apps, packages, deploy and root migrations must remain absent while
-// the decision gate is incomplete; root `src` is constrained to `src/domain` only, and an
-// unreadable or unclassified first child is a finding rather than an all-clear.
+// the decision gate is incomplete; root `src` is constrained to the two inner onion rings,
+// `src/domain` and `src/application`, and an unreadable or unclassified first child is a finding
+// rather than an all-clear.
 const rootTopologyViolations = checkRootTopology(root);
 assert.deepEqual(
   rootTopologyViolations,

@@ -10,15 +10,22 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // The repository root topology — stated once, here, and read from here by everything else
 //
 // The fence used to be one flat list: apps, src, packages, deploy, migrations, absent always.
-// Four of those five are unchanged. `src` is not. A root `src` may exist, and `domain` is the
-// only first child it may ever hold — `src/application`, `src/adapters`, `src/delivery` and
-// `src/sdk` are refused by name, and any first child nobody has classified is refused too.
+// Four of those five are unchanged. `src` is not. A root `src` may exist, and it may hold the
+// two inner onion rings — `src/domain` and `src/application` — and nothing else. `src/adapters`,
+// `src/delivery` and `src/sdk` are the outer rings and stay refused by name, because opening
+// them is a separate decision no package has taken. Any first child nobody has classified is
+// refused too.
+//
+// Why `application` is permitted rather than merely unclassified: the onion says Application is
+// a ring, so it is a name this fence has classified. Leaving it unknown would refuse it for the
+// one reason that is untrue — that nobody knows what it is.
 //
 // Three limits are deliberate:
 //
 //   - An absent root `src` is fully compliant. The narrowing permits a root `src`; it does not
-//     require one, and this checkout now materializes exactly `src/domain` for P-M1-01.
-//   - Nothing beneath `src/domain` is classified. This is the first-child topology and no more.
+//     require one, and this checkout materializes `src/domain` for P-M1-01 and `src/application`
+//     for P-M1-02.
+//   - Nothing beneath either ring is classified. This is the first-child topology and no more.
 //   - Nothing about authority, readiness or activation moves with it.
 //
 // The rule is split into a pure evaluator over injected facts and a reader that turns a real
@@ -31,10 +38,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const ROOT_ABSENT_PATHS = ["apps", "packages", "deploy", "migrations"];
 /** The one root directory governed by its first children rather than by its absence. */
 export const ROOT_SRC_DIRECTORY = "src";
-/** The only first child a root `src` may hold. */
-export const ROOT_SRC_PERMITTED_CHILDREN = ["domain"];
+/** The first children a root `src` may hold, in onion order: innermost ring first. */
+export const ROOT_SRC_PERMITTED_CHILDREN = ["domain", "application"];
 /** First children refused by name, so a finding says which one was added. */
-export const ROOT_SRC_FORBIDDEN_CHILDREN = ["application", "adapters", "delivery", "sdk"];
+export const ROOT_SRC_FORBIDDEN_CHILDREN = ["adapters", "delivery", "sdk"];
 
 /**
  * Fold A–Z to a–z and touch nothing else.
@@ -819,8 +826,8 @@ async function main() {
   // apps, packages, deploy and root migrations stay absent because they are outside the target
   // areas of the currently authorized package, and SDK, app-core, app and module remain excluded
   // targets that no verdict so far has opened. Root `src` is no longer one of them: it is
-  // constrained to `src/domain` only, and this checkout now materializes exactly `src/domain`
-  // for P-M1-01.
+  // constrained to the two inner rings, and this checkout materializes exactly `src/domain` for
+  // P-M1-01 and `src/application` for P-M1-02.
   //
   // The decision comes from the shared reader above, not from a second list kept down here. The
   // CLI and the exported contract cannot disagree if there is only one of them.

@@ -46,7 +46,7 @@ test("repository status stays fail-closed until the runtime decision gate is com
 // `src` is deliberately not in this list any more. It is the one root path whose absence is no
 // longer the rule — see the root first-child topology section at the end of this file, which
 // states what the narrowed rule actually is and separately asserts the compliant root `src/domain`
-// this checkout now materializes.
+// and `src/application` this checkout now materializes.
 test("planning bootstrap contains no runtime source tree", async () => {
   for (const runtimePath of ["apps", "packages", "deploy", "migrations"]) {
     assert.equal(
@@ -562,14 +562,22 @@ test("the checker CLI still runs its assertions and reports the historical snaps
 });
 
 // =====================================================================================
-// P-M1-00 — the root first-child topology
+// P-M1-00/P-M1-02 — the root first-child topology
 //
 // The old fence was one flat list — apps, src, packages, deploy, migrations, absent always. Four
-// of those five are unchanged. `src` is not: a root `src` may exist, and `domain` is the only first
-// child it may ever hold. An absent root `src` stays fully compliant — opening a door is not walking
-// through it — and P-M1-01 now walks through it exactly once, materializing `src/domain` and nothing
-// beside it. Nothing beneath `src/domain` is classified here, and no authority or readiness state
-// moves: a materialized domain package is a source file, not a readiness claim.
+// of those five are unchanged. `src` is not: a root `src` may exist, and it may hold exactly the
+// two inner onion rings, `domain` and `application`, in that order. `adapters`, `delivery` and
+// `sdk` stay refused by name — they are the outer rings, and opening them is a separate decision
+// no package has taken. An absent root `src` stays fully compliant — opening a door is not walking
+// through it — and the kernel now walks through it exactly twice: P-M1-01 materialized `src/domain`
+// and P-M1-02 materializes `src/application`, one flat module in each and nothing beside them.
+// Nothing beneath either ring is classified here, and no authority or readiness state moves: a
+// materialized source package is a source file, not a readiness claim.
+//
+// Why `application` moves from the forbidden list to the permitted one rather than being tolerated
+// as an unknown: the onion says Application is a ring, so it is a name this fence has classified.
+// Leaving it unclassified would mean the fence refuses it for the one reason that is untrue — that
+// nobody knows what it is.
 //
 // Rows are injected facts, so the matrix states the rule rather than describing this tree; the
 // reader rows prove a real directory reaches the same verdict. An unclassified first child fails
@@ -582,8 +590,11 @@ const {
 } = boundary;
 
 const ABSENT_ROOTS = ["apps", "packages", "deploy", "migrations"];
-const SRC_PERMITTED = ["domain"];
-const SRC_FORBIDDEN = ["application", "adapters", "delivery", "sdk"];
+/** Onion order, innermost first. Both rings are permitted; neither is required to exist. */
+const SRC_PERMITTED = ["domain", "application"];
+const SRC_FORBIDDEN = ["adapters", "delivery", "sdk"];
+/** The one name this package moves across the line, named once so both attacks can cite it. */
+const MOVED_CHILD = "application";
 const sortedNames = (values) => [...(values ?? [])].sort();
 const refuseChild = (child) => [`forbidden-root-src-child:${child}`];
 const refuseRoot = (name) => [`forbidden-root-path-present:${name}`];
@@ -613,10 +624,21 @@ const TOPOLOGY_ROWS = [
   ["absent root src", facts(null), []],
   ["empty root src", facts([]), []],
   ["root src holding only domain", facts(["domain"]), []],
+  // Permitted is not required, and neither ring depends on the other being present for the
+  // first-child rule to answer. Both orders are listed because a rule that only accepted the
+  // order a directory listing happens to produce would be a rule about listings.
+  ["root src holding only application", facts([MOVED_CHILD]), []],
+  ["root src holding both rings in onion order", facts(SRC_PERMITTED), []],
+  ["root src holding both rings in listing order", facts(sortedNames(SRC_PERMITTED)), []],
   ...SRC_FORBIDDEN.map((c) => [`src/${c} beside domain`, facts(["domain", c]), refuseChild(c)]),
+  ...SRC_FORBIDDEN.map((c) => [`src/${c} beside application`, facts([MOVED_CHILD, c]), refuseChild(c)]),
   ["every forbidden sibling at once", facts(SRC_FORBIDDEN), SRC_FORBIDDEN.flatMap(refuseChild)],
   ["an unknown first child", facts(["infra"]), ["unknown-root-src-child:infra"]],
   ["domain beside an unknown child", facts(["domain", "infra"]), ["unknown-root-src-child:infra"]],
+  ["application beside an unknown child", facts([MOVED_CHILD, "infra"]), ["unknown-root-src-child:infra"]],
+  // Case is not folded for src children, so a differently-spelled ring stays unclassified rather
+  // than quietly admitted. That is the same answer the narrowing gave before application moved.
+  ["a cased application is unclassified", facts(["Application"]), ["unknown-root-src-child:Application"]],
   ...ABSENT_ROOTS.map((p) => [`root ${p} beside a compliant src`, facts(["domain"], [p]), refuseRoot(p)]),
   // Malformed facts fail closed: answering "no findings" to input it cannot read would be an
   // all-clear, which is worse than having no evaluator at all.
@@ -632,10 +654,12 @@ const TOPOLOGY_ROWS = [
 const READER_ROWS = [
   ["no root src", { db: "dir" }, []],
   ["empty root src", { src: "dir" }, []],
-  // Depth stays unclassified: whatever sits under domain changes nothing here.
+  // Depth stays unclassified: whatever sits under either ring changes nothing here.
   ["src/domain with nested content", { "src/domain/order/order.ts": "file" }, []],
-  ["src/application beside domain", { "src/domain": "dir", "src/application": "dir" }, refuseChild("application")],
+  ["src/application with nested content", { "src/application/use-case/place.ts": "file" }, []],
+  ["src/application beside domain", { "src/domain": "dir", "src/application": "dir" }, []],
   ["src/sdk beside domain", { "src/domain": "dir", "src/sdk": "dir" }, refuseChild("sdk")],
+  ["src/adapters beside both rings", { "src/domain": "dir", "src/application": "dir", "src/adapters": "dir" }, refuseChild("adapters")],
   ["an unknown first child", { "src/domain": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
   ["root apps", { apps: "dir" }, refuseRoot("apps")],
   ["root migrations", { migrations: "dir" }, refuseRoot("migrations")],
@@ -660,16 +684,39 @@ function assertRow(found, expected, label) {
   const seen = JSON.stringify(found);
   if (expected.length === 0) return assert.deepEqual(found, [], `${label}: expected no findings, got ${seen}`);
   for (const one of expected) assert.ok(found.includes(one), `${label}: expected ${one}, got ${seen}`);
-  assert.ok(!found.some((f) => f.endsWith(":domain")), `${label}: domain is permitted and must never be blamed, got ${seen}`);
+  // Neither permitted ring may ever appear in a finding, whatever else the row is about. A rule
+  // that blamed a permitted name while correctly refusing a forbidden one beside it would read as
+  // enforcement and would in fact be the fence closing on the ring it was opened for.
+  for (const permitted of SRC_PERMITTED) {
+    assert.ok(
+      !found.some((f) => f.endsWith(`:${permitted}`)),
+      `${label}: ${permitted} is a permitted first child and must never be blamed, got ${seen}`,
+    );
+  }
 }
 
 test("the checker names the narrowed root topology, and drops the flat five-path fence", async () => {
   assert.deepEqual(sortedNames(ROOT_ABSENT_PATHS), sortedNames(ABSENT_ROOTS), `${checkerRelative} must export ROOT_ABSENT_PATHS holding the four paths whose absence is unchanged`);
   assert.ok(!(ROOT_ABSENT_PATHS ?? []).includes("src"), "root src is no longer absent-by-fence: its permitted first child governs it instead");
-  assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(SRC_PERMITTED), `${checkerRelative} must export ROOT_SRC_PERMITTED_CHILDREN naming domain and only domain`);
-  assert.deepEqual(sortedNames(ROOT_SRC_FORBIDDEN_CHILDREN), sortedNames(SRC_FORBIDDEN), `${checkerRelative} must export ROOT_SRC_FORBIDDEN_CHILDREN naming each refused sibling`);
+  assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(SRC_PERMITTED), `${checkerRelative} must export ROOT_SRC_PERMITTED_CHILDREN naming exactly the two inner rings, domain and application`);
+  assert.deepEqual(sortedNames(ROOT_SRC_FORBIDDEN_CHILDREN), sortedNames(SRC_FORBIDDEN), `${checkerRelative} must export ROOT_SRC_FORBIDDEN_CHILDREN naming each refused outer ring`);
+  // The two attacks on this package's one move, stated separately from the list comparison above
+  // so a failure says which direction the fence drifted rather than only that it drifted.
+  assert.ok(
+    (ROOT_SRC_PERMITTED_CHILDREN ?? []).includes(MOVED_CHILD),
+    `${MOVED_CHILD} was dropped from ROOT_SRC_PERMITTED_CHILDREN: the Application ring is permitted, and a fence that forgets it refuses the ring this package exists to open`,
+  );
+  assert.ok(
+    !(ROOT_SRC_FORBIDDEN_CHILDREN ?? []).includes(MOVED_CHILD),
+    `${MOVED_CHILD} was re-added to ROOT_SRC_FORBIDDEN_CHILDREN: it may not be permitted and refused at once, and the refusal is the half that wins`,
+  );
+  // Onion order is the stated order, innermost ring first. It is not decorative: the list is the
+  // one place the dependency direction is written down as data rather than as prose.
+  assert.deepEqual([...(ROOT_SRC_PERMITTED_CHILDREN ?? [])], SRC_PERMITTED, "ROOT_SRC_PERMITTED_CHILDREN must be stated in onion order, domain before application");
   const source = await readFile(path.join(root, checkerRelative), "utf8");
   assert.ok(!source.includes('["apps", "src", "packages", "deploy", "migrations"]'), "the CLI still carries the pre-narrowing five-path literal, so it and the constants would disagree about whether a root src is permitted");
+  assert.ok(!source.includes('["domain"]'), "the checker still carries the single-ring permitted literal, so it would refuse src/application by name");
+  assert.match(source, /src\/application/, "the checker must name src/application as a permitted first child, beside src/domain");
 });
 
 test("the narrowed root topology is decided from injected facts", () => {
@@ -677,18 +724,28 @@ test("the narrowed root topology is decided from injected facts", () => {
   for (const [label, given, expected] of TOPOLOGY_ROWS) assertRow(rootTopologyViolations(given), expected, label);
 });
 
-test("a real tree reaches the same verdict, and this checkout materializes a compliant src/domain", (t) => {
+test("a real tree reaches the same verdict, and this checkout materializes both compliant rings", (t) => {
   assert.equal(typeof checkRootTopology, "function", `${checkerRelative} must export checkRootTopology(rootDirectory) — nothing reads a real tree into the narrowed root first-child facts yet`);
   for (const [label, layout, expected] of READER_ROWS) assertRow(checkRootTopology(scratchTree(t, layout)), expected, `scratch: ${label}`);
-  // The narrowing permitted a root src; P-M1-01 creates one, and what it creates stays asserted
-  // rather than assumed — exactly `domain`, holding the identity primitives and no second layer.
+  // The narrowing permitted a root src; P-M1-01 created `domain` and P-M1-02 creates
+  // `application`. What they create stays asserted rather than assumed — exactly those two first
+  // children, one flat .mjs module in each, and no second layer under either.
   const src = path.join(root, "src");
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "this checkout must carry a real root src directory");
-  assert.deepEqual(readdirSync(src).sort(), SRC_PERMITTED, "domain must be the only first child of the materialized root src");
-  const domain = path.join(src, "domain");
-  assert.ok(statSync(path.join(domain, "identity-primitives.mjs")).isFile(), "src/domain must hold the identity primitives module as a file");
-  for (const entry of readdirSync(domain, { withFileTypes: true })) {
-    assert.ok(entry.isFile() && entry.name.endsWith(".mjs"), `src/domain may hold only .mjs modules, found ${entry.name}`);
+  assert.deepEqual(readdirSync(src).sort(), sortedNames(SRC_PERMITTED), "domain and application must be the only first children of the materialized root src");
+  const MODULES = [["domain", "identity-primitives.mjs"], ["application", "action-primitives.mjs"]];
+  for (const [ring, moduleName] of MODULES) {
+    const dir = path.join(src, ring);
+    assert.ok(existsSync(dir) && statSync(dir).isDirectory(), `src/${ring} must exist as a real directory`);
+    assert.ok(statSync(path.join(dir, moduleName)).isFile(), `src/${ring} must hold ${moduleName} as a file`);
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      assert.ok(entry.isFile() && entry.name.endsWith(".mjs"), `src/${ring} may hold only flat .mjs modules, found ${entry.name}`);
+    }
+    // One module per ring. A second file is not refused by the first-child topology, so it is
+    // refused here instead: two modules in a ring is the point where "which one owns this" starts
+    // being answered by convention rather than by the tree.
+    assert.deepEqual(entries.map((e) => e.name).sort(), [moduleName], `src/${ring} must hold exactly ${moduleName} and nothing beside it`);
   }
   // The four protected roots are untouched by the materialization.
   for (const absent of ABSENT_ROOTS) assert.equal(existsSync(path.join(root, absent)), false, `${absent} must stay absent`);

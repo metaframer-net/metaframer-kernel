@@ -104,10 +104,10 @@ export const READ_ONLY_FILES = [
 
 // The root topology is owned by tools/check-repository-boundary.mjs and re-exported here, so this
 // package reads the rule rather than keeping a second copy of it. apps, packages, deploy and root
-// migrations stay fenced in every phase. Root `src` is constrained to `src/domain` only — that is
-// the one part of the old flat fence that narrowed, and the substrate stays package-local under
-// db/ regardless: db/ is the allowed target area this package was scoped to, not a way around the
-// root.
+// migrations stay fenced in every phase. Root `src` is constrained to the two inner onion rings,
+// `src/domain` and `src/application` — that is the one part of the old flat fence that narrowed,
+// and the substrate stays package-local under db/ regardless: db/ is the allowed target area this
+// package was scoped to, not a way around the root.
 export const FORBIDDEN_ROOT_PATHS = ROOT_ABSENT_PATHS;
 export { ROOT_SRC_PERMITTED_CHILDREN, ROOT_SRC_FORBIDDEN_CHILDREN };
 // Never legitimate anywhere: a second home for the production package would mean two substrates.
@@ -387,9 +387,10 @@ export function evaluateContract({ contract } = {}) {
   if (canonicalJson(contract.forbiddenAlways) !== canonicalJson(FORBIDDEN_ROOT_PATHS)) push("forbidden-always-drift");
 
   // The narrowed root-source topology, stated in the contract and closed on all four sides: the
-  // permitted child cannot be widened, the refused siblings cannot be dropped, an unclassified
-  // first child cannot be admitted, and the clause cannot claim authority over what lives beneath
-  // src/domain — that depth belongs to a later package, not this one.
+  // permitted children cannot be widened or narrowed, the refused siblings cannot be dropped nor
+  // can a permitted ring be pushed back among them, an unclassified first child cannot be
+  // admitted, and the clause cannot claim authority over what lives beneath src/domain or
+  // src/application — that depth belongs to a later package, not this one.
   const rootTopology = contract.rootSourceTopology;
   if (rootTopology === null || typeof rootTopology !== "object") push("root-source-topology-missing");
   else {
@@ -1206,9 +1207,9 @@ const PACKAGE_ROOT_PATH_FINDING = "fenced-root-path-present:";
  *
  * The repository-root topology holds in every phase, and is decided by the shared reader: the four
  * fenced root paths must be absent, and a root `src` — permitted now, and this checkout now
- * materializes `src/domain` for P-M1-01 — may hold `src/domain` and nothing else. A forbidden or
- * unclassified first child is named in its own finding. Nothing beneath `src/domain` is classified
- * here.
+ * materializes `src/domain` for P-M1-01 and `src/application` for P-M1-02 — may hold those two
+ * inner rings and nothing else. A forbidden or unclassified first child is named in its own
+ * finding. Nothing beneath `src/domain` or `src/application` is classified here.
  *
  * Inside db/, the package must exist with the modules it declares and no second copy of itself, and
  * the revision tree must hold exactly the one cohesive revision — a second revision file appearing

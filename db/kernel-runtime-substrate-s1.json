@@ -267,7 +267,7 @@
     "AGENTS.md",
     ".gitignore"
   ],
-  "allowedTargetsNote": "The substrate is package-local under db/ rather than at the repository root because the repository-boundary rule fences root-level apps/, packages/, deploy/ and migrations/, and constrains root src to only src/domain. db/ is the allowed target area named by the consumer-sync runtime-start sequence, so the substrate would live there whatever the root permitted, and the production revisions live at db/metaframer_kernel_db/alembic/versions, never at the repository root.",
+  "allowedTargetsNote": "The substrate is package-local under db/ rather than at the repository root because the repository-boundary rule fences root-level apps/, packages/, deploy/ and migrations/, and constrains root src to the two inner onion rings src/domain and src/application. db/ is the allowed target area named by the consumer-sync runtime-start sequence, so the substrate would live there whatever the root permitted, and the production revisions live at db/metaframer_kernel_db/alembic/versions, never at the repository root.",
   "forbiddenInPhaseA": {
     "role": "historical-phase-a-record",
     "paths": [
@@ -652,10 +652,10 @@
   ],
   "rootSourceTopology": {
     "permittedFirstChildren": [
-      "domain"
+      "domain",
+      "application"
     ],
     "forbiddenFirstChildren": [
-      "application",
       "adapters",
       "delivery",
       "sdk"
@@ -663,7 +663,7 @@
     "unknownFirstChildRefused": true,
     "nestedContentClassified": false,
     "owner": "tools/check-repository-boundary.mjs",
-    "note": "Root src is no longer forbidden outright; it is constrained to src/domain and nothing else. An absent root src stays fully compliant and this checkout now materializes exactly src/domain for P-M1-01. The named siblings are refused by name and any unclassified first child fails closed. Nothing beneath src/domain is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
+    "note": "Root src is no longer forbidden outright; it is constrained to the two inner onion rings, src/domain and src/application, stated in onion order and nothing else. An absent root src stays fully compliant and this checkout now materializes exactly src/domain for P-M1-01 and src/application for P-M1-02. The outer rings adapters, delivery and sdk are refused by name and any unclassified first child fails closed. Nothing beneath src/domain or src/application is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
   },
   "staticAnalysis": {
     "script": "check:substrate-s1:static",
