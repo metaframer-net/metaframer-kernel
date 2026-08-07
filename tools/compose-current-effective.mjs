@@ -1,19 +1,36 @@
 #!/usr/bin/env node
-// Composes the single authoritative current-effective line.
+// Composes the single final state line, and decides which kind of line it is.
+//
+// On the admitted path — activation resolved effective — that line is the project's authority,
+// labelled CURRENT EFFECTIVE. On every other path it is a checkout-local, explicitly
+// non-effective projection, and no CURRENT EFFECTIVE line is emitted at all.
 //
 // The consumer-sync verifier is the activation base: it establishes what is in force before this
 // package activates, and it is historical, frozen, and not ours to edit. So this tool wraps it
 // rather than changing it — it runs the verifier as a subprocess, takes its output verbatim,
-// relabels its CURRENT EFFECTIVE line as the activation base, and appends exactly one final
-// CURRENT EFFECTIVE line of its own.
+// relabels its CURRENT EFFECTIVE line as the activation base, and appends exactly one final line
+// of its own, under whichever of the two labels the activation verdict earns.
 //
-// The relabelling is the point. Before activation the base line *is* the current state, and after
-// activation it is the state activation moved from. Leaving two lines both claiming to be current
-// would make the output ambiguous at exactly the moment it matters; deleting the base line would
-// throw away the comparison. Relabelling keeps both facts and leaves only one of them current.
+// The relabelling is the point, and it holds on both paths. The base line arrives claiming to be
+// current, because that is the only thing the frozen verifier knows how to say about itself. On
+// the admitted path it is the state activation moved from, and leaving two lines both claiming to
+// be current would make the output ambiguous at exactly the moment it matters. On the unadmitted
+// path it must lose that claim too, because nothing this run produces is entitled to it. Deleting
+// the base line would throw away the comparison, so it is relabelled either way: the facts survive
+// and the claim to be current does not travel with them.
 //
-// Exactly one CURRENT EFFECTIVE line is emitted in both branches. Not effective and effective are
-// different values on that line, never a different number of lines.
+// Exactly one final line is emitted in both branches, and which label it carries is the other half
+// of the same idea. `CURRENT EFFECTIVE:` is the project-authority label: it says what is in force
+// for the project, and only the admitted activated path may carry it. A checkout that is not
+// admitted still has something true to report, but what it reports is a fact about that working
+// copy, so it carries the checkout-local projection label instead.
+//
+// The distinction matters because the unactivated values are not a weaker version of the
+// authoritative ones. Printing `CURRENT EFFECTIVE: ... runtimeImplementationStarted=false
+// activationRecord=absent` from a feature checkout would state, in the project's own vocabulary,
+// that runtime implementation has not started and no activation record exists — denying a
+// published activation record rather than reporting a local reading of it. So the two branches
+// differ in label as well as in values, never in the number of lines.
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -22,6 +39,8 @@ import { ACTIVATION_STATE, resolveActivation } from "./check-kernel-runtime-subs
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const CURRENT_PREFIX = "CURRENT EFFECTIVE:";
+export const CHECKOUT_LOCAL_PROJECTION_PREFIX =
+  "CHECKOUT-LOCAL PROJECTION (non-effective; not project authority):";
 export const ACTIVATION_BASE_PREFIX =
   "ACTIVATION BASE (verified, non-effective; the state activation starts from):";
 
@@ -39,9 +58,22 @@ const REPORTED_FLAGS = [
   "gapClosed",
 ];
 
-export function formatCurrentEffective(state, { activationRecord = "absent" } = {}) {
+/**
+ * Format the final line.
+ *
+ * The values are the same computation either way; `prefix` selects which of the two kinds of line
+ * they are being reported as. The default is the checkout-local projection, never the
+ * project-authority label: a caller that says nothing about admission has not established any, so
+ * the safe reading of silence is that this line speaks only for the checkout it was produced in.
+ * Authority has to be asked for by name, and `composeCurrentEffective` below is the only place
+ * that asks — and only when activation resolved effective.
+ */
+export function formatCurrentEffective(
+  state,
+  { activationRecord = "absent", prefix = CHECKOUT_LOCAL_PROJECTION_PREFIX } = {},
+) {
   const flags = REPORTED_FLAGS.map((flag) => `${flag}=${state[flag]}`).join(" ");
-  return `${CURRENT_PREFIX} verdict=${state.verdict} ${flags} activationRecord=${activationRecord}`;
+  return `${prefix} verdict=${state.verdict} ${flags} activationRecord=${activationRecord}`;
 }
 
 /**
@@ -86,8 +118,11 @@ export function composeCurrentEffective({ consumerSyncOutput = [], activation = 
   // Activation moves exactly one dimension. Everything stronger stays false in both branches, and
   // no flag outside this set is introduced to work around that.
   const state = { ...ACTIVATION_STATE, runtimeImplementationStarted: effective };
+  // Admitted or not admitted decides the label as well as the values: authority for the one path
+  // that was actually activated, a checkout-local projection for every other.
   lines.push(
     formatCurrentEffective(state, {
+      prefix: effective ? CURRENT_PREFIX : CHECKOUT_LOCAL_PROJECTION_PREFIX,
       activationRecord: effective ? "external-annotated-tag" : "absent",
     }),
   );

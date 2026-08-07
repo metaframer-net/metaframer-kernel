@@ -762,6 +762,41 @@ const HISTORICAL_LINES = [
 const LEGACY_TOKENS = ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"];
 const isHistoricallyLabelled = (line) => line.includes("HISTORICAL SNAPSHOT") && line.includes("non-effective");
 
+// This verifier owns the activation base, not the project's authority.
+//
+// Its own last line begins `CURRENT EFFECTIVE:` and always has; those bytes are frozen and this
+// suite still proves them, above. But that line is an *input*. The compositor consumes it,
+// relabels it as the activation base, and decides for itself what closes the run — and only an
+// admitted checkout, exact origin/main carrying the published annotated tag, may close it with
+// the project-authority label. This worktree is a feature checkout, so the CURRENT-looking line
+// this verifier produces must not survive anywhere in the composed output.
+const CURRENT_LABEL = "CURRENT EFFECTIVE";
+const CURRENT_PREFIX = "CURRENT EFFECTIVE:";
+const PROJECTION_PREFIX = "CHECKOUT-LOCAL PROJECTION (non-effective; not project authority):";
+const COMPOSITOR_MODULE = "tools/compose-current-effective.mjs";
+const SHUT_FLAG_NAMES = [
+  "kernelReady", "sdkReady", "appBuildable", "releaseAllowed", "deployAllowed",
+  "productionAllowed", "gapClosed",
+];
+
+/** The compositor's pure entry point, resolved once. */
+const composeCurrentEffective = async () => {
+  const module = await import(pathToFileURL(path.join(root, COMPOSITOR_MODULE)).href);
+  assert.equal(
+    typeof module.composeCurrentEffective,
+    "function",
+    `${COMPOSITOR_MODULE} must export composeCurrentEffective(input) -> { lines }`,
+  );
+  return module.composeCurrentEffective;
+};
+
+/** Exactly what the compositor consumes: this verifier's real, unmodified stdout. */
+const consumerSyncOutput = () =>
+  execFileSync(process.execPath, [path.join(root, verifierPath)], { encoding: "utf8", cwd: root })
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
 const runCheck = () => {
   const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
   assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
@@ -771,7 +806,7 @@ const runCheck = () => {
     .filter((line) => line.length > 0 && !line.startsWith(">"));
 };
 
-test("npm run check labels every historical line and ends with one CURRENT EFFECTIVE summary", () => {
+test("npm run check labels every historical line and ends with one checkout-local projection", () => {
   const lines = runCheck();
   assert.ok(lines.length > 0, "npm run check produced no output to evaluate");
   const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
@@ -798,15 +833,27 @@ test("npm run check labels every historical line and ends with one CURRENT EFFEC
     );
   }
 
-  // 5. Exactly one CURRENT EFFECTIVE summary, and it is the final authoritative line.
-  const currentIndices = lines.map((line, index) => (line.includes("CURRENT EFFECTIVE") ? index : -1)).filter((i) => i !== -1);
-  assert.equal(
-    currentIndices.length,
-    1,
-    `expected exactly one CURRENT EFFECTIVE summary line, found ${currentIndices.length}${context}`,
+  // 5. Not one line may speak with project authority. This checkout is not exact origin/main, so
+  //    the activation reader never looks the tag up, and the answer it composes is about this
+  //    working copy. Saying that under the project-authority label would deny the published
+  //    activation record in the project's own vocabulary.
+  assert.deepEqual(
+    lines.filter((line) => line.includes(CURRENT_LABEL)),
+    [],
+    `a feature checkout must emit zero lines carrying "${CURRENT_LABEL}"${context}`,
   );
-  const currentIndex = currentIndices[0];
-  assert.equal(currentIndex, lines.length - 1, `the CURRENT EFFECTIVE summary must be the final line${context}`);
+
+  // 6. Exactly one checkout-local projection, and it is the final line.
+  const projectionIndices = lines
+    .map((line, index) => (line.startsWith(PROJECTION_PREFIX) ? index : -1))
+    .filter((i) => i !== -1);
+  assert.equal(
+    projectionIndices.length,
+    1,
+    `expected exactly one line prefixed "${PROJECTION_PREFIX}", found ${projectionIndices.length}${context}`,
+  );
+  const currentIndex = projectionIndices[0];
+  assert.equal(currentIndex, lines.length - 1, `the checkout-local projection must be the final line${context}`);
   const current = lines[currentIndex];
 
   for (const token of [
@@ -814,6 +861,7 @@ test("npm run check labels every historical line and ends with one CURRENT EFFEC
     "codeStartAllowed=true",
     "runtimeCodeAllowed=true",
     "runtimeImplementationStarted=false",
+    "activationRecord=absent",
     "kernelReady=false",
     "sdkReady=false",
     "appBuildable=false",
@@ -822,23 +870,131 @@ test("npm run check labels every historical line and ends with one CURRENT EFFEC
     "productionAllowed=false",
     "gapClosed=false",
   ]) {
-    assert.ok(current.includes(token), `the CURRENT EFFECTIVE summary is missing ${token}:\n  ${current}${context}`);
+    assert.ok(current.includes(token), `the checkout-local projection is missing ${token}:\n  ${current}${context}`);
   }
-  for (const forbidden of [PROMOTION_VERDICT, FORBIDDEN_VERDICT]) {
-    assert.ok(!current.includes(forbidden), `the CURRENT EFFECTIVE summary overreaches with ${forbidden}:\n  ${current}${context}`);
+  for (const forbidden of [PROMOTION_VERDICT, FORBIDDEN_VERDICT, "GO-RELEASE", "GO-DEPLOY"]) {
+    assert.ok(!current.includes(forbidden), `the checkout-local projection overreaches with ${forbidden}:\n  ${current}${context}`);
   }
-  // The current summary carries no legacy verdict token of its own.
+  // The projection carries no legacy verdict token of its own.
   for (const token of LEGACY_TOKENS) {
-    assert.ok(!current.includes(token), `the CURRENT EFFECTIVE summary reuses the legacy token ${token}:\n  ${current}${context}`);
+    assert.ok(!current.includes(token), `the checkout-local projection reuses the legacy token ${token}:\n  ${current}${context}`);
   }
 
-  // 6. CURRENT EFFECTIVE comes after every historical line.
+  // 7. The activation base is explicit, non-effective, and earlier than the final line.
+  const baseIndices = lines
+    .map((line, index) => (line.startsWith("ACTIVATION BASE") ? index : -1))
+    .filter((i) => i !== -1);
+  assert.equal(baseIndices.length, 1, `expected exactly one ACTIVATION BASE line${context}`);
+  assert.match(lines[baseIndices[0]], /non-effective/, `the activation base must be explicitly non-effective${context}`);
+  assert.ok(baseIndices[0] < currentIndex, `the activation base must precede the final line${context}`);
+
+  // 8. The final line comes after every historical line.
   for (const [position, [name]] of HISTORICAL_LINES.entries()) {
     assert.ok(
       currentIndex > historicalIndices[position],
-      `the CURRENT EFFECTIVE summary must come after the ${name} line${context}`,
+      `the checkout-local projection must come after the ${name} line${context}`,
     );
   }
+});
+
+// =====================================================================================
+// The two composed paths, proven from pure compositor inputs.
+//
+// This checkout is a feature branch, so it can prove the unadmitted path directly. It can never
+// prove the admitted one by observation — that would mean inferring exact-main authority from a
+// working copy that is not exact main, which is precisely the confusion these labels exist to
+// stop. The admitted path is therefore driven as a pure input instead.
+// =====================================================================================
+
+test("this verifier's CURRENT-looking line is an activation-base input, relabelled and never the final word", async () => {
+  const compose = await composeCurrentEffective();
+  const consumed = consumerSyncOutput();
+
+  // The frozen bytes still produce exactly one CURRENT-looking line, and it is this verifier's own
+  // last word about itself.
+  const supplied = consumed.filter((line) => line.startsWith(CURRENT_PREFIX));
+  assert.equal(supplied.length, 1, `expected one ${CURRENT_PREFIX} line from ${verifierPath}`);
+  assert.equal(consumed.at(-1), supplied[0], `${verifierPath} must end with its own current-effective line`);
+
+  const snapshot = structuredClone(consumed);
+  const composed = compose({ consumerSyncOutput: consumed, activation: { effective: false } });
+  assert.equal(composed.ok, true, `composition refused: ${JSON.stringify(composed.errors)}`);
+  assert.deepEqual(consumed, snapshot, "the compositor must not mutate the output it consumes");
+
+  // The supplied line survives as evidence, under a label that denies it is in force...
+  const base = composed.lines.filter((line) => line.startsWith("ACTIVATION BASE"));
+  assert.equal(base.length, 1, "the supplied line must be relabelled as the activation base");
+  assert.match(base[0], /non-effective/);
+  assert.ok(
+    base[0].endsWith(supplied[0].slice(CURRENT_PREFIX.length).trim()),
+    `the relabelled base must carry the supplied facts verbatim:\n  ${base[0]}`,
+  );
+
+  // ...and it does not survive as authority, verbatim or otherwise.
+  assert.ok(!composed.lines.includes(supplied[0]), "the supplied CURRENT-looking line must not pass through");
+  assert.deepEqual(
+    composed.lines.filter((line) => line.includes(CURRENT_LABEL)),
+    [],
+    `a false/absent composition must carry zero "${CURRENT_LABEL}" lines:\n${composed.lines.join("\n")}`,
+  );
+  assert.ok(composed.lines.at(-1).startsWith(PROJECTION_PREFIX), `the last line must be the checkout-local projection`);
+  assert.ok(composed.lines.indexOf(base[0]) < composed.lines.length - 1);
+});
+
+test("only the admitted activated path carries the project-authority label, and it carries all of it", async () => {
+  const compose = await composeCurrentEffective();
+  // A stand-in activation base, so the admitted path is driven by input rather than inferred from
+  // whatever branch this happens to be.
+  const stand = [
+    "OK stand-in-activation-base: fixture",
+    `${CURRENT_PREFIX} verdict=${CURRENT_VERDICT} codeStartAllowed=true runtimeCodeAllowed=true ` +
+      "runtimeImplementationStarted=false kernelReady=false sdkReady=false appBuildable=false " +
+      "releaseAllowed=false deployAllowed=false productionAllowed=false gapClosed=false",
+  ];
+
+  const activated = compose({ consumerSyncOutput: stand, activation: { effective: true } });
+  assert.equal(activated.ok, true, `composition refused: ${JSON.stringify(activated.errors)}`);
+  const authority = activated.lines.filter((line) => line.includes(CURRENT_LABEL));
+  assert.equal(authority.length, 1, `expected exactly one authority line:\n${activated.lines.join("\n")}`);
+  assert.ok(
+    authority[0].startsWith(CURRENT_PREFIX),
+    `the project-authority prefix must be exactly "${CURRENT_PREFIX}": ${authority[0]}`,
+  );
+  assert.equal(activated.lines.at(-1), authority[0], "the authority line must be last");
+  for (const token of [
+    `verdict=${CURRENT_VERDICT}`,
+    "codeStartAllowed=true",
+    "runtimeCodeAllowed=true",
+    "runtimeImplementationStarted=true",
+    "activationRecord=external-annotated-tag",
+  ]) {
+    assert.ok(authority[0].includes(token), `the authority line is missing ${token}:\n  ${authority[0]}`);
+  }
+  for (const flag of SHUT_FLAG_NAMES) {
+    assert.ok(authority[0].includes(`${flag}=false`), `${flag} must stay false on the authority line`);
+  }
+  for (const overreach of [PROMOTION_VERDICT, FORBIDDEN_VERDICT, "GO-RELEASE", "GO-DEPLOY"]) {
+    assert.ok(!authority[0].includes(overreach), `the authority line overreaches with ${overreach}`);
+  }
+  for (const legacy of LEGACY_TOKENS) {
+    assert.ok(!authority[0].includes(legacy), `the authority line reuses the legacy token ${legacy}`);
+  }
+  // Authority is never demoted to a projection, and the base it moved from stays visible.
+  assert.deepEqual(activated.lines.filter((line) => line.startsWith(PROJECTION_PREFIX)), []);
+  assert.equal(activated.lines.filter((line) => line.startsWith("ACTIVATION BASE")).length, 1);
+
+  // The same input, unadmitted, is the same facts under a label that claims nothing for them.
+  const projected = compose({ consumerSyncOutput: stand, activation: { effective: false } });
+  assert.equal(projected.ok, true, `composition refused: ${JSON.stringify(projected.errors)}`);
+  const projection = projected.lines.at(-1);
+  assert.ok(projection.startsWith(PROJECTION_PREFIX), `expected the projection prefix: ${projection}`);
+  assert.ok(!projection.includes(CURRENT_LABEL), "a false/absent projection must not be promoted to authority");
+  assert.match(projection, /runtimeImplementationStarted=false/);
+  assert.match(projection, /activationRecord=absent/);
+  for (const flag of SHUT_FLAG_NAMES) {
+    assert.ok(projection.includes(`${flag}=false`), `${flag} must stay false on the projection`);
+  }
+  assert.notEqual(projection, authority[0]);
 });
 
 test("no general planning-only or not-authorized claim may return to AGENTS.md or the package description", async () => {

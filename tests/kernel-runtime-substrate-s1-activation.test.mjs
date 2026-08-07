@@ -744,23 +744,79 @@ test("activation moves one dimension and leaves every stronger flag false", (t) 
 
 // =====================================================================================
 // RED: the compositor. Counted from the lines it emits, never from what it says about itself.
+//
+// Two labels, and the difference between them is the whole point. `CURRENT EFFECTIVE:` is the
+// project-authority label: it says what is in force for the project, and only the admitted
+// activated path — exact origin/main carrying the published annotated tag — may ever carry it.
+// A checkout that is not admitted still has something true to report, but what it reports is a
+// fact about that checkout, not about the project, so it carries the projection label instead.
+//
+// Emitting `CURRENT EFFECTIVE: ... runtimeImplementationStarted=false activationRecord=absent`
+// from a feature checkout would state, in the project's own authority vocabulary, that runtime
+// implementation has not started and no activation record exists. Both are false of the project:
+// the tag is published and the work is activated. The unactivated branch is therefore not a
+// weaker current-effective line — it is a different kind of line, and it must not be confusable
+// with the authoritative one at any character of its prefix.
 // =====================================================================================
 
-test("the compositor emits exactly one CURRENT EFFECTIVE line when the package is not activated", async () => {
+/** The project-authority label, and the exact prefix that carries it. */
+const CURRENT_LABEL = "CURRENT EFFECTIVE";
+const CURRENT_PREFIX = "CURRENT EFFECTIVE:";
+/** What a false/absent, non-effective composition must say instead. */
+const PROJECTION_PREFIX = "CHECKOUT-LOCAL PROJECTION (non-effective; not project authority):";
+/** Tokens from the superseded bootstrap verdict, and verdicts beyond the one in force. */
+const LEGACY_TOKENS = ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"];
+const OVERCLAIM_VERDICTS = ["GO-RUNTIME-PILOT", "GO-PRODUCTION", "GO-RELEASE", "GO-DEPLOY"];
+
+test("an unactivated composition ends in a checkout-local projection and claims no project authority", async () => {
   const compose = await compositor();
   const consumed = consumerSyncOutput();
+  // The consumed input really does carry a CURRENT-looking line. That line is the activation base
+  // producer's, and relabelling it is exactly what must happen to it.
+  assert.equal(
+    consumed.filter((line) => line.startsWith(CURRENT_PREFIX)).length,
+    1,
+    "the activation base must supply exactly one CURRENT-looking line to relabel",
+  );
+
   const { lines } = compose({ consumerSyncOutput: consumed, activation: { effective: false } });
 
-  const current = lines.filter((line) => line.startsWith("CURRENT EFFECTIVE"));
-  assert.equal(current.length, 1, `expected one CURRENT EFFECTIVE line, got ${current.length}`);
-  assert.equal(lines.at(-1), current[0], "the CURRENT EFFECTIVE line must be last");
-  assert.match(current[0], /runtimeImplementationStarted=false/);
-  assert.match(current[0], /appBuildable=false/);
+  const projection = lines.filter((line) => line.startsWith(PROJECTION_PREFIX));
+  assert.equal(
+    projection.length,
+    1,
+    `expected exactly one line prefixed "${PROJECTION_PREFIX}", got ${projection.length}:\n${lines.join("\n")}`,
+  );
+  assert.equal(lines.at(-1), projection[0], "the checkout-local projection must be the last line");
+  assert.match(projection[0], /runtimeImplementationStarted=false/);
+  assert.match(projection[0], /activationRecord=absent/);
+  for (const flag of SHUT_FLAGS) {
+    assert.match(projection[0], new RegExp(`${flag}=false`), `${flag} must stay false on the projection`);
+  }
+  for (const name of FORBIDDEN_FLAG_NAMES) {
+    assert.ok(!projection[0].includes(name), `the projection must not introduce ${name}`);
+  }
+  for (const legacy of LEGACY_TOKENS) {
+    assert.ok(!projection[0].includes(legacy), `the projection reuses the legacy token ${legacy}`);
+  }
+  for (const overclaim of OVERCLAIM_VERDICTS) {
+    assert.ok(!projection[0].includes(overclaim), `the projection overclaims with ${overclaim}`);
+  }
 
-  // The old line is relabelled, not deleted: the state in force before activation stays visible.
+  // Not one line may carry the project-authority label — including the consumed input's own
+  // CURRENT-looking line, which is relabelled as the activation base rather than passed through.
+  assert.deepEqual(
+    lines.filter((line) => line.includes(CURRENT_LABEL)),
+    [],
+    `a false/absent projection must produce zero lines carrying "${CURRENT_LABEL}":\n${lines.join("\n")}`,
+  );
+
+  // The old line is relabelled, not deleted: the state in force before activation stays visible,
+  // explicitly non-effective, and ahead of the line that closes the output.
   const base = lines.filter((line) => line.startsWith("ACTIVATION BASE"));
   assert.equal(base.length, 1, "the consumer-sync line must be relabelled as the activation base");
-  assert.ok(lines.indexOf(base[0]) < lines.indexOf(current[0]));
+  assert.match(base[0], /non-effective/, "the activation base must be explicitly non-effective");
+  assert.ok(lines.indexOf(base[0]) < lines.indexOf(projection[0]));
 });
 
 test("the compositor emits exactly one CURRENT EFFECTIVE line when the package is activated", async () => {
@@ -771,10 +827,19 @@ test("the compositor emits exactly one CURRENT EFFECTIVE line when the package i
     activation: { effective: true, state: { runtimeImplementationStarted: true } },
   });
 
-  const current = lines.filter((line) => line.startsWith("CURRENT EFFECTIVE"));
+  const current = lines.filter((line) => line.includes(CURRENT_LABEL));
   assert.equal(current.length, 1, `expected one CURRENT EFFECTIVE line, got ${current.length}`);
+  assert.ok(
+    current[0].startsWith(CURRENT_PREFIX),
+    `the project-authority prefix must be exactly "${CURRENT_PREFIX}": ${current[0]}`,
+  );
   assert.equal(lines.at(-1), current[0], "the CURRENT EFFECTIVE line must be last");
+  // The admitted path carries the whole authority, not a fragment of it.
+  assert.match(current[0], new RegExp(`verdict=${verifier.CURRENT_VERDICT}`));
+  assert.match(current[0], /codeStartAllowed=true/);
+  assert.match(current[0], /runtimeCodeAllowed=true/);
   assert.match(current[0], /runtimeImplementationStarted=true/);
+  assert.match(current[0], /activationRecord=external-annotated-tag/);
   // Activating the substrate raises nothing downstream.
   for (const flag of SHUT_FLAGS) {
     assert.match(current[0], new RegExp(`${flag}=false`), `${flag} must stay false on the composed line`);
@@ -782,7 +847,41 @@ test("the compositor emits exactly one CURRENT EFFECTIVE line when the package i
   for (const name of FORBIDDEN_FLAG_NAMES) {
     assert.ok(!current[0].includes(name), `the composed line must not introduce ${name}`);
   }
+  for (const overclaim of OVERCLAIM_VERDICTS) {
+    assert.ok(!current[0].includes(overclaim), `the authority line overclaims with ${overclaim}`);
+  }
+  // The admitted path is authority, so it never wears the non-authoritative label.
+  assert.deepEqual(
+    lines.filter((line) => line.startsWith(PROJECTION_PREFIX)),
+    [],
+    "the admitted activated path must not be demoted to a checkout-local projection",
+  );
   assert.equal(lines.filter((line) => line.startsWith("ACTIVATION BASE")).length, 1);
+});
+
+test("the two labels are distinct kinds of line, and neither can pass for the other", async () => {
+  const compose = await compositor();
+  const consumed = consumerSyncOutput();
+  const activated = compose({ consumerSyncOutput: consumed, activation: { effective: true } }).lines.at(-1);
+  const projected = compose({ consumerSyncOutput: consumed, activation: { effective: false } }).lines.at(-1);
+
+  // Label drift in either direction is the failure this guards: an authority line that stops
+  // saying CURRENT EFFECTIVE, or a projection line that starts saying it.
+  assert.ok(activated.startsWith(CURRENT_PREFIX), "the activated line must keep the authority prefix");
+  assert.ok(projected.startsWith(PROJECTION_PREFIX), "the unactivated line must carry the projection prefix");
+  assert.ok(!projected.includes(CURRENT_LABEL), "the projection must not carry the authority label");
+  assert.ok(!activated.startsWith(PROJECTION_PREFIX));
+  assert.notEqual(activated, projected);
+
+  // The projection says what it is, in words, on the line itself.
+  assert.match(projected, /non-effective/);
+  assert.match(projected, /not project authority/);
+
+  // ...and the two disagree on exactly the dimension activation moves, plus its record.
+  assert.match(activated, /runtimeImplementationStarted=true/);
+  assert.match(projected, /runtimeImplementationStarted=false/);
+  assert.match(activated, /activationRecord=external-annotated-tag/);
+  assert.match(projected, /activationRecord=absent/);
 });
 
 test("the compositor refuses to compose when the base line is absent or duplicated", async () => {

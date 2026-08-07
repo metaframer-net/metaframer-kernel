@@ -30,6 +30,19 @@ const {
 const readJson = async (relative) => JSON.parse(await readFile(path.join(root, relative), "utf8"));
 const contract = await readJson(contractPath);
 
+// The project-authority label, and the label a non-effective checkout must carry instead.
+//
+// `CURRENT EFFECTIVE:` states what is in force for the project. It belongs to the admitted
+// activated path alone — exact origin/main carrying the published annotated tag. This worktree is
+// a feature checkout, so the activation reader short-circuits before any lookup and the
+// composition is false/absent. Reporting that under the project-authority label would say, in the
+// project's own vocabulary, that runtime implementation has not started and no activation record
+// exists; both are untrue of the project. What is true here is narrower and belongs to this
+// checkout, so it is labelled as a projection and denied authority in the label itself.
+const CURRENT_LABEL = "CURRENT EFFECTIVE";
+const CURRENT_PREFIX = "CURRENT EFFECTIVE:";
+const PROJECTION_PREFIX = "CHECKOUT-LOCAL PROJECTION (non-effective; not project authority):";
+
 const clone = (value) => structuredClone(value);
 const setPath = (target, dotted, value) => {
   const parts = dotted.split(".");
@@ -251,6 +264,16 @@ test("the contract names the real owner of each composed line", async () => {
   const compositorSource = await readFile(path.join(root, ACTIVATION_COMPOSITOR_MODULE), "utf8");
   assert.match(compositorSource, /CURRENT_PREFIX = "CURRENT EFFECTIVE:"/);
   assert.match(compositorSource, /export function composeCurrentEffective/);
+  // The same owner also owns the label a non-effective checkout gets instead, so the two can
+  // never drift apart into different files with different ideas of what authority means.
+  assert.ok(
+    compositorSource.includes(CURRENT_PREFIX),
+    `the compositor must keep the project-authority prefix exactly "${CURRENT_PREFIX}"`,
+  );
+  assert.ok(
+    compositorSource.includes(PROJECTION_PREFIX),
+    `the compositor must declare the checkout-local projection prefix exactly "${PROJECTION_PREFIX}"`,
+  );
   const verifierSource = await readFile(path.join(root, verifierPath), "utf8");
   assert.ok(
     !/console\.log\(\s*[`"']CURRENT EFFECTIVE/.test(verifierSource),
@@ -274,22 +297,32 @@ test("the check wires the compositor around the activation base without editing 
   assert.equal(sha256(verifierBytes), contract.activationBase.verifierSha256);
 });
 
-test("the composed check emits one CURRENT EFFECTIVE line after one relabelled activation base", () => {
+test("the composed check ends in a checkout-local projection after one relabelled activation base", () => {
   const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
   assert.equal(result.status, 0, `npm run check failed: ${result.stderr}`);
   const lines = String(result.stdout).split("\n").map((l) => l.trim()).filter(Boolean).filter((l) => !l.startsWith(">"));
 
-  const current = lines.filter((l) => l.startsWith("CURRENT EFFECTIVE"));
+  const projection = lines.filter((l) => l.startsWith(PROJECTION_PREFIX));
   const base = lines.filter((l) => l.startsWith("ACTIVATION BASE"));
-  assert.equal(current.length, 1, `expected one CURRENT EFFECTIVE line, got ${current.length}`);
+  assert.equal(
+    projection.length,
+    1,
+    `expected one line prefixed "${PROJECTION_PREFIX}", got ${projection.length}:\n${lines.join("\n")}`,
+  );
   assert.equal(base.length, 1, `expected one ACTIVATION BASE line, got ${base.length}`);
-  assert.equal(lines.at(-1), current[0], "the CURRENT EFFECTIVE line must be last");
-  assert.ok(lines.indexOf(base[0]) < lines.indexOf(current[0]));
+  assert.equal(lines.at(-1), projection[0], "the checkout-local projection must be last");
+  assert.ok(lines.indexOf(base[0]) < lines.indexOf(projection[0]));
+  // This checkout is not admitted, so nothing it prints may speak with project authority.
+  assert.deepEqual(
+    lines.filter((l) => l.includes(CURRENT_LABEL)),
+    [],
+    `a feature checkout must emit zero lines carrying "${CURRENT_LABEL}":\n${lines.join("\n")}`,
+  );
   // Not activated on a feature branch, and nothing stronger moved.
-  assert.match(current[0], /runtimeImplementationStarted=false/);
-  assert.match(current[0], /activationRecord=absent/);
-  for (const flag of SHUT_FLAGS) assert.match(current[0], new RegExp(`${flag}=false`));
-  for (const name of FORBIDDEN_FLAG_NAMES) assert.ok(!current[0].includes(name));
+  assert.match(projection[0], /runtimeImplementationStarted=false/);
+  assert.match(projection[0], /activationRecord=absent/);
+  for (const flag of SHUT_FLAGS) assert.match(projection[0], new RegExp(`${flag}=false`));
+  for (const name of FORBIDDEN_FLAG_NAMES) assert.ok(!projection[0].includes(name));
 });
 
 test("an expired claim lease is a proven behaviour, not a promise", () => {
@@ -986,7 +1019,7 @@ test("npm run check wires this verifier before the activation-base verifier, and
   assert.equal(pkg.scripts["test:substrate-s1:red"], undefined, "the stale RED-only script name must be gone");
 });
 
-test("npm run check still ends with exactly one CURRENT EFFECTIVE line, owned by the compositor, with the activation-base line relabelled", () => {
+test("npm run check ends with exactly one checkout-local projection, owned by the compositor, after a relabelled activation base and an earlier branch candidate", () => {
   const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
   assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
   const lines = String(result.stdout)
@@ -995,23 +1028,60 @@ test("npm run check still ends with exactly one CURRENT EFFECTIVE line, owned by
     .filter((line) => line.length > 0 && !line.startsWith(">"));
   const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
 
-  const current = lines.filter((line) => line.includes("CURRENT EFFECTIVE"));
-  assert.equal(current.length, 1, `expected exactly one CURRENT EFFECTIVE line${context}`);
-  assert.equal(lines.at(-1), current[0], `the CURRENT EFFECTIVE line must be last${context}`);
-  assert.match(current[0], new RegExp(CURRENT_VERDICT));
-  // The activation base still reports runtime start as not yet in force.
-  assert.match(current[0], /runtimeImplementationStarted=false/);
+  // This checkout is not exact origin/main, so it is never admitted, and the project-authority
+  // label must be absent from the whole output — not merely demoted on the final line.
+  assert.deepEqual(
+    lines.filter((line) => line.includes(CURRENT_LABEL)),
+    [],
+    `a feature checkout must emit zero lines carrying "${CURRENT_LABEL}"${context}`,
+  );
 
-  // The branch candidate is present, distinct, explicitly non-effective, and comes earlier.
+  const projection = lines.filter((line) => line.startsWith(PROJECTION_PREFIX));
+  assert.equal(projection.length, 1, `expected exactly one checkout-local projection line${context}`);
+  assert.equal(lines.at(-1), projection[0], `the checkout-local projection must be last${context}`);
+  assert.match(projection[0], new RegExp(CURRENT_VERDICT));
+  // The unadmitted projection reports runtime start as not in force here, and no activation record.
+  assert.match(projection[0], /runtimeImplementationStarted=false/);
+  assert.match(projection[0], /activationRecord=absent/);
+  for (const flag of SHUT_FLAGS) {
+    assert.match(projection[0], new RegExp(`${flag}=false`), `${flag} must stay false on the projection${context}`);
+  }
+  for (const legacy of ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"]) {
+    assert.ok(!projection[0].includes(legacy), `the projection reuses the legacy token ${legacy}${context}`);
+  }
+  for (const overreach of ["GO-RUNTIME-PILOT", "GO-PRODUCTION", "GO-RELEASE", "GO-DEPLOY"]) {
+    assert.ok(!projection[0].includes(overreach), `the projection overreaches with ${overreach}${context}`);
+  }
+
+  // The activation base is explicit, non-effective, and sits before the line that closes the run.
+  const base = lines.filter((line) => line.startsWith("ACTIVATION BASE"));
+  assert.equal(base.length, 1, `expected exactly one ACTIVATION BASE line${context}`);
+  assert.match(base[0], /non-effective/, `the activation base must be explicitly non-effective${context}`);
+  assert.ok(lines.indexOf(base[0]) < lines.indexOf(projection[0]), `the activation base must precede the projection${context}`);
+
+  // The branch candidate is present, distinct, explicitly non-effective, and comes earlier still.
   const candidates = lines.filter((line) => line.startsWith("BRANCH CANDIDATE"));
   assert.equal(candidates.length, 1, `expected exactly one BRANCH CANDIDATE line${context}`);
   assert.match(candidates[0], /not effective/);
   assert.match(candidates[0], /runtimeImplementationStarted=true/);
-  assert.ok(lines.indexOf(candidates[0]) < lines.indexOf(current[0]), `the candidate must precede the current line${context}`);
+  assert.ok(
+    lines.indexOf(candidates[0]) < lines.indexOf(base[0]),
+    `the branch candidate must precede the activation base${context}`,
+  );
+  assert.ok(lines.indexOf(candidates[0]) < lines.indexOf(projection[0]), `the candidate must precede the final line${context}`);
 
-  // The two lines must not be confusable: one is in force, the other is a desire.
-  assert.ok(!candidates[0].includes("CURRENT EFFECTIVE"));
-  // No legacy verdict token may appear on the candidate line.
+  // Every historical snapshot line is explicit, non-effective, and earlier than the final line.
+  const historical = lines.filter((line) => line.startsWith("HISTORICAL SNAPSHOT"));
+  assert.ok(historical.length >= 3, `the historical snapshot lines must survive verbatim${context}`);
+  for (const line of historical) {
+    assert.match(line, /non-effective/, `a historical line lost its non-effective label:\n  ${line}${context}`);
+    assert.ok(lines.indexOf(line) < lines.indexOf(projection[0]), `a historical line must precede the final line${context}`);
+  }
+
+  // The three lines must not be confusable: one is a desire, one is where activation starts from,
+  // and the last is a statement about this checkout. None of them is the project's authority.
+  assert.ok(!candidates[0].startsWith(PROJECTION_PREFIX));
+  assert.ok(!base[0].startsWith(PROJECTION_PREFIX));
   for (const legacy of ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"]) {
     assert.ok(!candidates[0].includes(legacy), `the candidate line reuses the legacy token ${legacy}`);
   }
