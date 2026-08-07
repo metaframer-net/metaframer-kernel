@@ -98,6 +98,40 @@ distinction directly: the overlay's line is relabelled `ACTIVATION BASE`, and th
   canonical governance and decision owner — decision records, WBS content, and
   completion-gate evidence live there until an explicit human decision changes ownership.
 
+## Versioning and changelog
+
+The canonical owner of every version and versioning-policy value is
+[`versioning-policy.json`](versioning-policy.json) at the repository root. `package.json`,
+[`CHANGELOG.md`](CHANGELOG.md), this section and
+[`docs/versioning-policy.md`](docs/versioning-policy.md) are projections of it; parity is
+checked one way only, canonical to projection, and a drift finding always names the projection
+that moved.
+
+- Current version: `0.1.0-alpha.1`. It is a pre-release entry on the `0.1.0` train, not a
+  release: nothing is published, tagged, or cut.
+- Previous value: `0.0.0-planning`. That was a planning placeholder — syntactically a
+  pre-release of a version that was never released — and it is preserved as history rather
+  than erased.
+- Ceiling: `0.1.0`, which is also the cap on anything an agent may recommend. `0.1.1`, `0.2.0`
+  and `1.0.0` are all refused, and raising the ceiling takes a fresh explicit human decision
+  recorded in the policy.
+- The eventual Kernel-complete milestone maps to package version `0.1.0` and never to `1.0.0`:
+  SemVer rule 5 makes `1.0.0` a definition of a public API, and no decision has authorized
+  one. `0.1.0` is the terminus of the train, not a value anything may sit at today — reaching
+  it is itself a human completion decision.
+- No release exists. There is no released version, no release tag, no GitHub Release and no
+  published package, and `private` stays `true`. The one tag in this repository,
+  `kernel-runtime-substrate-s1-activated`, is an activation record and not a release tag.
+- An agent may recommend the next value and may do nothing else. The permitted moves are the
+  counter forward by one inside a stage, or the next adjacent stage with the counter reset;
+  `npm version` and `npm publish` are forbidden.
+
+The two specifications this follows are
+[Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) and
+[Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). `CHANGELOG.md` carries exactly
+one `[Unreleased]` section and zero version sections, dates, release links or yank markers,
+because every one of those is a claim that a release happened.
+
 ## Historical bootstrap record (2026-07-16 to 2026-07-30, historical and non-effective)
 
 Everything in this section is a dated record of the authority in force during the
@@ -205,6 +239,13 @@ npm run check
 
 `npm run check` prints the labelled historical snapshots first and exactly one authoritative
 `CURRENT EFFECTIVE` line last.
+
+The versioning and changelog policy has its own command, and also runs inside `npm run check`
+immediately before the compositor:
+
+```sh
+npm run check:versioning
+```
 
 The S1 substrate has its own checks. The behavioural suite needs a Docker daemon and a real
 PostgreSQL 16 container, so it stays out of `npm test`:

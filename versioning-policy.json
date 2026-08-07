@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-versioning-changelog-policy-2026-08-07",
+  "generatedOn": "2026-08-07",
+  "packageKind": "versioning-changelog-governance-policy",
+  "packageMode": "additive-non-destructive",
+  "canonicalOwner": "versioning-policy.json",
+  "note": "This file is the sole canonical owner of every version and versioning-policy value in this repository. package.json#version, CHANGELOG.md, the README versioning section and docs/versioning-policy.md are projections of it and are never read back as a source.",
+
+  "specifications": {
+    "semver": {
+      "name": "Semantic Versioning",
+      "version": "2.0.0",
+      "url": "https://semver.org/spec/v2.0.0.html"
+    },
+    "keepAChangelog": {
+      "name": "Keep a Changelog",
+      "version": "1.1.0",
+      "url": "https://keepachangelog.com/en/1.1.0/"
+    }
+  },
+
+  "developmentStage": "initial-development",
+
+  "conceptualMapping": {
+    "conceptualMilestone": "Kernel 1.0 complete",
+    "packageVersion": "0.1.0",
+    "forbiddenPackageVersion": "1.0.0",
+    "note": "The conceptual milestone maps to package version 0.1.0 and never to 1.0.0. SemVer rule 5 makes 1.0.0 a definition of a public API, and no decision has authorized one. The mapping is a plan, not a permission: reaching 0.1.0 is itself a human completion decision."
+  },
+
+  "ceiling": {
+    "maxVersion": "0.1.0",
+    "agentAuthorizedMax": "0.1.0",
+    "raiseRequires": "explicit-human-decision",
+    "humanDecisionRecord": null,
+    "humanDecisionRecordShape": ["decisionId", "date", "authorizedBy", "newCeiling", "rationale"],
+    "forbiddenExamples": ["0.1.1", "0.2.0", "1.0.0", "1.0.0-rc.1"],
+    "note": "No current value and no recommendation may rank above 0.1.0. The ceiling moves only when a human writes a decision record here whose newCeiling agrees with maxVersion. This is a review tripwire, not a cryptographic gate."
+  },
+
+  "train": {
+    "stages": ["alpha", "beta", "rc"],
+    "finalVersion": "0.1.0",
+    "finalVersionAuthorized": false,
+    "finalVersionRequires": "explicit-human-completion-and-release-decision",
+    "identifierShape": "<stage>.<N>",
+    "counterMin": 1,
+    "counterIsNumericIdentifier": true,
+    "leadingZeroesAllowed": false,
+    "bareStageAllowed": false,
+    "extraIdentifiersAllowed": false,
+    "buildMetadataAllowed": false,
+    "stageSkipAllowed": false,
+    "permittedForms": ["0.1.0-alpha.N", "0.1.0-beta.N", "0.1.0-rc.N"],
+    "permittedTransitions": [
+      "<stage>.N -> <stage>.N+1",
+      "alpha.N -> beta.1",
+      "beta.N -> rc.1"
+    ],
+    "refusedTransitions": [
+      "no-op",
+      "counter-backward",
+      "counter-jump",
+      "stage-backward",
+      "stage-skip",
+      "rc.N -> 0.1.0 (completion; human decision only)",
+      "any value above the ceiling"
+    ]
+  },
+
+  "currentVersion": {
+    "value": "0.1.0-alpha.1",
+    "previousValue": "0.0.0-planning",
+    "migrationKind": "planning-placeholder-to-prerelease-train-entry",
+    "isRelease": false,
+    "previousWasRelease": false,
+    "releaseCount": 0,
+    "firstReleaseExists": false,
+    "note": "0.0.0-planning is syntactically valid SemVer and was always a pre-release of a version that was never released. It is preserved as a historical planning placeholder and is never used going forward. Moving to 0.1.0-alpha.1 is a pointer move on an unpublished private package identity: it publishes nothing, tags nothing and produces no artifact."
+  },
+
+  "release": {
+    "authorized": false,
+    "tagAllowed": false,
+    "githubReleaseAllowed": false,
+    "npmPublishAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "packagePrivate": true,
+    "releaseTagPrefix": "v",
+    "knownNonReleaseTags": ["kernel-runtime-substrate-s1-activated"],
+    "forbiddenCommands": ["npm version", "npm publish", "git tag", "gh release create"]
+  },
+
+  "changelog": {
+    "path": "CHANGELOG.md",
+    "title": "Changelog",
+    "requiredPreambleTokens": ["Keep a Changelog", "1.1.0", "Semantic Versioning", "2.0.0"],
+    "unreleasedHeading": "## [Unreleased]",
+    "unreleasedCount": 1,
+    "versionSectionCount": 0,
+    "categories": ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"],
+    "categoryDepth": 3,
+    "emptyCategoriesOmitted": true,
+    "headingForm": "canonical-atx-column-zero-only",
+    "dateFormat": "YYYY-MM-DD",
+    "datesAllowedOnly": "actual-releases",
+    "linkDefinitionsAllowed": false,
+    "yankedAllowed": false,
+    "derivedFromGitLog": false
+  },
+
+  "unreleasedProvenance": [
+    { "path": "db/metaframer_kernel_db", "role": "the S1 PostgreSQL runtime substrate" },
+    { "path": "db/kernel-runtime-substrate-s1.json", "role": "the S1 substrate contract" },
+    { "path": "src/domain/identity-primitives.mjs", "role": "the domain identity value types" },
+    { "path": "src/application/action-primitives.mjs", "role": "command, query, error and result" },
+    { "path": "src/application/use-case.mjs", "role": "the use-case contract" },
+    { "path": "src/application/unit-of-work.mjs", "role": "the unit-of-work port" },
+    { "path": "tools", "role": "the fail-closed governance and boundary verification surface" },
+    { "path": "versioning-policy.json", "role": "this canonical versioning and changelog policy" },
+    { "path": "tools/check-versioning-changelog.mjs", "role": "the verifier for this policy" }
+  ],
+
+  "authorityBinding": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "chainHeadSeq": 4,
+    "codeStartAllowed": true,
+    "runtimeCodeAllowed": true,
+    "runtimeImplementationStarted": true,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "note": "This package moves no dimension of the authority in force. It records the binding so that a version decision can never be taken against a stronger authority than the one that exists."
+  },
+
+  "agentAuthority": {
+    "mayRecommendNextVersion": true,
+    "mayWriteVersion": false,
+    "mayTag": false,
+    "mayRelease": false,
+    "mayPublish": false,
+    "mayRaiseCeiling": false,
+    "mayFabricateReleaseSection": false,
+    "recommendationLabel": "RECOMMENDATION (not authorization; a human decides):"
+  },
+
+  "parity": {
+    "canonical": "versioning-policy.json",
+    "projections": [
+      "package.json#version",
+      "CHANGELOG.md",
+      "README.md#versioning-and-changelog",
+      "docs/versioning-policy.md"
+    ],
+    "direction": "one-way-canonical-to-projection",
+    "note": "A parity finding always names the projection that moved. Editing this file until it agrees with a projection turns a copy into a source and is never the repair."
+  },
+
+  "nonGoals": [
+    "any release, cut, tag, GitHub Release, npm publish, deployment or production step",
+    "any movement of kernelReady, sdkReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed or gapClosed",
+    "any claim of completeness, MVP or a finished kernel",
+    "changelog automation derived from a git log",
+    "any dependency addition or upgrade",
+    "any edit to repository-status.json, planning, db, src or the five pre-existing checkers",
+    "any Git operation by the writer: commit, push, branch, merge, rebase or tag",
+    "raising the ceiling, which is a human decision and not an outcome of running anything"
+  ]
+}

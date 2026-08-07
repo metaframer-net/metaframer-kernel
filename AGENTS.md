@@ -54,6 +54,38 @@ Every change is test-first, uses a single active writer, preserves user changes,
 independently verified by Codex. Commit, push, merge, release, deployment, destructive Git,
 and human decisions require explicit authority.
 
+## Versioning and changelog gate
+
+This gate is persistent and applies to every agent and every package that touches a version
+value or `CHANGELOG.md`.
+
+- The canonical source is `versioning-policy.json` at the repository root. `package.json#version`,
+  `CHANGELOG.md`, the README `## Versioning and changelog` section and `docs/versioning-policy.md`
+  are projections of it, checked one way only by `tools/check-versioning-changelog.mjs`. Never
+  repair drift by editing the canonical file to match a projection.
+- The current version is `0.1.0-alpha.1`, a pre-release train entry and not a release. The value
+  it replaced, `0.0.0-planning`, is a preserved historical planning placeholder and is never used
+  going forward.
+- The train is `0.1.0-alpha.N`, `0.1.0-beta.N`, `0.1.0-rc.N`, with a numeric counter of at least
+  one and no leading zero. Build metadata, bare stages, extra identifiers, unknown stages and
+  wrong-case stages are refused.
+- The ceiling is `0.1.0` and it is also the agent cap. `0.1.1`, `0.2.0`, `1.0.0` and every
+  pre-release of a higher core are refused. Raising the ceiling requires a fresh explicit human
+  decision recorded in `ceiling.humanDecisionRecord`; no agent may raise it.
+- An agent may **recommend** a next value and may never write one. The only recommendable moves
+  are the counter forward by one inside a stage, and the next adjacent stage with the counter
+  reset to one. No skips, no backward moves, no no-ops, no counter jumps.
+- `rc.N -> 0.1.0` is refused. `0.1.0` is the conceptual terminus and the completion move, and
+  completion is a human decision: `releaseAllowed=false` and `gapClosed=false`. No final
+  transition is automated. The eventual Kernel-complete milestone maps to `0.1.0` and never to
+  `1.0.0`.
+- Forbidden actions, named so no agent has to infer them: `npm version`, `npm publish`, creating
+  any Git tag, creating a GitHub Release, deploying, and any production step. The package stays
+  private and no release exists.
+- `CHANGELOG.md` follows Keep a Changelog 1.1.0 with exactly one `## [Unreleased]` section and
+  zero version sections, release dates, release link definitions, `[YANKED]` markers or tag
+  references, and it is never derived from a git log.
+
 ## Current-authority consumer sync
 
 `planning/kernel-runtime-pilot-consumer-sync.json` is the additive overlay that binds this
