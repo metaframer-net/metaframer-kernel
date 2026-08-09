@@ -5,8 +5,9 @@ destination — the target repository — for the MetaFramer runtime kernel and 
 SDK. That names where this work belongs, not a claim that it has arrived: no source has been
 extracted from the `platform` monorepo, that extraction stays behind a human gate, and
 kernel development proceeds here only through separately scoped change packages. Development
-is open under the current effective authority; every stage beyond the implemented substrate
-is still closed.
+is open under the current effective authority: the substrate is implemented and activated, the
+kernel primitives and ports stage is in progress through separately scoped packages, and every
+stage after it is still closed.
 
 ## Current status
 
@@ -63,11 +64,141 @@ activated. Its contract is `db/kernel-runtime-substrate-s1.json`.
 - the transactional outbox claim taken with `FOR UPDATE SKIP LOCKED`
 - an append-only audit invariant enforced by a statement-level trigger
 
-Everything after S1 remains closed. The authorized order is: DB / RLS / transaction / outbox
-/ audit (S1, implemented) → kernel primitives, typed action and PDP → generated SDK → one
-walking-skeleton golden slice. Each stage needs its own separately scoped, test-first,
-single-writer change package with its own RED/GREEN, rollback and exit criteria; runtime code
-written outside such a package is unauthorized.
+## Implemented kernel primitives and ports
+
+Seven separately scoped, test-first change packages have landed under `src/`, in the order
+below. Each entry describes the implemented `src` surface and the contract tests that cover it
+on this branch; it is not a full account of every file its package touched, and it is not a
+readiness claim. A primitive here is a value type and a port is the shape a boundary must have;
+a port is not a boundary, not an integration, and not proof that anything behind one has been
+built. None of this moves any flag under **Current status**, and none of it closes an exit
+criterion.
+
+Every module is framework-free and depends inward or not at all: `src/domain` imports only
+`node:crypto`, `src/application` imports the domain ring, its own ring, or nothing, and no
+module imports outward. The root source tree holds exactly those two inner rings —
+`src/adapters`, `src/delivery` and `src/sdk` are refused by name in
+[`tools/check-repository-boundary.mjs`](tools/check-repository-boundary.mjs) — so no adapter,
+delivery or SDK ring exists. `src/application` is the permitted Application ring of the onion,
+not an end-user app and not a delivery surface.
+
+**M1-01 — identity primitives.**
+[`src/domain/identity-primitives.mjs`](src/domain/identity-primitives.mjs) ·
+[`tests/kernel-identity-primitives.test.mjs`](tests/kernel-identity-primitives.test.mjs)
+
+Exports `TenantId`, `CorrelationId`, `CausationId`, `ActorId`, `Principal` and
+`IdempotencyKey`: frozen value types with exact-class equality and canonical rendering. The
+UUID-form identities admit one canonical spelling and refuse the nil UUID rather than
+normalising anything; `ActorId` is opaque, 1–128 visible ASCII, case preserved; `Principal`
+composes a `TenantId` with an `ActorId` and requires the instances, not their strings;
+`IdempotencyKey` keeps only a SHA-256 fingerprint of its raw input, and the raw input is never
+retained, rendered or quoted in a refusal.
+
+*Non-goals:* no authentication, authorization, role, permission, scope or policy behaviour, and
+no persistence. A `Principal` says who is acting and on whose behalf, never what they may do.
+
+**M1-02 — action primitives.**
+[`src/application/action-primitives.mjs`](src/application/action-primitives.mjs) ·
+[`tests/kernel-action-primitives.test.mjs`](tests/kernel-action-primitives.test.mjs)
+
+Exports `Command`, `Query`, `KernelError` and `Result`. A `Command` is an act that changes
+state and carries a required exact `IdempotencyKey`; a `Query` is a read and refuses one. Both
+are identified by `name@version` and hold a payload canonicalised by one rule — sorted keys,
+frozen, no accessor, hole, cycle, non-finite number or prototype-polluting key. A `KernelError`
+is a failure as a value: a code, optional details and a bounded cause chain, with no message
+and no stack, and it does not extend the native error type. A `Result` has two branches and is
+minted only by `Result.ok` or `Result.failure`.
+
+*Non-goals:* no handler, dispatcher, bus or router; no port, unit of work, clock, policy, audit
+or outbox; no validation boundary and no composition root. `Result` has no combinators — no
+map, unwrap or fold.
+
+**M1-03 — the use-case contract.**
+[`src/application/use-case.mjs`](src/application/use-case.mjs) ·
+[`tests/kernel-use-case-contract.test.mjs`](tests/kernel-use-case-contract.test.mjs)
+
+Exports `UseCase`. One declaration — `{kind, name, version, handler}` — binds one action
+coordinate to one function, and `execute` holds the gate on both sides: only an exact `Command`
+or `Query` of the declared kind at the declared `name@version` reaches the handler, and only a
+brand-proven genuine `Result` comes back, by identity. It is always a promise, so a refusal
+arrives as a rejection; whatever the handler throws propagates unchanged.
+
+*Non-goals:* no lookup, routing or registry — choosing between use cases is a separate concern;
+no failure vocabulary of its own; no equality or rendering. Saying what a use case must be is
+not the same as having built one against a database.
+
+**M1-04 — the unit-of-work port.**
+[`src/application/unit-of-work.mjs`](src/application/unit-of-work.mjs) ·
+[`tests/kernel-unit-of-work-port.test.mjs`](tests/kernel-unit-of-work-port.test.mjs)
+
+Exports `UnitOfWork`. It takes exactly `{begin, commit, rollback}` and holds exactly one
+ordering: begin, then the body, then commit — and rollback instead of commit when the body
+fails. The scope `begin` produced is opaque and is carried through by identity, never read. A
+second run on one instance while the first is in flight is refused rather than queued.
+
+*Non-goals:* this is a port shape, not a boundary and not proof of database integration; no
+database, connection, pool or query language; no isolation level, savepoint, retry, caching or
+idempotency policy. One residual is recorded rather than hidden: when the body fails and
+rollback fails too, the rollback's failure is suppressed so the body's failure survives.
+
+**M1-05 — the clock port.**
+[`src/application/clock.mjs`](src/application/clock.mjs) ·
+[`tests/kernel-clock-port.test.mjs`](tests/kernel-clock-port.test.mjs)
+
+Exports `Clock`. It takes exactly `{now}`, calls that collaborator once per reading with an
+undefined receiver, and either hands the reading back exactly as it arrived or refuses it. A
+reading must be a canonical UTC instant spelled `YYYY-MM-DDTHH:MM:SS.sssZ`, checked by
+arithmetic written in the module rather than by a host parser, so an impossible day is refused
+instead of rolled forward.
+
+*Non-goals:* it promises neither true time nor monotonic time. Nothing is compared, ordered,
+deduplicated or remembered between calls, so a conforming reading may be wrong and a later one
+may name an earlier instant. It reaches no host clock and reads no ambient time.
+
+**M1-06 — the identity port.**
+[`src/application/identity.mjs`](src/application/identity.mjs) ·
+[`tests/kernel-identity-port.test.mjs`](tests/kernel-identity-port.test.mjs)
+
+Exports `Identity`. It takes exactly `{current}`, calls that collaborator once, and returns the
+very `Principal` it produced or refuses. Genuineness is proven by both halves of the rule:
+exact prototype identity plus the domain's private brand, so a prototype lookalike and a
+subclass instance are both refused.
+
+*Non-goals:* this is not authentication. The brand proves a `Principal` was constructed through
+the domain constructor and its invariants were checked; it proves nothing about whether that
+principal is currently, actually the caller. No session, token, directory, cache, role, scope
+or permission, and no answer to "may they".
+
+**M1-07 — the policy port.**
+[`src/application/policy.mjs`](src/application/policy.mjs) ·
+[`tests/kernel-policy-port.test.mjs`](tests/kernel-policy-port.test.mjs)
+
+Exports `Policy`. It takes exactly `{consult}`, admits only a genuine `Command` or `Query`,
+forwards that action whole and unopened to the collaborator, and requires a genuine `Result`
+back, returned by identity. It never reads a coordinate off the action and never reads which
+branch the answer carries.
+
+*Non-goals:* it is not a policy decision point, not authorization, and not RBAC, ReBAC or ABAC.
+It holds no rule, condition, combining algorithm or default; it does not evaluate, allow, deny,
+permit or enforce; it authors no answer, wraps no value or error, and remembers nothing. There
+is no request type and no decision type, because those two would be the halves of a decision
+protocol this kernel has not committed to.
+
+## Authorized order and what remains closed
+
+The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
+activated) → kernel primitives, typed action and PDP → generated SDK → one walking-skeleton
+golden slice.
+
+The second stage is under way and is not finished. The primitives, the typed action contracts
+and the ports listed above are implemented; the policy decision point that same stage names is
+not — `src/application/policy.mjs` forwards a question and decides nothing. The generated SDK
+and the golden slice remain closed and unstarted, and nothing here may be read as opening them.
+
+Each stage needs its own separately scoped, test-first, single-writer change package with its
+own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
+unauthorized. What has landed is implementation evidence on a branch: its tests verify these
+contracts and nothing further; they close no gate and activate nothing beyond S1.
 
 `GO-RUNTIME-PILOT` is a separate contract needing 10/10 GREEN gates, an independent verifier
 and a human countersign — `GRP-01` is RED and is evaluated externally. Production is a
