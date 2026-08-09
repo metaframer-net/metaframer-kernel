@@ -9,6 +9,59 @@ is open under the current effective authority: the substrate is implemented and 
 kernel primitives and ports stage is in progress through separately scoped packages, and every
 stage after it is still closed.
 
+## Vision / Vizyon
+
+Direction, not description: nothing in this section is an implemented-state claim, and
+nothing here changes a flag under **Current status**.
+
+MetaFramer's target identity is an AI-native enterprise application kernel: a deterministic execution core, a governed control-plane, and a generated SDK/Surface ecosystem. It is not a general web-framework replacement and not a current readiness claim.
+Django, FastAPI, Flask, Symfony and Frappe stay delivery hosts, reference implementations,
+adapters or comparison baselines, never substitutes for the semantic Kernel.
+
+AI proposes, plans, classifies, and explains; the deterministic Kernel validates, authorizes, applies, and commits. AI-off critical SaaS remains safe.
+No business invariant is decided by a model and no model call happens inside a Kernel
+transaction, so critical flows keep working with AI switched off entirely.
+
+The 90 named gaps are a finite evidence program, not 1,000 applications or domain code loaded into Kernel.
+Ownership stays separated and machine-enforced:
+
+- Kernel — identity/tenancy, policy/capability, the deterministic action pipeline,
+  invariants, unit-of-work/change/audit/outbox/event contracts, the ArcheType IR contract.
+- platform — generated SDK, control plane, Surface and PWA projections, delivery hosts,
+  adapters, workflow and connector runtimes, developer tooling.
+- application — domain rules, aggregates, screens and product integrations, never touching
+  Kernel internal types and never bypassing the policy, unit-of-work and audit path.
+- external engines — search, OLAP/warehouse, media, model serving, route optimization and
+  payment switches, behind typed adapters, never copied inward.
+
+A capability serving one family belongs to platform or application, not to Kernel.
+
+The program requires a strong ArcheType IR as the single canonical source, a machine-readable self-documenting contract graph an agent can search for the nearest correct reference or example before proposing code, one canonical implementation path per operation type, and negative tests for every forbidden alternative, with no hidden magic and no second parallel architecture; the only exit is an explicit ADR carrying evidence, migration and rollback.
+
+Multi-LLM combine is governed, provenanced, and budgeted; model output never directly produces side effects.
+A model may only propose a request that the deterministic path then validates and authorizes.
+
+Security and performance are promotion gates: tenant isolation, policy/capability, audit/outbox, P95/P99/cost/fairness, and HA/DR claims require evidence.
+Each needs reproducible evidence, independent review and a human decision; invented
+thresholds are refused, and budgets are calibrated from a first clean baseline.
+
+PWA/offline foundation uses generated/protocol Surface; MetaFramer is not a native-mobile framework.
+Native UI toolkits, mobile lifecycle frameworks, device drivers, navigation and general
+component frameworks, and store publishing are declared non-goals.
+
+External usability is proven only by at least three independent teams working from published
+docs, generated SDK, reference examples and diagnostics, with ownerHelpCount=0 in the
+accepted run; owner help hidden from the evidence is falsification.
+
+This vision does not make MetaFramer frameworkCompetitive, current/up-to-date, or ready.
+Each dimension keeps its own evidence package, independent review and human decision.
+
+In the living specification authority split, human governance controls permission, scope, and promotion; implemented semantics are code, types, schemas, and executable tests.
+Those outrank any intent sentence in any document, including this one, and generated
+projections are repaired one way only, projection corrected to source.
+
+Brand tokens must not rename semantic/security types; they create no callable aliases and no code.
+
 ## Current status
 
 Current effective authority: `GO-KERNEL-DEVELOPMENT-ONLY`, chain head seq 4
