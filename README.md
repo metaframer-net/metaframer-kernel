@@ -461,8 +461,24 @@ threshold, model route and escalation gate named here. Two surfaces implement it
   pay for itself: a net-negative ledger switches its automatic invocation off while the
   deterministic gate stays on.
 
-Quality is not one of the levers. Dropping a security test, a negative test or an independent
-review to save tokens is refused by the policy and by `tools/check-token-economy.mjs`.
+Quality is not one of the levers. The policy states plainly that a security test, a negative
+test and an independent review may never be dropped to save tokens, and
+`tools/check-token-economy.mjs` fails if those declarations change. What that enforces is
+document drift, not the act itself: the skill and the agent are prose a model may or may not
+obey. Only `tools/token-guard.mjs` decides anything mechanically.
+
+Model routing escalates `haiku` → `sonnet` → `fable` → `opus` by task risk and evidence need,
+never by cost alone and never automatically on failure. The per-tier `use` and `doNotUse` lists
+live in `token-economy-policy.json` and are projected in full into the skill rather than copied
+here; `fable` additionally requires a live identity check and is never assumed.
+
+**What the live reader can and cannot observe.** A bare CLI run sees the git worktrees and the
+guardian admission decision, so it decides four of the nine checks on its own. It cannot observe
+the session read log, the live worker registry, writer ownership, prior reviews or open panels —
+those live in the orchestration layer and must be supplied through `--facts`. When they are
+absent the gate escalates rather than passing, because an unobservable registry is not an empty
+one. `readGuardian` also shells out to `guardianctl`, a machine-local binary outside this
+repository; when it is missing the guardian check escalates.
 
 ```sh
 npm run check:token-economy         # canonical policy and every projection agree

@@ -158,10 +158,13 @@ test("skill: forbids trading a guarantee for a saving, in words a reader cannot 
   }
 });
 
-test("skill: keeps large output out of the main context", async () => {
+test("skill: instructs returning exit status and failing checks instead of full logs", async () => {
+  // Named for what it can actually verify. The previous title claimed the skill "keeps large
+  // output out of the main context", which no string search can establish.
   const text = (await readText(SKILL)).toLowerCase();
   assert.ok(text.includes("exit code") || text.includes("exit status"));
   assert.ok(text.includes("failing"));
+  assert.ok(text.includes("never lift") || text.includes("stays where it was produced"));
 });
 
 test("skill: preserves the single-writer invariant rather than parallelising writes", async () => {
@@ -188,12 +191,61 @@ test("agent: carries frontmatter with a name, description and an explicit tool a
   assert.match(text, /\ntools:\s*\S/);
 });
 
-test("agent: has no write tools — it is an auditor, not an author", async () => {
-  const text = await readText(AGENT);
-  const tools = /\ntools:\s*(.+)/.exec(text)[1];
-  for (const forbidden of ["Write", "Edit", "NotebookEdit"]) {
+test("agent: has no write tools and no shell — it is an auditor, not an author", async () => {
+  // Bash belongs on this list. A shell can write, commit and push whatever the prose claims,
+  // so an earlier version of this row read "no write tools" while the agent held one.
+  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const tools = frontmatterTools(await readText(AGENT));
+  assert.ok(Array.isArray(tools) && tools.length > 0, "the agent declares no readable allowlist");
+  for (const forbidden of ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"]) {
     assert.ok(!tools.includes(forbidden), `token-governor must not hold ${forbidden}`);
   }
+});
+
+test("frontmatterTools reads a multi-line YAML list, not just the first line", async () => {
+  // A single-line regex sees "Read" and misses everything under it, which is where a
+  // forbidden tool hides in plain sight.
+  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const doc = "---\nname: x\ntools:\n  - Read\n  - Bash\nmodel: sonnet\n---\nbody";
+  assert.deepEqual(frontmatterTools(doc), ["Read", "Bash"]);
+});
+
+test("policy: the reader observability limit is recorded rather than implied", async () => {
+  const policy = await readJson(POLICY);
+  const o = policy.readerObservability;
+  assert.ok(Array.isArray(o?.unobservableWithoutFacts) && o.unobservableWithoutFacts.length >= 5,
+    "the registries readFacts cannot see must be named");
+  assert.ok(Array.isArray(o?.observedByReader) && o.observedByReader.length > 0);
+});
+
+test("checker: deleting a whole policy section is RED, not GREEN", async () => {
+  // The reported blindness. Every loop iterated a key that could simply be absent, so the
+  // strongest possible drift produced an empty finding list.
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const base = await readJson(POLICY);
+  const fixed = {
+    skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardImportFailed: false,
+  };
+  assert.deepEqual(evaluate({ policy: base, ...fixed }), [], "the live package must be clean");
+  for (const section of ["qualityFloors", "deterministicChecks", "modelRouting", "projections"]) {
+    const mutated = JSON.parse(JSON.stringify(base));
+    delete mutated[section];
+    assert.ok(evaluate({ policy: mutated, ...fixed }).length > 0,
+      `deleting ${section} was not detected`);
+  }
+});
+
+test("checker: an unimportable guard is a finding, not two empty lists agreeing", async () => {
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const findings = evaluate({
+    policy: await readJson(POLICY), skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: [], guardImportFailed: true,
+  });
+  assert.ok(findings.some((f) => f.id === "guard-unimportable"));
 });
 
 test("agent: cannot spawn further agents", async () => {

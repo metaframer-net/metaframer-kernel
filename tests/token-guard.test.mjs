@@ -111,9 +111,28 @@ test("duplicate file read: same path at a CHANGED hash is not a duplicate", () =
   assert.deepEqual(findings, []);
 });
 
-test("duplicate file read: a narrower line range of an already-read file is not a duplicate", () => {
+test("duplicate file read: a DISJOINT line range of an already-read file is not a duplicate", () => {
+  // Named for what it supplies. The original title said "narrower" while supplying a disjoint
+  // range, so it passed without ever reaching the containment branch it claimed to cover.
   const findings = guard.evaluateDuplicateFileRead({
     requested: { path: "a.ts", sha256: "abc", lines: [100, 140] },
+    alreadyRead: [{ path: "a.ts", sha256: "abc", lines: [1, 40] }],
+  });
+  assert.deepEqual(findings, []);
+});
+
+test("duplicate file read: a range CONTAINED in an already-read range is a duplicate", () => {
+  const findings = guard.evaluateDuplicateFileRead({
+    requested: { path: "a.ts", sha256: "abc", lines: [100, 140] },
+    alreadyRead: [{ path: "a.ts", sha256: "abc", lines: [1, 200] }],
+  });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].decision, DENY);
+});
+
+test("duplicate file read: a ranged prior read does not cover a full read", () => {
+  const findings = guard.evaluateDuplicateFileRead({
+    requested: { path: "a.ts", sha256: "abc" },
     alreadyRead: [{ path: "a.ts", sha256: "abc", lines: [1, 40] }],
   });
   assert.deepEqual(findings, []);
@@ -412,6 +431,99 @@ test("economics: too few invocations to judge keeps it on and says so", () => {
 test("economics: disabling automatic invocation never disables the deterministic gate", () => {
   const e = guard.evaluateGovernorEconomics({
     ledger: { invocations: 50, tokensSpent: 500_000, tokensSaved: 1 },
+    policy: { minimumInvocations: 5, minimumNetSaving: 0 },
+  });
+  assert.equal(e.autoInvocationEnabled, false);
+  assert.equal(e.deterministicGateEnabled, true);
+});
+
+
+// -------------------------------------------------------------------------------------
+// Regression rows for the defects an independent security review found on 2efdb42
+//
+// Each of these passed a fully green suite before it was written, which is the only fact about
+// them worth recording: a suite that cannot fail for the reason its names claim is not evidence.
+// -------------------------------------------------------------------------------------
+
+test("promotion: force push with NO action is still denied", () => {
+  // The reported bypass. The force-push check used to sit inside the action guard, so a caller
+  // could disarm the only free gate on main promotion by not naming the action.
+  const r = guard.decide({ requested: { forcePush: true, commitToMain: true }, gates: {} });
+  assert.equal(r.decision, DENY);
+  assert.ok(r.findings.some((f) => /force-push/.test(f.id)));
+});
+
+test("promotion: an unrecognised action carrying mutation intent escalates", () => {
+  for (const action of ["git-push", "promote", "merge", "release", "Push"]) {
+    const r = guard.decide({ requested: { action, push: true }, gates: {} });
+    assert.notEqual(r.decision, PASS, `action ${action} passed silently`);
+  }
+});
+
+test("promotion: a gate report with no recognised action escalates rather than passing", () => {
+  const r = guard.decide({ requested: { action: "unknown" }, gates: greenGates });
+  assert.equal(r.decision, ESCALATE);
+});
+
+test("promotion: a named promotion with no gate report escalates", () => {
+  const findings = guard.evaluatePromotionGate({ requested: { action: "main-promotion" } });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].decision, ESCALATE);
+});
+
+test("dirty snapshot: an unreadable dirty flag escalates and is never treated as clean", () => {
+  const findings = guard.evaluateDirtySnapshot({
+    requested: { role: "independent-reviewer", worktree: "/w" },
+    worktrees: [{ path: "/w", dirty: null, head: "aaa" }],
+  });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].decision, ESCALATE);
+});
+
+test("writer ownership: an unclassified role on an owned package escalates", () => {
+  const findings = guard.evaluateWriterOwnership({
+    requested: { changePackage: "cp-1", sessionId: "s2" },
+    activeWriters: [{ changePackage: "cp-1", sessionId: "s1" }],
+  });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].decision, ESCALATE);
+});
+
+test("dirty snapshot: an unclassified role escalates instead of skipping the check", () => {
+  const findings = guard.evaluateDirtySnapshot({
+    requested: { worktree: "/w" }, worktrees: [{ path: "/w", dirty: true }],
+  });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].decision, ESCALATE);
+});
+
+test("an unobserved registry escalates; it is not an empty one", () => {
+  const cases = [
+    [guard.evaluateDuplicateWorker, { requested: { taskSignature: "t" } }],
+    [guard.evaluateDuplicateFileRead, { requested: { path: "a", sha256: "x" } }],
+    [guard.evaluateWriterOwnership, { requested: { changePackage: "cp" } }],
+    [guard.evaluateStaleReview, { requested: { useReviewFrom: "r" } }],
+  ];
+  for (const [fn, facts] of cases) {
+    const findings = fn(facts);
+    assert.equal(findings.length, 1, fn.name);
+    assert.equal(findings[0].decision, ESCALATE, fn.name);
+  }
+});
+
+test("readFacts reports unobservable registries as null rather than empty", () => {
+  const facts = guard.readFacts({ action: "read" });
+  for (const key of ["alreadyRead", "liveWorkers", "activeWriters", "reviews", "panels"]) {
+    assert.equal(facts[key], null, `${key} must be null, not []`);
+  }
+  assert.ok(Array.isArray(facts.worktrees), "worktrees are genuinely observable");
+});
+
+test("economics: a ledger with no invocation count disables automatic invocation", () => {
+  // Defaulting a missing count to 0 made "not enough evidence yet" permanent, so any net cost
+  // stayed enabled forever.
+  const e = guard.evaluateGovernorEconomics({
+    ledger: { tokensSpent: 1_000_000_000, tokensSaved: 0 },
     policy: { minimumInvocations: 5, minimumNetSaving: 0 },
   });
   assert.equal(e.autoInvocationEnabled, false);

@@ -58,12 +58,21 @@ const finding = (id, decision, message, gate) => ({ id, decision, message, gate 
 
 const REVIEW_ROLES = new Set(["independent-reviewer", "reviewer", "auditor"]);
 
+// An unobservable registry is not an empty one, and the difference is the whole gate. `[]` means
+// "looked, found nothing"; a missing array means "could not look", and the second must escalate.
+// Conflating them turns every check whose registry the reader cannot see into a silent PASS.
+const unobserved = (id, name, gate) => [finding(
+  id, ESCALATE,
+  `${name} could not be observed; an unobservable registry is not an empty one`, gate,
+)];
+
 // -------------------------------------------------------------------------------------
 // 1. Duplicate worker
 // -------------------------------------------------------------------------------------
 
-export function evaluateDuplicateWorker({ requested = {}, liveWorkers = [] } = {}) {
+export function evaluateDuplicateWorker({ requested = {}, liveWorkers } = {}) {
   if (!requested.taskSignature) return [];
+  if (!Array.isArray(liveWorkers)) return unobserved("live-workers-unobserved", "the live worker registry", "parallel-worker");
   const live = liveWorkers.filter(
     (w) => w.state === "running" && w.taskSignature === requested.taskSignature,
   );
@@ -100,8 +109,9 @@ const covers = (prior, want) => {
   return prior.lines[0] <= want.lines[0] && prior.lines[1] >= want.lines[1];
 };
 
-export function evaluateDuplicateFileRead({ requested = {}, alreadyRead = [] } = {}) {
+export function evaluateDuplicateFileRead({ requested = {}, alreadyRead } = {}) {
   if (!requested.path || !requested.sha256) return [];
+  if (!Array.isArray(alreadyRead)) return unobserved("read-log-unobserved", "the session read log");
   const hit = alreadyRead.find(
     (r) => r.path === requested.path && r.sha256 === requested.sha256 && covers(r, requested),
   );
@@ -116,8 +126,9 @@ export function evaluateDuplicateFileRead({ requested = {}, alreadyRead = [] } =
 // 3. Writer ownership — the single-writer invariant, mechanically
 // -------------------------------------------------------------------------------------
 
-export function evaluateWriterOwnership({ requested = {}, activeWriters = [] } = {}) {
+export function evaluateWriterOwnership({ requested = {}, activeWriters } = {}) {
   if (!requested.changePackage) return [];
+  if (!Array.isArray(activeWriters)) return unobserved("writer-registry-unobserved", "the active writer registry", "writer-assignment");
   const onPackage = activeWriters.filter((w) => w.changePackage === requested.changePackage);
   if (onPackage.length === 0) return [];
 
@@ -141,15 +152,27 @@ export function evaluateWriterOwnership({ requested = {}, activeWriters = [] } =
     )];
   }
 
-  return [];
+  return [finding(
+    "requester-role-unclassified", ESCALATE,
+    `${requested.changePackage} has an active writer and the requested role ` +
+    `${JSON.stringify(requested.role)} is neither writer nor reviewer`,
+    "writer-assignment",
+  )];
 }
 
 // -------------------------------------------------------------------------------------
 // 4. Dirty snapshot
 // -------------------------------------------------------------------------------------
 
-export function evaluateDirtySnapshot({ requested = {}, worktrees = [] } = {}) {
-  if (!REVIEW_ROLES.has(requested.role) || !requested.worktree) return [];
+export function evaluateDirtySnapshot({ requested = {}, worktrees } = {}) {
+  if (!requested.worktree) return [];
+  if (requested.role === "writer") return [];
+  if (!REVIEW_ROLES.has(requested.role)) {
+    return [finding("snapshot-role-unclassified", ESCALATE,
+      `role ${JSON.stringify(requested.role)} is not classified, so snapshot cleanliness cannot be judged`,
+      "snapshot-change")];
+  }
+  if (!Array.isArray(worktrees)) return unobserved("worktrees-unobserved", "the worktree set", "snapshot-change");
   const wt = worktrees.find((w) => w.path === requested.worktree);
   if (!wt) {
     return [finding(
@@ -158,7 +181,12 @@ export function evaluateDirtySnapshot({ requested = {}, worktrees = [] } = {}) {
       "snapshot-change",
     )];
   }
-  if (!wt.dirty) return [];
+  if (wt.dirty === false) return [];
+  if (wt.dirty !== true) {
+    // git status failed on a pruned, missing or unreadable worktree. Falsy is not clean.
+    return [finding("dirty-snapshot-unreadable", ESCALATE,
+      `cleanliness of ${requested.worktree} could not be determined`, "snapshot-change")];
+  }
   return [finding(
     "dirty-snapshot", DENY,
     `${requested.worktree} has uncommitted changes; a review on a moving tree proves nothing`,
@@ -218,8 +246,9 @@ export function evaluateGuardianAdmission({ requested = {}, guardian } = {}) {
 // 7. Stale review
 // -------------------------------------------------------------------------------------
 
-export function evaluateStaleReview({ requested = {}, reviews = [], currentSnapshot } = {}) {
+export function evaluateStaleReview({ requested = {}, reviews, currentSnapshot } = {}) {
   if (!requested.useReviewFrom) return [];
+  if (!Array.isArray(reviews)) return unobserved("review-registry-unobserved", "the review registry", "snapshot-change");
   const review = reviews.find((r) => r.id === requested.useReviewFrom);
   if (!review) {
     return [finding("stale-review-unknown", ESCALATE,
@@ -239,6 +268,17 @@ export function evaluateStaleReview({ requested = {}, reviews = [], currentSnaps
 
 const PROMOTION_ACTIONS = new Set(["commit", "push", "main-promotion"]);
 
+// Any of these on a request means git is about to be mutated, whatever the caller decided to
+// call the action. Without this, the single free gate on main promotion was armed by a string
+// the caller controls: `{forcePush: true}` with no `action` skipped the whole evaluator, force
+// push included. An unclassified mutation intent now escalates instead of passing.
+const MUTATION_SIGNALS = [
+  "forcePush", "commitToMain", "commit", "push", "merge", "promote", "release", "tag", "rebase",
+];
+
+const carriesMutationIntent = (requested) =>
+  MUTATION_SIGNALS.some((k) => Boolean(requested[k]));
+
 const REQUIRED_GATES = [
   "correctWorktree", "cleanBase", "originFetched", "noConflict",
   "targetedTestsGreen", "fullCheckGreen", "independentReviewGreen",
@@ -247,15 +287,33 @@ const REQUIRED_GATES = [
   "noProductionDeployment", "noSecret",
 ];
 
-export function evaluatePromotionGate({ requested = {}, gates = {} } = {}) {
-  if (!PROMOTION_ACTIONS.has(requested.action)) return [];
+export function evaluatePromotionGate({ requested = {}, gates } = {}) {
   const out = [];
 
-  // Nothing on the gate list can make a force push acceptable, so it is checked first and on its
-  // own. A green suite is not a licence to rewrite someone else's history.
+  // Checked before anything else and outside every action guard. Nothing on the gate list can
+  // make a force push acceptable, and a check that only runs when the caller names the action
+  // correctly is a check the caller can switch off by choosing a different word.
   if (requested.forcePush) {
     out.push(finding("force-push-forbidden", DENY,
       "force push is not within MASTER authority under any gate state", "main-promotion"));
+  }
+
+  const named = PROMOTION_ACTIONS.has(requested.action);
+  if (!named) {
+    // An unnamed action that nevertheless carries mutation intent, or arrives with a gate report
+    // attached, is a promotion in everything but its label. It escalates rather than passing.
+    if (carriesMutationIntent(requested) || gates !== undefined) {
+      out.push(finding("promotion-intent-unclassified", ESCALATE,
+        `request carries mutation intent but action is ${JSON.stringify(requested.action)}; `
+        + `promotion actions are ${[...PROMOTION_ACTIONS].join(", ")}`, "main-promotion"));
+    }
+    return out;
+  }
+
+  if (gates === null || typeof gates !== "object") {
+    out.push(finding("promotion-gates-unreadable", ESCALATE,
+      "a promotion was requested with no readable gate report", "main-promotion"));
+    return out;
   }
 
   for (const key of REQUIRED_GATES) {
@@ -274,7 +332,10 @@ export function evaluatePromotionGate({ requested = {}, gates = {} } = {}) {
 // 9. Completed panel cleanup
 // -------------------------------------------------------------------------------------
 
-export function evaluateCompletedPanelCleanup({ panels = [] } = {}) {
+export function evaluateCompletedPanelCleanup({ panels } = {}) {
+  if (!Array.isArray(panels)) {
+    return [finding("panel-registry-unobserved", ADVISE, "the panel registry could not be observed")];
+  }
   const leaked = panels.filter((p) => p.state === "completed" && p.open);
   if (leaked.length === 0) return [];
   return [finding(
@@ -328,9 +389,20 @@ export function evaluateGovernorEconomics({ ledger = {}, policy = {} } = {}) {
   const spent = ledger.tokensSpent ?? 0;
   const saved = ledger.tokensSaved ?? 0;
   const netSaving = saved - spent;
-  const invocations = ledger.invocations ?? 0;
+  const invocations = ledger.invocations;
   const minInvocations = policy.minimumInvocations ?? 5;
   const minNet = policy.minimumNetSaving ?? 0;
+
+  // A ledger with no invocation count cannot support the "not enough evidence yet" branch, and
+  // defaulting it to 0 made that branch permanent: any net cost stayed enabled forever because
+  // 0 is always below the minimum. An unusable ledger fails closed toward NOT spending tokens.
+  if (typeof invocations !== "number" || !Number.isFinite(invocations) || invocations < 0) {
+    return {
+      netSaving, invocations: null, deterministicGateEnabled: true,
+      autoInvocationEnabled: false,
+      reason: "ledger carries no usable invocation count; automatic invocation stays off until it does",
+    };
+  }
 
   // The deterministic gate is free and is never part of this judgement. Only the model-backed
   // governor can be switched off, and switching it off must not quietly remove the checks that
@@ -404,7 +476,12 @@ export function readFacts(requested = {}, { repo = root } = {}) {
     requested,
     worktrees: readWorktrees(repo) ?? [],
     guardian: readGuardian(),
-    alreadyRead: [], liveWorkers: [], activeWriters: [], reviews: [], panels: [],
+    // null, not []. This reader can see git; it cannot see the session read log, the live worker
+    // registry, writer ownership, prior reviews or open panels — those live in the orchestration
+    // layer and must be supplied by the caller through --facts. Handing back empty arrays would
+    // have reported "looked, found nothing" for five checks that were never performed, which is
+    // exactly the silent PASS this file spends thirty lines forbidding.
+    alreadyRead: null, liveWorkers: null, activeWriters: null, reviews: null, panels: null,
     currentSnapshot: git(["rev-parse", "HEAD"], repo),
   };
 }
