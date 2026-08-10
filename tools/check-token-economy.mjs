@@ -31,6 +31,8 @@ const POLICY = P("token-economy-policy.json");
 const SKILL = P(".claude", "skills", "metaframer-token-economy", "SKILL.md");
 const AGENT = P(".claude", "agents", "token-governor.md");
 const README = P("README.md");
+const SKILL_REL = ".claude/skills/metaframer-token-economy/SKILL.md";
+const AGENT_REL = ".claude/agents/token-governor.md";
 
 const readText = (f) => {
   try {
@@ -91,6 +93,22 @@ const REQUIRED_POLICY_SECTIONS = [
   "projections", "qualityFloors", "deterministicChecks", "modelRouting", "governor",
 ];
 
+// Presence was checked at depth one only, so a section could be reduced to a single key and
+// still score GREEN — `qualityFloors` from seven floors to one, `modelRouting` from four tiers
+// to one. Two floors were named by neither the checker nor any test, so deleting them was
+// invisible. The members that must exist are therefore enumerated.
+const REQUIRED_QUALITY_FLOORS = [
+  "mayDropSecurityTest", "mayDropNegativeTest", "mayDropIndependentReview",
+  "mayLowerModelForSecurityDecision", "mayClaimGreenWithoutEvidence",
+  "mayReuseReviewAcrossSnapshots", "mayRunTwoWritersOnOneChangePackage",
+];
+const REQUIRED_MODEL_TIERS = ["haiku", "sonnet", "fable", "opus"];
+const REQUIRED_PROJECTIONS = [
+  ".claude/skills/metaframer-token-economy/SKILL.md",
+  ".claude/agents/token-governor.md",
+  "README.md#token-economy",
+];
+
 export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckIds, guardImportFailed }) {
   const f = [];
   const add = (id, message) => f.push({ id, message });
@@ -123,6 +141,22 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
   // emptying one array disabled two families of comparison at once.
   if (!Array.isArray(policy.projections) || policy.projections.length === 0) {
     add("projections-empty", "projections is absent or empty");
+  } else {
+    for (const rel of REQUIRED_PROJECTIONS) {
+      if (!policy.projections.includes(rel)) {
+        add("projection-undeclared", `a required projection is no longer declared: ${rel}`);
+      }
+    }
+  }
+  for (const floor of REQUIRED_QUALITY_FLOORS) {
+    if (policy.qualityFloors?.[floor] === undefined) {
+      add("quality-floor-missing", `a required quality floor is no longer declared: ${floor}`);
+    }
+  }
+  for (const tier of REQUIRED_MODEL_TIERS) {
+    if (policy.modelRouting?.[tier] === undefined) {
+      add("model-tier-missing", `a required model tier is no longer declared: ${tier}`);
+    }
   }
 
   if (guardImportFailed) {
@@ -144,7 +178,10 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
       const heading = anchor.replace(/-/g, "[ -]");
       // Use the injected text rather than re-reading the file, so evaluate() stays pure and a
       // test that supplies a mutated README is actually testing that README.
-      const body = file === "README.md" ? readme : readText(P(...file.split("/")));
+      // Every injected body, not just the README, so a test that supplies a mutated
+      // projection is testing that projection rather than the file on disk.
+      const injected = { "README.md": readme, [SKILL_REL]: skill, [AGENT_REL]: agent };
+      const body = file in injected ? injected[file] : readText(P(...file.split("/")));
       if (!new RegExp(`^#{2,3}\\s+${heading}\\s*$`, "im").test(body ?? "")) {
         add("projection-anchor-missing", `${file} has no section matching #${anchor}`);
       }
@@ -212,7 +249,12 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
   // Tie the declared ids to the evaluators that exist. Without this, a policy listing one
   // invented check scored GREEN while the guard ran nine, and nine could shrink to one
   // without the policy noticing.
-  if (Array.isArray(guardCheckIds) && guardCheckIds.length > 0) {
+  // An absent export skipped the whole tie and scored GREEN, which is the same fail-open the
+  // escalation-gate comparison already refuses two blocks up.
+  if (!Array.isArray(guardCheckIds) || guardCheckIds.length === 0) {
+    add("guard-check-ids-unavailable",
+      "the guard exports no deterministic check ids; the declared set cannot be verified");
+  } else {
     const declared = new Set((policy.deterministicChecks ?? []).map((c) => c.id));
     for (const id of guardCheckIds) {
       if (!declared.has(id)) add("deterministic-check-undeclared", `the guard runs ${id}, the policy does not declare it`);

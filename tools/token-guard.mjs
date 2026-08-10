@@ -338,12 +338,23 @@ const NON_GIT_MUTATING_ACTIONS = new Set([
 // A signal is a boolean by contract. `=== true` alone let `push: "yes"` and
 // `commitToMain: "yes"` through to PASS, because only forcePush had the malformed branch.
 // A malformed signal is ambiguous, and ambiguity about whether git is about to be mutated
-// costs one model call to resolve and a bypassed promotion gate to ignore.
+// costs one model call to resolve and a bypassed promotion gate to ignore. So `push: "yes"`,
+// `merge: "no"` and `tag: "v1.2.3"` all escalate: a signal key carrying prose is a request
+// this file cannot classify, whatever the prose says.
+//
+// `null` and `undefined` are the exception, and they are absence rather than ambiguity. An
+// orchestrator emitting a fixed request schema leaves its unused signal slots empty, and
+// charging a model call for every such read would be a self-inflicted version of the waste
+// this whole package exists to remove. The gates slot has the same carve-out for the same
+// reason.
 const carriesMutationIntent = (requested) =>
   MUTATION_SIGNALS.some((k) => requested[k] === true);
 
 const malformedMutationSignals = (requested) =>
-  MUTATION_SIGNALS.filter((k) => k in requested && typeof requested[k] !== "boolean");
+  MUTATION_SIGNALS.filter(
+    (k) => requested[k] !== null && requested[k] !== undefined
+      && typeof requested[k] !== "boolean",
+  );
 
 // null when the action says nothing either way (absent), true when it is known safe.
 const actionIsKnownSafe = (action) =>

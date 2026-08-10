@@ -233,7 +233,8 @@ test("checker: deleting a whole policy section is RED, not GREEN", async () => {
   const fixed = {
     skill: await readText(SKILL), agent: await readText(AGENT),
     readme: await readText(path.join(root, "README.md")),
-    guardGates: guard.ESCALATION_GATES, guardImportFailed: false,
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
   };
   assert.deepEqual(evaluate({ policy: base, ...fixed }), [], "the live package must be clean");
   // Deleted AND emptied. `projections: []` used to score GREEN and, because the README
@@ -252,10 +253,11 @@ test("checker: deleting a whole policy section is RED, not GREEN", async () => {
 
 test("checker: an unimportable guard is a finding, not two empty lists agreeing", async () => {
   const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard2 = await import(path.join(root, "tools", "token-guard.mjs"));
   const findings = evaluate({
     policy: await readJson(POLICY), skill: await readText(SKILL), agent: await readText(AGENT),
     readme: await readText(path.join(root, "README.md")),
-    guardGates: [], guardImportFailed: true,
+    guardGates: [], guardCheckIds: guard2.DETERMINISTIC_CHECK_IDS, guardImportFailed: true,
   });
   assert.ok(findings.some((f) => f.id === "guard-unimportable"));
 });
@@ -340,7 +342,8 @@ test("checker: a governor with a forbidden tool in any YAML spelling is RED", as
   const fixed = {
     policy: await readJson(POLICY), skill: await readText(SKILL),
     readme: await readText(path.join(root, "README.md")),
-    guardGates: guard.ESCALATION_GATES, guardImportFailed: false,
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
   };
   const cases = [
     ["tools: [Read, Bash]", "agent-tools-unreadable"],
@@ -473,4 +476,55 @@ test("checker: evaluate is pure — an injected README is the one that is checke
   });
   assert.ok(findings.some((f) => f.id === "projection-anchor-missing"),
     "the injected README was ignored in favour of the one on disk");
+});
+
+test("checker: an absent guard export is a finding, not a skipped check", async () => {
+  // The tie between declared and implemented checks used to be skipped silently when the export
+  // was missing, so deleting it disabled the comparison it exists for.
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const findings = evaluate({
+    policy: await readJson(POLICY), skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: undefined, guardImportFailed: false,
+  });
+  assert.ok(findings.some((f) => f.id === "guard-check-ids-unavailable"));
+});
+
+test("checker: thinning a section to one member is RED, not only deleting it", async () => {
+  // Presence was checked at depth one, so seven quality floors could become one and score GREEN.
+  // Two floors were named by neither the checker nor any test, so deleting them was invisible.
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const base = await readJson(POLICY);
+  const fixed = {
+    skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  };
+  const thin = [
+    ["qualityFloors", (p) => { p.qualityFloors = { note: "x", mayDropSecurityTest: false }; }],
+    ["a single named floor", (p) => { delete p.qualityFloors.mayReuseReviewAcrossSnapshots; }],
+    ["the other named floor", (p) => { delete p.qualityFloors.mayRunTwoWritersOnOneChangePackage; }],
+    ["modelRouting", (p) => { p.modelRouting = { haiku: p.modelRouting.haiku }; }],
+    ["projections", (p) => { p.projections = ["README.md#token-economy"]; }],
+  ];
+  for (const [label, mutate] of thin) {
+    const mutated = JSON.parse(JSON.stringify(base));
+    mutate(mutated);
+    assert.ok(evaluate({ policy: mutated, ...fixed }).length > 0, `thinning ${label} scored clean`);
+  }
+});
+
+test("checker: every injected projection body is the one that is checked", async () => {
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const findings = evaluate({
+    policy: await readJson(POLICY), skill: "# an empty skill", agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  });
+  assert.ok(findings.length > 0, "the injected skill was ignored in favour of the file on disk");
 });

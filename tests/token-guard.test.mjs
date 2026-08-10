@@ -374,7 +374,9 @@ test("decide: DENY outranks ESCALATE, so a settled negative never costs a model 
   assert.equal(r.decision, DENY);
 });
 
-test("decide: the declared escalation gates are the only ones that reach the model", () => {
+// Named for what it asserts. Exclusivity — that no finding carries a gate outside this list —
+// is covered separately by "every escalation reason is a declared gate".
+test("decide: every gate the contract promises is declared", () => {
   const gates = guard.ESCALATION_GATES;
   assert.ok(Array.isArray(gates) && gates.length > 0);
   for (const g of ["parallel-worker", "writer-assignment", "model-escalation",
@@ -629,5 +631,16 @@ test("economics: the ledger the policy names exists and is readable", () => {
   assert.ok(ledger !== null, "the policy names a ledger file that must exist");
   for (const field of ["invocations", "tokensSpent", "tokensSaved"]) {
     assert.equal(typeof ledger[field], "number", field);
+  }
+});
+
+test("an empty signal slot is absence, not ambiguity, and costs nothing", () => {
+  // An orchestrator emitting a fixed request schema leaves unused signal slots null. Charging a
+  // model call for each would be a self-inflicted version of the waste this package removes.
+  for (const extra of [{ rebase: null }, { push: null }, { commit: undefined },
+                       { forcePush: null }]) {
+    const r = guard.decide({ requested: { action: "edit", ...extra } });
+    assert.equal(r.decision, PASS, JSON.stringify(extra));
+    assert.equal(r.modelCallsRequired, 0);
   }
 });
