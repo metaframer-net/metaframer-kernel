@@ -248,10 +248,14 @@ test("checker: an unimportable guard is a finding, not two empty lists agreeing"
   assert.ok(findings.some((f) => f.id === "guard-unimportable"));
 });
 
-test("agent: cannot spawn further agents", async () => {
-  const text = await readText(AGENT);
-  const tools = /\ntools:\s*(.+)/.exec(text)[1];
-  assert.ok(!tools.includes("Agent"), "token-governor must not spawn agents");
+test("agent: cannot spawn further agents, under either tool spelling", async () => {
+  // The previous row used the very single-line regex the parser replaced, so a block list
+  // hid everything after the first entry from it.
+  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const tools = frontmatterTools(await readText(AGENT));
+  for (const spelling of ["Agent", "Task"]) {
+    assert.ok(!tools.includes(spelling), `token-governor must not hold ${spelling}`);
+  }
 });
 
 test("agent: states plainly that it advises and never commands", async () => {
@@ -279,4 +283,52 @@ test("agent: does not describe a per-wave loop", async () => {
   const text = (await readText(AGENT)).toLowerCase();
   assert.ok(!/before and after (every|each) wave/.test(text),
     "a per-wave governor is exactly the cost this package exists to avoid");
+});
+
+// -------------------------------------------------------------------------------------
+// Second-round regression rows
+// -------------------------------------------------------------------------------------
+
+test("frontmatterTools survives every YAML spelling of a tool list", async () => {
+  // Comma-splitting alone produced ["[Read", "Bash]"], which matched no forbidden name, so a
+  // governor holding Bash in a flow list scored clean.
+  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const doc = (tools) => `---\nname: x\n${tools}\nmodel: sonnet\n---\nbody`;
+  assert.deepEqual(frontmatterTools(doc("tools: [Read, Grep, Bash]")), ["Read", "Grep", "Bash"]);
+  assert.deepEqual(frontmatterTools(doc('tools: "Read, Bash"')), ["Read", "Bash"]);
+  assert.deepEqual(frontmatterTools(doc("tools: Read, Grep")), ["Read", "Grep"]);
+});
+
+test("frontmatterTools reports an empty tool list as unreadable, not as narrow", async () => {
+  // An absent or empty `tools` inherits every tool, so the widest possible grant must never
+  // be the one case that scores clean.
+  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  assert.equal(frontmatterTools("---\nname: x\ntools:\nmodel: sonnet\n---\nbody"), null);
+});
+
+test("checker: a governor with a forbidden tool in any YAML spelling is RED", async () => {
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const agent = await readText(AGENT);
+  const fixed = {
+    policy: await readJson(POLICY), skill: await readText(SKILL),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardImportFailed: false,
+  };
+  for (const spelling of ["tools: [Read, Bash]", 'tools: "Read, Bash"', "tools: Read, Task",
+                          "tools:"]) {
+    const mutated = agent.replace("tools: Read, Grep, Glob", spelling);
+    const findings = evaluate({ ...fixed, agent: mutated });
+    assert.ok(findings.length > 0, `${spelling} was scored clean`);
+  }
+});
+
+test("policy: the production caller it names is a command that exists", async () => {
+  // Replacing an honest silence with a specific false statement is worse than the silence.
+  const policy = await readJson(POLICY);
+  const caller = policy.governor.economics.productionCaller;
+  assert.match(caller, /token-guard\.mjs economics/);
+  const guardSource = await readText(path.join(root, "tools", "token-guard.mjs"));
+  assert.match(guardSource, /argv\[0\] === "economics"/);
+  assert.match(guardSource, /--ledger=/);
 });

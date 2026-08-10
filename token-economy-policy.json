@@ -9,7 +9,8 @@
   "projections": [
     ".claude/skills/metaframer-token-economy/SKILL.md",
     ".claude/agents/token-governor.md",
-    "README.md#token-economy"
+    "README.md#token-economy",
+    "token-economy-ledger.json"
   ],
   "purpose": "Remove token spend that buys nothing, and route what remains to the cheapest model that can carry it safely. Quality is not one of the levers. Every rule below either removes waste or moves work to a cheaper tier at equal safety; none of them removes a check.",
   "qualityFloors": {
@@ -107,7 +108,9 @@
         "tokensSaved"
       ],
       "note": "The governor is measured the way it measures everything else. Below the minimum invocation count there is not enough evidence to judge, so it stays on and says so; above it, a net cost switches its automatic invocation off. Switching it off never disables the deterministic gate, which was carrying most of the weight and costs nothing.",
-      "productionCaller": "tools/token-guard.mjs economics --ledger=<path>; thresholds are read from this policy, never from caller input"
+      "productionCaller": "node tools/token-guard.mjs economics --ledger=<path> (defaults to token-economy-ledger.json)",
+      "thresholdSource": "token-economy-policy.json#governor.economics, read by readPolicyEconomics; the CLI never takes thresholds from its caller",
+      "ledgerFile": "token-economy-ledger.json"
     }
   },
   "modelRoutingNote": "Escalation is driven by task risk and evidence need, never by cost alone and never automatically on failure. A tier is chosen because it is the cheapest one that can carry the decision safely.",
@@ -241,7 +244,7 @@
       "reviews (prior review verdicts)",
       "panels (open panel registry)"
     ],
-    "consequence": "A bare CLI run decides four of the nine checks and escalates the rest. Full nine-check coverage requires --facts from the orchestration layer.",
+    "consequence": "A bare CLI run decides four of the nine checks. The five orchestration-layer registries escalate when a request needs them, except completed-panel cleanup, which advises rather than escalating because a leaked panel is a cost report and not a blocking fact. Full nine-check coverage requires --facts from the orchestration layer.",
     "externalDependency": "readGuardian shells out to guardianctl, a machine-local binary that is not part of this repository. When it is absent the guardian check escalates rather than passing."
   }
 }

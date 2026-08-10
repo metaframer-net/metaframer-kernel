@@ -476,8 +476,9 @@ here; `fable` additionally requires a live identity check and is never assumed.
 guardian admission decision, so it decides four of the nine checks on its own. It cannot observe
 the session read log, the live worker registry, writer ownership, prior reviews or open panels —
 those live in the orchestration layer and must be supplied through `--facts`. When they are
-absent the gate escalates rather than passing, because an unobservable registry is not an empty
-one. `readGuardian` also shells out to `guardianctl`, a machine-local binary outside this
+absent the gate escalates rather than passing, because an unobservable registry is not an
+empty one — except completed-panel cleanup, which advises instead, since a leaked panel is a
+cost report rather than a blocking fact. `readGuardian` also shells out to `guardianctl`, a machine-local binary outside this
 repository; when it is missing the guardian check escalates.
 
 ```sh

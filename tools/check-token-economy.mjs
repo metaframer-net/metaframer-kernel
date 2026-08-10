@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,21 +48,38 @@ export function frontmatterTools(text) {
   if (!fm) return null;
   const line = /^tools:[ \t]*(.*)$/m.exec(fm[1]);
   if (!line) return null;
-  if (line[1].trim()) return line[1].split(",").map((s) => s.trim()).filter(Boolean);
+
+  const clean = (s) => s.trim().replace(/^["'\[]+|["'\]]+$/g, "").trim();
+
+  const inline = line[1].trim();
+  if (inline) {
+    // YAML writes the same list four ways: bare, bracketed flow, quoted scalar, and quoted
+    // items. Splitting on commas alone produced "[Read" and "Bash]", which matched no forbidden
+    // name, so the check scored a governor holding Bash as clean.
+    return inline.split(",").map(clean).filter(Boolean);
+  }
+
   const after = fm[1].slice(line.index + line[0].length);
   const items = [];
   for (const l of after.split("\n")) {
     const m = /^[ \t]+-[ \t]*(\S.*)$/.exec(l);
-    if (m) items.push(m[1].trim());
+    if (m) items.push(clean(m[1]));
     else if (l.trim()) break;
   }
-  return items;
+  // An empty allowlist is not a narrow one. Claude Code treats an absent or empty `tools` as
+  // "inherit everything", so the maximally privileged case must never read as the safest.
+  return items.length > 0 ? items : null;
 }
 
 // A governor that can run a shell can write, commit and push, whichever sentence its own prose
 // contains. `Bash` is on this list because "read-only auditor" has to mean something a checker
 // can verify, not something a paragraph asserts.
-const FORBIDDEN_GOVERNOR_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Agent", "Bash"];
+const FORBIDDEN_GOVERNOR_TOOLS = [
+  "Write", "Edit", "MultiEdit", "NotebookEdit", "Bash", "BashOutput",
+  // Both spellings. The subagent tool is `Task` in Claude Code and `Agent` in the SDK, and a
+  // list naming only one of them lets an auditor spawn auditors.
+  "Agent", "Task",
+];
 
 const REQUIRED_POLICY_SECTIONS = [
   "projections", "qualityFloors", "deterministicChecks", "modelRouting", "governor",
@@ -152,7 +169,9 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardImport
 
   const tools = frontmatterTools(agent);
   if (tools === null) {
-    add("agent-tools-unreadable", "the agent declares no readable tool allowlist");
+    add("agent-tools-unreadable",
+      "the agent declares no readable tool allowlist; an absent or empty allowlist inherits "
+      + "every tool, so it is the widest grant rather than the narrowest");
   } else {
     for (const forbidden of FORBIDDEN_GOVERNOR_TOOLS) {
       if (tools.includes(forbidden)) {
@@ -218,6 +237,6 @@ async function main() {
   return 1;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   process.exit(await main());
 }

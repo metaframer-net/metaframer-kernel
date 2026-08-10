@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -111,7 +111,11 @@ const covers = (prior, want) => {
 
 export function evaluateDuplicateFileRead({ requested = {}, alreadyRead } = {}) {
   if (!requested.path || !requested.sha256) return [];
-  if (!Array.isArray(alreadyRead)) return unobserved("read-log-unobserved", "the session read log");
+  if (!Array.isArray(alreadyRead)) {
+    // A registry the policy says is observable but is not is a policy anomaly, and that is a
+    // declared gate. An escalation reason outside ESCALATION_GATES routes to nothing.
+    return unobserved("read-log-unobserved", "the session read log", "policy-anomaly");
+  }
   const hit = alreadyRead.find(
     (r) => r.path === requested.path && r.sha256 === requested.sha256 && covers(r, requested),
   );
@@ -198,8 +202,11 @@ export function evaluateDirtySnapshot({ requested = {}, worktrees } = {}) {
 // 5. Branch and worktree collision
 // -------------------------------------------------------------------------------------
 
-export function evaluateBranchWorktreeCollision({ requested = {}, worktrees = [] } = {}) {
+export function evaluateBranchWorktreeCollision({ requested = {}, worktrees } = {}) {
   if (!requested.branch) return [];
+  if (!Array.isArray(worktrees)) {
+    return unobserved("worktrees-unobserved-branch", "the worktree set", "policy-anomaly");
+  }
   const elsewhere = worktrees.filter(
     (w) => w.branch === requested.branch && w.path !== requested.worktree,
   );
@@ -276,8 +283,17 @@ const MUTATION_SIGNALS = [
   "forcePush", "commitToMain", "commit", "push", "merge", "promote", "release", "tag", "rebase",
 ];
 
+// The same words, matched against the action VALUE. Checking only the keys left the obvious
+// case open: `{action: "merge"}` carries no signal key, is not one of the three recognised
+// promotion actions, and so passed — the very bypass the key check was added to close.
+const MUTATION_ACTION = new RegExp(
+  `^(${MUTATION_SIGNALS.join("|")}|force-push|git-\\w+)$`, "i");
+
+// Signals are boolean flags. Requiring `=== true` keeps incidental metadata — `tag: "v1.2.3"`
+// on a read, `merge: "no"` — from taxing an ordinary request with a model call.
 const carriesMutationIntent = (requested) =>
-  MUTATION_SIGNALS.some((k) => Boolean(requested[k]));
+  MUTATION_SIGNALS.some((k) => requested[k] === true)
+  || (typeof requested.action === "string" && MUTATION_ACTION.test(requested.action.trim()));
 
 const REQUIRED_GATES = [
   "correctWorktree", "cleanBase", "originFetched", "noConflict",
@@ -302,7 +318,11 @@ export function evaluatePromotionGate({ requested = {}, gates } = {}) {
   if (!named) {
     // An unnamed action that nevertheless carries mutation intent, or arrives with a gate report
     // attached, is a promotion in everything but its label. It escalates rather than passing.
-    if (carriesMutationIntent(requested) || gates !== undefined) {
+    // A gate report only implies a promotion when it actually carries gates. An empty or
+    // null slot attached uniformly by a caller must not buy a model call on every read.
+    const reportsGates =
+      gates !== null && typeof gates === "object" && Object.keys(gates).length > 0;
+    if (carriesMutationIntent(requested) || reportsGates) {
       out.push(finding("promotion-intent-unclassified", ESCALATE,
         `request carries mutation intent but action is ${JSON.stringify(requested.action)}; `
         + `promotion actions are ${[...PROMOTION_ACTIONS].join(", ")}`, "main-promotion"));
@@ -460,6 +480,25 @@ export function readWorktrees(repo = root) {
   return out;
 }
 
+// Thresholds come from the canonical policy, never from whoever called the CLI. A governor
+// that reads its own pass mark out of its caller's arguments is not measuring anything.
+export function readPolicyEconomics(repo = root) {
+  try {
+    const doc = JSON.parse(readFileSync(path.join(repo, "token-economy-policy.json"), "utf8"));
+    return doc.governor?.economics ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function readLedger(file) {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 export function readGuardian() {
   try {
     const raw = execFileSync("guardianctl", ["admission", "--json"], { encoding: "utf8" });
@@ -474,7 +513,10 @@ export function readGuardian() {
 export function readFacts(requested = {}, { repo = root } = {}) {
   return {
     requested,
-    worktrees: readWorktrees(repo) ?? [],
+    // null when git itself could not be read. Coercing to [] here reopened exactly the
+    // defect this file spends thirty lines forbidding, one registry short of the five it
+    // had just fixed.
+    worktrees: readWorktrees(repo),
     guardian: readGuardian(),
     // null, not []. This reader can see git; it cannot see the session read log, the live worker
     // registry, writer ownership, prior reviews or open panels — those live in the orchestration
@@ -490,7 +532,26 @@ export function readFacts(requested = {}, { repo = root } = {}) {
 // CLI
 // -------------------------------------------------------------------------------------
 
+function economicsCommand(argv) {
+  const arg = argv.find((a) => a.startsWith("--ledger="));
+  const file = arg ? arg.slice(9) : path.join(root, "token-economy-ledger.json");
+  const ledger = readLedger(file);
+  if (ledger === null) {
+    console.error(`token-guard economics: ledger not readable: ${file}`);
+    return 2;
+  }
+  const policy = readPolicyEconomics();
+  if (policy === null) {
+    console.error("token-guard economics: canonical policy thresholds not readable");
+    return 2;
+  }
+  const verdict = evaluateGovernorEconomics({ ledger, policy });
+  process.stdout.write(JSON.stringify({ ledgerFile: file, ...verdict }, null, 2) + "\n");
+  return verdict.autoInvocationEnabled ? 0 : 5;
+}
+
 function main(argv) {
+  if (argv[0] === "economics") return economicsCommand(argv.slice(1));
   const jsonArg = argv.find((a) => a.startsWith("--facts="));
   let facts;
   if (jsonArg) {
@@ -509,6 +570,6 @@ function main(argv) {
   return result.decision === DENY ? 3 : result.decision === ESCALATE ? 4 : 0;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   process.exit(main(process.argv.slice(2)));
 }

@@ -453,10 +453,20 @@ test("promotion: force push with NO action is still denied", () => {
   assert.ok(r.findings.some((f) => /force-push/.test(f.id)));
 });
 
-test("promotion: an unrecognised action carrying mutation intent escalates", () => {
-  for (const action of ["git-push", "promote", "merge", "release", "Push"]) {
-    const r = guard.decide({ requested: { action, push: true }, gates: {} });
+test("promotion: an unrecognised action escalates on its own, with no other signal", () => {
+  // Isolated deliberately. The earlier row supplied `gates: {}` and `push: true` alongside
+  // the action, either of which triggered the branch by itself, so it would have stayed
+  // green with the action check removed entirely — which is how the action-value bypass
+  // survived it.
+  for (const action of ["git-push", "promote", "merge", "release", "tag", "rebase", "force-push"]) {
+    const r = guard.decide({ requested: { action } });
     assert.notEqual(r.decision, PASS, `action ${action} passed silently`);
+  }
+});
+
+test("promotion: an ordinary action is not taxed by the mutation check", () => {
+  for (const action of ["read", "edit", "analyze", "review"]) {
+    assert.equal(guard.decide({ requested: { action } }).decision, PASS, action);
   }
 });
 
@@ -528,4 +538,75 @@ test("economics: a ledger with no invocation count disables automatic invocation
   });
   assert.equal(e.autoInvocationEnabled, false);
   assert.equal(e.deterministicGateEnabled, true);
+});
+
+// -------------------------------------------------------------------------------------
+// Second-round regression rows: defects the fix for the first round introduced or left.
+// -------------------------------------------------------------------------------------
+
+test("no token tax: an attached but empty gate slot does not escalate a read", () => {
+  // `gates !== undefined` made every caller that attaches a uniform gate slot pay for a
+  // model call on every request, which is the exact cost this package exists to remove.
+  for (const gates of [null, {}, undefined]) {
+    assert.equal(guard.decide({ requested: { action: "read" }, gates }).decision, PASS,
+      `gates=${JSON.stringify(gates)}`);
+  }
+});
+
+test("no token tax: incidental metadata is not read as mutation intent", () => {
+  for (const extra of [{ tag: "v1.2.3" }, { merge: "no" }, { release: "" }]) {
+    assert.equal(guard.decide({ requested: { action: "read", ...extra } }).decision, PASS,
+      JSON.stringify(extra));
+  }
+});
+
+test("a boolean mutation flag still escalates even under an ordinary action", () => {
+  assert.notEqual(guard.decide({ requested: { action: "read", commitToMain: true } }).decision,
+    PASS);
+});
+
+test("unobserved worktrees escalate the branch collision check", () => {
+  const findings = guard.evaluateBranchWorktreeCollision({ requested: { branch: "b" } });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].decision, ESCALATE);
+});
+
+test("readFacts reports unreadable worktrees as null rather than an empty set", () => {
+  const facts = guard.readFacts({ action: "read" }, { repo: "/nonexistent-repo-path" });
+  assert.equal(facts.worktrees, null);
+});
+
+test("every escalation reason is a declared gate", () => {
+  // An escalation reason outside ESCALATION_GATES routes to nothing: the governor is invoked
+  // for a gate it has no section for.
+  const cases = [
+    { requested: { path: "a", sha256: "x" } },
+    { requested: { branch: "b" } },
+    { requested: { taskSignature: "t" } },
+    { requested: { changePackage: "cp" } },
+    { requested: { useReviewFrom: "r" } },
+    { requested: { action: "merge" } },
+    { requested: { role: "reviewer", worktree: "/w" }, worktrees: [{ path: "/w", dirty: null }] },
+  ];
+  for (const facts of cases) {
+    for (const reason of guard.decide(facts).escalationReasons) {
+      assert.ok(guard.ESCALATION_GATES.includes(reason),
+        `undeclared escalation reason ${reason} for ${JSON.stringify(facts.requested)}`);
+    }
+  }
+});
+
+test("economics: thresholds come from the canonical policy, not from the caller", () => {
+  const fromPolicy = guard.readPolicyEconomics();
+  assert.ok(fromPolicy && typeof fromPolicy.minimumInvocations === "number",
+    "the canonical policy must supply the thresholds the CLI uses");
+  assert.equal(typeof fromPolicy.minimumNetSaving, "number");
+});
+
+test("economics: the ledger the policy names exists and is readable", () => {
+  const ledger = guard.readLedger(path.join(root, "token-economy-ledger.json"));
+  assert.ok(ledger !== null, "the policy names a ledger file that must exist");
+  for (const field of ["invocations", "tokensSpent", "tokensSaved"]) {
+    assert.equal(typeof ledger[field], "number", field);
+  }
 });

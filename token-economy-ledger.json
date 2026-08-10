@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "note": "Governor economics ledger. Read by `node tools/token-guard.mjs economics`; thresholds come from token-economy-policy.json#governor.economics, never from this file. A fresh ledger reports insufficient evidence and leaves automatic invocation on.",
+  "invocations": 0,
+  "tokensSpent": 0,
+  "tokensSaved": 0,
+  "updatedOn": "2026-08-10"
+}
