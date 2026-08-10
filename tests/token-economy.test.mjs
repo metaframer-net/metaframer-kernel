@@ -504,27 +504,51 @@ test("checker: thinning a section to one member is RED, not only deleting it", a
     guardImportFailed: false,
   };
   const thin = [
-    ["qualityFloors", (p) => { p.qualityFloors = { note: "x", mayDropSecurityTest: false }; }],
-    ["a single named floor", (p) => { delete p.qualityFloors.mayReuseReviewAcrossSnapshots; }],
-    ["the other named floor", (p) => { delete p.qualityFloors.mayRunTwoWritersOnOneChangePackage; }],
-    ["modelRouting", (p) => { p.modelRouting = { haiku: p.modelRouting.haiku }; }],
-    ["projections", (p) => { p.projections = ["README.md#token-economy"]; }],
+    ["qualityFloors", (p) => { p.qualityFloors = { note: "x", mayDropSecurityTest: false }; },
+      "quality-floor-missing"],
+    ["a single named floor", (p) => { delete p.qualityFloors.mayReuseReviewAcrossSnapshots; },
+      "quality-floor-missing"],
+    ["the other named floor", (p) => { delete p.qualityFloors.mayRunTwoWritersOnOneChangePackage; },
+      "quality-floor-missing"],
+    ["modelRouting", (p) => { p.modelRouting = { haiku: p.modelRouting.haiku }; },
+      "model-tier-missing"],
+    ["projections", (p) => { p.projections = ["README.md#token-economy"]; },
+      "projection-undeclared"],
   ];
-  for (const [label, mutate] of thin) {
+  // The id matters, not the count: a row satisfied by some unrelated finding proves nothing
+  // about the check it is named for.
+  for (const [label, mutate, expectedId] of thin) {
     const mutated = JSON.parse(JSON.stringify(base));
     mutate(mutated);
-    assert.ok(evaluate({ policy: mutated, ...fixed }).length > 0, `thinning ${label} scored clean`);
+    const findings = evaluate({ policy: mutated, ...fixed });
+    assert.ok(findings.some((f) => f.id === expectedId),
+      `thinning ${label} produced ${JSON.stringify(findings.map((f) => f.id))}, `
+      + `expected ${expectedId}`);
   }
 });
 
-test("checker: every injected projection body is the one that is checked", async () => {
+test("checker: an injected body is checked by the comparison that reads it", async () => {
+  // The previous version asserted only `findings.length > 0` and was satisfied entirely by
+  // model-route-drift, an unrelated pre-existing check — so it certified an injection path
+  // that was in fact unreachable. Each injected body is now asserted through the specific
+  // finding that reads it.
   const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
   const guard = await import(path.join(root, "tools", "token-guard.mjs"));
-  const findings = evaluate({
-    policy: await readJson(POLICY), skill: "# an empty skill", agent: await readText(AGENT),
+  const base = {
+    policy: await readJson(POLICY), skill: await readText(SKILL), agent: await readText(AGENT),
     readme: await readText(path.join(root, "README.md")),
     guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
     guardImportFailed: false,
-  });
-  assert.ok(findings.length > 0, "the injected skill was ignored in favour of the file on disk");
+  };
+  assert.deepEqual(evaluate(base), [], "the live package must be clean");
+
+  // skill -> model-route-drift
+  assert.ok(evaluate({ ...base, skill: "# an empty skill" })
+    .some((f) => f.id === "model-route-drift"));
+  // agent -> agent-gate-drift and the tool allowlist
+  assert.ok(evaluate({ ...base, agent: "---\nname: token-governor\ntools: Read\n---\nempty" })
+    .some((f) => f.id === "agent-gate-drift"));
+  // readme -> the anchor, which is the one projection body read in the anchor branch
+  assert.ok(evaluate({ ...base, readme: "# a README with no token economy section" })
+    .some((f) => f.id === "projection-anchor-missing"));
 });

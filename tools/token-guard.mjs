@@ -333,8 +333,6 @@ const NON_GIT_MUTATING_ACTIONS = new Set([
   "git-status", "git-log", "git-diff", "git-blame", "git-show", "fetch", "ls", "list",
 ]);
 
-// Signals are boolean flags. Requiring `=== true` keeps incidental metadata — `tag: "v1.2.3"`
-// on a read, `merge: "no"` — from taxing an ordinary request with a model call.
 // A signal is a boolean by contract. `=== true` alone let `push: "yes"` and
 // `commitToMain: "yes"` through to PASS, because only forcePush had the malformed branch.
 // A malformed signal is ambiguous, and ambiguity about whether git is about to be mutated

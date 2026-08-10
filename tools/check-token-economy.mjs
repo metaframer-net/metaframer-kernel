@@ -31,8 +31,6 @@ const POLICY = P("token-economy-policy.json");
 const SKILL = P(".claude", "skills", "metaframer-token-economy", "SKILL.md");
 const AGENT = P(".claude", "agents", "token-governor.md");
 const README = P("README.md");
-const SKILL_REL = ".claude/skills/metaframer-token-economy/SKILL.md";
-const AGENT_REL = ".claude/agents/token-governor.md";
 
 const readText = (f) => {
   try {
@@ -176,12 +174,14 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
     } else if (anchor) {
       // A declared projection that is never compared to anything is not a projection.
       const heading = anchor.replace(/-/g, "[ -]");
-      // Use the injected text rather than re-reading the file, so evaluate() stays pure and a
-      // test that supplies a mutated README is actually testing that README.
-      // Every injected body, not just the README, so a test that supplies a mutated
-      // projection is testing that projection rather than the file on disk.
-      const injected = { "README.md": readme, [SKILL_REL]: skill, [AGENT_REL]: agent };
-      const body = file in injected ? injected[file] : readText(P(...file.split("/")));
+      // README is the only projection declared with an anchor, so it is the only one whose
+      // body is read here. An earlier version built a map covering the skill and the agent
+      // too, inside this very branch — unreachable, because those two carry no anchor. Their
+      // content parity is not lost: the model-tier and escalation-gate comparisons below
+      // already read the injected `skill` and `agent`, which is where their content is
+      // actually checked. What a non-anchored projection gets here is existence, and saying
+      // otherwise was the claim, not the code.
+      const body = file === "README.md" ? readme : readText(P(...file.split("/")));
       if (!new RegExp(`^#{2,3}\\s+${heading}\\s*$`, "im").test(body ?? "")) {
         add("projection-anchor-missing", `${file} has no section matching #${anchor}`);
       }
