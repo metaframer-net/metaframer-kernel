@@ -59,6 +59,12 @@ export const CANONICAL_TOOLS_FORM = "tools: Name, Name, Name";
 export function frontmatterTools(text) {
   const fm = /^---\n([\s\S]*?)\n---/.exec(text ?? "");
   if (!fm) return null;
+  // Exactly one `tools:` line. Two of them parsed as the first and ignored the second, so an
+  // agent could declare a narrow allowlist and grant Bash on the next line. Which one a YAML
+  // loader honours — first, last, or an error — is precisely the guess this matcher exists to
+  // refuse to make.
+  const declarations = fm[1].match(/^tools:/gm) ?? [];
+  if (declarations.length !== 1) return null;
   const line = /^tools:(.*)$/m.exec(fm[1]);
   if (!line) return null;
 
@@ -85,7 +91,7 @@ const REQUIRED_POLICY_SECTIONS = [
   "projections", "qualityFloors", "deterministicChecks", "modelRouting", "governor",
 ];
 
-export function evaluate({ policy, skill, agent, readme, guardGates, guardImportFailed }) {
+export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckIds, guardImportFailed }) {
   const f = [];
   const add = (id, message) => f.push({ id, message });
 
@@ -112,6 +118,12 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardImport
   if (!policy.qualityFloors || Object.keys(policy.qualityFloors).length <= 1) {
     add("quality-floors-empty", "qualityFloors is absent or carries no floors");
   }
+  // The presence-first rule, applied to the fourth section too. An empty projections array
+  // scored GREEN and also silenced the README parity check that is guarded by it, so
+  // emptying one array disabled two families of comparison at once.
+  if (!Array.isArray(policy.projections) || policy.projections.length === 0) {
+    add("projections-empty", "projections is absent or empty");
+  }
 
   if (guardImportFailed) {
     add("guard-unimportable", "tools/token-guard.mjs could not be imported; gate parity is unverifiable");
@@ -130,7 +142,10 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardImport
     } else if (anchor) {
       // A declared projection that is never compared to anything is not a projection.
       const heading = anchor.replace(/-/g, "[ -]");
-      if (!new RegExp(`^#{2,3}\\s+${heading}\\s*$`, "im").test(readText(P(...file.split("/"))) ?? "")) {
+      // Use the injected text rather than re-reading the file, so evaluate() stays pure and a
+      // test that supplies a mutated README is actually testing that README.
+      const body = file === "README.md" ? readme : readText(P(...file.split("/")));
+      if (!new RegExp(`^#{2,3}\\s+${heading}\\s*$`, "im").test(body ?? "")) {
         add("projection-anchor-missing", `${file} has no section matching #${anchor}`);
       }
     }
@@ -154,7 +169,7 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardImport
     if (!new RegExp(`\\b${tier}\\b`, "i").test(skill)) {
       add("model-route-drift", `the skill omits the canonical model tier: ${tier}`);
     }
-    if (!new RegExp(`\\b${tier}\\b`, "i").test(readme) && policy.projections?.some((x) => x.startsWith("README"))) {
+    if (!new RegExp(`\\b${tier}\\b`, "i").test(readme)) {
       // The README section is a declared projection of the same table.
       add("readme-model-route-drift", `the README section omits the canonical model tier: ${tier}`);
     }
@@ -194,6 +209,18 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardImport
       add("deterministic-check-cost", `${c.id} declares a non-zero model token cost`);
     }
   }
+  // Tie the declared ids to the evaluators that exist. Without this, a policy listing one
+  // invented check scored GREEN while the guard ran nine, and nine could shrink to one
+  // without the policy noticing.
+  if (Array.isArray(guardCheckIds) && guardCheckIds.length > 0) {
+    const declared = new Set((policy.deterministicChecks ?? []).map((c) => c.id));
+    for (const id of guardCheckIds) {
+      if (!declared.has(id)) add("deterministic-check-undeclared", `the guard runs ${id}, the policy does not declare it`);
+    }
+    for (const id of declared) {
+      if (!guardCheckIds.includes(id)) add("deterministic-check-unimplemented", `the policy declares ${id}, no evaluator emits it`);
+    }
+  }
 
   // The reader cannot observe every registry the evaluators can judge. That limit has to be
   // written down where a reader of the package will meet it, or the package overclaims.
@@ -217,16 +244,19 @@ async function main() {
   } catch { /* reported as a finding */ }
 
   let guardGates = [];
+  let guardCheckIds = [];
   let guardImportFailed = false;
   try {
-    ({ ESCALATION_GATES: guardGates } = await import(P("tools", "token-guard.mjs")));
+    const mod = await import(P("tools", "token-guard.mjs"));
+    guardGates = mod.ESCALATION_GATES;
+    guardCheckIds = mod.DETERMINISTIC_CHECK_IDS;
   } catch {
     guardImportFailed = true;
   }
 
   const findings = evaluate({
     policy, skill: readText(SKILL), agent: readText(AGENT), readme: readText(README),
-    guardGates, guardImportFailed,
+    guardGates, guardCheckIds, guardImportFailed,
   });
 
   if (findings.length === 0) {

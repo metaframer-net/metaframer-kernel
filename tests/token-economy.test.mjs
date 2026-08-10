@@ -184,11 +184,16 @@ test("skill: model routing in the skill matches the canonical table", async () =
 // Agent projection
 // -------------------------------------------------------------------------------------
 
-test("agent: carries frontmatter with a name, description and an explicit tool allowlist", async () => {
+test("agent: carries frontmatter with a name, description and a canonical tool allowlist", async () => {
+  // `/\ntools:\s*\S/` matched a block list too, so it could not tell the canonical form from
+  // the forms the matcher refuses.
+  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
   const text = await readText(AGENT);
   assert.match(text, /^---\n/);
   assert.match(text, /\nname:\s*token-governor\n/);
-  assert.match(text, /\ntools:\s*\S/);
+  const tools = frontmatterTools(text);
+  assert.ok(Array.isArray(tools) && tools.length > 0,
+    "the agent must declare its allowlist in the canonical form");
 });
 
 test("agent: has no write tools and no shell — it is an auditor, not an author", async () => {
@@ -231,11 +236,17 @@ test("checker: deleting a whole policy section is RED, not GREEN", async () => {
     guardGates: guard.ESCALATION_GATES, guardImportFailed: false,
   };
   assert.deepEqual(evaluate({ policy: base, ...fixed }), [], "the live package must be clean");
+  // Deleted AND emptied. `projections: []` used to score GREEN and, because the README
+  // parity check was guarded by it, emptying that one array disabled two families of
+  // comparison at once.
   for (const section of ["qualityFloors", "deterministicChecks", "modelRouting", "projections"]) {
-    const mutated = JSON.parse(JSON.stringify(base));
-    delete mutated[section];
-    assert.ok(evaluate({ policy: mutated, ...fixed }).length > 0,
-      `deleting ${section} was not detected`);
+    for (const [how, mutate] of [["deleting", (p) => { delete p[section]; }],
+                                 ["emptying", (p) => { p[section] = Array.isArray(p[section]) ? [] : {}; }]]) {
+      const mutated = JSON.parse(JSON.stringify(base));
+      mutate(mutated);
+      assert.ok(evaluate({ policy: mutated, ...fixed }).length > 0,
+        `${how} ${section} was not detected`);
+    }
   }
 });
 
@@ -350,25 +361,47 @@ test("checker: a governor with a forbidden tool in any YAML spelling is RED", as
   }
 });
 
-test("policy: the production caller it names is a command that exists", async () => {
-  // Replacing an honest silence with a specific false statement is worse than the silence.
+test("policy: the production caller it names is a command that actually runs", async () => {
+  // Grepping the source for the string proved only that the string was there. Replacing an
+  // honest silence with a specific false statement is worse than the silence, so the command
+  // is executed.
+  const { execFileSync } = await import("node:child_process");
   const policy = await readJson(POLICY);
-  const caller = policy.governor.economics.productionCaller;
-  assert.match(caller, /token-guard\.mjs economics/);
-  const guardSource = await readText(path.join(root, "tools", "token-guard.mjs"));
-  assert.match(guardSource, /argv\[0\] === "economics"/);
-  assert.match(guardSource, /--ledger=/);
+  assert.match(policy.governor.economics.productionCaller, /token-guard\.mjs economics/);
+  const out = execFileSync(process.execPath,
+    [path.join(root, "tools", "token-guard.mjs"), "economics"], { encoding: "utf8" });
+  const verdict = JSON.parse(out);
+  assert.equal(typeof verdict.autoInvocationEnabled, "boolean");
+  assert.equal(verdict.deterministicGateEnabled, true);
+  assert.ok(verdict.ledgerFile.endsWith("token-economy-ledger.json"));
 });
 
-test("guard: every emitted gate is declared, and the declared list is not decoration", async () => {
+test("guard: GUARD_EMITTED_GATES is derived from what the evaluators actually emit", async () => {
+  // Previously this compared one hand-maintained list to another, so a gate that stopped
+  // being emitted stayed green. The set is now observed by driving facts through decide().
   const guard = await import(path.join(root, "tools", "token-guard.mjs"));
-  for (const gate of guard.GUARD_EMITTED_GATES) {
+  const shapes = [
+    { requested: { taskSignature: "t" } },
+    { requested: { changePackage: "cp" } },
+    { requested: { changePackage: "cp", sessionId: "s" }, activeWriters: [{ changePackage: "cp", sessionId: "x" }] },
+    { requested: { role: "reviewer", worktree: "/w" }, worktrees: [{ path: "/w", dirty: null }] },
+    { requested: { branch: "b" } },
+    { requested: { useReviewFrom: "r" } },
+    { requested: { path: "a", sha256: "x" } },
+    { requested: { opensWorker: true }, guardian: null },
+    { requested: { action: "main-promotion" } },
+    { requested: { action: "merge" } },
+  ];
+  const observed = new Set();
+  for (const facts of shapes) {
+    for (const f of guard.decide(facts).findings) if (f.gate) observed.add(f.gate);
+  }
+  assert.deepEqual([...observed].sort(), [...guard.GUARD_EMITTED_GATES].sort(),
+    "the declared emitted-gate set no longer matches what the evaluators produce");
+  for (const gate of observed) {
     assert.ok(guard.ESCALATION_GATES.includes(gate), `undeclared emitted gate: ${gate}`);
   }
-  // The remainder are entered by the MASTER rather than emitted here. Recording which is
-  // which is what keeps an unreachable gate from looking like an enforced one.
-  const masterEntered = guard.ESCALATION_GATES.filter(
-    (g) => !guard.GUARD_EMITTED_GATES.includes(g));
+  const masterEntered = guard.ESCALATION_GATES.filter((g) => !observed.has(g));
   assert.deepEqual(masterEntered.sort(), ["commit-push", "model-escalation"]);
 });
 
@@ -389,4 +422,55 @@ test("policy: what the checker does NOT compare is written down", async () => {
     assert.ok(cov.notCompared.includes(section),
       `${section} is unchecked and must be recorded as unchecked`);
   }
+});
+
+test("checker: a duplicate tools key is refused rather than read first-wins", async () => {
+  // A narrow allowlist on one line and Bash on the next scored GREEN. Which line a YAML
+  // loader honours is exactly the guess the canonical-form matcher exists to refuse.
+  const { evaluate, frontmatterTools } =
+    await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const agent = await readText(AGENT);
+  const mutated = agent.replace("tools: Read, Grep, Glob",
+    "tools: Read, Grep, Glob\ntools: Bash, Write, Task");
+  assert.equal(frontmatterTools(mutated), null);
+  const findings = evaluate({
+    policy: await readJson(POLICY), skill: await readText(SKILL), agent: mutated,
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  });
+  assert.ok(findings.some((f) => f.id === "agent-tools-unreadable"));
+});
+
+test("checker: the declared deterministic checks are the ones the guard implements", async () => {
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const fixed = {
+    skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  };
+  const base = await readJson(POLICY);
+  assert.deepEqual(evaluate({ policy: base, ...fixed }), []);
+  // A policy that declares one invented check used to score GREEN while the guard ran nine.
+  const invented = JSON.parse(JSON.stringify(base));
+  invented.deterministicChecks = [{ id: "not-a-real-check", modelTokens: 0 }];
+  const findings = evaluate({ policy: invented, ...fixed });
+  assert.ok(findings.some((f) => f.id === "deterministic-check-unimplemented"));
+  assert.ok(findings.some((f) => f.id === "deterministic-check-undeclared"));
+});
+
+test("checker: evaluate is pure — an injected README is the one that is checked", async () => {
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const findings = evaluate({
+    policy: await readJson(POLICY), skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: "# a README with no token economy section and no model tiers",
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  });
+  assert.ok(findings.some((f) => f.id === "projection-anchor-missing"),
+    "the injected README was ignored in favour of the one on disk");
 });

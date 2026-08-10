@@ -553,10 +553,31 @@ test("no token tax: an attached but empty gate slot does not escalate a read", (
   }
 });
 
-test("no token tax: incidental metadata is not read as mutation intent", () => {
-  for (const extra of [{ tag: "v1.2.3" }, { merge: "no" }, { release: "" }]) {
+test("a malformed mutation signal escalates rather than passing", () => {
+  // This row used to assert the opposite, and in doing so it protected the bypass: only
+  // forcePush had a malformed branch, so `push: "yes"` reached PASS with zero model calls
+  // while the suite reported the behaviour as intended. A signal is a boolean by contract,
+  // and ambiguity about whether git is about to be mutated is worth one model call.
+  for (const extra of [{ tag: "v1.2.3" }, { merge: "no" }, { push: "yes" },
+                       { commitToMain: "yes" }, { promote: 1 }, { release: "" }]) {
+    assert.notEqual(guard.decide({ requested: { action: "read", ...extra } }).decision, PASS,
+      JSON.stringify(extra));
+  }
+});
+
+test("no token tax: a request carrying no mutation signal is free", () => {
+  for (const extra of [{ note: "v1.2.3" }, { lens: "security" }, { model: "haiku" }]) {
     assert.equal(guard.decide({ requested: { action: "read", ...extra } }).decision, PASS,
       JSON.stringify(extra));
+  }
+});
+
+test("a promotion action survives case and whitespace", () => {
+  // `PROMOTION_ACTIONS.has` matched exactly while the safe-action check lowercased and
+  // trimmed, so "Push" was downgraded from the fifteen-gate DENY path to one ESCALATE.
+  for (const action of ["Push", "push ", " COMMIT", "Main-Promotion"]) {
+    const r = guard.decide({ requested: { action }, gates: { correctWorktree: false } });
+    assert.equal(r.decision, DENY, action);
   }
 });
 

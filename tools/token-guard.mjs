@@ -67,6 +67,14 @@ export const GUARD_EMITTED_GATES = [
   "parallel-worker", "writer-assignment", "snapshot-change", "main-promotion", "policy-anomaly",
 ];
 
+// The nine checks this file implements, named so the canonical policy cannot declare a set
+// that no evaluator runs, and no evaluator can quietly disappear from the declared set.
+export const DETERMINISTIC_CHECK_IDS = [
+  "duplicate-worker", "duplicate-file-read", "writer-ownership", "dirty-snapshot",
+  "branch-worktree-collision", "guardian-admission", "stale-review", "commit-push-gate",
+  "completed-panel-cleanup",
+];
+
 const finding = (id, decision, message, gate) => ({ id, decision, message, gate });
 
 const REVIEW_ROLES = new Set(["independent-reviewer", "reviewer", "auditor"]);
@@ -314,7 +322,10 @@ const MUTATION_SIGNALS = [
 // anything else escalates. An unrecognised action costs one model call and a one-line
 // addition here; an unrecognised action that passed cost a bypass of the only free gate on
 // main promotion, three review rounds running.
-const NON_MUTATING_ACTIONS = new Set([
+// Actions that mutate no git ref. `write` and `edit` change the worktree — that is what a
+// writer does — and the single-writer and dirty-snapshot checks cover them. What this set
+// governs is whether the promotion gate applies, so the name says git.
+const NON_GIT_MUTATING_ACTIONS = new Set([
   "read", "edit", "write", "analyze", "analyse", "review", "inventory", "search", "grep",
   "plan", "test", "check", "verify", "open-worker", "close-worker", "status", "report",
   // Read-only git verbs. Added the moment review showed them escalating: the allowlist is meant
@@ -324,14 +335,21 @@ const NON_MUTATING_ACTIONS = new Set([
 
 // Signals are boolean flags. Requiring `=== true` keeps incidental metadata — `tag: "v1.2.3"`
 // on a read, `merge: "no"` — from taxing an ordinary request with a model call.
+// A signal is a boolean by contract. `=== true` alone let `push: "yes"` and
+// `commitToMain: "yes"` through to PASS, because only forcePush had the malformed branch.
+// A malformed signal is ambiguous, and ambiguity about whether git is about to be mutated
+// costs one model call to resolve and a bypassed promotion gate to ignore.
 const carriesMutationIntent = (requested) =>
   MUTATION_SIGNALS.some((k) => requested[k] === true);
+
+const malformedMutationSignals = (requested) =>
+  MUTATION_SIGNALS.filter((k) => k in requested && typeof requested[k] !== "boolean");
 
 // null when the action says nothing either way (absent), true when it is known safe.
 const actionIsKnownSafe = (action) =>
   action === undefined || action === null
     ? null
-    : typeof action === "string" && NON_MUTATING_ACTIONS.has(action.trim().toLowerCase());
+    : typeof action === "string" && NON_GIT_MUTATING_ACTIONS.has(action.trim().toLowerCase());
 
 const REQUIRED_GATES = [
   "correctWorktree", "cleanBase", "originFetched", "noConflict",
@@ -353,13 +371,20 @@ export function evaluatePromotionGate({ requested = {}, gates } = {}) {
   if (requested.forcePush === true) {
     out.push(finding("force-push-forbidden", DENY,
       "force push is not within MASTER authority under any gate state", "main-promotion"));
-  } else if (requested.forcePush) {
-    out.push(finding("force-push-unclassified", ESCALATE,
-      `forcePush is ${JSON.stringify(requested.forcePush)} rather than a boolean`,
-      "main-promotion"));
   }
 
-  const named = PROMOTION_ACTIONS.has(requested.action);
+  // Every signal, not just forcePush. The previous asymmetry was the bypass.
+  for (const key of malformedMutationSignals(requested)) {
+    out.push(finding(`mutation-signal-unclassified:${key}`, ESCALATE,
+      `${key} is ${JSON.stringify(requested[key])} rather than a boolean`, "main-promotion"));
+  }
+
+  // Normalised the same way the safe-action check normalises, so `"Push"` and `"push "` reach
+  // the full fifteen-gate path instead of being downgraded to a single ESCALATE.
+  const action = typeof requested.action === "string"
+    ? requested.action.trim().toLowerCase()
+    : requested.action;
+  const named = PROMOTION_ACTIONS.has(action);
   if (!named) {
     // An unnamed action that nevertheless carries mutation intent, or arrives with a gate report
     // attached, is a promotion in everything but its label. It escalates rather than passing.
@@ -371,7 +396,7 @@ export function evaluatePromotionGate({ requested = {}, gates } = {}) {
     if (carriesMutationIntent(requested) || reportsGates || safe === false) {
       out.push(finding("promotion-intent-unclassified", ESCALATE,
         `action ${JSON.stringify(requested.action)} is neither a recognised promotion action `
-        + `nor on the non-mutating list; promotion actions are `
+        + `nor on the non-git-mutating list; promotion actions are `
         + `${[...PROMOTION_ACTIONS].join(", ")}`, "main-promotion"));
     }
     return out;
