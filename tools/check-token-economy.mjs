@@ -77,15 +77,16 @@ export function frontmatterTools(text) {
   return value.trim().split(",").map((s) => s.trim());
 }
 
-// A governor that can run a shell can write, commit and push, whichever sentence its own prose
-// contains. `Bash` is on this list because "read-only auditor" has to mean something a checker
-// can verify, not something a paragraph asserts.
-const FORBIDDEN_GOVERNOR_TOOLS = [
-  "Write", "Edit", "MultiEdit", "NotebookEdit", "Bash", "BashOutput",
-  // Both spellings. The subagent tool is `Task` in Claude Code and `Agent` in the SDK, and a
-  // list naming only one of them lets an auditor spawn auditors.
-  "Agent", "Task",
-];
+// What the governor MAY hold, not what it may not.
+//
+// This was a blacklist of eight names, which is the same reasoning this file rejects for YAML
+// forty lines above: a denial list is only as complete as the vocabulary its author happened
+// to think of. `SlashCommand`, `Skill`, `KillShell`, `WebFetch` and any write-capable
+// `mcp__*` tool all scored clean against it, and the tool surface grows without asking.
+//
+// An auditor needs to read files, search them and list them. Anything else is a finding,
+// including a tool that does not exist yet.
+const GOVERNOR_ALLOWED_TOOLS = ["Read", "Grep", "Glob"];
 
 const REQUIRED_POLICY_SECTIONS = [
   "projections", "qualityFloors", "deterministicChecks", "modelRouting", "governor",
@@ -101,6 +102,13 @@ const REQUIRED_QUALITY_FLOORS = [
   "mayReuseReviewAcrossSnapshots", "mayRunTwoWritersOnOneChangePackage",
 ];
 const REQUIRED_MODEL_TIERS = ["haiku", "sonnet", "fable", "opus"];
+
+// Tier keys were compared and tier bodies were not, so the routing table could be inverted —
+// "security-critical design, kernel invariants, adversarial review" moved from opus to haiku —
+// while every key was still present and the run stayed GREEN. The whole point of the table is
+// which work may go cheap, so that is what is asserted.
+const SENSITIVE_WORK = ["security", "kernel invariant", "adversarial", "final"];
+const CHEAP_TIERS = ["haiku", "sonnet"];
 const REQUIRED_PROJECTIONS = [
   ".claude/skills/metaframer-token-economy/SKILL.md",
   ".claude/agents/token-governor.md",
@@ -152,8 +160,40 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
     }
   }
   for (const tier of REQUIRED_MODEL_TIERS) {
-    if (policy.modelRouting?.[tier] === undefined) {
-      add("model-tier-missing", `a required model tier is no longer declared: ${tier}`);
+    const route = policy.modelRouting?.[tier];
+    // `!= null` rather than `!== undefined`: setting a tier to null left it "declared".
+    if (route == null || typeof route !== "object") {
+      add("model-tier-missing", `a required model tier is no longer usably declared: ${tier}`);
+      continue;
+    }
+    if (!Array.isArray(route.use) || route.use.length === 0) {
+      add("model-tier-empty", `${tier}.use is absent or empty`);
+    }
+    if (!Array.isArray(route.doNotUse) || route.doNotUse.length === 0) {
+      add("model-tier-empty", `${tier}.doNotUse is absent or empty`);
+    }
+  }
+  // The routing semantics themselves, not just the shape.
+  for (const tier of CHEAP_TIERS) {
+    const route = policy.modelRouting?.[tier];
+    if (!route) continue;
+    const offered = (route.use ?? []).join(" ").toLowerCase();
+    const barred = (route.doNotUse ?? []).join(" ").toLowerCase();
+    for (const work of SENSITIVE_WORK) {
+      if (offered.includes(work)) {
+        add("model-route-inverted", `${tier}.use offers ${work} work to a cheap tier`);
+      }
+      if (!barred.includes(work)) {
+        add("model-route-unbarred", `${tier}.doNotUse no longer bars ${work} work`);
+      }
+    }
+  }
+  {
+    const offered = (policy.modelRouting?.opus?.use ?? []).join(" ").toLowerCase();
+    for (const work of SENSITIVE_WORK) {
+      if (!offered.includes(work)) {
+        add("model-route-abandoned", `opus.use no longer claims ${work} work`);
+      }
     }
   }
 
@@ -188,6 +228,17 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
     }
   }
 
+  // Dropping a gate from the policy AND the guard together left both sides agreeing with each
+  // other about a smaller contract. The minimum is named here so agreement is not enough.
+  const REQUIRED_GATES = [
+    "parallel-worker", "writer-assignment", "model-escalation", "snapshot-change",
+    "commit-push", "main-promotion", "policy-anomaly",
+  ];
+  for (const gate of REQUIRED_GATES) {
+    if (!(policy.governor?.escalationGates ?? []).includes(gate)) {
+      add("escalation-gate-missing", `a required escalation gate is no longer declared: ${gate}`);
+    }
+  }
   const declared = [...(policy.governor?.escalationGates ?? [])].sort();
   const enforced = [...(guardGates ?? [])].sort();
   if (declared.length === 0) {
@@ -226,9 +277,10 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
       + "unrecognised form is treated as unreadable, and an absent or empty allowlist inherits "
       + "every tool, so it is the widest grant rather than the narrowest");
   } else {
-    for (const forbidden of FORBIDDEN_GOVERNOR_TOOLS) {
-      if (tools.includes(forbidden)) {
-        add("agent-tool-drift", `the governor holds a forbidden tool: ${forbidden}`);
+    for (const held of tools) {
+      if (!GOVERNOR_ALLOWED_TOOLS.includes(held)) {
+        add("agent-tool-drift",
+          `the governor holds ${held}, which is not one of ${GOVERNOR_ALLOWED_TOOLS.join(", ")}`);
       }
     }
   }
@@ -244,6 +296,14 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
   for (const c of policy.deterministicChecks ?? []) {
     if (c.modelTokens !== 0) {
       add("deterministic-check-cost", `${c.id} declares a non-zero model token cost`);
+    }
+    // Gutting every entry to {id, modelTokens} left the set "declared" while saying nothing
+    // about what any check decides or why it exists.
+    if (typeof c.decides !== "string" || c.decides.trim() === "") {
+      add("deterministic-check-hollow", `${c.id} declares no decision`);
+    }
+    if (typeof c.why !== "string" || c.why.trim().length < 20) {
+      add("deterministic-check-hollow", `${c.id} carries no rationale`);
     }
   }
   // Tie the declared ids to the evaluators that exist. Without this, a policy listing one

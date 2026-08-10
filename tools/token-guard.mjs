@@ -24,10 +24,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // DENY outranks ESCALATE for exactly that reason. A gate whose only outcomes are "fine" and "ask
 // the expensive thing" is not a gate; it is a toll booth.
 //
-// Fail-closed in the direction that costs tokens, not in the direction that spends them. A fact
-// that cannot be read produces ESCALATE — an unreadable fact is precisely when a human or a model
-// should look. It must never produce PASS, and it must never produce DENY either: refusing work
-// because a probe failed is how a guard becomes the outage it was meant to prevent.
+// Fail-closed in the direction that costs tokens, not in the direction that spends them. An
+// unreadable fact that a decision depends on produces ESCALATE — that is precisely when a
+// human or a model should look — and never DENY, because refusing work when a probe fails is
+// how a guard becomes the outage it was meant to prevent.
+//
+// One deliberate exception, stated because an earlier version of this paragraph claimed there
+// were none: an unobservable PANEL registry advises rather than escalating. A leaked panel is
+// a cost report, not a fact any decision turns on, so `readFacts` leaving `panels: null`
+// yields an ADVISE finding inside a PASS. Every other unobservable registry escalates.
 //
 // Structure follows the house pattern in `tools/check-versioning-changelog.mjs`: pure evaluators
 // over injected facts, then one reader that turns a real tree into those facts, then a CLI behind

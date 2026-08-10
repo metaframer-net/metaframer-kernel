@@ -545,10 +545,72 @@ test("checker: an injected body is checked by the comparison that reads it", asy
   // skill -> model-route-drift
   assert.ok(evaluate({ ...base, skill: "# an empty skill" })
     .some((f) => f.id === "model-route-drift"));
-  // agent -> agent-gate-drift and the tool allowlist
+  // agent -> agent-gate-drift (the allowlist has its own rows)
   assert.ok(evaluate({ ...base, agent: "---\nname: token-governor\ntools: Read\n---\nempty" })
     .some((f) => f.id === "agent-gate-drift"));
   // readme -> the anchor, which is the one projection body read in the anchor branch
   assert.ok(evaluate({ ...base, readme: "# a README with no token economy section" })
     .some((f) => f.id === "projection-anchor-missing"));
+});
+
+test("checker: the governor tool allowlist is an allowlist, not a denial list", async () => {
+  // It was a list of eight forbidden names — the same reasoning this package rejects for YAML.
+  // A denial list is only as complete as the vocabulary its author thought of, and the tool
+  // surface grows without asking: SlashCommand, Skill, KillShell, WebFetch and any write-capable
+  // mcp__* tool all scored clean against it.
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const agent = await readText(AGENT);
+  const base = {
+    policy: await readJson(POLICY), skill: await readText(SKILL),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  };
+  assert.deepEqual(evaluate({ ...base, agent }), []);
+  for (const tool of ["Bash", "Task", "Agent", "Write", "Edit", "SlashCommand", "Skill",
+                      "KillShell", "WebFetch", "mcp__anything__write_file", "bash"]) {
+    const mutated = agent.replace("tools: Read, Grep, Glob", `tools: Read, Grep, Glob, ${tool}`);
+    assert.ok(evaluate({ ...base, agent: mutated }).some((f) => f.id === "agent-tool-drift"),
+      `${tool} was granted to the governor without a finding`);
+  }
+});
+
+test("checker: the model routing table cannot be inverted from the policy file alone", async () => {
+  // Only tier KEYS were compared, so moving "security-critical design, kernel invariants,
+  // adversarial review" from opus to haiku left every key present and the run GREEN. The table
+  // exists to say which work may go cheap, so that is what is asserted.
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const base = {
+    skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  };
+  const policy = await readJson(POLICY);
+  const relaxations = [
+    ["a tier set to null", (p) => { p.modelRouting.opus = null; }, "model-tier-missing"],
+    ["opus work moved to haiku", (p) => {
+      p.modelRouting.haiku.use = p.modelRouting.opus.use;
+      p.modelRouting.opus.use = ["inventory"];
+    }, "model-route-inverted"],
+    ["a cheap tier's bar removed", (p) => { p.modelRouting.haiku.doNotUse = ["nothing"]; },
+      "model-route-unbarred"],
+    ["opus abandoning security work", (p) => { p.modelRouting.opus.use = ["inventory"]; },
+      "model-route-abandoned"],
+    ["hollowed deterministic checks", (p) => {
+      p.deterministicChecks = p.deterministicChecks.map((c) => ({ id: c.id, modelTokens: 0 }));
+    }, "deterministic-check-hollow"],
+    ["a dropped escalation gate", (p) => {
+      p.governor.escalationGates = p.governor.escalationGates.filter((g) => g !== "main-promotion");
+    }, "escalation-gate-missing"],
+  ];
+  for (const [label, mutate, expectedId] of relaxations) {
+    const mutated = JSON.parse(JSON.stringify(policy));
+    mutate(mutated);
+    const findings = evaluate({ ...base, policy: mutated });
+    assert.ok(findings.some((f) => f.id === expectedId),
+      `${label} produced ${JSON.stringify(findings.map((f) => f.id))}, expected ${expectedId}`);
+  }
 });

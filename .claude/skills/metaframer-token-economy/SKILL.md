@@ -83,7 +83,7 @@ failure.
 
 | Tier | Use for | Never for |
 |---|---|---|
-| **haiku** | inventory, narrow deterministic classification, format/parity checks, repeated mechanical read-only checks, short log summarisation | security decisions, architectural decisions, unknown-unknown analysis, final acceptance |
+| **haiku** | inventory, narrow deterministic classification, format/parity checks, repeated mechanical read-only checks, short log summarisation | security decisions, architectural decisions, kernel invariant decisions, adversarial review, unknown-unknown analysis, final acceptance |
 | **sonnet** | well-bounded routine implementation, test authoring, small fixes with an existing canonical pattern, documentation projection, targeted regression work | adversarial security review, kernel invariant design, final acceptance |
 | **fable** | requirements analysis, product and architecture synthesis, phase and dependency design, scope and gap review, security + AI-first + human-input independent review | any run where the model identity has not been verified live |
 | **opus** | security-critical design, kernel invariants, adversarial review, unknown-unknown investigation, architectural contradiction resolution, final independent acceptance, anything a lower tier has failed twice | mechanical inventory a cheaper tier resolves identically |

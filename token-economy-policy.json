@@ -127,6 +127,8 @@
       "doNotUse": [
         "any security decision or security review",
         "any architectural or architect-level contract decision",
+        "any kernel invariant decision",
+        "adversarial review",
         "unknown-unknown analysis",
         "final acceptance or final verdict"
       ]
