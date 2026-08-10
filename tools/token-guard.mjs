@@ -44,6 +44,13 @@ const ADVISE = "ADVISE";
 
 // The only situations that may reach a language model. Anything not on this list is either
 // settled by an evaluator below or is not the governor's business.
+//
+// Two of these are entered by the MASTER directly rather than emitted by an evaluator here:
+// `model-escalation` (no fact decides whether a task needs a larger model) and `commit-push`
+// (a commit or push is classified by the promotion gate under `main-promotion`). They are
+// listed because they are legitimate reasons to spend model tokens, and GUARD_EMITTED_GATES
+// below records which subset this file can actually produce, so neither list can quietly
+// become decoration.
 export const ESCALATION_GATES = [
   "parallel-worker",
   "writer-assignment",
@@ -52,6 +59,12 @@ export const ESCALATION_GATES = [
   "commit-push",
   "main-promotion",
   "policy-anomaly",
+];
+
+// The subset an evaluator in this file can emit. Asserted against ESCALATION_GATES by the
+// suite so that a gate can be master-entered on purpose but never unreachable by accident.
+export const GUARD_EMITTED_GATES = [
+  "parallel-worker", "writer-assignment", "snapshot-change", "main-promotion", "policy-anomaly",
 ];
 
 const finding = (id, decision, message, gate) => ({ id, decision, message, gate });
@@ -261,6 +274,13 @@ export function evaluateStaleReview({ requested = {}, reviews, currentSnapshot }
     return [finding("stale-review-unknown", ESCALATE,
       `review ${requested.useReviewFrom} was not found`, "snapshot-change")];
   }
+  // Both absent used to compare equal, so a review with no recorded snapshot against a repo
+  // whose HEAD could not be read reported "still valid". Two unknowns are not a match.
+  if (typeof review.snapshot !== "string" || typeof currentSnapshot !== "string") {
+    return [finding("stale-review-unverifiable", ESCALATE,
+      `review ${review.id} cannot be checked: snapshot=${JSON.stringify(review.snapshot)}, `
+      + `current=${JSON.stringify(currentSnapshot)}`, "snapshot-change")];
+  }
   if (review.snapshot === currentSnapshot) return [];
   return [finding(
     "stale-review", DENY,
@@ -283,17 +303,35 @@ const MUTATION_SIGNALS = [
   "forcePush", "commitToMain", "commit", "push", "merge", "promote", "release", "tag", "rebase",
 ];
 
-// The same words, matched against the action VALUE. Checking only the keys left the obvious
-// case open: `{action: "merge"}` carries no signal key, is not one of the three recognised
-// promotion actions, and so passed — the very bypass the key check was added to close.
-const MUTATION_ACTION = new RegExp(
-  `^(${MUTATION_SIGNALS.join("|")}|force-push|git-\\w+)$`, "i");
+// Classification by allowlist, not by blacklist.
+//
+// A pattern over mutation words under-matched `push --force`, `cherry-pick`, `reset --hard`
+// and `git_merge`, and over-matched `git-status` and `git-log` into a model call apiece. Both
+// directions are inherent to guessing from a word list: a blacklist is only as good as the
+// vocabulary its author happened to think of, and this one gates main promotion.
+//
+// So actions known to mutate nothing are enumerated, promotion actions are enumerated, and
+// anything else escalates. An unrecognised action costs one model call and a one-line
+// addition here; an unrecognised action that passed cost a bypass of the only free gate on
+// main promotion, three review rounds running.
+const NON_MUTATING_ACTIONS = new Set([
+  "read", "edit", "write", "analyze", "analyse", "review", "inventory", "search", "grep",
+  "plan", "test", "check", "verify", "open-worker", "close-worker", "status", "report",
+  // Read-only git verbs. Added the moment review showed them escalating: the allowlist is meant
+  // to grow by one line per genuinely safe action, which is the cost of refusing to guess.
+  "git-status", "git-log", "git-diff", "git-blame", "git-show", "fetch", "ls", "list",
+]);
 
 // Signals are boolean flags. Requiring `=== true` keeps incidental metadata — `tag: "v1.2.3"`
 // on a read, `merge: "no"` — from taxing an ordinary request with a model call.
 const carriesMutationIntent = (requested) =>
-  MUTATION_SIGNALS.some((k) => requested[k] === true)
-  || (typeof requested.action === "string" && MUTATION_ACTION.test(requested.action.trim()));
+  MUTATION_SIGNALS.some((k) => requested[k] === true);
+
+// null when the action says nothing either way (absent), true when it is known safe.
+const actionIsKnownSafe = (action) =>
+  action === undefined || action === null
+    ? null
+    : typeof action === "string" && NON_MUTATING_ACTIONS.has(action.trim().toLowerCase());
 
 const REQUIRED_GATES = [
   "correctWorktree", "cleanBase", "originFetched", "noConflict",
@@ -309,9 +347,16 @@ export function evaluatePromotionGate({ requested = {}, gates } = {}) {
   // Checked before anything else and outside every action guard. Nothing on the gate list can
   // make a force push acceptable, and a check that only runs when the caller names the action
   // correctly is a check the caller can switch off by choosing a different word.
-  if (requested.forcePush) {
+  // `=== true` for the denial, and anything else truthy escalates rather than denying. The
+  // same string metadata that must not tax a read (`tag: "v1.2.3"`) must not hard-deny one
+  // either, and the two branches previously disagreed about that.
+  if (requested.forcePush === true) {
     out.push(finding("force-push-forbidden", DENY,
       "force push is not within MASTER authority under any gate state", "main-promotion"));
+  } else if (requested.forcePush) {
+    out.push(finding("force-push-unclassified", ESCALATE,
+      `forcePush is ${JSON.stringify(requested.forcePush)} rather than a boolean`,
+      "main-promotion"));
   }
 
   const named = PROMOTION_ACTIONS.has(requested.action);
@@ -322,10 +367,12 @@ export function evaluatePromotionGate({ requested = {}, gates } = {}) {
     // null slot attached uniformly by a caller must not buy a model call on every read.
     const reportsGates =
       gates !== null && typeof gates === "object" && Object.keys(gates).length > 0;
-    if (carriesMutationIntent(requested) || reportsGates) {
+    const safe = actionIsKnownSafe(requested.action);
+    if (carriesMutationIntent(requested) || reportsGates || safe === false) {
       out.push(finding("promotion-intent-unclassified", ESCALATE,
-        `request carries mutation intent but action is ${JSON.stringify(requested.action)}; `
-        + `promotion actions are ${[...PROMOTION_ACTIONS].join(", ")}`, "main-promotion"));
+        `action ${JSON.stringify(requested.action)} is neither a recognised promotion action `
+        + `nor on the non-mutating list; promotion actions are `
+        + `${[...PROMOTION_ACTIONS].join(", ")}`, "main-promotion"));
     }
     return out;
   }

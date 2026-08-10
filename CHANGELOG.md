@@ -16,13 +16,25 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
-- The token economy governance package: `token-economy-policy.json` as the canonical owner of
-  every token-economy rule, threshold, model route and escalation gate, with
-  `tools/token-guard.mjs` as a deterministic zero-model-cost gate over nine process invariants,
-  `.claude/skills/metaframer-token-economy/SKILL.md` and `.claude/agents/token-governor.md` as
-  its projections, and `tools/check-token-economy.mjs` asserting canonical-to-projection parity
-  in one direction. The governor is event-driven rather than per-wave and disables its own
-  automatic invocation when its ledger goes net-negative; the deterministic gate is unaffected.
+- The token economy governance package. `token-economy-policy.json` is the canonical owner of
+  every token-economy rule, threshold, model route and escalation gate; the skill at
+  `.claude/skills/metaframer-token-economy/SKILL.md`, the agent at
+  `.claude/agents/token-governor.md` and the README token-economy section are its projections,
+  and `tools/check-token-economy.mjs` asserts parity in one direction only. What that checker
+  does not compare is recorded in the policy under `checkerCoverage` rather than left implied.
+  `token-economy-ledger.json` is operational state and deliberately not a projection, since the
+  economics command reads it back as a source.
+- `tools/token-guard.mjs`, a deterministic gate that decides nine process invariants from facts
+  at zero model cost and reports PASS, DENY or ESCALATE. A bare run observes git and the
+  guardian admission decision and settles four of the nine; the five orchestration-layer
+  registries are reported as unobserved and escalate rather than passing, because an
+  unobservable registry is not an empty one. `node tools/token-guard.mjs economics
+  --ledger=<path>` computes the governor net contribution from thresholds read out of the
+  canonical policy rather than from its caller.
+- The `token-governor` agent is event-driven rather than per-wave, holds a read-only tool
+  allowlist the checker enforces against a single canonical spelling, and receives the gate
+  verdict rather than running it. A net-negative ledger produces exit 5; acting on that verdict
+  belongs to an orchestration layer that is not implemented here.
 - The PostgreSQL runtime substrate (stage S1) under `db/metaframer_kernel_db`, with its declared
   contract in `db/kernel-runtime-substrate-s1.json`: a single Alembic baseline, the
   `transactional_outbox` and `audit_log` tables under both ENABLE and FORCE row-level security, a

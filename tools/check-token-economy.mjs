@@ -40,35 +40,35 @@ const readText = (f) => {
   }
 };
 
-// Tools may be written inline (`tools: Read, Grep`) or as a YAML block list. A regex that reads
-// only the first line sees `Read` and misses everything under it, which is how a forbidden tool
-// hides in plain sight.
+// One canonical spelling, and everything else is unreadable.
+//
+// Three rounds of review found three different YAML spellings that slipped a forbidden tool
+// past a hand-written parser: bracketed flow lists, quoted scalars, block scalars (`>` and
+// `|`), trailing comments, and an empty list. Each fix closed the spelling in front of it and
+// left the next one open, because recognising every YAML dialect correctly is a much harder
+// problem than the check needs to solve.
+//
+// So the contract inverts. Exactly one form is accepted — `tools: Name, Name, Name`, bare
+// identifiers, comma-separated, nothing else on the line — and every other form returns null,
+// which is a finding. A parser that must understand YAML to be safe can be wrong in the
+// direction that grants a tool. A matcher that accepts one shape can only be wrong in the
+// direction that reports RED, and a false RED costs a sentence in a review rather than a
+// shell in an auditor.
+export const CANONICAL_TOOLS_FORM = "tools: Name, Name, Name";
+
 export function frontmatterTools(text) {
   const fm = /^---\n([\s\S]*?)\n---/.exec(text ?? "");
   if (!fm) return null;
-  const line = /^tools:[ \t]*(.*)$/m.exec(fm[1]);
+  const line = /^tools:(.*)$/m.exec(fm[1]);
   if (!line) return null;
 
-  const clean = (s) => s.trim().replace(/^["'\[]+|["'\]]+$/g, "").trim();
-
-  const inline = line[1].trim();
-  if (inline) {
-    // YAML writes the same list four ways: bare, bracketed flow, quoted scalar, and quoted
-    // items. Splitting on commas alone produced "[Read" and "Bash]", which matched no forbidden
-    // name, so the check scored a governor holding Bash as clean.
-    return inline.split(",").map(clean).filter(Boolean);
-  }
-
-  const after = fm[1].slice(line.index + line[0].length);
-  const items = [];
-  for (const l of after.split("\n")) {
-    const m = /^[ \t]+-[ \t]*(\S.*)$/.exec(l);
-    if (m) items.push(clean(m[1]));
-    else if (l.trim()) break;
-  }
-  // An empty allowlist is not a narrow one. Claude Code treats an absent or empty `tools` as
-  // "inherit everything", so the maximally privileged case must never read as the safest.
-  return items.length > 0 ? items : null;
+  // Bare identifiers only. Any bracket, quote, comment, block-scalar indicator or continuation
+  // means this is not the canonical form, and an unrecognised form is unreadable rather than
+  // empty. `tools:` with nothing after it lands here too: an absent allowlist inherits every
+  // tool, so it is the widest grant and must never read as the narrowest.
+  const value = line[1];
+  if (!/^ [A-Za-z][A-Za-z0-9_-]*(, [A-Za-z][A-Za-z0-9_-]*)*$/.test(value)) return null;
+  return value.trim().split(",").map((s) => s.trim());
 }
 
 // A governor that can run a shell can write, commit and push, whichever sentence its own prose
@@ -170,7 +170,8 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardImport
   const tools = frontmatterTools(agent);
   if (tools === null) {
     add("agent-tools-unreadable",
-      "the agent declares no readable tool allowlist; an absent or empty allowlist inherits "
+      `the agent's tool allowlist is not in the canonical form "${CANONICAL_TOOLS_FORM}". An `
+      + "unrecognised form is treated as unreadable, and an absent or empty allowlist inherits "
       + "every tool, so it is the widest grant rather than the narrowest");
   } else {
     for (const forbidden of FORBIDDEN_GOVERNOR_TOOLS) {

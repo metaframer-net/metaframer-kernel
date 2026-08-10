@@ -6,8 +6,13 @@ description: Remove token spend that buys nothing and route the rest to the chea
 # MetaFramer token economy
 
 This file is a **projection** of `token-economy-policy.json`, which is the canonical owner of
-every rule, threshold, model route and escalation gate below. If the two disagree, the policy is
-right and this file has drifted; `tools/check-token-economy.mjs` reports which one moved.
+every rule, threshold, model route and escalation gate below. If the two disagree, the policy
+is right and this file has drifted.
+
+`tools/check-token-economy.mjs` catches that drift for the model routing tiers, the escalation
+gates, the per-wave rule and the governor tool allowlist. It does **not** compare the packaging,
+evidence-reporting or parallelism sections below — see `checkerCoverage` in the policy. Those
+are prose, and prose is caught by review or not at all.
 
 The point is not to spend less. It is to stop paying for things that buy nothing, and to move the
 rest to the cheapest tier that can carry it safely. Quality is not one of the levers.

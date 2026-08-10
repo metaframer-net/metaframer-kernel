@@ -9,8 +9,7 @@
   "projections": [
     ".claude/skills/metaframer-token-economy/SKILL.md",
     ".claude/agents/token-governor.md",
-    "README.md#token-economy",
-    "token-economy-ledger.json"
+    "README.md#token-economy"
   ],
   "purpose": "Remove token spend that buys nothing, and route what remains to the cheapest model that can carry it safely. Quality is not one of the levers. Every rule below either removes waste or moves work to a cheaper tier at equal safety; none of them removes a check.",
   "qualityFloors": {
@@ -110,7 +109,9 @@
       "note": "The governor is measured the way it measures everything else. Below the minimum invocation count there is not enough evidence to judge, so it stays on and says so; above it, a net cost switches its automatic invocation off. Switching it off never disables the deterministic gate, which was carrying most of the weight and costs nothing.",
       "productionCaller": "node tools/token-guard.mjs economics --ledger=<path> (defaults to token-economy-ledger.json)",
       "thresholdSource": "token-economy-policy.json#governor.economics, read by readPolicyEconomics; the CLI never takes thresholds from its caller",
-      "ledgerFile": "token-economy-ledger.json"
+      "ledgerFile": "token-economy-ledger.json",
+      "ledgerFileIsNotAProjection": "token-economy-ledger.json is mutable operational state read back as a source by the economics command. Listing it under projections contradicted this file's own rule that a projection is never read back as a source, so it lives here and only here.",
+      "switchIsAdvisory": "This repository computes the verdict and exits 5. Acting on it — actually suspending automatic invocation — belongs to the orchestration layer and is not implemented here."
     }
   },
   "modelRoutingNote": "Escalation is driven by task risk and evidence need, never by cost alone and never automatically on failure. A tier is chosen because it is the cheapest one that can carry the decision safely.",
@@ -246,5 +247,25 @@
     ],
     "consequence": "A bare CLI run decides four of the nine checks. The five orchestration-layer registries escalate when a request needs them, except completed-panel cleanup, which advises rather than escalating because a leaked panel is a cost report and not a blocking fact. Full nine-check coverage requires --facts from the orchestration layer.",
     "externalDependency": "readGuardian shells out to guardianctl, a machine-local binary that is not part of this repository. When it is absent the guardian check escalates rather than passing."
+  },
+  "checkerCoverage": {
+    "note": "What check-token-economy.mjs compares, stated so the skill does not imply more.",
+    "compared": [
+      "model routing tiers",
+      "escalation gates against the guard's exported constant",
+      "per-wave language",
+      "the governor tool allowlist",
+      "quality floor values",
+      "deterministic check model cost",
+      "declared projection existence and anchors",
+      "reader observability declaration"
+    ],
+    "notCompared": [
+      "workerPackaging",
+      "resultReporting",
+      "parallelism",
+      "the prose bodies of the skill and agent"
+    ],
+    "consequence": "Drift inside an uncompared section is invisible to the checker and is caught, if at all, by review."
   }
 }

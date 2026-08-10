@@ -202,12 +202,13 @@ test("agent: has no write tools and no shell — it is an auditor, not an author
   }
 });
 
-test("frontmatterTools reads a multi-line YAML list, not just the first line", async () => {
-  // A single-line regex sees "Read" and misses everything under it, which is where a
-  // forbidden tool hides in plain sight.
-  const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
-  const doc = "---\nname: x\ntools:\n  - Read\n  - Bash\nmodel: sonnet\n---\nbody";
-  assert.deepEqual(frontmatterTools(doc), ["Read", "Bash"]);
+test("frontmatterTools accepts exactly one canonical form", async () => {
+  const { frontmatterTools, CANONICAL_TOOLS_FORM } =
+    await import(path.join(root, "tools", "check-token-economy.mjs"));
+  assert.equal(CANONICAL_TOOLS_FORM, "tools: Name, Name, Name");
+  const doc = (tools) => `---\nname: x\n${tools}\nmodel: sonnet\n---\nbody`;
+  assert.deepEqual(frontmatterTools(doc("tools: Read, Grep, Glob")), ["Read", "Grep", "Glob"]);
+  assert.deepEqual(frontmatterTools(doc("tools: Read")), ["Read"]);
 });
 
 test("policy: the reader observability limit is recorded rather than implied", async () => {
@@ -289,14 +290,29 @@ test("agent: does not describe a per-wave loop", async () => {
 // Second-round regression rows
 // -------------------------------------------------------------------------------------
 
-test("frontmatterTools survives every YAML spelling of a tool list", async () => {
-  // Comma-splitting alone produced ["[Read", "Bash]"], which matched no forbidden name, so a
-  // governor holding Bash in a flow list scored clean.
+test("frontmatterTools refuses every non-canonical spelling rather than guessing", async () => {
+  // Three review rounds each found a YAML spelling that slipped a forbidden tool past a
+  // hand-written parser: flow lists, quoted scalars, block scalars, trailing comments, empty
+  // lists. Recognising YAML correctly is a harder problem than this check needs to solve, so
+  // anything but the canonical form is unreadable — which is a finding, never a clean parse.
   const { frontmatterTools } = await import(path.join(root, "tools", "check-token-economy.mjs"));
   const doc = (tools) => `---\nname: x\n${tools}\nmodel: sonnet\n---\nbody`;
-  assert.deepEqual(frontmatterTools(doc("tools: [Read, Grep, Bash]")), ["Read", "Grep", "Bash"]);
-  assert.deepEqual(frontmatterTools(doc('tools: "Read, Bash"')), ["Read", "Bash"]);
-  assert.deepEqual(frontmatterTools(doc("tools: Read, Grep")), ["Read", "Grep"]);
+  const refused = [
+    "tools: [Read, Bash]",
+    "tools: [Read, Bash] # audit",
+    'tools: "Read, Bash"',
+    "tools: Read, Bash #ok",
+    "tools: >\n  Read, Bash",
+    "tools: |\n  Read, Bash",
+    "tools:\n  - Read\n  - Bash",
+    "tools: []",
+    "tools:",
+    "tools: Read,Bash",
+  ];
+  for (const spelling of refused) {
+    assert.equal(frontmatterTools(doc(spelling)), null,
+      `non-canonical spelling was parsed instead of refused: ${JSON.stringify(spelling)}`);
+  }
 });
 
 test("frontmatterTools reports an empty tool list as unreadable, not as narrow", async () => {
@@ -315,11 +331,22 @@ test("checker: a governor with a forbidden tool in any YAML spelling is RED", as
     readme: await readText(path.join(root, "README.md")),
     guardGates: guard.ESCALATION_GATES, guardImportFailed: false,
   };
-  for (const spelling of ["tools: [Read, Bash]", 'tools: "Read, Bash"', "tools: Read, Task",
-                          "tools:"]) {
+  const cases = [
+    ["tools: [Read, Bash]", "agent-tools-unreadable"],
+    ['tools: "Read, Bash"', "agent-tools-unreadable"],
+    ["tools: >\n  Read, Bash", "agent-tools-unreadable"],
+    ["tools: Read, Bash #ok", "agent-tools-unreadable"],
+    ["tools: []", "agent-tools-unreadable"],
+    ["tools:", "agent-tools-unreadable"],
+    ["tools: Read, Bash", "agent-tool-drift"],
+    ["tools: Read, Task", "agent-tool-drift"],
+  ];
+  for (const [spelling, expectedId] of cases) {
     const mutated = agent.replace("tools: Read, Grep, Glob", spelling);
     const findings = evaluate({ ...fixed, agent: mutated });
-    assert.ok(findings.length > 0, `${spelling} was scored clean`);
+    assert.ok(findings.some((f) => f.id === expectedId),
+      `${JSON.stringify(spelling)} produced ${JSON.stringify(findings.map((f) => f.id))}, `
+      + `expected ${expectedId}`);
   }
 });
 
@@ -331,4 +358,35 @@ test("policy: the production caller it names is a command that exists", async ()
   const guardSource = await readText(path.join(root, "tools", "token-guard.mjs"));
   assert.match(guardSource, /argv\[0\] === "economics"/);
   assert.match(guardSource, /--ledger=/);
+});
+
+test("guard: every emitted gate is declared, and the declared list is not decoration", async () => {
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  for (const gate of guard.GUARD_EMITTED_GATES) {
+    assert.ok(guard.ESCALATION_GATES.includes(gate), `undeclared emitted gate: ${gate}`);
+  }
+  // The remainder are entered by the MASTER rather than emitted here. Recording which is
+  // which is what keeps an unreachable gate from looking like an enforced one.
+  const masterEntered = guard.ESCALATION_GATES.filter(
+    (g) => !guard.GUARD_EMITTED_GATES.includes(g));
+  assert.deepEqual(masterEntered.sort(), ["commit-push", "model-escalation"]);
+});
+
+test("policy: the ledger is operational state, not a declared projection", async () => {
+  // The policy says a projection is never read back as a source; the economics command reads
+  // the ledger as its primary input, so listing it as a projection made the canonical file
+  // contradict itself.
+  const policy = await readJson(POLICY);
+  assert.ok(!policy.projections.includes("token-economy-ledger.json"));
+  assert.equal(policy.governor.economics.ledgerFile, "token-economy-ledger.json");
+});
+
+test("policy: what the checker does NOT compare is written down", async () => {
+  const policy = await readJson(POLICY);
+  const cov = policy.checkerCoverage;
+  assert.ok(Array.isArray(cov?.compared) && cov.compared.length > 0);
+  for (const section of ["workerPackaging", "resultReporting", "parallelism"]) {
+    assert.ok(cov.notCompared.includes(section),
+      `${section} is unchecked and must be recorded as unchecked`);
+  }
 });
