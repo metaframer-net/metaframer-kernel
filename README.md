@@ -446,3 +446,25 @@ revalidated separately:
 ```sh
 npm run check:sources
 ```
+
+## Token economy
+
+A projection of `token-economy-policy.json`, which is the canonical owner of every rule,
+threshold, model route and escalation gate named here. Two surfaces implement it:
+
+- `tools/token-guard.mjs` — a deterministic gate that decides nine things from facts at **zero
+  model cost**: duplicate worker, duplicate file read, writer ownership, dirty snapshot,
+  branch/worktree collision, guardian admission, stale review, the commit/push gate, and
+  completed panel cleanup. Exit `0` proceed, `3` denied by a fact, `4` escalate.
+- `.claude/agents/token-governor.md` — a read-only auditor with no write tools, reached only at
+  the declared gates and never wave by wave. It advises; it never commands, and it is required to
+  pay for itself: a net-negative ledger switches its automatic invocation off while the
+  deterministic gate stays on.
+
+Quality is not one of the levers. Dropping a security test, a negative test or an independent
+review to save tokens is refused by the policy and by `tools/check-token-economy.mjs`.
+
+```sh
+npm run check:token-economy         # canonical policy and every projection agree
+node tools/token-guard.mjs --request='{"action":"open-worker","taskSignature":"x","opensWorker":true}'
+```

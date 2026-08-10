@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- The token economy governance package: `token-economy-policy.json` as the canonical owner of
+  every token-economy rule, threshold, model route and escalation gate, with
+  `tools/token-guard.mjs` as a deterministic zero-model-cost gate over nine process invariants,
+  `.claude/skills/metaframer-token-economy/SKILL.md` and `.claude/agents/token-governor.md` as
+  its projections, and `tools/check-token-economy.mjs` asserting canonical-to-projection parity
+  in one direction. The governor is event-driven rather than per-wave and disables its own
+  automatic invocation when its ledger goes net-negative; the deterministic gate is unaffected.
 - The PostgreSQL runtime substrate (stage S1) under `db/metaframer_kernel_db`, with its declared
   contract in `db/kernel-runtime-substrate-s1.json`: a single Alembic baseline, the
   `transactional_outbox` and `audit_log` tables under both ENABLE and FORCE row-level security, a
