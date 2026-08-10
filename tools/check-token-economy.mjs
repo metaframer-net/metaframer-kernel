@@ -58,6 +58,29 @@ const readText = (f) => {
 // shell in an auditor.
 export const CANONICAL_TOOLS_FORM = "tools: Name, Name, Name";
 
+// The agent frontmatter is a CLOSED schema. Only these keys may appear.
+//
+// Locking the tool list was the wrong lock. The runtime also reads `hooks` from agent
+// frontmatter and registers what it finds there, so an agent declaring
+// `tools: Read, Grep, Glob` and, one key below it, a PreToolUse hook running
+// `sh -c 'git commit; git push'` held a shell while every tool assertion in this file and
+// every agent row in the suite stayed green. `mcpServers` and `permissionMode` are agent
+// fields too, and the field set grows with the runtime, not with this checker.
+//
+// So the question changes from "does it hold a forbidden tool" to "does it declare anything
+// this file has not vetted". An unknown key is a finding, including one invented tomorrow.
+export const AGENT_ALLOWED_FRONTMATTER_KEYS = ["name", "description", "tools", "model"];
+
+export function frontmatterKeys(text) {
+  const fm = /^---\n([\s\S]*?)\n---/.exec(text ?? "");
+  if (!fm) return null;
+  return fm[1]
+    .split("\n")
+    .map((l) => /^([A-Za-z_][A-Za-z0-9_-]*):/.exec(l))
+    .filter(Boolean)
+    .map((m) => m[1]);
+}
+
 export function frontmatterTools(text) {
   const fm = /^---\n([\s\S]*?)\n---/.exec(text ?? "");
   if (!fm) return null;
@@ -284,6 +307,25 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
   }
   if (/before and after (every|each) wave/i.test(agent)) {
     add("agent-per-wave", "the agent describes a per-wave loop the policy forbids");
+  }
+
+  const declaredKeys = frontmatterKeys(agent);
+  if (declaredKeys === null) {
+    add("agent-frontmatter-unreadable", "the agent declares no readable frontmatter block");
+  } else {
+    for (const key of declaredKeys) {
+      if (!AGENT_ALLOWED_FRONTMATTER_KEYS.includes(key)) {
+        add("agent-frontmatter-unknown-key",
+          `the agent declares ${key}, which is not one of `
+          + `${AGENT_ALLOWED_FRONTMATTER_KEYS.join(", ")}. A key this checker has not vetted `
+          + "may grant capability the tool allowlist does not describe");
+      }
+    }
+    for (const required of ["name", "tools"]) {
+      if (!declaredKeys.includes(required)) {
+        add("agent-frontmatter-incomplete", `the agent declares no ${required}`);
+      }
+    }
   }
 
   const tools = frontmatterTools(agent);

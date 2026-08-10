@@ -374,11 +374,16 @@ const carriesMutationIntent = (requested) =>
     (k) => requested[k] === true && !KNOWN_NON_MUTATING_FIELDS.has(k),
   );
 
+// Named signals AND unknown fields. `{action:"read", amend:"yes"}` used to pass: `amend` is
+// not one of the nine named signals, and the unknown-field rule only fires on `=== true`, so
+// a truthy string slipped between the two checks.
 const malformedMutationSignals = (requested) =>
-  MUTATION_SIGNALS.filter(
-    (k) => requested[k] !== null && requested[k] !== undefined
-      && typeof requested[k] !== "boolean",
-  );
+  Object.keys(requested).filter((k) => {
+    const v = requested[k];
+    if (v === null || v === undefined || typeof v === "boolean") return false;
+    if (MUTATION_SIGNALS.includes(k)) return true;
+    return !KNOWN_NON_MUTATING_FIELDS.has(k) && Boolean(v);
+  });
 
 // null when the action says nothing either way (absent), true when it is known safe.
 const actionIsKnownSafe = (action) =>

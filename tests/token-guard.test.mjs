@@ -660,3 +660,13 @@ test("an empty signal slot is absence, not ambiguity, and costs nothing", () => 
     assert.equal(r.modelCallsRequired, 0);
   }
 });
+
+test("an unknown field with a truthy non-boolean value escalates", () => {
+  // `{action:"read", amend:"yes"}` used to PASS: `amend` is not one of the nine named signals,
+  // and the unknown-field rule fired only on `=== true`, so a truthy string slipped between
+  // the two checks.
+  for (const extra of [{ amend: "yes" }, { cherryPick: 1 }, { somethingNew: "do it" }]) {
+    assert.notEqual(guard.decide({ requested: { action: "read", ...extra } }).decision, PASS,
+      JSON.stringify(extra));
+  }
+});
