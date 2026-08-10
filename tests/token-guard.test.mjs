@@ -583,9 +583,25 @@ test("a promotion action survives case and whitespace", () => {
   }
 });
 
-test("a boolean mutation flag still escalates even under an ordinary action", () => {
-  assert.notEqual(guard.decide({ requested: { action: "read", commitToMain: true } }).decision,
-    PASS);
+test("any unknown boolean flag escalates even under an ordinary action", () => {
+  // This row asserted one flag — `commitToMain`, which happened to be on the nine-name denial
+  // list — while `reset`, `amend`, `revert`, `cherryPick`, `checkout`, `updateRef`,
+  // `deleteBranch`, `stash` and `gc` all reached PASS. The list of git verbs is open; the list
+  // of fields this guard understands is not, so the check was inverted.
+  for (const flag of ["commitToMain", "reset", "amend", "revert", "cherryPick", "checkout",
+                      "updateRef", "deleteBranch", "stash", "gc", "somethingInventedTomorrow"]) {
+    assert.notEqual(guard.decide({ requested: { action: "read", [flag]: true } }).decision,
+      PASS, flag);
+  }
+});
+
+test("a known non-mutating field set to true is not mutation intent", () => {
+  const r = guard.decide({
+    requested: { action: "read", opensWorker: true },
+    guardian: { allowNewWorker: true, mode: "NORMAL", recommendedNewWorkers: 3 },
+  });
+  assert.equal(r.decision, PASS);
+  assert.equal(r.modelCallsRequired, 0);
 });
 
 test("unobserved worktrees escalate the branch collision check", () => {

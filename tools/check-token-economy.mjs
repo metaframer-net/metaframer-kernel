@@ -9,8 +9,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 //
 // `token-economy-policy.json` is the only place a token-economy rule, threshold, model route or
 // escalation gate is decided. The skill, the agent definition and the README section are
-// projections. Parity is asserted in one direction only, so every finding below names the
-// projection that moved and never invites the canonical file to be "corrected" to match a copy.
+// projections. Parity is asserted in one direction only: a parity finding names the projection
+// that moved and never invites the canonical file to be "corrected" to match a copy. Findings
+// about the canonical file itself — a missing section, a relaxed floor, a drifted capability —
+// name it directly, because there the canonical file is the thing that changed.
 //
 // Presence is checked before content, and that ordering is the correction that matters here. An
 // earlier version of this file iterated `policy.qualityFloors`, `policy.deterministicChecks` and
@@ -103,12 +105,24 @@ const REQUIRED_QUALITY_FLOORS = [
 ];
 const REQUIRED_MODEL_TIERS = ["haiku", "sonnet", "fable", "opus"];
 
-// Tier keys were compared and tier bodies were not, so the routing table could be inverted —
-// "security-critical design, kernel invariants, adversarial review" moved from opus to haiku —
-// while every key was still present and the run stayed GREEN. The whole point of the table is
-// which work may go cheap, so that is what is asserted.
-const SENSITIVE_WORK = ["security", "kernel invariant", "adversarial", "final"];
-const CHEAP_TIERS = ["haiku", "sonnet"];
+// Capability flags, not prose.
+//
+// The previous version searched tier prose for the words "security", "kernel invariant",
+// "adversarial" and "final". It was wrong in both directions. A doNotUse entry reading
+// "security, kernel invariant, adversarial and final acceptance work are ALLOWED here"
+// contained every matched word and scored GREEN, while "inventory of files under
+// src/security" and a rewording of "adversarial review" to "red-team review" each produced a
+// false RED. Worse than either: a check that constrains wording invites the next author to
+// write the policy for the matcher instead of for the reader.
+//
+// So the sensitive capabilities are an enum, each tier declares which it may decide, and the
+// owner set is compared exactly. Prose stays for humans and is no longer load-bearing.
+const SENSITIVE_CAPABILITIES = {
+  security: ["fable", "opus"],
+  "kernel-invariant": ["opus"],
+  adversarial: ["opus"],
+  "final-acceptance": ["opus"],
+};
 const REQUIRED_PROJECTIONS = [
   ".claude/skills/metaframer-token-economy/SKILL.md",
   ".claude/agents/token-governor.md",
@@ -173,26 +187,28 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
       add("model-tier-empty", `${tier}.doNotUse is absent or empty`);
     }
   }
-  // The routing semantics themselves, not just the shape.
-  for (const tier of CHEAP_TIERS) {
-    const route = policy.modelRouting?.[tier];
-    if (!route) continue;
-    const offered = (route.use ?? []).join(" ").toLowerCase();
-    const barred = (route.doNotUse ?? []).join(" ").toLowerCase();
-    for (const work of SENSITIVE_WORK) {
-      if (offered.includes(work)) {
-        add("model-route-inverted", `${tier}.use offers ${work} work to a cheap tier`);
-      }
-      if (!barred.includes(work)) {
-        add("model-route-unbarred", `${tier}.doNotUse no longer bars ${work} work`);
-      }
+  // Routing semantics, compared as sets rather than searched as text. Every tier is checked,
+  // not a hardcoded pair, so adding a tier cannot smuggle a capability past the comparison.
+  for (const [capability, owners] of Object.entries(SENSITIVE_CAPABILITIES)) {
+    const declaredBy = Object.entries(policy.modelRouting ?? {})
+      .filter(([, route]) => Array.isArray(route?.mayDecide) && route.mayDecide.includes(capability))
+      .map(([tier]) => tier)
+      .sort();
+    const expected = [...owners].sort();
+    if (JSON.stringify(declaredBy) !== JSON.stringify(expected)) {
+      add("model-capability-drift",
+        `${capability} work is declared by [${declaredBy.join(", ")}], expected exactly `
+        + `[${expected.join(", ")}]`);
     }
   }
-  {
-    const offered = (policy.modelRouting?.opus?.use ?? []).join(" ").toLowerCase();
-    for (const work of SENSITIVE_WORK) {
-      if (!offered.includes(work)) {
-        add("model-route-abandoned", `opus.use no longer claims ${work} work`);
+  for (const [tier, route] of Object.entries(policy.modelRouting ?? {})) {
+    if (!Array.isArray(route?.mayDecide)) {
+      add("model-capability-missing", `${tier} declares no mayDecide list`);
+      continue;
+    }
+    for (const declared of route.mayDecide) {
+      if (!(declared in SENSITIVE_CAPABILITIES)) {
+        add("model-capability-unknown", `${tier}.mayDecide names an unknown capability: ${declared}`);
       }
     }
   }
@@ -284,8 +300,25 @@ export function evaluate({ policy, skill, agent, readme, guardGates, guardCheckI
       }
     }
   }
-  if (policy.governor?.readOnly !== true || policy.governor?.mayWriteFiles !== false) {
-    add("governor-not-read-only", "the policy no longer declares the governor read-only");
+  // readOnly and mayWriteFiles were asserted; maySpawnAgents and mayCommandMaster, two lines
+  // away in the same object, were not, so an auditor could be granted both while GREEN.
+  for (const [field, want] of [["readOnly", true], ["mayWriteFiles", false],
+                               ["maySpawnAgents", false], ["mayCommandMaster", false],
+                               ["eventDriven", true], ["invokedPerWave", false]]) {
+    if (policy.governor?.[field] !== want) {
+      add("governor-authority-drift", `governor.${field} is ${JSON.stringify(policy.governor?.[field])}, expected ${want}`);
+    }
+  }
+  // A negative floor let a nine-million-token net cost keep automatic invocation enabled, and
+  // the value is read at runtime rather than being decoration.
+  const econ = policy.governor?.economics ?? {};
+  if (!Number.isFinite(econ.minimumNetSaving) || econ.minimumNetSaving < 0) {
+    add("economics-floor-invalid",
+      `governor.economics.minimumNetSaving is ${JSON.stringify(econ.minimumNetSaving)}; a governor that may cost tokens indefinitely is not measured`);
+  }
+  if (!Number.isInteger(econ.minimumInvocations) || econ.minimumInvocations < 1) {
+    add("economics-window-invalid",
+      `governor.economics.minimumInvocations is ${JSON.stringify(econ.minimumInvocations)}; the judgement window must be a positive integer`);
   }
 
   for (const [k, v] of Object.entries(policy.qualityFloors ?? {})) {

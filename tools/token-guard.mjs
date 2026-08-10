@@ -308,10 +308,9 @@ export function evaluateStaleReview({ requested = {}, reviews, currentSnapshot }
 
 const PROMOTION_ACTIONS = new Set(["commit", "push", "main-promotion"]);
 
-// Any of these on a request means git is about to be mutated, whatever the caller decided to
-// call the action. Without this, the single free gate on main promotion was armed by a string
-// the caller controls: `{forcePush: true}` with no `action` skipped the whole evaluator, force
-// push included. An unclassified mutation intent now escalates instead of passing.
+// The named git-mutating fields. This list is documentation and a source for the malformed-
+// value check below; it is NOT what decides mutation intent, because a denial list of verbs
+// can never be complete. See KNOWN_NON_MUTATING_FIELDS for the decision.
 const MUTATION_SIGNALS = [
   "forcePush", "commitToMain", "commit", "push", "merge", "promote", "release", "tag", "rebase",
 ];
@@ -328,8 +327,14 @@ const MUTATION_SIGNALS = [
 // addition here; an unrecognised action that passed cost a bypass of the only free gate on
 // main promotion, three review rounds running.
 // Actions that mutate no git ref. `write` and `edit` change the worktree — that is what a
-// writer does — and the single-writer and dirty-snapshot checks cover them. What this set
-// governs is whether the promotion gate applies, so the name says git.
+// writer does — and what this set governs is only whether the promotion gate applies, so the
+// name says git.
+//
+// It does NOT mean a writer action is otherwise covered. `{action:"write", role:"writer",
+// worktree:"/w"}` on a dirty tree passes with no finding, because a writer on a dirty tree is
+// the job and writer-ownership needs a changePackage to say anything. An earlier version of
+// this comment claimed those two checks covered it; they cover it only when the caller
+// supplies the fields they read.
 const NON_GIT_MUTATING_ACTIONS = new Set([
   "read", "edit", "write", "analyze", "analyse", "review", "inventory", "search", "grep",
   "plan", "test", "check", "verify", "open-worker", "close-worker", "status", "report",
@@ -350,8 +355,24 @@ const NON_GIT_MUTATING_ACTIONS = new Set([
 // charging a model call for every such read would be a self-inflicted version of the waste
 // this whole package exists to remove. The gates slot has the same carve-out for the same
 // reason.
+// Every request field this file knows about that does not, by itself, mean git is about to be
+// mutated. Anything else set to boolean true is treated as mutation intent.
+//
+// MUTATION_SIGNALS was a nine-name denial list sitting under a comment recommending the
+// opposite, and `{reset: true}` reached PASS while `{forcePush: true}` denied — the outcome
+// turned on which synonym the caller happened to pick. `amend`, `revert`, `cherryPick`,
+// `checkout`, `updateRef`, `deleteBranch`, `stash` and `gc` all walked through. The list of
+// git verbs is open; the list of fields this guard understands is not.
+const KNOWN_NON_MUTATING_FIELDS = new Set([
+  "action", "path", "sha256", "lines", "taskSignature", "role", "lens", "changePackage",
+  "sessionId", "worktree", "branch", "useReviewFrom", "opensWorker", "requestedWorkerCount",
+  "model", "note", "panelId", "state", "reason", "label",
+]);
+
 const carriesMutationIntent = (requested) =>
-  MUTATION_SIGNALS.some((k) => requested[k] === true);
+  Object.keys(requested).some(
+    (k) => requested[k] === true && !KNOWN_NON_MUTATING_FIELDS.has(k),
+  );
 
 const malformedMutationSignals = (requested) =>
   MUTATION_SIGNALS.filter(

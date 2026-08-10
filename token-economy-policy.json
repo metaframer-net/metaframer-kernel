@@ -114,9 +114,10 @@
       "switchIsAdvisory": "This repository computes the verdict and exits 5. Acting on it — actually suspending automatic invocation — belongs to the orchestration layer and is not implemented here."
     }
   },
-  "modelRoutingNote": "Escalation is driven by task risk and evidence need, never by cost alone and never automatically on failure. A tier is chosen because it is the cheapest one that can carry the decision safely.",
+  "modelRoutingNote": "Escalation is driven by task risk and evidence need, never by cost alone and never automatically on failure. `mayDecide` is the machine-checkable part: it names which sensitive capabilities a tier may decide, as an enum rather than as prose, so the routing table cannot be inverted by rewording. The use/doNotUse lists are for the reader.",
   "modelRouting": {
     "haiku": {
+      "mayDecide": [],
       "use": [
         "file and artifact inventory",
         "narrow deterministic classification",
@@ -134,6 +135,7 @@
       ]
     },
     "sonnet": {
+      "mayDecide": [],
       "use": [
         "well-bounded routine implementation",
         "test authoring against a stated contract",
@@ -148,6 +150,9 @@
       ]
     },
     "fable": {
+      "mayDecide": [
+        "security"
+      ],
       "requiresVerifiedIdentity": true,
       "ifUnavailable": "Do not imitate it and do not invent the name. Report that the identity could not be verified, then choose Sonnet or Opus by task risk.",
       "use": [
@@ -162,6 +167,12 @@
       ]
     },
     "opus": {
+      "mayDecide": [
+        "security",
+        "kernel-invariant",
+        "adversarial",
+        "final-acceptance"
+      ],
       "use": [
         "security-critical design",
         "kernel invariants",

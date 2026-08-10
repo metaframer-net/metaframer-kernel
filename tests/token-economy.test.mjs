@@ -591,14 +591,29 @@ test("checker: the model routing table cannot be inverted from the policy file a
   const policy = await readJson(POLICY);
   const relaxations = [
     ["a tier set to null", (p) => { p.modelRouting.opus = null; }, "model-tier-missing"],
-    ["opus work moved to haiku", (p) => {
-      p.modelRouting.haiku.use = p.modelRouting.opus.use;
-      p.modelRouting.opus.use = ["inventory"];
-    }, "model-route-inverted"],
-    ["a cheap tier's bar removed", (p) => { p.modelRouting.haiku.doNotUse = ["nothing"]; },
-      "model-route-unbarred"],
-    ["opus abandoning security work", (p) => { p.modelRouting.opus.use = ["inventory"]; },
-      "model-route-abandoned"],
+    ["sensitive capability granted to a cheap tier", (p) => {
+      p.modelRouting.haiku.mayDecide = ["security", "adversarial"];
+    }, "model-capability-drift"],
+    ["opus abandoning its capabilities", (p) => { p.modelRouting.opus.mayDecide = []; },
+      "model-capability-drift"],
+    ["a new tier claiming every capability", (p) => {
+      p.modelRouting.review = {
+        mayDecide: ["security", "kernel-invariant", "adversarial", "final-acceptance"],
+        use: ["x"], doNotUse: ["y"],
+      };
+    }, "model-capability-drift"],
+    ["a tier with no capability list at all", (p) => { delete p.modelRouting.sonnet.mayDecide; },
+      "model-capability-missing"],
+    ["an invented capability name", (p) => { p.modelRouting.sonnet.mayDecide = ["release"]; },
+      "model-capability-unknown"],
+    ["the governor granted agent-spawning", (p) => { p.governor.maySpawnAgents = true; },
+      "governor-authority-drift"],
+    ["the governor granted command authority", (p) => { p.governor.mayCommandMaster = true; },
+      "governor-authority-drift"],
+    ["a negative net-saving floor", (p) => { p.governor.economics.minimumNetSaving = -1e9; },
+      "economics-floor-invalid"],
+    ["a zero judgement window", (p) => { p.governor.economics.minimumInvocations = 0; },
+      "economics-window-invalid"],
     ["hollowed deterministic checks", (p) => {
       p.deterministicChecks = p.deterministicChecks.map((c) => ({ id: c.id, modelTokens: 0 }));
     }, "deterministic-check-hollow"],
@@ -613,4 +628,46 @@ test("checker: the model routing table cannot be inverted from the policy file a
     assert.ok(findings.some((f) => f.id === expectedId),
       `${label} produced ${JSON.stringify(findings.map((f) => f.id))}, expected ${expectedId}`);
   }
+});
+
+test("checker: rewording tier prose does not produce a false finding", async () => {
+  // The previous check searched prose for "security", "kernel invariant", "adversarial" and
+  // "final". It fired on `inventory of files under src/security` and on rewording
+  // "adversarial review" to "red-team review" — a check that constrains wording invites the
+  // next author to write the policy for the matcher instead of for the reader.
+  const { evaluate } = await import(path.join(root, "tools", "check-token-economy.mjs"));
+  const guard = await import(path.join(root, "tools", "token-guard.mjs"));
+  const base = {
+    skill: await readText(SKILL), agent: await readText(AGENT),
+    readme: await readText(path.join(root, "README.md")),
+    guardGates: guard.ESCALATION_GATES, guardCheckIds: guard.DETERMINISTIC_CHECK_IDS,
+    guardImportFailed: false,
+  };
+  const policy = await readJson(POLICY);
+  const rewordings = [
+    ["a harmless mention of security in a cheap tier",
+      (p) => { p.modelRouting.haiku.use.push("inventory of files under src/security"); }],
+    ["opus prose rewritten without the matched words",
+      (p) => { p.modelRouting.opus.use = ["red-team review", "sign-off, last in the chain"]; }],
+  ];
+  for (const [label, mutate] of rewordings) {
+    const mutated = JSON.parse(JSON.stringify(policy));
+    mutate(mutated);
+    assert.deepEqual(evaluate({ ...base, policy: mutated }), [],
+      `${label} produced a false finding`);
+  }
+});
+
+test("policy: every tier declares its sensitive capabilities as an enum", async () => {
+  const policy = await readJson(POLICY);
+  const known = ["security", "kernel-invariant", "adversarial", "final-acceptance"];
+  for (const [tier, route] of Object.entries(policy.modelRouting)) {
+    assert.ok(Array.isArray(route.mayDecide), `${tier} declares no mayDecide list`);
+    for (const c of route.mayDecide) {
+      assert.ok(known.includes(c), `${tier} names an unknown capability: ${c}`);
+    }
+  }
+  assert.deepEqual(policy.modelRouting.haiku.mayDecide, []);
+  assert.deepEqual(policy.modelRouting.sonnet.mayDecide, []);
+  assert.deepEqual([...policy.modelRouting.opus.mayDecide].sort(), [...known].sort());
 });
