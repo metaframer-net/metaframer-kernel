@@ -1,0 +1,437 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+// =====================================================================================
+// Token guard — the deterministic, zero-model gate
+//
+// The economics are easy to get backwards. A governor that asks a language model whether work is
+// wasteful spends tokens on every question, including the overwhelming majority whose answer was
+// already settled by two file hashes and a branch name. So the split here is the design, not a
+// style preference: everything decidable from facts is decided in this file at zero model cost,
+// and the model is reached only where no fact can settle the matter.
+//
+// Three decisions, and the middle one is the point:
+//
+//   PASS      no model needed. Proceed.
+//   ESCALATE  a fact-level check cannot settle this. Spend model tokens deliberately.
+//   DENY      a fact settles it in the negative. Escalating would buy a more expensive route to
+//             the same answer.
+//
+// DENY outranks ESCALATE for exactly that reason. A gate whose only outcomes are "fine" and "ask
+// the expensive thing" is not a gate; it is a toll booth.
+//
+// Fail-closed in the direction that costs tokens, not in the direction that spends them. A fact
+// that cannot be read produces ESCALATE — an unreadable fact is precisely when a human or a model
+// should look. It must never produce PASS, and it must never produce DENY either: refusing work
+// because a probe failed is how a guard becomes the outage it was meant to prevent.
+//
+// Structure follows the house pattern in `tools/check-versioning-changelog.mjs`: pure evaluators
+// over injected facts, then one reader that turns a real tree into those facts, then a CLI behind
+// an invocation guard. Importing this module reads nothing, prints nothing and asserts nothing.
+//
+// Limit recorded rather than papered over: an evaluator sees the facts it is handed. A caller
+// that assembles facts dishonestly gets an honest answer to a dishonest question, and no amount
+// of logic here can fix that. `readFacts` is what makes the production facts real.
+
+export const PASS = "PASS";
+export const ESCALATE = "ESCALATE";
+export const DENY = "DENY";
+const ADVISE = "ADVISE";
+
+// The only situations that may reach a language model. Anything not on this list is either
+// settled by an evaluator below or is not the governor's business.
+export const ESCALATION_GATES = [
+  "parallel-worker",
+  "writer-assignment",
+  "model-escalation",
+  "snapshot-change",
+  "commit-push",
+  "main-promotion",
+  "policy-anomaly",
+];
+
+const finding = (id, decision, message, gate) => ({ id, decision, message, gate });
+
+const REVIEW_ROLES = new Set(["independent-reviewer", "reviewer", "auditor"]);
+
+// -------------------------------------------------------------------------------------
+// 1. Duplicate worker
+// -------------------------------------------------------------------------------------
+
+export function evaluateDuplicateWorker({ requested = {}, liveWorkers = [] } = {}) {
+  if (!requested.taskSignature) return [];
+  const live = liveWorkers.filter(
+    (w) => w.state === "running" && w.taskSignature === requested.taskSignature,
+  );
+  if (live.length === 0) return [];
+
+  // Two reviewers on one snapshot is the point of independent review, not a duplicate — but only
+  // while they look through different lenses. Same lens twice is the same answer paid for twice.
+  if (REVIEW_ROLES.has(requested.role)) {
+    const sameLens = live.filter(
+      (w) => REVIEW_ROLES.has(w.role) && w.lens === requested.lens,
+    );
+    if (sameLens.length === 0) return [];
+    return [finding(
+      "duplicate-worker-same-lens", DENY,
+      `a reviewer with lens ${requested.lens} is already running on ${requested.taskSignature}`,
+      "parallel-worker",
+    )];
+  }
+
+  return [finding(
+    "duplicate-worker", DENY,
+    `task ${requested.taskSignature} already has a running worker (${live.map((w) => w.panelId).join(", ")})`,
+    "parallel-worker",
+  )];
+}
+
+// -------------------------------------------------------------------------------------
+// 2. Duplicate file read
+// -------------------------------------------------------------------------------------
+
+const covers = (prior, want) => {
+  if (!prior.lines) return true;          // a full read covers any range of the same bytes
+  if (!want.lines) return false;          // a ranged read does not cover a full read
+  return prior.lines[0] <= want.lines[0] && prior.lines[1] >= want.lines[1];
+};
+
+export function evaluateDuplicateFileRead({ requested = {}, alreadyRead = [] } = {}) {
+  if (!requested.path || !requested.sha256) return [];
+  const hit = alreadyRead.find(
+    (r) => r.path === requested.path && r.sha256 === requested.sha256 && covers(r, requested),
+  );
+  if (!hit) return [];
+  return [finding(
+    "duplicate-file-read", DENY,
+    `${requested.path} was already read at ${requested.sha256.slice(0, 12)} and has not changed`,
+  )];
+}
+
+// -------------------------------------------------------------------------------------
+// 3. Writer ownership — the single-writer invariant, mechanically
+// -------------------------------------------------------------------------------------
+
+export function evaluateWriterOwnership({ requested = {}, activeWriters = [] } = {}) {
+  if (!requested.changePackage) return [];
+  const onPackage = activeWriters.filter((w) => w.changePackage === requested.changePackage);
+  if (onPackage.length === 0) return [];
+
+  if (requested.role === "writer") {
+    const others = onPackage.filter((w) => w.sessionId !== requested.sessionId);
+    if (others.length === 0) return [];
+    return [finding(
+      "single-writer-violation", DENY,
+      `${requested.changePackage} already has an active writer (${others[0].sessionId})`,
+      "writer-assignment",
+    )];
+  }
+
+  if (REVIEW_ROLES.has(requested.role)) {
+    const self = onPackage.find((w) => w.sessionId === requested.sessionId);
+    if (!self) return [];
+    return [finding(
+      "self-review-violation", DENY,
+      `session ${requested.sessionId} wrote ${requested.changePackage} and may not review it`,
+      "writer-assignment",
+    )];
+  }
+
+  return [];
+}
+
+// -------------------------------------------------------------------------------------
+// 4. Dirty snapshot
+// -------------------------------------------------------------------------------------
+
+export function evaluateDirtySnapshot({ requested = {}, worktrees = [] } = {}) {
+  if (!REVIEW_ROLES.has(requested.role) || !requested.worktree) return [];
+  const wt = worktrees.find((w) => w.path === requested.worktree);
+  if (!wt) {
+    return [finding(
+      "dirty-snapshot-unknown", ESCALATE,
+      `worktree ${requested.worktree} is not in the observed set`,
+      "snapshot-change",
+    )];
+  }
+  if (!wt.dirty) return [];
+  return [finding(
+    "dirty-snapshot", DENY,
+    `${requested.worktree} has uncommitted changes; a review on a moving tree proves nothing`,
+    "snapshot-change",
+  )];
+}
+
+// -------------------------------------------------------------------------------------
+// 5. Branch and worktree collision
+// -------------------------------------------------------------------------------------
+
+export function evaluateBranchWorktreeCollision({ requested = {}, worktrees = [] } = {}) {
+  if (!requested.branch) return [];
+  const elsewhere = worktrees.filter(
+    (w) => w.branch === requested.branch && w.path !== requested.worktree,
+  );
+  if (elsewhere.length === 0) return [];
+  return [finding(
+    "branch-worktree-collision", DENY,
+    `branch ${requested.branch} is already checked out at ${elsewhere[0].path}`,
+  )];
+}
+
+// -------------------------------------------------------------------------------------
+// 6. Guardian admission — read the decision, never re-derive it from raw numbers
+// -------------------------------------------------------------------------------------
+
+export function evaluateGuardianAdmission({ requested = {}, guardian } = {}) {
+  if (!requested.opensWorker) return [];
+  if (!guardian || typeof guardian.allowNewWorker !== "boolean") {
+    return [finding(
+      "guardian-unreadable", ESCALATE,
+      "guardian admission could not be read; an unreadable resource decision is not a pass",
+      "parallel-worker",
+    )];
+  }
+  if (guardian.allowNewWorker === false) {
+    return [finding(
+      "guardian-blocked", DENY,
+      `guardian reports allowNewWorker=false (mode ${guardian.mode})`,
+      "parallel-worker",
+    )];
+  }
+  const want = requested.requestedWorkerCount ?? 1;
+  const cap = guardian.recommendedNewWorkers ?? 1;
+  if (want > cap) {
+    return [finding(
+      "guardian-over-cap", ESCALATE,
+      `${want} workers requested against a recommended ceiling of ${cap}`,
+      "parallel-worker",
+    )];
+  }
+  return [];
+}
+
+// -------------------------------------------------------------------------------------
+// 7. Stale review
+// -------------------------------------------------------------------------------------
+
+export function evaluateStaleReview({ requested = {}, reviews = [], currentSnapshot } = {}) {
+  if (!requested.useReviewFrom) return [];
+  const review = reviews.find((r) => r.id === requested.useReviewFrom);
+  if (!review) {
+    return [finding("stale-review-unknown", ESCALATE,
+      `review ${requested.useReviewFrom} was not found`, "snapshot-change")];
+  }
+  if (review.snapshot === currentSnapshot) return [];
+  return [finding(
+    "stale-review", DENY,
+    `review ${review.id} was taken on ${review.snapshot} and the tree is now ${currentSnapshot}`,
+    "snapshot-change",
+  )];
+}
+
+// -------------------------------------------------------------------------------------
+// 8. Commit / push / promotion gate
+// -------------------------------------------------------------------------------------
+
+const PROMOTION_ACTIONS = new Set(["commit", "push", "main-promotion"]);
+
+const REQUIRED_GATES = [
+  "correctWorktree", "cleanBase", "originFetched", "noConflict",
+  "targetedTestsGreen", "fullCheckGreen", "independentReviewGreen",
+  "writerDidNotSelfReview", "readmeCurrent", "changelogCurrent",
+  "versionParityGreen", "rollbackShaReady", "noPublicApiBreak",
+  "noProductionDeployment", "noSecret",
+];
+
+export function evaluatePromotionGate({ requested = {}, gates = {} } = {}) {
+  if (!PROMOTION_ACTIONS.has(requested.action)) return [];
+  const out = [];
+
+  // Nothing on the gate list can make a force push acceptable, so it is checked first and on its
+  // own. A green suite is not a licence to rewrite someone else's history.
+  if (requested.forcePush) {
+    out.push(finding("force-push-forbidden", DENY,
+      "force push is not within MASTER authority under any gate state", "main-promotion"));
+  }
+
+  for (const key of REQUIRED_GATES) {
+    if (!(key in gates)) {
+      out.push(finding(`promotion-gate-unknown:${key}`, ESCALATE,
+        `gate ${key} was not reported; an unreported gate is not a green gate`, "main-promotion"));
+    } else if (gates[key] !== true) {
+      out.push(finding(`promotion-gate-failed:${key}`, DENY,
+        `gate ${key} is not green`, "main-promotion"));
+    }
+  }
+  return out;
+}
+
+// -------------------------------------------------------------------------------------
+// 9. Completed panel cleanup
+// -------------------------------------------------------------------------------------
+
+export function evaluateCompletedPanelCleanup({ panels = [] } = {}) {
+  const leaked = panels.filter((p) => p.state === "completed" && p.open);
+  if (leaked.length === 0) return [];
+  return [finding(
+    "panel-cleanup-pending", ADVISE,
+    `${leaked.length} completed panel(s) still open: ${leaked.map((p) => p.panelId).join(", ")}`,
+  )];
+}
+
+// -------------------------------------------------------------------------------------
+// Composition
+// -------------------------------------------------------------------------------------
+
+export function decide(facts = {}) {
+  const findings = [
+    ...evaluateDuplicateWorker(facts),
+    ...evaluateDuplicateFileRead(facts),
+    ...evaluateWriterOwnership(facts),
+    ...evaluateDirtySnapshot(facts),
+    ...evaluateBranchWorktreeCollision(facts),
+    ...evaluateGuardianAdmission(facts),
+    ...evaluateStaleReview(facts),
+    ...evaluatePromotionGate(facts),
+    ...evaluateCompletedPanelCleanup(facts),
+  ];
+
+  const decision = findings.some((f) => f.decision === DENY)
+    ? DENY
+    : findings.some((f) => f.decision === ESCALATE)
+      ? ESCALATE
+      : PASS;
+
+  const escalationReasons = decision === ESCALATE
+    ? [...new Set(findings.filter((f) => f.decision === ESCALATE).map((f) => f.gate ?? f.id))]
+    : [];
+
+  return {
+    decision,
+    findings,
+    escalationReasons,
+    // The number the ledger is built on. A PASS or a DENY costs nothing; only ESCALATE buys a
+    // model call, and that is the whole claim this package makes about its own economics.
+    modelCallsRequired: decision === ESCALATE ? 1 : 0,
+  };
+}
+
+// -------------------------------------------------------------------------------------
+// Governor economics — it pays for itself or it switches itself off
+// -------------------------------------------------------------------------------------
+
+export function evaluateGovernorEconomics({ ledger = {}, policy = {} } = {}) {
+  const spent = ledger.tokensSpent ?? 0;
+  const saved = ledger.tokensSaved ?? 0;
+  const netSaving = saved - spent;
+  const invocations = ledger.invocations ?? 0;
+  const minInvocations = policy.minimumInvocations ?? 5;
+  const minNet = policy.minimumNetSaving ?? 0;
+
+  // The deterministic gate is free and is never part of this judgement. Only the model-backed
+  // governor can be switched off, and switching it off must not quietly remove the checks that
+  // were carrying most of the weight anyway.
+  const base = { netSaving, invocations, deterministicGateEnabled: true };
+
+  if (invocations < minInvocations) {
+    return {
+      ...base, autoInvocationEnabled: true,
+      reason: `insufficient evidence: ${invocations} invocation(s) against a minimum of ${minInvocations}`,
+    };
+  }
+  const enabled = netSaving > minNet;
+  return {
+    ...base,
+    autoInvocationEnabled: enabled,
+    reason: enabled
+      ? `net saving ${netSaving} tokens over ${invocations} invocation(s)`
+      : `net cost ${-netSaving} tokens over ${invocations} invocation(s); automatic invocation disabled`,
+  };
+}
+
+// -------------------------------------------------------------------------------------
+// Reader — the only part that touches a real tree
+// -------------------------------------------------------------------------------------
+
+const git = (args, cwd = root) => {
+  try {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  } catch {
+    return null;
+  }
+};
+
+export function readWorktrees(repo = root) {
+  const raw = git(["worktree", "list", "--porcelain"], repo);
+  if (raw === null) return null;
+  const out = [];
+  let cur = null;
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("worktree ")) {
+      if (cur) out.push(cur);
+      cur = { path: line.slice(9), branch: null, head: null, dirty: null };
+    } else if (line.startsWith("HEAD ") && cur) {
+      cur.head = line.slice(5);
+    } else if (line.startsWith("branch ") && cur) {
+      cur.branch = line.slice(7).replace(/^refs\/heads\//, "");
+    }
+  }
+  if (cur) out.push(cur);
+  for (const w of out) {
+    const status = git(["status", "--porcelain"], w.path);
+    w.dirty = status === null ? null : status.length > 0;
+  }
+  return out;
+}
+
+export function readGuardian() {
+  try {
+    const raw = execFileSync("guardianctl", ["admission", "--json"], { encoding: "utf8" });
+    return JSON.parse(raw);
+  } catch {
+    // Deliberately not a throw. An unreadable guardian is an ESCALATE upstream, never a PASS and
+    // never a DENY, and that distinction is lost if this becomes an exception.
+    return null;
+  }
+}
+
+export function readFacts(requested = {}, { repo = root } = {}) {
+  return {
+    requested,
+    worktrees: readWorktrees(repo) ?? [],
+    guardian: readGuardian(),
+    alreadyRead: [], liveWorkers: [], activeWriters: [], reviews: [], panels: [],
+    currentSnapshot: git(["rev-parse", "HEAD"], repo),
+  };
+}
+
+// -------------------------------------------------------------------------------------
+// CLI
+// -------------------------------------------------------------------------------------
+
+function main(argv) {
+  const jsonArg = argv.find((a) => a.startsWith("--facts="));
+  let facts;
+  if (jsonArg) {
+    const file = jsonArg.slice(8);
+    if (!existsSync(file)) {
+      console.error(`token-guard: facts file not found: ${file}`);
+      return 2;
+    }
+    facts = JSON.parse(readFileSync(file, "utf8"));
+  } else {
+    const req = argv.find((a) => a.startsWith("--request="));
+    facts = readFacts(req ? JSON.parse(req.slice(10)) : {});
+  }
+  const result = decide(facts);
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+  return result.decision === DENY ? 3 : result.decision === ESCALATE ? 4 : 0;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exit(main(process.argv.slice(2)));
+}

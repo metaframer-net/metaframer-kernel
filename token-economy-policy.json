@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "id": "metaframer-token-economy-policy-2026-08-10",
+  "generatedOn": "2026-08-10",
+  "packageKind": "token-economy-governance-policy",
+  "packageMode": "additive-non-destructive",
+  "canonicalOwner": "token-economy-policy.json",
+  "note": "This file is the sole canonical owner of every token-economy rule, threshold, model route and escalation gate in this repository. The skill, the agent definition and the README section are projections of it and are never read back as a source. Parity is asserted in one direction only, so a drift finding always names the projection that moved.",
+  "projections": [
+    ".claude/skills/metaframer-token-economy/SKILL.md",
+    ".claude/agents/token-governor.md",
+    "README.md#token-economy"
+  ],
+  "purpose": "Remove token spend that buys nothing, and route what remains to the cheapest model that can carry it safely. Quality is not one of the levers. Every rule below either removes waste or moves work to a cheaper tier at equal safety; none of them removes a check.",
+  "qualityFloors": {
+    "note": "A token budget sits a very short distance from 'skip the test' and 'one reviewer is enough'. Each of those trades a real guarantee for a saving that never shows up in a ledger, so they are stated as floors rather than left to judgement.",
+    "mayDropSecurityTest": false,
+    "mayDropNegativeTest": false,
+    "mayDropIndependentReview": false,
+    "mayLowerModelForSecurityDecision": false,
+    "mayClaimGreenWithoutEvidence": false,
+    "mayReuseReviewAcrossSnapshots": false,
+    "mayRunTwoWritersOnOneChangePackage": false
+  },
+  "deterministicChecks": [
+    {
+      "id": "duplicate-worker",
+      "modelTokens": 0,
+      "decides": "DENY",
+      "why": "an identical live task signature means the answer is already being computed"
+    },
+    {
+      "id": "duplicate-file-read",
+      "modelTokens": 0,
+      "decides": "DENY",
+      "why": "same path at an unchanged hash; a second read returns bytes already in context"
+    },
+    {
+      "id": "writer-ownership",
+      "modelTokens": 0,
+      "decides": "DENY",
+      "why": "two writers on one change package lose work; the writer may not review itself"
+    },
+    {
+      "id": "dirty-snapshot",
+      "modelTokens": 0,
+      "decides": "DENY",
+      "why": "a review on a moving tree proves nothing and has to be paid for twice"
+    },
+    {
+      "id": "branch-worktree-collision",
+      "modelTokens": 0,
+      "decides": "DENY",
+      "why": "git refuses it later; discovering that after the work is the expensive path"
+    },
+    {
+      "id": "guardian-admission",
+      "modelTokens": 0,
+      "decides": "DENY|ESCALATE",
+      "why": "the resource decision is read, never re-derived from raw numbers"
+    },
+    {
+      "id": "stale-review",
+      "modelTokens": 0,
+      "decides": "DENY",
+      "why": "a verdict bound to a superseded snapshot is not evidence about the current one"
+    },
+    {
+      "id": "commit-push-gate",
+      "modelTokens": 0,
+      "decides": "DENY|ESCALATE",
+      "why": "a failing gate is a fact; asking a model to confirm it costs tokens and changes nothing"
+    },
+    {
+      "id": "completed-panel-cleanup",
+      "modelTokens": 0,
+      "decides": "ADVISE",
+      "why": "a finished panel left open keeps a context alive that nobody is reading"
+    }
+  ],
+  "governor": {
+    "kind": "hybrid-event-driven",
+    "eventDriven": true,
+    "invokedPerWave": false,
+    "invokedPerWaveRationale": "A governor that runs before and after every wave spends tokens on every wave, including the ones two file hashes already settled. The deterministic gate carries those; the model is reached only where no fact can decide.",
+    "escalationGates": [
+      "parallel-worker",
+      "writer-assignment",
+      "model-escalation",
+      "snapshot-change",
+      "commit-push",
+      "main-promotion",
+      "policy-anomaly"
+    ],
+    "readOnly": true,
+    "mayCommandMaster": false,
+    "maySpawnAgents": false,
+    "mayWriteFiles": false,
+    "economics": {
+      "minimumInvocations": 5,
+      "minimumNetSaving": 0,
+      "disableAutoInvocationWhenNetNegative": true,
+      "deterministicGateAlwaysOn": true,
+      "ledgerFields": [
+        "invocations",
+        "tokensSpent",
+        "tokensSaved"
+      ],
+      "note": "The governor is measured the way it measures everything else. Below the minimum invocation count there is not enough evidence to judge, so it stays on and says so; above it, a net cost switches its automatic invocation off. Switching it off never disables the deterministic gate, which was carrying most of the weight and costs nothing."
+    }
+  },
+  "modelRoutingNote": "Escalation is driven by task risk and evidence need, never by cost alone and never automatically on failure. A tier is chosen because it is the cheapest one that can carry the decision safely.",
+  "modelRouting": {
+    "haiku": {
+      "use": [
+        "file and artifact inventory",
+        "narrow deterministic classification",
+        "format and parity checking",
+        "repeated mechanical read-only checks",
+        "short log summarisation"
+      ],
+      "doNotUse": [
+        "any security decision or security review",
+        "any architectural or architect-level contract decision",
+        "unknown-unknown analysis",
+        "final acceptance or final verdict"
+      ]
+    },
+    "sonnet": {
+      "use": [
+        "well-bounded routine implementation",
+        "test authoring against a stated contract",
+        "small fixes with a canonical pattern already in the repository",
+        "documentation projection from a canonical source",
+        "targeted regression resolution"
+      ],
+      "doNotUse": [
+        "adversarial review of a security-critical change",
+        "kernel invariant design",
+        "final acceptance"
+      ]
+    },
+    "fable": {
+      "requiresVerifiedIdentity": true,
+      "ifUnavailable": "Do not imitate it and do not invent the name. Report that the identity could not be verified, then choose Sonnet or Opus by task risk.",
+      "use": [
+        "requirements analysis",
+        "product and architecture synthesis",
+        "phase and dependency design",
+        "human-readable scope and gap review",
+        "security plus AI-first plus human-input independent review"
+      ],
+      "doNotUse": [
+        "any run where the model identity has not been verified live"
+      ]
+    },
+    "opus": {
+      "use": [
+        "security-critical design",
+        "kernel invariants",
+        "adversarial review",
+        "unknown-unknown investigation",
+        "architectural contradiction resolution",
+        "final independent acceptance review",
+        "a problem a lower tier has failed twice"
+      ],
+      "doNotUse": [
+        "mechanical inventory a cheaper tier resolves identically"
+      ]
+    }
+  },
+  "workerPackaging": {
+    "note": "The largest avoidable spend is not the model tier; it is handing a worker a conversation it does not need. A task package carries exactly what the task requires and nothing else.",
+    "include": [
+      "objective",
+      "exact working directory",
+      "immutable base commit or content hash",
+      "the allowed file list",
+      "forbidden areas",
+      "acceptance criteria",
+      "the test commands to run",
+      "the rollback path",
+      "the expected terminal marker"
+    ],
+    "exclude": [
+      "the full conversation history",
+      "corpus the task does not read",
+      "raw test or build logs",
+      "prior worker narration"
+    ]
+  },
+  "resultReporting": {
+    "note": "A worker returns evidence, not a story. Long output stays where it was produced.",
+    "onGreen": [
+      "the command",
+      "its exit code",
+      "total/passed/failed counts",
+      "an evidence hash"
+    ],
+    "onRed": [
+      "the failing checks only",
+      "the relevant error lines only",
+      "a short conclusion"
+    ],
+    "neverReturn": [
+      "full log bodies",
+      "unchanged-state reports",
+      "repeated plans"
+    ]
+  },
+  "parallelism": {
+    "mayRunInParallel": [
+      "read-only analysis of different modules",
+      "security and performance reviews",
+      "independent reviews under different lenses",
+      "distinct test suites",
+      "evidence inventory and repo-reality checks"
+    ],
+    "mustNotRunInParallel": [
+      "writers touching the same file set",
+      "phases where one depends on another's output",
+      "schema and consumer changes",
+      "migration and rollback changes",
+      "final manifest production",
+      "two owners of the same terminal marker"
+    ],
+    "workerCountIsACeilingNotAQuota": true
+  }
+}
