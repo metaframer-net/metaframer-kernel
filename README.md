@@ -310,6 +310,62 @@ rewritten.
   production-ready. The C2C marketplace, the listing product, the collaboration product, the PWA,
   the SDK and the application stay closed and unstarted.
 
+## P01-W1 architecture decision candidate
+
+`planning/p01-architecture-decision-candidate.json` is the machine-readable candidate for the P01
+architecture decision, closed by `planning/p01-architecture-decision.schema.json`, accompanied by
+the separate ring and bounded-context register in
+`planning/p01-ring-ownership-candidate.json`, verified by
+`tools/check-p01-architecture-candidate.mjs` inside `npm run check`, and put to a human in plain
+Turkish in [`docs/p01-architecture-decision-candidate.md`](docs/p01-architecture-decision-candidate.md).
+
+**It is a candidate, not a decision.** `decisionState` is `HUMAN_DECISION_REQUIRED`, `effective`
+is `false`, `selectedOption` is `null`, and the signature, signer and date fields are `null`. The
+phase chain reserves KG-002 (canonical runtime) and KG-003 (canonical ownership and extraction
+boundary) for a human signature — "no architectural decision may be closed by a model decision" —
+and every one of those fields is pinned by `const` in the schema and re-checked by the verifier,
+so the document cannot be typed or edited into an answer.
+
+Three routes are recorded on the same dimensions — security, compatibility, migration, history
+preservation, separate code and data rollback, and operational cost — with rejection reasons and
+conditions rather than a summary verdict:
+
+- **S1**, Node canonical with a Python adapter: `CONDITIONAL`. It opens a cross-process tenant and
+  auth claim boundary before P04, the phase that builds the policy decision point, and keeps a
+  two-language operational cost.
+- **S2**, Python canonical with FastAPI as Delivery host only and Node frozen as a conformance
+  reference: `CONDITIONAL`, lowest lifecycle cost, and what the security comparator prefers because
+  no permanent cross-runtime claim boundary is opened. This is the **recommendation**, and a
+  recommendation is not a selection.
+- **S3**, a permanent dual runtime with two co-equal write paths: `REJECT`. It is unreachable as a
+  recommendation at the schema level, not only by a rule.
+
+What the candidate refuses to let itself say: FastAPI in the Domain or Application ring, or counted
+as a policy decision point, policy engine, domain model, workflow engine, metadata engine, SDK, UI
+or product capability; Node holding write authority or a dual-write mode; a permanent process, API
+or FFI boundary; a tenant or auth claim crossing into a second runtime before P04; Surface
+represented as an Onion ring; a bounded-domain invariant — ledger, inventory valuation, payment,
+procurement, order orchestration, logistics, payroll — assigned to shared Kernel ownership or
+absorbed by ArcheType metadata; and any monetary figure, since the pinned evidence carries none.
+
+- Evidence: four authority sources and six independent read-only analyses are pinned by path, byte
+  count and SHA-256. The six P01 gaps in their accepted order — `KG-003`, `KG-002`, `KG-004`,
+  `KG-005`, `KG-006`, `KG-084` — and the five P01 closure edges `E-002`, `E-003`, `E-005`, `E-152`,
+  `E-153` are re-derived from the pinned overlays rather than trusted. Present-and-different is RED;
+  a wholly absent root is reported `absent` and never as verified.
+- The seven `src` modules are hash-pinned and compared against the tree on every run, so "this
+  package changed no existing code" is a measurement rather than a promise. Nothing under `src` or
+  `db` is modified, and no Python or FastAPI dependency is added.
+- Recorded as pending rather than invented: the data rollback drill is unexercised and explicitly
+  `PENDING`, and the P01 exit build-budget baseline is `PENDING`. The checker reports its own
+  elapsed time and pins no production performance threshold.
+- Capability delta: **NONE**. No `RCPT-01`, no signature, no `CLOSED` gap, no closure obligation
+  discharged, and `sourceExtraction` stays `false`, machine-compared against this repository's own
+  authority files. No flag under **Current status** moves. EXIT-01 is *not* satisfied: the two
+  signed ADRs, a register whose hash is recorded in a receipt, and a fitness function that fails
+  the build on a dependency-direction violation all remain open obligations that this package does
+  not discharge.
+
 ## Boundaries in force
 
 - This repository does not copy or rename `atonota/kernel`; that is an unrelated Metawork

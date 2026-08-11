@@ -1,0 +1,740 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://metaframer.net/schemas/p01-architecture-decision-candidate.schema.json",
+  "title": "P01-W1 architecture decision candidate",
+  "description": "A closed schema for a decision candidate that may recommend a route and may never select one. Every object level refuses unknown fields, and the unsigned state is pinned by const rather than merely typed, so a document that grows a pre-approval field or flips effective to true fails shape validation before any rule runs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "packageKind",
+    "packageMode",
+    "phase",
+    "workPackage",
+    "generatedOn",
+    "canonicalOwner",
+    "schemaPath",
+    "ringOwnershipRegisterPath",
+    "humanDecisionPacketPath",
+    "whatThisIsNot",
+    "decision",
+    "currentEffectiveState",
+    "options",
+    "recommendedTarget",
+    "migration",
+    "p01Scope",
+    "sourceAuthority",
+    "sourcePins",
+    "checkerPerformance",
+    "claims",
+    "capabilityDelta",
+    "newlyBuildableProducts",
+    "stillNotBuildable",
+    "readinessFlagBinding",
+    "nonAuthorizations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "const": "P01-W1-ARCHITECTURE-DECISION-CANDIDATE" },
+    "packageKind": { "const": "DECISION_CANDIDATE" },
+    "packageMode": { "const": "PRE_HUMAN_DECISION" },
+    "phase": { "const": "P01" },
+    "workPackage": { "const": "P01-W1" },
+    "generatedOn": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "canonicalOwner": { "type": "string", "minLength": 1 },
+    "schemaPath": { "const": "planning/p01-architecture-decision.schema.json" },
+    "ringOwnershipRegisterPath": { "const": "planning/p01-ring-ownership-candidate.json" },
+    "humanDecisionPacketPath": { "const": "docs/p01-architecture-decision-candidate.md" },
+    "whatThisIsNot": { "type": "string", "minLength": 1 },
+
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionState",
+        "effective",
+        "selectedOption",
+        "selectedBy",
+        "signature",
+        "signerId",
+        "signedOn",
+        "decisionAuthority",
+        "recommendedOption",
+        "recommendationIsSelection",
+        "modelMaySelect",
+        "modelMaySign",
+        "producesReceipt",
+        "receiptId",
+        "closesAnyGap",
+        "satisfiesExitGate",
+        "proposition",
+        "propositionRestatement",
+        "aiNativeGate",
+        "openHumanDecisionRecords"
+      ],
+      "properties": {
+        "decisionState": { "const": "HUMAN_DECISION_REQUIRED" },
+        "effective": { "const": false },
+        "selectedOption": { "const": null },
+        "selectedBy": { "const": null },
+        "signature": { "const": null },
+        "signerId": { "const": null },
+        "signedOn": { "const": null },
+        "decisionAuthority": { "const": "authorized human" },
+        "recommendedOption": { "enum": ["S1", "S2"] },
+        "recommendationIsSelection": { "const": false },
+        "modelMaySelect": { "const": false },
+        "modelMaySign": { "const": false },
+        "producesReceipt": { "const": false },
+        "receiptId": { "const": null },
+        "closesAnyGap": { "const": false },
+        "satisfiesExitGate": { "const": false },
+        "proposition": { "type": "string", "minLength": 1 },
+        "propositionRestatement": { "type": "string", "minLength": 1 },
+        "aiNativeGate": { "type": "string", "minLength": 1 },
+        "openHumanDecisionRecords": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "gap", "question", "owner", "state"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "gap": { "type": "string", "pattern": "^KG-\\d{3}$" },
+              "question": { "type": "string", "minLength": 1 },
+              "owner": { "const": "human" },
+              "state": { "const": "OPEN" }
+            }
+          }
+        }
+      }
+    },
+
+    "currentEffectiveState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asOf",
+        "canonicalRuntimeDecided",
+        "nodeSurfaces",
+        "nodeSurfaceNote",
+        "pythonSubstrateRole",
+        "pythonSubstratePath",
+        "pythonSubstrateNote",
+        "adaptersRingExists",
+        "deliveryRingExists",
+        "sdkRingExists",
+        "fastapiInstalled",
+        "fastapiShipped",
+        "nodeAndPythonCallEachOther",
+        "boundaryContractExists",
+        "observedBy",
+        "nodeBaseline"
+      ],
+      "properties": {
+        "asOf": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "canonicalRuntimeDecided": { "const": false },
+        "nodeSurfaces": { "type": "string", "minLength": 1 },
+        "nodeSurfaceNote": { "type": "string", "minLength": 1 },
+        "pythonSubstrateRole": { "const": "S1 persistence substrate" },
+        "pythonSubstratePath": { "type": "string", "minLength": 1 },
+        "pythonSubstrateNote": { "type": "string", "minLength": 1 },
+        "adaptersRingExists": { "const": false },
+        "deliveryRingExists": { "const": false },
+        "sdkRingExists": { "const": false },
+        "fastapiInstalled": { "const": false },
+        "fastapiShipped": { "const": false },
+        "nodeAndPythonCallEachOther": { "const": false },
+        "boundaryContractExists": { "const": false },
+        "observedBy": { "type": "string", "minLength": 1 },
+        "nodeBaseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "changedByThisPackage",
+            "deletedByThisPackage",
+            "rewrittenByThisPackage",
+            "retentionRule",
+            "files"
+          ],
+          "properties": {
+            "role": { "type": "string", "minLength": 1 },
+            "changedByThisPackage": { "const": false },
+            "deletedByThisPackage": { "const": false },
+            "rewrittenByThisPackage": { "const": false },
+            "retentionRule": { "type": "string", "minLength": 1 },
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "bytes", "sha256"],
+                "properties": {
+                  "path": { "type": "string", "pattern": "^src/" },
+                  "bytes": { "type": "integer" },
+                  "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "options": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "security",
+          "compatibility",
+          "migration",
+          "historyPreservation",
+          "codeRollback",
+          "dataRollback",
+          "operationalCost",
+          "costBasis",
+          "verdict",
+          "conditions",
+          "rejectionReasons",
+          "evidenceRefs"
+        ],
+        "properties": {
+          "id": { "enum": ["S1", "S2", "S3"] },
+          "title": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 },
+          "security": { "type": "string", "minLength": 1 },
+          "compatibility": { "type": "string", "minLength": 1 },
+          "migration": { "type": "string", "minLength": 1 },
+          "historyPreservation": { "type": "string", "minLength": 1 },
+          "codeRollback": { "type": "string", "minLength": 1 },
+          "dataRollback": { "type": "string", "minLength": 1 },
+          "operationalCost": { "type": "string", "minLength": 1 },
+          "costBasis": { "const": "relative-and-evidence" },
+          "verdict": { "enum": ["CONDITIONAL", "REJECT"] },
+          "conditions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "rejectionReasons": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "evidenceRefs": { "type": "array", "items": { "type": "string", "pattern": "^A[1-6]$" } }
+        }
+      }
+    },
+
+    "recommendedTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "optionId",
+        "appliesOnlyAfterHumanSignature",
+        "isCurrentState",
+        "statement",
+        "ringOwners",
+        "innerRingForbiddenImports",
+        "fastapi",
+        "node",
+        "crossRuntime",
+        "contractTruth"
+      ],
+      "properties": {
+        "optionId": { "enum": ["S1", "S2"] },
+        "appliesOnlyAfterHumanSignature": { "const": true },
+        "isCurrentState": { "const": false },
+        "statement": { "type": "string", "minLength": 1 },
+        "ringOwners": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["Domain", "Application", "Adapters", "Delivery"],
+          "properties": {
+            "Domain": { "enum": ["python", "node"] },
+            "Application": { "enum": ["python", "node"] },
+            "Adapters": { "enum": ["python", "node"] },
+            "Delivery": { "enum": ["python", "node"] }
+          }
+        },
+        "innerRingForbiddenImports": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["Domain", "Application"],
+          "properties": {
+            "Domain": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "Application": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "fastapi": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "permittedRings",
+            "forbiddenRings",
+            "isPolicyDecisionPoint",
+            "isPolicyEngine",
+            "isDomainModel",
+            "isWorkflowEngine",
+            "isMetadataEngine",
+            "isSdk",
+            "isUi",
+            "isProductCapability",
+            "isKernelCapability",
+            "installedToday",
+            "removalTest",
+            "note"
+          ],
+          "properties": {
+            "role": { "const": "delivery-host-only" },
+            "permittedRings": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": { "const": "Delivery" }
+            },
+            "forbiddenRings": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "enum": ["Domain", "Application"] }
+            },
+            "isPolicyDecisionPoint": { "const": false },
+            "isPolicyEngine": { "const": false },
+            "isDomainModel": { "const": false },
+            "isWorkflowEngine": { "const": false },
+            "isMetadataEngine": { "const": false },
+            "isSdk": { "const": false },
+            "isUi": { "const": false },
+            "isProductCapability": { "const": false },
+            "isKernelCapability": { "const": false },
+            "installedToday": { "const": false },
+            "removalTest": { "type": "string", "minLength": 1 },
+            "note": { "type": "string", "minLength": 1 }
+          }
+        },
+        "node": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "writeAuthority",
+            "dualWrite",
+            "frozen",
+            "deletedByThisPackage",
+            "retainedAs",
+            "writeRefusalIsMachineChecked",
+            "note"
+          ],
+          "properties": {
+            "role": { "const": "frozen-conformance-reference-client" },
+            "writeAuthority": { "const": "none" },
+            "dualWrite": { "const": false },
+            "frozen": { "const": true },
+            "deletedByThisPackage": { "const": false },
+            "retainedAs": { "type": "string", "minLength": 1 },
+            "writeRefusalIsMachineChecked": { "const": true },
+            "note": { "type": "string", "minLength": 1 }
+          }
+        },
+        "crossRuntime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "permanentProcessBoundary",
+            "permanentApiBoundary",
+            "permanentFfiBoundary",
+            "tenantClaimCrossesRuntimeBeforeP04",
+            "authClaimCrossesRuntimeBeforeP04",
+            "rationale"
+          ],
+          "properties": {
+            "permanentProcessBoundary": { "const": false },
+            "permanentApiBoundary": { "const": false },
+            "permanentFfiBoundary": { "const": false },
+            "tenantClaimCrossesRuntimeBeforeP04": { "const": false },
+            "authClaimCrossesRuntimeBeforeP04": { "const": false },
+            "rationale": { "type": "string", "minLength": 1 }
+          }
+        },
+        "contractTruth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "crossLanguageTruth",
+            "isOnlyCrossLanguageTruth",
+            "sdkProjectionsDeriveFromIr",
+            "builtByThisPackage",
+            "note"
+          ],
+          "properties": {
+            "crossLanguageTruth": { "const": "versioned-contract-fixtures-ir" },
+            "isOnlyCrossLanguageTruth": { "const": true },
+            "sdkProjectionsDeriveFromIr": { "const": true },
+            "builtByThisPackage": { "const": false },
+            "note": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "destructiveMigrationInThisPackage",
+        "dataDowngradeInThisPackage",
+        "dualWrite",
+        "parityFixturesBeforeCutover",
+        "nodeBaselineRetainedUntilIndependentParity",
+        "cutoverRequiresHumanSignature",
+        "gitHistoryPreserved",
+        "sourceExtraction",
+        "startsAfter",
+        "stages",
+        "codeRollback",
+        "dataRollback",
+        "killTriggers"
+      ],
+      "properties": {
+        "mode": { "const": "in-repo-staged-parity-then-cutover" },
+        "destructiveMigrationInThisPackage": { "const": false },
+        "dataDowngradeInThisPackage": { "const": false },
+        "dualWrite": { "const": false },
+        "parityFixturesBeforeCutover": { "const": true },
+        "nodeBaselineRetainedUntilIndependentParity": { "const": true },
+        "cutoverRequiresHumanSignature": { "const": true },
+        "gitHistoryPreserved": { "const": true },
+        "sourceExtraction": { "const": false },
+        "startsAfter": { "type": "string", "minLength": 1 },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title", "detail", "reversible"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^MS-\\d+$" },
+              "title": { "type": "string", "minLength": 1 },
+              "detail": { "type": "string", "minLength": 1 },
+              "reversible": { "type": "boolean" }
+            }
+          }
+        },
+        "codeRollback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "route", "exercised", "state", "note"],
+          "properties": {
+            "kind": { "const": "code" },
+            "route": { "type": "string", "minLength": 1 },
+            "exercised": { "const": false },
+            "state": { "const": "AVAILABLE" },
+            "note": { "type": "string", "minLength": 1 }
+          }
+        },
+        "dataRollback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "route", "exercised", "state", "note"],
+          "properties": {
+            "kind": { "const": "data" },
+            "route": { "type": "string", "minLength": 1 },
+            "exercised": { "const": false },
+            "state": { "const": "PENDING" },
+            "note": { "type": "string", "minLength": 1 }
+          }
+        },
+        "killTriggers": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "trigger", "action"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^KT-[A-Z-]+$" },
+              "trigger": { "type": "string", "minLength": 1 },
+              "action": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+
+    "p01Scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "orderedGaps",
+        "closureEdges",
+        "forwardOnly",
+        "closureSemanticsAuthority",
+        "closureSemanticsAcceptedAtCommit",
+        "preservesAcceptedClosureSemantics",
+        "dischargedByThisPackage",
+        "note"
+      ],
+      "properties": {
+        "phase": { "const": "P01" },
+        "orderedGaps": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "intraSeq", "title", "currentStatus", "layer", "boundary"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^KG-\\d{3}$" },
+              "intraSeq": { "type": "integer" },
+              "title": { "type": "string", "minLength": 1 },
+              "currentStatus": { "type": "string", "minLength": 1 },
+              "layer": { "type": "string", "minLength": 1 },
+              "boundary": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "closureEdges": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edgeId",
+              "sourceGap",
+              "destinationGap",
+              "sourcePhase",
+              "destinationPhase",
+              "classification",
+              "expectedDestinationReceipt"
+            ],
+            "properties": {
+              "edgeId": { "type": "string", "pattern": "^E-\\d{3}$" },
+              "sourceGap": { "type": "string", "pattern": "^KG-\\d{3}$" },
+              "destinationGap": { "type": "string", "pattern": "^KG-\\d{3}$" },
+              "sourcePhase": { "const": "P01" },
+              "destinationPhase": { "type": "string", "pattern": "^P\\d{2}$" },
+              "classification": { "enum": ["INTRA_ATOMIC", "FORWARD_DEFERRED"] },
+              "expectedDestinationReceipt": { "type": "string", "pattern": "^RCPT-\\d{2}$" }
+            }
+          }
+        },
+        "forwardOnly": { "const": true },
+        "closureSemanticsAuthority": { "const": "planning/p01-closure-semantics-addendum.json" },
+        "closureSemanticsAcceptedAtCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "preservesAcceptedClosureSemantics": { "const": true },
+        "dischargedByThisPackage": {
+          "type": "array",
+          "maxItems": 0,
+          "items": { "type": "string" }
+        },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "sourceAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceExtraction",
+        "sourceMoveAuthorized",
+        "repositorySplitAuthorized",
+        "extractionAuthorized",
+        "topologyChangeGate",
+        "note",
+        "authorityFiles"
+      ],
+      "properties": {
+        "sourceExtraction": { "const": false },
+        "sourceMoveAuthorized": { "const": false },
+        "repositorySplitAuthorized": { "const": false },
+        "extractionAuthorized": { "const": false },
+        "topologyChangeGate": { "type": "string", "minLength": 1 },
+        "note": { "type": "string", "minLength": 1 },
+        "authorityFiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "assertion", "machineRead"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "assertion": { "type": "string", "minLength": 1 },
+              "machineRead": { "const": true }
+            }
+          }
+        }
+      }
+    },
+
+    "sourcePins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "readOnly",
+        "immutable",
+        "evidenceRoot",
+        "analysisRoot",
+        "verificationRule",
+        "files",
+        "analyses"
+      ],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "readOnly": { "const": true },
+        "immutable": { "const": true },
+        "evidenceRoot": { "type": "string", "minLength": 1 },
+        "analysisRoot": { "type": "string", "minLength": 1 },
+        "verificationRule": { "type": "string", "minLength": 1 },
+        "files": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "path", "sha256", "bytes"],
+            "properties": {
+              "role": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "bytes": { "type": "integer" }
+            }
+          }
+        },
+        "analyses": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "role",
+              "file",
+              "sha256",
+              "bytes",
+              "transcriptVerdictToken",
+              "synthesisPosition",
+              "readOnly"
+            ],
+            "properties": {
+              "id": { "type": "string", "pattern": "^A[1-6]$" },
+              "role": { "type": "string", "minLength": 1 },
+              "file": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "bytes": { "type": "integer" },
+              "transcriptVerdictToken": { "enum": ["CONDITIONAL", "REJECT"] },
+              "synthesisPosition": { "type": "string", "minLength": 1 },
+              "readOnly": { "const": true }
+            }
+          }
+        }
+      }
+    },
+
+    "checkerPerformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elapsedTimeReported",
+        "performanceThresholdMs",
+        "productionThresholdInvented",
+        "p01ExitBuildBudgetBaseline",
+        "note"
+      ],
+      "properties": {
+        "elapsedTimeReported": { "const": true },
+        "performanceThresholdMs": { "const": null },
+        "productionThresholdInvented": { "const": false },
+        "p01ExitBuildBudgetBaseline": { "const": "PENDING" },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producesRuntimeCapability",
+        "producesSdk",
+        "producesApp",
+        "producesProductCapability",
+        "movesAnyReadinessFlag",
+        "producesReceipt",
+        "closesAnyGap",
+        "modifiesRuntimeOrDbOrSrc",
+        "addsPythonOrFastApiDependency",
+        "movesOrExtractsSources"
+      ],
+      "properties": {
+        "producesRuntimeCapability": { "const": false },
+        "producesSdk": { "const": false },
+        "producesApp": { "const": false },
+        "producesProductCapability": { "const": false },
+        "movesAnyReadinessFlag": { "const": false },
+        "producesReceipt": { "const": false },
+        "closesAnyGap": { "const": false },
+        "modifiesRuntimeOrDbOrSrc": { "const": false },
+        "addsPythonOrFastApiDependency": { "const": false },
+        "movesOrExtractsSources": { "const": false }
+      }
+    },
+
+    "capabilityDelta": { "const": "NONE" },
+    "newlyBuildableProducts": { "type": "array", "maxItems": 0, "items": { "type": "string" } },
+    "stillNotBuildable": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+
+    "readinessFlagBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mutatesAnyFlag", "values"],
+      "properties": {
+        "mutatesAnyFlag": { "const": false },
+        "values": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kernelReady",
+            "sdkReady",
+            "appBuildable",
+            "releaseAllowed",
+            "deployAllowed",
+            "productionAllowed",
+            "gapClosed"
+          ],
+          "properties": {
+            "kernelReady": { "const": false },
+            "sdkReady": { "const": false },
+            "appBuildable": { "const": false },
+            "releaseAllowed": { "const": false },
+            "deployAllowed": { "const": false },
+            "productionAllowed": { "const": false },
+            "gapClosed": { "const": false }
+          }
+        }
+      }
+    },
+
+    "nonAuthorizations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

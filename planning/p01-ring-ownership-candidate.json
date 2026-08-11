@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "id": "P01-W1-RING-OWNERSHIP-CANDIDATE",
+  "packageKind": "RING_OWNERSHIP_REGISTER_CANDIDATE",
+  "generatedOn": "2026-08-11",
+  "decisionState": "HUMAN_DECISION_REQUIRED",
+  "effective": false,
+  "candidateOf": "planning/p01-architecture-decision-candidate.json",
+  "whatThisIsNot": "EXIT-01 requires a ring ownership and source-of-truth register published as a named artifact whose hash is recorded in RCPT-01. This is the candidate for that artifact. It is not published, its hash is in no receipt, and no receipt exists.",
+
+  "direction": "Domain <- Application <- Adapters <- Delivery",
+  "directionEnforcement": {
+    "rule": "Every ring may import only rings strictly inward of it. Domain imports nothing.",
+    "todayEnforcedBy": "tools/check-repository-boundary.mjs, which refuses adapters, delivery and sdk as first children of src by name and refuses an unknown first child fail-closed.",
+    "todayEnforcementLimit": "The current check reads directory names. It does not read import statements, so a module importing outward inside a permitted directory is not caught today. This is a recorded limit, not a claim of coverage, and closing it is the EXIT-01 fitness function obligation that this package does not discharge.",
+    "buildFailsOnViolation": false,
+    "buildFailureIsAnExitObligation": true
+  },
+
+  "rings": [
+    {
+      "id": "Domain",
+      "ordinal": 1,
+      "candidateOwner": "python",
+      "currentOwner": "node",
+      "mayImport": [],
+      "owns": "Value types, entities, invariants and the vocabulary of failure. Framework-free by construction.",
+      "note": "The innermost ring imports nothing, in any language. That is what makes it the place an invariant can be proven."
+    },
+    {
+      "id": "Application",
+      "ordinal": 2,
+      "candidateOwner": "python",
+      "currentOwner": "node",
+      "mayImport": ["Domain"],
+      "owns": "Use cases, action contracts and the port shapes a boundary must satisfy. It orchestrates the domain and owns no infrastructure.",
+      "note": "Application is a ring of the onion, never an end-user application and never a delivery surface."
+    },
+    {
+      "id": "Adapters",
+      "ordinal": 3,
+      "candidateOwner": "python",
+      "currentOwner": "none — this ring does not exist today",
+      "mayImport": ["Application", "Domain"],
+      "owns": "Persistence and integration: the implementations that satisfy the ports, including everything that reaches the S1 substrate.",
+      "note": "Refused by name as a first child of src today. It becomes real only under a signed decision."
+    },
+    {
+      "id": "Delivery",
+      "ordinal": 4,
+      "candidateOwner": "python",
+      "currentOwner": "none — this ring does not exist today",
+      "mayImport": ["Adapters", "Application", "Domain"],
+      "owns": "Protocol termination. The outermost ring, where a web framework may live and where nothing may be decided.",
+      "note": "Refused by name as a first child of src today. A framework hosted here holds no invariant and no policy."
+    }
+  ],
+
+  "surface": {
+    "kind": "outer-composition-boundary",
+    "isOnionRing": false,
+    "ordinal": null,
+    "description": "Surface is where composed capability meets a consumer. It sits outside the onion rather than as another layer of it, so it never appears in the ring list and never acquires an ordinal.",
+    "whyNotARing": "A ring is defined by what it may import. Surface composes what the rings already produce, so giving it an ordinal would invent a dependency direction that does not exist and would let composition concerns argue for inward access."
+  },
+
+  "crossCuttingAxes": [
+    {
+      "id": "ai",
+      "title": "AI-native behaviour",
+      "isRing": false,
+      "note": "An axis cuts across every ring at its own altitude. Deterministic, AI-off behaviour stays correct in every ring, which is only possible if AI is never a layer that something must pass through."
+    },
+    {
+      "id": "multi-llm",
+      "title": "Multi-model routing",
+      "isRing": false,
+      "note": "Model choice is an operational concern of the outer rings. It is never a dependency the domain sits behind."
+    },
+    {
+      "id": "archetype-metadata",
+      "title": "ArcheType and metadata",
+      "isRing": false,
+      "note": "A declarative intermediate representation and its projections. It describes; it does not own bounded-domain invariants."
+    },
+    {
+      "id": "module-plugin",
+      "title": "Modules and plugins",
+      "isRing": false,
+      "note": "Extension is an axis: a plugin composes into rings, it is not a ring between them."
+    },
+    {
+      "id": "observability",
+      "title": "Observability",
+      "isRing": false,
+      "note": "Measurement crosses every ring. Making it a ring would put every call behind it."
+    }
+  ],
+
+  "kernelSharedPrimitives": [
+    {
+      "id": "money-value",
+      "title": "Money and monetary value",
+      "rationale": "Domain-neutral: the representation and arithmetic of an amount with a denomination, with no ledger meaning attached."
+    },
+    {
+      "id": "quantity",
+      "title": "Quantity",
+      "rationale": "A magnitude with a unit. It says how many, never what it means to consume or value them."
+    },
+    {
+      "id": "unit",
+      "title": "Unit of measure",
+      "rationale": "The vocabulary and conversion rules of measurement, independent of what is measured."
+    },
+    {
+      "id": "party-reference",
+      "title": "Party reference",
+      "rationale": "A stable reference to a counterparty. It identifies; it holds no commercial relationship."
+    },
+    {
+      "id": "address-value",
+      "title": "Address value",
+      "rationale": "A structured postal or location value with no delivery or logistics semantics."
+    },
+    {
+      "id": "document-number",
+      "title": "Document number",
+      "rationale": "Identifier form, sequence rules and formatting for a numbered document, with no meaning for what the document does."
+    },
+    {
+      "id": "period-time-reference",
+      "title": "Period and time reference",
+      "rationale": "Intervals, periods and calendar references. It bounds time; it does not decide what closing a period means."
+    },
+    {
+      "id": "domain-neutral-identifier",
+      "title": "Domain-neutral identifiers and value objects",
+      "rationale": "Tenant, correlation, causation, actor and idempotency identities and their equality rules. Already implemented in the current baseline."
+    }
+  ],
+
+  "excludedFromKernelSharedOwnership": [
+    {
+      "id": "ledger-accounting",
+      "title": "Ledger and accounting",
+      "owner": "bounded context",
+      "reason": "Double-entry balance, period closing and posting rules are invariants of an accounting domain. Reducing them to shared metadata makes them unprovable."
+    },
+    {
+      "id": "inventory-valuation",
+      "title": "Inventory valuation",
+      "owner": "bounded context",
+      "reason": "Costing method, movement and revaluation are domain rules with their own history, not a shape a metadata engine can carry."
+    },
+    {
+      "id": "payment",
+      "title": "Payment",
+      "owner": "bounded context",
+      "reason": "Settlement, reconciliation and reversal semantics belong to a payment domain with its own consistency requirements."
+    },
+    {
+      "id": "procurement",
+      "title": "Procurement",
+      "owner": "bounded context",
+      "reason": "Approval, commitment and receipt-matching rules are domain invariants with their own authority model."
+    },
+    {
+      "id": "order-orchestration",
+      "title": "Order orchestration",
+      "owner": "bounded context",
+      "reason": "Order lifecycle, allocation and fulfilment sequencing is a workflow invariant of its own domain."
+    },
+    {
+      "id": "logistics",
+      "title": "Logistics",
+      "owner": "bounded context",
+      "reason": "Shipment, routing and custody rules depend on physical process, not on a shared value shape."
+    },
+    {
+      "id": "payroll-hcm",
+      "title": "Payroll and HCM",
+      "owner": "bounded context",
+      "reason": "Entitlement, accrual and statutory calculation are jurisdiction-bound domain rules and are the clearest case of what must never dissolve into generic metadata."
+    }
+  ],
+
+  "archeTypeMetadata": {
+    "isRing": false,
+    "absorbsBoundedDomainInvariants": false,
+    "role": "A declarative, versioned intermediate representation of fields, types, relations, invariant references, classification, actions and surface projections. It refers to invariants; it does not own them.",
+    "refusal": "A bounded-domain invariant may not be expressed as archetype metadata in place of being owned by its bounded context. The metadata may reference the invariant by identity, and the reference is not the invariant."
+  },
+
+  "deliveryAndReferenceSurfaces": [
+    {
+      "id": "fastapi",
+      "title": "FastAPI",
+      "kind": "delivery",
+      "isOnionRing": false,
+      "isKernelSemantics": false,
+      "isProductProof": false,
+      "note": "A candidate Delivery host under the recommended route. Hosting a protocol is not owning a meaning."
+    },
+    {
+      "id": "django",
+      "title": "Django",
+      "kind": "comparison",
+      "isOnionRing": false,
+      "isKernelSemantics": false,
+      "isProductProof": false,
+      "note": "A comparison surface. Its conventions are not kernel semantics and its feature set is not a target."
+    },
+    {
+      "id": "frappe",
+      "title": "Frappe",
+      "kind": "comparison",
+      "isOnionRing": false,
+      "isKernelSemantics": false,
+      "isProductProof": false,
+      "note": "A comparison surface, and the clearest example of what to avoid: its document type fuses model and view, which is the fusion this register separates."
+    },
+    {
+      "id": "flask",
+      "title": "Flask",
+      "kind": "comparison",
+      "isOnionRing": false,
+      "isKernelSemantics": false,
+      "isProductProof": false,
+      "note": "A comparison surface only."
+    },
+    {
+      "id": "symfony",
+      "title": "Symfony",
+      "kind": "comparison",
+      "isOnionRing": false,
+      "isKernelSemantics": false,
+      "isProductProof": false,
+      "note": "A comparison surface only."
+    }
+  ],
+
+  "currentRepositoryReality": {
+    "existingRings": ["Domain", "Application"],
+    "absentRings": ["Adapters", "Delivery"],
+    "surfaceExists": false,
+    "archeTypeIrExists": false,
+    "note": "Two of the four rings exist and both are owned by Node today. The register describes the target ownership under the recommended route and the current reality beside it, so neither can be read as the other."
+  },
+
+  "capabilityDelta": "NONE",
+  "nonAuthorizations": [
+    "Publishing this register as the EXIT-01 named artifact is a separate act that has not happened.",
+    "No ring is created, renamed or moved by this document; src/adapters, src/delivery and src/sdk stay refused by name.",
+    "No ownership transfer takes effect; every candidateOwner value applies only after a human signature."
+  ]
+}

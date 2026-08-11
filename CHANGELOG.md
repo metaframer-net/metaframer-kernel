@@ -16,6 +16,24 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- The P01-W1 architecture decision candidate: `planning/p01-architecture-decision-candidate.json`
+  as the canonical candidate, `planning/p01-architecture-decision.schema.json` as its closed
+  schema, `planning/p01-ring-ownership-candidate.json` as the separate ring and bounded-context
+  register candidate, `docs/p01-architecture-decision-candidate.md` as the plain-Turkish human
+  decision packet, and `tools/check-p01-architecture-candidate.mjs` as the fail-closed verifier
+  bound into `npm run check`. Three routes are recorded on the same dimensions with rejection
+  reasons and conditions: Node canonical is conditional, Python canonical with FastAPI confined to
+  Delivery and Node frozen as a conformance reference is conditional and recommended, and a
+  permanent dual runtime is rejected and unreachable as a recommendation at the schema level. It
+  is a candidate and not a decision: `decisionState` is `HUMAN_DECISION_REQUIRED`, `effective` is
+  false, `selectedOption` and the signature, signer and date fields are null, and each is pinned
+  by `const` in the schema as well as checked. Four authority sources and six independent
+  read-only analyses are pinned by path, byte count and SHA-256; the six P01 gaps in their
+  accepted order and the five P01 closure edges are re-derived from the pinned overlays; the seven
+  `src` modules are hash-pinned and compared against the tree. The data rollback drill is
+  unexercised and recorded pending, and the P01 exit build-budget baseline is recorded pending
+  rather than invented. No `RCPT-01`, no signature, no closed gap, no `sourceExtraction` change,
+  no readiness flag movement, and EXIT-01 stays unsatisfied. Capability delta: none.
 - The P01 closure-semantics package: `planning/p01-closure-semantics-addendum.json` as the
   additive forward-only successor contract, `planning/p01-closure-discharge.schema.json` as the
   append-only discharge receipt schema, `docs/p01-closure-semantics.md` as the human projection,

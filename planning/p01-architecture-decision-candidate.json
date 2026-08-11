@@ -1,0 +1,622 @@
+{
+  "schemaVersion": 1,
+  "id": "P01-W1-ARCHITECTURE-DECISION-CANDIDATE",
+  "packageKind": "DECISION_CANDIDATE",
+  "packageMode": "PRE_HUMAN_DECISION",
+  "phase": "P01",
+  "workPackage": "P01-W1",
+  "generatedOn": "2026-08-11",
+  "canonicalOwner": "This document is the canonical machine-readable owner of the P01-W1 architecture decision candidate. The Turkish packet, the README section and the CHANGELOG entry are projections of it and are never read back as a source.",
+  "schemaPath": "planning/p01-architecture-decision.schema.json",
+  "ringOwnershipRegisterPath": "planning/p01-ring-ownership-candidate.json",
+  "humanDecisionPacketPath": "docs/p01-architecture-decision-candidate.md",
+  "whatThisIsNot": "This is candidate preparation, not P01 exit. It records three routes, recommends one, and answers none. EXIT-01 stays open: the two signed human ADRs, the ring-ownership register hashed into RCPT-01, and the build-failing architecture fitness function are separate obligations that this package does not discharge.",
+
+  "decision": {
+    "decisionState": "HUMAN_DECISION_REQUIRED",
+    "effective": false,
+    "selectedOption": null,
+    "selectedBy": null,
+    "signature": null,
+    "signerId": null,
+    "signedOn": null,
+    "decisionAuthority": "authorized human",
+    "recommendedOption": "S2",
+    "recommendationIsSelection": false,
+    "modelMaySelect": false,
+    "modelMaySign": false,
+    "producesReceipt": false,
+    "receiptId": null,
+    "closesAnyGap": false,
+    "satisfiesExitGate": false,
+    "proposition": "Önerilen yön: MetaFramer’ın kanonik kernel dili Python; FastAPI yalnız dış API/Delivery kapısı; mevcut Node kodu geçiş boyunca dondurulmuş uyumluluk referansı. Kalıcı çift-runtime yok.",
+    "propositionRestatement": "The recommendation names one canonical kernel language, confines the web framework to the outermost delivery ring, freezes the existing runtime as a read-only reference for the duration of the migration, and refuses a permanent second write runtime. Accepting or rejecting it is a human act.",
+    "aiNativeGate": "AI-01-1 — no architectural decision may be closed by a model decision. KG-002 and KG-003 require a human signature.",
+    "openHumanDecisionRecords": [
+      {
+        "id": "HD-RUNTIME-ADR",
+        "gap": "KG-002",
+        "question": "Kanonik yürütme dili, hangi halkanın hangi dilde sahiplenildiği ve iki dil bir arada yaşayacaksa aralarındaki sözleşme.",
+        "owner": "human",
+        "state": "OPEN"
+      },
+      {
+        "id": "HD-TOPOLOGY-EXTRACTION-ADR",
+        "gap": "KG-003",
+        "question": "Kanonik sahiplik, monorepo topolojisi ve kaynak çıkarımı sınırı.",
+        "owner": "human",
+        "state": "OPEN"
+      },
+      {
+        "id": "HD-01-1",
+        "gap": "KG-002",
+        "question": "Architectural Constitution and Topology kapsam ve risk iştahı onayı.",
+        "owner": "human",
+        "state": "OPEN"
+      },
+      {
+        "id": "HD-01-2",
+        "gap": "KG-003",
+        "question": "Kernel/SDK/app sınırında kapsam dışı bırakılacak konular.",
+        "owner": "human",
+        "state": "OPEN"
+      }
+    ]
+  },
+
+  "currentEffectiveState": {
+    "asOf": "2026-08-11",
+    "canonicalRuntimeDecided": false,
+    "nodeSurfaces": "src/domain and src/application, framework-free .mjs modules",
+    "nodeSurfaceNote": "Seven modules: value types, action primitives, the use-case contract and four ports. Each one states the shape a boundary must have; none of them is a boundary and none reaches a database.",
+    "pythonSubstrateRole": "S1 persistence substrate",
+    "pythonSubstratePath": "db/metaframer_kernel_db",
+    "pythonSubstrateNote": "PostgreSQL row-level security, a signed tenant context bound to the open transaction, an append-only audit trigger and a transactional outbox. Implemented and externally activated.",
+    "adaptersRingExists": false,
+    "deliveryRingExists": false,
+    "sdkRingExists": false,
+    "fastapiInstalled": false,
+    "fastapiShipped": false,
+    "nodeAndPythonCallEachOther": false,
+    "boundaryContractExists": false,
+    "observedBy": "tools/check-repository-boundary.mjs refuses src/adapters, src/delivery and src/sdk by name; db/kernel-runtime-substrate-s1.json ships no HTTP, FastAPI or SDK surface.",
+    "nodeBaseline": {
+      "role": "current effective baseline, pinned so a later reader can prove this package left it alone",
+      "changedByThisPackage": false,
+      "deletedByThisPackage": false,
+      "rewrittenByThisPackage": false,
+      "retentionRule": "Retained unchanged until an independently verified parity run exists, and never silently deleted or rewritten.",
+      "files": [
+        {
+          "path": "src/domain/identity-primitives.mjs",
+          "bytes": 13378,
+          "sha256": "b816c4f7b4917ea27636fba908937340481b6cc0ef6537b5e0ec67c72b24ce45"
+        },
+        {
+          "path": "src/application/action-primitives.mjs",
+          "bytes": 23639,
+          "sha256": "48467dd75987fb5bb9fbcafc2f9317c709b261ffaa10765863bd099b0e10a3d5"
+        },
+        {
+          "path": "src/application/clock.mjs",
+          "bytes": 12957,
+          "sha256": "34d293c8a9cb0da9c3de0f3d883e3728ffef20c74a76301466ab2c8b41de3e53"
+        },
+        {
+          "path": "src/application/identity.mjs",
+          "bytes": 14197,
+          "sha256": "95e3b2108f5c5f2bbf078a4ad783aeee1acd5676f9ec8cf4b3770bfd8533b2f5"
+        },
+        {
+          "path": "src/application/policy.mjs",
+          "bytes": 11724,
+          "sha256": "6441e048c20d78105c82d1b086b660dfa58621e8c5d54326e4b96fa4bc522bd9"
+        },
+        {
+          "path": "src/application/unit-of-work.mjs",
+          "bytes": 10469,
+          "sha256": "f562c77ee3ac3b4c62987e186c070587ad8bf8c0cef81871610ed0c1148511fd"
+        },
+        {
+          "path": "src/application/use-case.mjs",
+          "bytes": 12458,
+          "sha256": "b800572193e8eb3d1d821db2a5e712c5decd6587dc435076b8715293a19db937"
+        }
+      ]
+    }
+  },
+
+  "options": [
+    {
+      "id": "S1",
+      "title": "Node canonical Domain and Application, Python adapter behind the S1 substrate",
+      "summary": "Meaning stays in the existing Node modules. The Python substrate keeps the data and is reached across a typed call contract.",
+      "security": "Opens a cross-process tenant and auth claim boundary before P04, which is the phase that builds the policy decision point. The substrate's tenant attestation is bound to the open transaction and cannot travel over a wire, so a second attestation path has to be designed and re-authorized at the boundary with no decision point yet in place to guard it.",
+      "compatibility": "Highest short-term compatibility: every existing Node module keeps its meaning and its tests unchanged. The canonical ADR-K1 backend stack lock points the other way, so the conflict with it must be either closed or explicitly superseded.",
+      "migration": "No move of the existing Node sources. New work is the KG-004 boundary contract itself: call semantics, versioning, error semantics, timeout, back pressure and partial-failure behaviour.",
+      "historyPreservation": "Full. Nothing is moved or extracted, so Git history is untouched by construction.",
+      "codeRollback": "Clean: the boundary contract and its adapter are one revertable package.",
+      "dataRollback": "Not exercised. The substrate downgrade path is destructive for data, and no drill has been recorded.",
+      "operationalCost": "Two languages operated for the lifetime of the kernel: two toolchains, two dependency sets, two security update streams and a parity obligation on every future contract. Relative to S2 this is the higher standing cost.",
+      "costBasis": "relative-and-evidence",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "The KG-004 boundary contract is written and signed before any code crosses it.",
+        "The tenant claim crossing the boundary is re-authorized on the receiving side, which needs the P04 policy decision point to exist first.",
+        "The single write path stays atomic across the boundary, proven end to end rather than asserted.",
+        "The conflict with the canonical ADR-K1 stack lock is closed or explicitly superseded by the same signature."
+      ],
+      "rejectionReasons": [],
+      "evidenceRefs": ["A1", "A4", "A5"]
+    },
+    {
+      "id": "S2",
+      "title": "Python canonical Domain and Application, FastAPI as Delivery host only, Node frozen as a conformance reference",
+      "summary": "Meaning and transaction live in the same place. The web framework is the outer door and nothing more. The existing Node code is retained, frozen, and used to prove the new side behaves the same.",
+      "security": "No permanent cross-runtime claim boundary is opened, so the tenant attestation never has to leave the transaction that owns it. The security comparator prefers this route for exactly that reason. The risk it does carry is different in kind: the web framework drifting inward until it becomes the model. The honest test for that is deterministic — remove the framework and the kernel tests must still pass unchanged.",
+      "compatibility": "Aligned with the canonical ADR-K1 backend stack lock and with the substrate that is already implemented and activated. The cost lands on the Node side, whose modules become a reference rather than the canonical source.",
+      "migration": "In-repo and staged. Contract fixtures first, then parity against the frozen Node baseline, then a cutover that only happens after a human signature. No repository split, no source move, no extraction.",
+      "historyPreservation": "Full. The migration is in-repo, so Git history is preserved and sourceExtraction stays false.",
+      "codeRollback": "Clean while the Node baseline is retained: the Python surfaces are additive until cutover, so reverting the package restores the previous state exactly.",
+      "dataRollback": "Not exercised and explicitly pending. The substrate downgrade path is destructive for data; a restore-from-backup drill with recorded outputs is required before any cutover.",
+      "operationalCost": "One canonical toolchain, one dependency set, one security update stream. The Node governance tooling stays where it is and is not migrated. Relative to S1 and S3 this is the lowest lifecycle and operational cost.",
+      "costBasis": "relative-and-evidence",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "The web framework stays out of Domain and Application by a machine-checked import rule, not by convention.",
+        "Removing the web framework leaves the kernel tests passing unchanged, run as a real check rather than asserted.",
+        "Versioned, language-independent contract fixtures exist and pass on both sides before any cutover.",
+        "The Node baseline is retained unchanged until an independent verifier confirms parity.",
+        "The data rollback drill is recorded before cutover, separately from the code rollback.",
+        "Deterministic, AI-off behaviour is preserved and measured, not assumed."
+      ],
+      "rejectionReasons": [],
+      "evidenceRefs": ["A2", "A3", "A4", "A5"]
+    },
+    {
+      "id": "S3",
+      "title": "Permanent dual runtime with two co-equal write paths",
+      "summary": "Both runtimes stay canonical and both may write.",
+      "security": "Two independent write paths mean two independent tenant attestation paths, and the substrate's attestation is only valid inside the process holding the transaction. Every future invariant then has to be proven twice and proven equal, with no single place that owns the answer.",
+      "compatibility": "Superficially the most compatible route, because nothing has to change today. That is also why it is the one whose reversibility closes fastest: every part written under it deepens the split.",
+      "migration": "No migration, and that is the defect rather than the benefit. Seventy-one of the ninety recorded gaps are still absent, and each one would have to answer which side owns it and how the two sides are proven equal.",
+      "historyPreservation": "Full, and irrelevant to the verdict.",
+      "codeRollback": "Degrades over time: there is no single revert that removes a split maintained on purpose.",
+      "dataRollback": "Worse than either single-runtime route, because two writers can diverge before a restore point is reached.",
+      "operationalCost": "The standing cost of both other options at once, paid permanently, against a single maintaining owner. Relative to S1 and S2 this is the highest lifecycle cost and it does not decline.",
+      "costBasis": "relative-and-evidence",
+      "verdict": "REJECT",
+      "conditions": [],
+      "rejectionReasons": [
+        "It creates the permanent cross-runtime claim boundary that both single-runtime routes exist to avoid or to time correctly.",
+        "It breaks the one-write-path rule the substrate contract depends on, because the tenant attestation is only valid inside the transaction-holding process.",
+        "It doubles the proof obligation for every one of the still-absent gaps with no owner of record for the answer.",
+        "The defensible arrangement people mean by it — one side decides and writes, the other generates and displays with machine-refused write authority — is not a third option. It is S1 or S2 with an interface, and the signed ADR must name the canonical language either way."
+      ],
+      "evidenceRefs": ["A3", "A4", "A5"]
+    }
+  ],
+
+  "recommendedTarget": {
+    "optionId": "S2",
+    "appliesOnlyAfterHumanSignature": true,
+    "isCurrentState": false,
+    "statement": "Python owns Domain and Application; Python adapters own persistence and integration; FastAPI is the Delivery host and nothing else; Node becomes a frozen conformance and reference client with zero write authority; language-independent versioned contract fixtures become the only cross-language truth, and later SDK projections derive from them.",
+    "ringOwners": {
+      "Domain": "python",
+      "Application": "python",
+      "Adapters": "python",
+      "Delivery": "python"
+    },
+    "innerRingForbiddenImports": {
+      "Domain": ["fastapi", "starlette", "pydantic"],
+      "Application": ["fastapi", "starlette", "pydantic"]
+    },
+    "fastapi": {
+      "role": "delivery-host-only",
+      "permittedRings": ["Delivery"],
+      "forbiddenRings": ["Domain", "Application"],
+      "isPolicyDecisionPoint": false,
+      "isPolicyEngine": false,
+      "isDomainModel": false,
+      "isWorkflowEngine": false,
+      "isMetadataEngine": false,
+      "isSdk": false,
+      "isUi": false,
+      "isProductCapability": false,
+      "isKernelCapability": false,
+      "installedToday": false,
+      "removalTest": "Remove the web framework and the kernel tests must still pass, unchanged. If they do not, the framework has become the model and the condition has failed.",
+      "note": "A delivery host terminates a protocol. It decides nothing, owns no invariant, and its presence is never evidence of a kernel capability."
+    },
+    "node": {
+      "role": "frozen-conformance-reference-client",
+      "writeAuthority": "none",
+      "dualWrite": false,
+      "frozen": true,
+      "deletedByThisPackage": false,
+      "retainedAs": "hash-pinned current baseline and conformance reference",
+      "writeRefusalIsMachineChecked": true,
+      "note": "Frozen means it neither grows nor writes. It is kept because it is the only independent thing to compare the new side against, and it is retired only after an independent verifier confirms parity."
+    },
+    "crossRuntime": {
+      "permanentProcessBoundary": false,
+      "permanentApiBoundary": false,
+      "permanentFfiBoundary": false,
+      "tenantClaimCrossesRuntimeBeforeP04": false,
+      "authClaimCrossesRuntimeBeforeP04": false,
+      "rationale": "The substrate binds its tenant attestation to the open transaction, so an attestation that travels between runtimes is a second, weaker claim path. Before P04 there is no policy decision point to re-authorize it on arrival. The recommended route therefore opens no such path at all rather than opening one early and guarding it later."
+    },
+    "contractTruth": {
+      "crossLanguageTruth": "versioned-contract-fixtures-ir",
+      "isOnlyCrossLanguageTruth": true,
+      "sdkProjectionsDeriveFromIr": true,
+      "builtByThisPackage": false,
+      "note": "Language-independent versioned fixtures and the ArcheType intermediate representation are the single cross-language truth; every generated artifact, including any later SDK, is a projection of them and never a second source. None of it is built here."
+    }
+  },
+
+  "migration": {
+    "mode": "in-repo-staged-parity-then-cutover",
+    "destructiveMigrationInThisPackage": false,
+    "dataDowngradeInThisPackage": false,
+    "dualWrite": false,
+    "parityFixturesBeforeCutover": true,
+    "nodeBaselineRetainedUntilIndependentParity": true,
+    "cutoverRequiresHumanSignature": true,
+    "gitHistoryPreserved": true,
+    "sourceExtraction": false,
+    "startsAfter": "a signed human ADR for KG-002 and KG-003",
+    "stages": [
+      {
+        "id": "MS-1",
+        "title": "Versioned contract fixtures",
+        "detail": "Language-independent fixtures describing the primitives and the action contracts. No behaviour moves; the fixtures are written against the existing Node baseline so they are derived from something that already runs.",
+        "reversible": true
+      },
+      {
+        "id": "MS-2",
+        "title": "Parity",
+        "detail": "The Python surfaces satisfy the same fixtures. Both sides run them. Divergence is a stop, not a note.",
+        "reversible": true
+      },
+      {
+        "id": "MS-3",
+        "title": "Independent verification",
+        "detail": "A separate read-only reviewer on the same immutable snapshot confirms parity. The writer never verifies its own parity run.",
+        "reversible": true
+      },
+      {
+        "id": "MS-4",
+        "title": "Cutover",
+        "detail": "Canonical ownership moves to the Python surfaces and the Node baseline becomes read-only reference. This stage does not start without a human signature, and it is the first stage that is not freely reversible.",
+        "reversible": false
+      }
+    ],
+    "codeRollback": {
+      "kind": "code",
+      "route": "Revert the change package. Until MS-4 the Python surfaces are additive and the Node baseline is unchanged, so the previous state is restored exactly by reverting, with no data step involved.",
+      "exercised": false,
+      "state": "AVAILABLE",
+      "note": "Available in the sense that the route is defined and the package is shaped to be revertable. It has not been rehearsed here."
+    },
+    "dataRollback": {
+      "kind": "data",
+      "route": "Restore from backup. The substrate downgrade path is destructive for data and destroys the audit trail, so the route is a restore rather than a downgrade, and it must be rehearsed with recorded outputs before any cutover.",
+      "exercised": false,
+      "state": "PENDING",
+      "note": "Deliberately separate from the code rollback and deliberately not claimed. Reverting code does not restore data, and no drill has been run."
+    },
+    "killTriggers": [
+      {
+        "id": "KT-PARITY-FAILURE",
+        "trigger": "A contract fixture produces a different answer on the two sides, or a fixture cannot be expressed on one side.",
+        "action": "Stop the migration at the current stage, keep the Node baseline canonical, and return the divergence to the decision owner."
+      },
+      {
+        "id": "KT-SECURITY-BOUNDARY-VIOLATION",
+        "trigger": "A tenant or auth claim is found crossing a runtime boundary, or the transaction-bound attestation is weakened to make a crossing possible.",
+        "action": "Stop immediately. This is the condition the recommended route exists to avoid, so it is a pivot trigger and not a defect to be patched."
+      },
+      {
+        "id": "KT-UNACCEPTABLE-MEASURED-COST",
+        "trigger": "Measured migration or operating cost exceeds what the decision owner accepted, measured rather than estimated.",
+        "action": "Stop and re-open the option register with the measurement attached."
+      },
+      {
+        "id": "KT-DETERMINISM-OR-AI-OFF-LOSS",
+        "trigger": "Deterministic behaviour or correct behaviour with AI disabled cannot be preserved on the target side.",
+        "action": "Stop. Determinism and AI-off correctness are properties of the kernel, not of a runtime, and losing them invalidates the route rather than the test."
+      }
+    ]
+  },
+
+  "p01Scope": {
+    "phase": "P01",
+    "orderedGaps": [
+      {
+        "id": "KG-003",
+        "intraSeq": 1,
+        "title": "Kanonik sahiplik, monorepo topolojisi ve kaynak çıkarımı",
+        "currentStatus": "HUMAN DECISION REQUIRED",
+        "layer": "authority",
+        "boundary": "human governance"
+      },
+      {
+        "id": "KG-002",
+        "intraSeq": 2,
+        "title": "Dil ve çalışma zamanı koheransı",
+        "currentStatus": "HUMAN DECISION REQUIRED",
+        "layer": "topology",
+        "boundary": "human governance"
+      },
+      {
+        "id": "KG-004",
+        "intraSeq": 3,
+        "title": "İki çalışma zamanı arasında tipli sınır sözleşmesi",
+        "currentStatus": "ABSENT",
+        "layer": "topology",
+        "boundary": "kernel"
+      },
+      {
+        "id": "KG-005",
+        "intraSeq": 4,
+        "title": "Uyumluluk, migrasyon, tarih koruması ve geri alma planı",
+        "currentStatus": "ABSENT",
+        "layer": "authority",
+        "boundary": "human governance"
+      },
+      {
+        "id": "KG-006",
+        "intraSeq": 5,
+        "title": "Onion bağımlılık yönü ve depo sınırı zorlaması",
+        "currentStatus": "CURRENT IMPLEMENTED",
+        "layer": "topology",
+        "boundary": "kernel"
+      },
+      {
+        "id": "KG-084",
+        "intraSeq": 6,
+        "title": "Paylaşılan iş primitifleri ile bounded domain sahipliği ayrımı",
+        "currentStatus": "ABSENT",
+        "layer": "domain ownership",
+        "boundary": "kernel"
+      }
+    ],
+    "closureEdges": [
+      {
+        "edgeId": "E-002",
+        "sourceGap": "KG-002",
+        "destinationGap": "KG-004",
+        "sourcePhase": "P01",
+        "destinationPhase": "P01",
+        "classification": "INTRA_ATOMIC",
+        "expectedDestinationReceipt": "RCPT-01"
+      },
+      {
+        "edgeId": "E-003",
+        "sourceGap": "KG-003",
+        "destinationGap": "KG-002",
+        "sourcePhase": "P01",
+        "destinationPhase": "P01",
+        "classification": "INTRA_ATOMIC",
+        "expectedDestinationReceipt": "RCPT-01"
+      },
+      {
+        "edgeId": "E-005",
+        "sourceGap": "KG-004",
+        "destinationGap": "KG-023",
+        "sourcePhase": "P01",
+        "destinationPhase": "P03",
+        "classification": "FORWARD_DEFERRED",
+        "expectedDestinationReceipt": "RCPT-03"
+      },
+      {
+        "edgeId": "E-152",
+        "sourceGap": "KG-084",
+        "destinationGap": "KG-019",
+        "sourcePhase": "P01",
+        "destinationPhase": "P02",
+        "classification": "FORWARD_DEFERRED",
+        "expectedDestinationReceipt": "RCPT-02"
+      },
+      {
+        "edgeId": "E-153",
+        "sourceGap": "KG-084",
+        "destinationGap": "KG-050",
+        "sourcePhase": "P01",
+        "destinationPhase": "P05",
+        "classification": "FORWARD_DEFERRED",
+        "expectedDestinationReceipt": "RCPT-05"
+      }
+    ],
+    "forwardOnly": true,
+    "closureSemanticsAuthority": "planning/p01-closure-semantics-addendum.json",
+    "closureSemanticsAcceptedAtCommit": "900b19d931374548fb901281deced417e9183862",
+    "preservesAcceptedClosureSemantics": true,
+    "dischargedByThisPackage": [],
+    "note": "The six gaps and the five closure edges are re-derived from the pinned ownership and dependency overlays whenever the evidence root is readable, so this projection cannot drift from the source of truth unnoticed. Nothing here discharges an obligation."
+  },
+
+  "sourceAuthority": {
+    "sourceExtraction": false,
+    "sourceMoveAuthorized": false,
+    "repositorySplitAuthorized": false,
+    "extractionAuthorized": false,
+    "topologyChangeGate": "a human counter-signed topology ADR, recorded outside this package",
+    "note": "The recommended migration is in-repo. No source is moved, split or extracted by it, and this package authorizes none of those things regardless of which option is later signed.",
+    "authorityFiles": [
+      {
+        "path": "repository-status.json",
+        "assertion": "sourceTopology.sourceExtraction is false",
+        "machineRead": true
+      },
+      {
+        "path": "AGENTS.md",
+        "assertion": "source extraction and repository topology changes remain separately human-gated",
+        "machineRead": true
+      },
+      {
+        "path": "README.md",
+        "assertion": "the text asserts sourceExtraction=false",
+        "machineRead": true
+      }
+    ]
+  },
+
+  "sourcePins": {
+    "algorithm": "sha256",
+    "readOnly": true,
+    "immutable": true,
+    "evidenceRoot": "/Users/karaca/Documents/Codex/2026-08-08/files-mentioned-by-the-user-k",
+    "analysisRoot": "/Users/karaca/.claude/projects/-Users-karaca-DEV-mimari-metaframer-kernel-worktrees-metaframer-p00-treaty-correction-2026-08-10-1",
+    "verificationRule": "If a root is present, every file pinned under it must be present and byte-exact or this package is RED. If a root is wholly absent the checker reports it as absent and never as verified.",
+    "files": [
+      {
+        "role": "phase chain P00..P12, the source of the P01 gate and receipt identity",
+        "path": "reports/kernel-development-roadmap/00-PHASE-CHAIN.json",
+        "sha256": "7794df62ef49829f134f742172eb2e6ed32cbc68a140a1ce5f70bdd4c23176c9",
+        "bytes": 119950
+      },
+      {
+        "role": "gap ownership overlay, the source of the six P01 gaps and their order",
+        "path": "reports/p00-treaty-correction/07-OWNERSHIP-OVERLAY.tsv",
+        "sha256": "5a4ecba5b4cff30e10165a5dcc082b862f288475fdd19a7cb317ed31fdd63e0a",
+        "bytes": 9365
+      },
+      {
+        "role": "dependency overlay, the source of the five P01 closure edges",
+        "path": "reports/p00-treaty-correction/08-DEPENDENCY-OVERLAY.tsv",
+        "sha256": "482bdba5c54f1f08fb89821c86991d7b86b23f65c6815d7b601d5ac81f8d3a30",
+        "bytes": 21886
+      },
+      {
+        "role": "kernel gap matrix, the source of each gap's contract and consequence",
+        "path": "reports/claude/CLAUDE-KERNEL-GAP-MATRIX.tsv",
+        "sha256": "e9629858851a94c088db2ecd149885f67f5b23c6baf55b0ef757d67e254cdda3",
+        "bytes": 61847
+      }
+    ],
+    "analyses": [
+      {
+        "id": "A1",
+        "role": "Node-canonical analysis",
+        "file": "8cbd09eb-82fc-47c4-bd5a-294eb1a2dcd7.jsonl",
+        "sha256": "3e8faa0e56eb293d97552da182807c74689ef8f8131a5cc9020f82afdf5def9c",
+        "bytes": 735330,
+        "transcriptVerdictToken": "CONDITIONAL",
+        "synthesisPosition": "S1 is workable but opens a cross-process tenant and security boundary before P04 and keeps a two-language operational cost.",
+        "readOnly": true
+      },
+      {
+        "id": "A2",
+        "role": "Python-canonical analysis",
+        "file": "a9bde47f-71c2-4d1a-9cf7-9470ec7ecaca.jsonl",
+        "sha256": "4026ddfa6376ef13072e8c2d2d56002a9742e3890e12dc7dfd9d829d9bc65573",
+        "bytes": 903378,
+        "transcriptVerdictToken": "CONDITIONAL",
+        "synthesisPosition": "S2 is workable and aligned with the substrate that already exists, on the condition that the web framework never becomes the model and the Node code is neither deleted nor kept as a second live path.",
+        "readOnly": true
+      },
+      {
+        "id": "A3",
+        "role": "permanent-dual-runtime analysis",
+        "file": "e8fa22bc-ec15-4474-882c-19003162870c.jsonl",
+        "sha256": "8969e758d669f8d5ca86459871ba0314136cfcb1df7235eb2b3068d076b30a2d",
+        "bytes": 846615,
+        "transcriptVerdictToken": "CONDITIONAL",
+        "synthesisPosition": "The trailing token judges the quality of the comparison, not the route. Its substantive finding refuses two co-equal write runtimes and states that the defensible arrangement is S1 or S2 with an interface, which is why the neutral synthesis records S3 as REJECT. The difference is recorded here rather than smoothed over.",
+        "readOnly": true
+      },
+      {
+        "id": "A4",
+        "role": "security comparator",
+        "file": "b644d73d-7e34-4ed4-b61e-5b4538f8ac5a.jsonl",
+        "sha256": "94e580c676332b88d9fabd7595c58b833622efb57c8b4e8372296d0d841057d1",
+        "bytes": 1048380,
+        "transcriptVerdictToken": "CONDITIONAL",
+        "synthesisPosition": "Prefers S2 because no permanent cross-runtime claim boundary is opened, subject to the framework-removal test. Also records two runtime findings that are independent of the language decision and belong to later phases.",
+        "readOnly": true
+      },
+      {
+        "id": "A5",
+        "role": "migration and operations comparator",
+        "file": "a985751f-1f9d-42d9-8693-1339e444c520.jsonl",
+        "sha256": "e06b9620902743d3d8217a119c783c09a0b94fb468924059b9dc67e0dd6b26cf",
+        "bytes": 820778,
+        "transcriptVerdictToken": "CONDITIONAL",
+        "synthesisPosition": "The comparison is mature enough to decide on. Conditional because the stack-lock question is a human act, several enforcement hypotheses are unmeasured, and the EXIT-01 fitness function is unmet under every option today.",
+        "readOnly": true
+      },
+      {
+        "id": "A6",
+        "role": "phase-chain deadlock audit",
+        "file": "5eac0fba-62bf-4ce4-b061-54e60a507f05.jsonl",
+        "sha256": "7826e1812085fbc59dcd873cabc3732daaf95d8e3bbb2000a7e21e200e043661",
+        "bytes": 420887,
+        "transcriptVerdictToken": "REJECT",
+        "synthesisPosition": "Independent read-only audit of the literal closure reading. Its bound for P01-W1 is the boundary this package holds: preparation that produces no receipt and requires no signature. RCPT-01 may not be produced, EXIT-01 may not be called satisfied, and no human ADR may be signed.",
+        "readOnly": true
+      }
+    ]
+  },
+
+  "checkerPerformance": {
+    "elapsedTimeReported": true,
+    "performanceThresholdMs": null,
+    "productionThresholdInvented": false,
+    "p01ExitBuildBudgetBaseline": "PENDING",
+    "note": "PERF-01-1 requires the P01 exit fitness function to complete inside the build budget and fail closed on timeout. No calibrated budget exists in the pinned evidence, so this package reports elapsed time and records the baseline as pending rather than inventing a number a later gate would inherit as fact."
+  },
+
+  "claims": {
+    "producesRuntimeCapability": false,
+    "producesSdk": false,
+    "producesApp": false,
+    "producesProductCapability": false,
+    "movesAnyReadinessFlag": false,
+    "producesReceipt": false,
+    "closesAnyGap": false,
+    "modifiesRuntimeOrDbOrSrc": false,
+    "addsPythonOrFastApiDependency": false,
+    "movesOrExtractsSources": false
+  },
+
+  "capabilityDelta": "NONE",
+  "newlyBuildableProducts": [],
+  "stillNotBuildable": [
+    "the C2C marketplace",
+    "the listing product",
+    "the collaboration product",
+    "the PWA",
+    "the generated SDK",
+    "any application",
+    "any release",
+    "any deployment",
+    "production"
+  ],
+
+  "readinessFlagBinding": {
+    "mutatesAnyFlag": false,
+    "values": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false
+    }
+  },
+
+  "nonAuthorizations": [
+    "No RCPT-01 is produced and no phase receipt of any kind is issued.",
+    "No human signature is created, simulated or assumed; the decision stays HUMAN_DECISION_REQUIRED.",
+    "No gap reaches CLOSED and no closure obligation is discharged.",
+    "sourceExtraction stays false; no source is moved, split or extracted, and no topology change is authorized.",
+    "FastAPI is not installed, not shipped, and not authorized as a kernel, SDK, product or policy capability.",
+    "No readiness, release, deploy or production flag moves.",
+    "No runtime, db or src code is modified; the Node baseline is hash-pinned and untouched.",
+    "EXIT-01 is not satisfied: the signed ADRs, the register hashed into a receipt and the build-failing fitness function remain open obligations."
+  ]
+}
