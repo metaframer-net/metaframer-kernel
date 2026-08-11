@@ -272,6 +272,44 @@ overlay, supplies the current `runtimeImplementationStarted=true`. `npm run chec
 distinction directly: the overlay's line is relabelled `ACTIVATION BASE`, and the composed
 `CURRENT EFFECTIVE` line printed last is the authoritative one.
 
+## P01 closure semantics
+
+`planning/p01-closure-semantics-addendum.json` is the additive forward-only successor contract
+that makes the planned phase chain executable, verified by
+`tools/check-p01-closure-semantics.mjs` and projected for humans in
+[`docs/p01-closure-semantics.md`](docs/p01-closure-semantics.md).
+
+The P00 package accepted 53 `CLOSURE` edges, every one of them pointing at the same phase or a
+later one. Read together with each phase's exit sentence — a phase may not produce its exit
+receipt while any listed obligation is unsatisfied — a phase receipt ended up waiting on receipts
+that can only exist after it. Run to a fixed point, the chain reached `RCPT-00` and stopped; the
+other twelve phases were unreachable. An independent read-only deadlock audit reached the same
+verdict, and is pinned in the addendum by path, byte count and SHA-256.
+
+The correction separates two facts that were conflated. A **phase receipt** records the phase's
+own outputs, gates, review and human decisions, and is what a successor consumes. **Gap final
+closure** is separate: a `CLOSURE` edge blocks its source gap reaching `CLOSED`, and never blocks
+the source phase receipt on the ground that a forward destination receipt does not exist yet. So
+the 23 same-phase edges discharge inside the one receipt carrying both sides, and the 30 forward
+edges become append-only open debts whose source gaps stay `CLOSURE_PENDING` until a separate
+`CLOSURE_DISCHARGE` receipt binds the two receipt hashes. The source phase receipt is never
+rewritten.
+
+- Evidence: 53/53 edges classified, 23 `INTRA_ATOMIC`, 30 `FORWARD_DEFERRED`, 0 backward, 0
+  duplicate, 0 missing, 0 extra; the per-phase partition P00 accepted is unchanged; `noSkip`
+  holds and every successor still consumes only its declared predecessor receipt.
+- Evidence handling: the pinned P00 artifacts are outside this repository. Present-and-different
+  is RED, and the 53 rows are re-derived from the overlay and the phase chain rather than trusted;
+  wholly absent is reported as `externalEvidence=absent` and never as verified.
+- Capability delta: **NONE**. This package supersedes no P00 historical artifact and rewrites no
+  historical byte. It produces no `RCPT-01`, no human signature and no `CLOSED` gap, and it
+  authorises no phase entry — it shows a receipt is reachable, with human and external gates
+  modelled as satisfiable but never auto-closed. No flag under **Current status** moves: this
+  repository is still not runtime-ready, not kernel-ready, not SDK-ready, not an MVP, not a
+  buildable application, not releasable, not deployable, not pilot-approved, and not
+  production-ready. The C2C marketplace, the listing product, the collaboration product, the PWA,
+  the SDK and the application stay closed and unstarted.
+
 ## Boundaries in force
 
 - This repository does not copy or rename `atonota/kernel`; that is an unrelated Metawork

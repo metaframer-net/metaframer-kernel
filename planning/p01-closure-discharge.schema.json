@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://metaframer.local/kernel/p01-closure-discharge.schema.json",
+  "title": "CLOSURE_DISCHARGE receipt",
+  "description": "An append-only receipt recording that one accepted CLOSURE obligation was discharged. It binds the source phase receipt hash, the destination phase receipt hash and the edge id. It never rewrites the source phase receipt, never moves a readiness flag and never opens a capability. Every object level refuses unknown properties, so a field this schema does not know is a refusal rather than a silently accepted claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receiptKind",
+    "dischargeId",
+    "edgeId",
+    "classification",
+    "sourceGap",
+    "destinationGap",
+    "sourcePhase",
+    "destinationPhase",
+    "sourcePhaseReceiptId",
+    "sourcePhaseReceiptHash",
+    "destinationPhaseReceiptId",
+    "destinationPhaseReceiptHash",
+    "appendOnly",
+    "sourceReceiptRewritten",
+    "gapStatusAfter",
+    "capabilityDelta",
+    "readinessFlagMutation",
+    "writerId",
+    "reviewerId",
+    "createdAtSource"
+  ],
+  "properties": {
+    "receiptKind": {
+      "const": "CLOSURE_DISCHARGE",
+      "description": "A phase receipt and a closure discharge are different artifacts and are never conflated."
+    },
+    "dischargeId": {
+      "type": "string",
+      "pattern": "^DSCH-E-\\d{3}$"
+    },
+    "edgeId": {
+      "type": "string",
+      "pattern": "^E-\\d{3}$",
+      "description": "The exact accepted edge id from 08-DEPENDENCY-OVERLAY.tsv."
+    },
+    "classification": {
+      "enum": ["INTRA_ATOMIC", "FORWARD_DEFERRED"],
+      "description": "A backward closure edge is refused upstream and has no discharge form here."
+    },
+    "sourceGap": {
+      "type": "string",
+      "pattern": "^KG-\\d{3}$"
+    },
+    "destinationGap": {
+      "type": "string",
+      "pattern": "^KG-\\d{3}$"
+    },
+    "sourcePhase": {
+      "type": "string",
+      "pattern": "^P(?:0\\d|1[0-2])$"
+    },
+    "destinationPhase": {
+      "type": "string",
+      "pattern": "^P(?:0\\d|1[0-2])$"
+    },
+    "sourcePhaseReceiptId": {
+      "type": "string",
+      "pattern": "^RCPT-(?:0\\d|1[0-2])$"
+    },
+    "sourcePhaseReceiptHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "The source phase receipt as it was issued. A discharge points at it and never edits it."
+    },
+    "destinationPhaseReceiptId": {
+      "type": "string",
+      "pattern": "^RCPT-(?:0\\d|1[0-2])$"
+    },
+    "destinationPhaseReceiptHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Required and unforgeable in shape. A discharge without a real destination receipt hash is the exact lie this field exists to refuse."
+    },
+    "appendOnly": {
+      "const": true
+    },
+    "sourceReceiptRewritten": {
+      "const": false
+    },
+    "gapStatusAfter": {
+      "enum": ["CLOSED", "CLOSURE_PENDING"],
+      "description": "CLOSED is admissible only when this discharge is the last outstanding obligation of the source gap; the checker decides that against the accepted edge set, because a schema cannot."
+    },
+    "capabilityDelta": {
+      "const": "NONE"
+    },
+    "readinessFlagMutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mutatesAnyFlag"],
+      "properties": {
+        "mutatesAnyFlag": {
+          "const": false
+        }
+      }
+    },
+    "writerId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "reviewerId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Must differ from writerId. Equality is a checker refusal, since a schema cannot compare two fields."
+    },
+    "createdAtSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "value"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

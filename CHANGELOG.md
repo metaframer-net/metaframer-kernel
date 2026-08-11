@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- The P01 closure-semantics package: `planning/p01-closure-semantics-addendum.json` as the
+  additive forward-only successor contract, `planning/p01-closure-discharge.schema.json` as the
+  append-only discharge receipt schema, `docs/p01-closure-semantics.md` as the human projection,
+  and `tools/check-p01-closure-semantics.mjs` as the fail-closed verifier bound into
+  `npm run check`. All 53 accepted CLOSURE edges are classified exactly once — 23 `INTRA_ATOMIC`,
+  30 `FORWARD_DEFERRED`, 0 backward — with every destination graph-checked against the ownership
+  overlay, which the counting check it replaces never did. The correction is forward-only: it
+  separates the phase receipt from the gap's final closure so a phase receipt no longer waits on
+  receipts that can only exist after it, supersedes no P00 historical artifact, preserves the
+  historical exit-blocking sentence verbatim, produces no receipt, signature or closed gap, and
+  moves no readiness flag. Capability delta: none.
 - The token economy governance package. `token-economy-policy.json` is the canonical owner of
   every token-economy rule, threshold, model route and escalation gate; the skill at
   `.claude/skills/metaframer-token-economy/SKILL.md`, the agent at
