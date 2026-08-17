@@ -1,0 +1,62 @@
+{
+  "id": "P01-CLOSURE-SEMANTICS-ADDENDUM",
+  "package": "PKG-05",
+  "status": "PARTIAL_ADDITIVE",
+  "description": "Canonical owner of the P01 closure semantics block and its explicit non-authorizations, binding the established P01-CLOSURE-SEMANTICS-V1 contract under semantics. Deliberately partial: defines identity, semantics and nonAuthorizations only; later packages append projections and pins under their own gates.",
+  "semantics": {
+    "id": "P01-CLOSURE-SEMANTICS-V1",
+    "separation": {
+      "phaseReceipt": "Produced when the phase's outputs, gates, review and human decisions are satisfied. It is what a successor consumes for no-skip admission.",
+      "gapFinalClosure": "A gap reaches CLOSED only when every CLOSURE obligation originating at it is discharged. This is a separate fact from the phase receipt and is never implied by it.",
+      "rule": "A CLOSURE edge blocks the source gap's final CLOSED state. It never blocks the source phase receipt on the ground that a forward destination receipt does not exist yet."
+    },
+    "classifications": {
+      "INTRA_ATOMIC": {
+        "definition": "sourcePhase == destinationPhase",
+        "discharge": "Discharged atomically inside the same phase receipt only when both the source and the destination evidence are present in that receipt and every human decision gating either side has been recorded SATISFIED by the authorized human; a decision still OPEN or otherwise unanswered leaves this obligation undischarged, and the reachability simulation's assumption that such a gate is satisfiable is a statement about a decision not yet made rather than that decision, so it signs nothing, answers nothing, closes nothing and produces no receipt.",
+        "sourceGapStatusAtSourceReceipt": "CLOSED"
+      },
+      "FORWARD_DEFERRED": {
+        "definition": "destinationPhase ordinal > sourcePhase ordinal",
+        "discharge": "Recorded in the source phase receipt as an append-only open debt carrying edgeId, sourceGap, destinationGap, destinationPhase and expectedDestinationReceipt. The source gap stays CLOSURE_PENDING and may not be reported CLOSED.",
+        "sourceGapStatusAtSourceReceipt": "CLOSURE_PENDING",
+        "dischargedBy": "A separate append-only CLOSURE_DISCHARGE receipt issued when the destination phase receipt is published. It binds sourcePhaseReceiptHash, destinationPhaseReceiptHash and edgeId. The source phase receipt is never rewritten."
+      },
+      "BACKWARD_REFUSED": {
+        "definition": "destinationPhase ordinal < sourcePhase ordinal",
+        "admitted": false,
+        "reason": "No such edge exists in the accepted set, and the P00 rule GR-CLOSURE-MINIMAL already refuses one. A backward closure edge would be a PREREQ edge mislabelled."
+      }
+    },
+    "humanGatePolicy": {
+      "realDischargeRequiredDecisionState": "SATISFIED",
+      "realDischargeBlockingDecisionStates": ["OPEN", "HUMAN_DECISION_REQUIRED", "UNANSWERED", "UNSATISFIED"],
+      "decisionAuthority": "authorized human",
+      "simulationMayAssumeGateSatisfiable": true,
+      "simulationAssumptionCountsAsSatisfaction": false,
+      "simulationSignsAnything": false,
+      "simulationClosesAnyHumanDecision": false,
+      "simulationProducesRealReceipt": false
+    },
+    "successorAdmission": {
+      "consumes": "the predecessor PHASE receipt only",
+      "doesNotWaitFor": "the future gap closures of the whole programme",
+      "noSkip": true,
+      "humanGateHandling": "Human and external gates are treated as satisfiable but never auto-closed. The simulation shows a receipt is reachable; it never signs one."
+    },
+    "appendOnly": {
+      "sourcePhaseReceiptRewritten": false,
+      "dischargeReceiptsAreSeparateArtifacts": true,
+      "schema": "planning/p01-closure-discharge.schema.json"
+    }
+  },
+  "nonAuthorizations": [
+    "No RCPT-01 is produced, and this package does not authorise P01 entry.",
+    "No human decision is answered, retyped, signed or closed.",
+    "No kernel gap reaches CLOSED because of this package.",
+    "No readiness, SDK, app, release, deploy or production flag moves.",
+    "No historical P00 artifact is rewritten, copied or superseded.",
+    "This package is not reviewed by the session that wrote it."
+  ],
+  "capabilityDelta": "NONE"
+}
