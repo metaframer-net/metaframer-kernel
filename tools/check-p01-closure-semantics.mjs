@@ -323,6 +323,227 @@ function collectUnclosedObjectLevels(schema, pointer, violations) {
   }
 }
 
+// PKG-03 — pure fixed-point execution simulator that contrasts the historical literal reading
+// of a closure obligation with the corrected P01 semantics on the same compact synthetic chain.
+// Never mutates its inputs, never writes a file and never issues, signs or closes anything:
+// `receiptsIssued`/`signaturesProduced`/`humanDecisionsClosed` are always 0. An unsupported
+// semantics value fails closed with an explicit violation and claims no phase reachable.
+
+export const HISTORICAL_LITERAL = "HISTORICAL_LITERAL";
+export const P01_CLOSURE_SEMANTICS_V1 = "P01_CLOSURE_SEMANTICS_V1";
+const SUPPORTED_EXECUTION_SEMANTICS = new Set([HISTORICAL_LITERAL, P01_CLOSURE_SEMANTICS_V1]);
+const CLOSED = "CLOSED";
+const CLOSURE_PENDING = "CLOSURE_PENDING";
+
+/**
+ * Run the chain to a fixed point under one reading of the closure obligations.
+ *
+ * `HISTORICAL_LITERAL` is the reading in force before this package: an obligation blocks the
+ * source phase receipt until its destination phase receipt exists, which exposes the
+ * self-cycle/deadlock. `P01_CLOSURE_SEMANTICS_V1` is the correction: a same-phase INTRA_ATOMIC
+ * obligation discharges within the reached phase receipt, while a later FORWARD_DEFERRED
+ * obligation becomes an open debt that keeps the source gap CLOSURE_PENDING and discharges only
+ * once the destination phase receipt becomes reachable. Reachability is not issuance.
+ */
+export function simulateExecution(model, options = {}) {
+  const semantics = options.semantics ?? P01_CLOSURE_SEMANTICS_V1;
+  const phases = [...(model.phases ?? [])].sort((a, b) => a.ordinal - b.ordinal);
+  const edgeById = new Map((model.edges ?? []).map((edge) => [edge.edgeId, edge]));
+  const ordinalByPhaseId = new Map(phases.map((phase) => [phase.id, phase.ordinal]));
+  const allPhaseIds = phases.map((phase) => phase.id);
+  const selfCycles = (model.edges ?? [])
+    .filter((edge) => edge.sourcePhase === edge.destinationPhase)
+    .map((edge) => edge.edgeId);
+
+  if (!SUPPORTED_EXECUTION_SEMANTICS.has(semantics)) {
+    return {
+      semantics,
+      reachedPhaseReceipts: [],
+      admittedPhases: [],
+      consumed: {},
+      intraDischarges: [],
+      forwardDebts: [],
+      debtsRecordedAt: {},
+      dischargeTimings: [],
+      gapStatusAt: {},
+      gapStatusFinal: {},
+      blockedPhases: allPhaseIds,
+      blockedBy: {},
+      selfCycles,
+      deadlocked: allPhaseIds.length > 0,
+      violations: [`SEMANTICS_UNSUPPORTED:${String(semantics)}`],
+      receiptsIssued: 0,
+      signaturesProduced: 0,
+      humanDecisionsClosed: 0,
+    };
+  }
+
+  const issued = new Map();
+  const admittedPhases = [];
+  const consumed = {};
+  const reachedPhaseReceipts = [];
+  const intraDischarges = [];
+  const dischargeTimings = [];
+  const violations = [];
+  const openDebts = new Map();
+  const dischargedEdgeIds = new Set();
+  const gapStatusAt = {};
+  const debtsRecordedAt = {};
+
+  const owedBy = new Map();
+  for (const edge of model.edges ?? []) {
+    if (!owedBy.has(edge.sourceGap)) owedBy.set(edge.sourceGap, []);
+    owedBy.get(edge.sourceGap).push(edge.edgeId);
+  }
+
+  const gapStatusSnapshot = () =>
+    Object.fromEntries(
+      [...owedBy.entries()].map(([gap, ids]) => [
+        gap,
+        ids.every((id) => dischargedEdgeIds.has(id)) ? CLOSED : CLOSURE_PENDING,
+      ]),
+    );
+
+  const dischargeReadyDebts = (atReceipt) => {
+    for (const [edgeId, debt] of [...openDebts.entries()]) {
+      if (!issued.has(debt.destinationPhase)) continue;
+      openDebts.delete(edgeId);
+      dischargedEdgeIds.add(edgeId);
+      dischargeTimings.push({
+        edgeId,
+        classification: FORWARD_DEFERRED,
+        sourceGap: debt.sourceGap,
+        destinationGap: debt.destinationGap,
+        sourcePhaseReceipt: debt.sourcePhaseReceipt,
+        destinationPhaseReceipt: issued.get(debt.destinationPhase),
+        recordedAtReceipt: atReceipt,
+      });
+    }
+  };
+
+  let progress = true;
+  while (progress) {
+    progress = false;
+
+    for (const phase of phases) {
+      if (issued.has(phase.id)) continue;
+      const predecessor = phase.predecessor ?? null;
+      if (predecessor !== null && !issued.has(predecessor)) continue;
+      if (!admittedPhases.includes(phase.id)) admittedPhases.push(phase.id);
+
+      const obligations = [];
+      let structurallyBlocked = false;
+      for (const id of phase.closureEdgeIds ?? []) {
+        const edge = edgeById.get(id);
+        if (edge === undefined) {
+          violations.push(`UNKNOWN_OBLIGATION:${phase.id}:${id}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        if (edge.sourcePhase !== phase.id) {
+          violations.push(`SOURCE_PHASE_MISMATCH:${phase.id}:${edge.edgeId}:${edge.sourcePhase}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        if (!ordinalByPhaseId.has(edge.destinationPhase)) {
+          violations.push(`DESTINATION_PHASE_UNKNOWN:${edge.edgeId}:${edge.destinationPhase}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        const destinationOrdinal = ordinalByPhaseId.get(edge.destinationPhase);
+        if (edge.classification === INTRA_ATOMIC && destinationOrdinal !== phase.ordinal) {
+          violations.push(`INTRA_ATOMIC_OFF_PHASE:${edge.edgeId}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        if (edge.classification === FORWARD_DEFERRED && destinationOrdinal === phase.ordinal) {
+          violations.push(`FORWARD_DEFERRED_ON_PHASE:${edge.edgeId}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        if (edge.classification === FORWARD_DEFERRED && destinationOrdinal < phase.ordinal) {
+          violations.push(`FORWARD_DEFERRED_BACKWARD:${edge.edgeId}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        if (edge.classification !== INTRA_ATOMIC && edge.classification !== FORWARD_DEFERRED) {
+          violations.push(`UNCLASSIFIED_EDGE:${edge.edgeId}:${edge.classification}`);
+          structurallyBlocked = true;
+          continue;
+        }
+        obligations.push(edge);
+      }
+      if (structurallyBlocked) continue;
+
+      if (semantics === HISTORICAL_LITERAL) {
+        if (obligations.some((edge) => !issued.has(edge.destinationPhase))) continue;
+      }
+
+      if (predecessor !== null) consumed[phase.id] = issued.get(predecessor);
+      issued.set(phase.id, phase.receiptId);
+      reachedPhaseReceipts.push(phase.receiptId);
+      progress = true;
+
+      if (semantics === P01_CLOSURE_SEMANTICS_V1) {
+        const recordedHere = [];
+        for (const edge of obligations) {
+          if (edge.classification === INTRA_ATOMIC) {
+            dischargedEdgeIds.add(edge.edgeId);
+            intraDischarges.push({
+              edgeId: edge.edgeId,
+              sourceGap: edge.sourceGap,
+              destinationGap: edge.destinationGap,
+              receiptId: phase.receiptId,
+            });
+          } else {
+            const debt = Object.freeze({
+              edgeId: edge.edgeId,
+              sourceGap: edge.sourceGap,
+              destinationGap: edge.destinationGap,
+              destinationPhase: edge.destinationPhase,
+              sourcePhaseReceipt: phase.receiptId,
+            });
+            openDebts.set(edge.edgeId, debt);
+            recordedHere.push(debt);
+          }
+        }
+        if (recordedHere.length > 0) debtsRecordedAt[phase.receiptId] = recordedHere;
+        dischargeReadyDebts(phase.receiptId);
+        gapStatusAt[phase.receiptId] = gapStatusSnapshot();
+      }
+    }
+  }
+
+  const blockedPhases = phases.filter((phase) => !issued.has(phase.id)).map((phase) => phase.id);
+  const blockedBy = {};
+  for (const phase of phases) {
+    if (issued.has(phase.id)) continue;
+    const open = (phase.closureEdgeIds ?? []).filter((id) => edgeById.has(id));
+    if (open.length > 0) blockedBy[phase.id] = open;
+  }
+
+  return {
+    semantics,
+    reachedPhaseReceipts,
+    admittedPhases,
+    consumed,
+    intraDischarges,
+    forwardDebts: [...openDebts.values()],
+    debtsRecordedAt,
+    dischargeTimings,
+    gapStatusAt,
+    gapStatusFinal: gapStatusSnapshot(),
+    blockedPhases,
+    blockedBy,
+    selfCycles,
+    deadlocked: blockedPhases.length > 0,
+    violations: dedupe(violations),
+    receiptsIssued: 0,
+    signaturesProduced: 0,
+    humanDecisionsClosed: 0,
+  };
+}
+
 // Structural inspector for the CLOSURE_DISCHARGE schema shape: flags a missing stable field and
 // any object level (including nested) that is not closed. Does not validate any instance data.
 export function schemaViolations(schema) {
