@@ -755,3 +755,169 @@ export function externalEvidenceReport(addendum) {
 
   return { state: "verified", findings: [], verifiedFiles, derivedProjectionMatches: null };
 }
+
+// PKG-05 — pure, total, deterministic validators for the canonical, deliberately partial
+// planning/p01-closure-semantics-addendum.json, binding P01-CLOSURE-SEMANTICS-V1 (commit
+// 900b19d). Never mutate the input; malformed/missing/unknown is a violation, never a throw.
+export const SEMANTICS_ID = "P01-CLOSURE-SEMANTICS-V1";
+export const BACKWARD_REFUSED = "BACKWARD_REFUSED";
+export const HUMAN_GATE_REQUIRED_DECISION_STATE = "SATISFIED";
+export const HUMAN_GATE_BLOCKING_DECISION_STATES = Object.freeze(["OPEN", "HUMAN_DECISION_REQUIRED", "UNANSWERED", "UNSATISFIED"]);
+export const CANONICAL_SEPARATION = Object.freeze({
+  phaseReceipt:
+    "Produced when the phase's outputs, gates, review and human decisions are satisfied. It is what a successor consumes for no-skip admission.",
+  gapFinalClosure:
+    "A gap reaches CLOSED only when every CLOSURE obligation originating at it is discharged. This is a separate fact from the phase receipt and is never implied by it.",
+  rule: "A CLOSURE edge blocks the source gap's final CLOSED state. It never blocks the source phase receipt on the ground that a forward destination receipt does not exist yet.",
+});
+const CANONICAL_CLASSIFICATIONS = Object.freeze({
+  [INTRA_ATOMIC]: Object.freeze({
+    definition: "sourcePhase == destinationPhase",
+    discharge:
+      "Discharged atomically inside the same phase receipt only when both the source and the destination evidence are present in that receipt and every human decision gating either side has been recorded SATISFIED by the authorized human; a decision still OPEN or otherwise unanswered leaves this obligation undischarged, and the reachability simulation's assumption that such a gate is satisfiable is a statement about a decision not yet made rather than that decision, so it signs nothing, answers nothing, closes nothing and produces no receipt.",
+    sourceGapStatusAtSourceReceipt: "CLOSED",
+  }),
+  [FORWARD_DEFERRED]: Object.freeze({
+    definition: "destinationPhase ordinal > sourcePhase ordinal",
+    discharge:
+      "Recorded in the source phase receipt as an append-only open debt carrying edgeId, sourceGap, destinationGap, destinationPhase and expectedDestinationReceipt. The source gap stays CLOSURE_PENDING and may not be reported CLOSED.",
+    sourceGapStatusAtSourceReceipt: "CLOSURE_PENDING",
+    dischargedBy:
+      "A separate append-only CLOSURE_DISCHARGE receipt issued when the destination phase receipt is published. It binds sourcePhaseReceiptHash, destinationPhaseReceiptHash and edgeId. The source phase receipt is never rewritten.",
+  }),
+  [BACKWARD_REFUSED]: Object.freeze({
+    definition: "destinationPhase ordinal < sourcePhase ordinal",
+    admitted: false,
+    reason:
+      "No such edge exists in the accepted set, and the P00 rule GR-CLOSURE-MINIMAL already refuses one. A backward closure edge would be a PREREQ edge mislabelled.",
+  }),
+});
+const HUMAN_GATE_DECISION_AUTHORITY = "authorized human";
+const HUMAN_GATE_SIMULATION_FLAGS = Object.freeze({
+  simulationMayAssumeGateSatisfiable: true,
+  simulationAssumptionCountsAsSatisfaction: false,
+  simulationSignsAnything: false,
+  simulationClosesAnyHumanDecision: false,
+  simulationProducesRealReceipt: false,
+});
+const SUCCESSOR_ADMISSION = Object.freeze({
+  consumes: "the predecessor PHASE receipt only",
+  doesNotWaitFor: "the future gap closures of the whole programme",
+  noSkip: true,
+  humanGateHandling:
+    "Human and external gates are treated as satisfiable but never auto-closed. The simulation shows a receipt is reachable; it never signs one.",
+});
+const APPEND_ONLY = Object.freeze({
+  sourcePhaseReceiptRewritten: false,
+  dischargeReceiptsAreSeparateArtifacts: true,
+  schema: "planning/p01-closure-discharge.schema.json",
+});
+const CANONICAL_NON_AUTHORIZATIONS = Object.freeze([
+  "No RCPT-01 is produced, and this package does not authorise P01 entry.",
+  "No human decision is answered, retyped, signed or closed.",
+  "No kernel gap reaches CLOSED because of this package.",
+  "No readiness, SDK, app, release, deploy or production flag moves.",
+  "No historical P00 artifact is rewritten, copied or superseded.",
+  "This package is not reviewed by the session that wrote it.",
+]);
+
+function classificationFieldViolations(key, canonical, actual, violations) {
+  if (!isPlainObject(actual)) {
+    violations.push(`CLASSIFICATION_MISSING:${key}`);
+    return;
+  }
+  for (const field of Object.keys(canonical)) {
+    if (!(field in actual)) violations.push(`CLASSIFICATION_FIELD_MISSING:${key}:${field}`);
+    else if (actual[field] !== canonical[field]) violations.push(`CLASSIFICATION_FIELD_MISMATCH:${key}:${field}`);
+  }
+  for (const field of Object.keys(actual)) {
+    if (!(field in canonical)) violations.push(`CLASSIFICATION_FIELD_EXTRA:${key}:${field}`);
+  }
+}
+// Symmetric exact-field check: canonical fields must match; `extra` also flags any unknown key.
+function exactFieldViolations(canonical, actual, code, violations, extra) {
+  for (const field of Object.keys(canonical)) {
+    if (actual[field] !== canonical[field]) violations.push(`${code}_MISMATCH:${field}`);
+  }
+  if (extra) {
+    for (const field of Object.keys(actual)) {
+      if (!(field in canonical)) violations.push(`${code}_EXTRA:${field}`);
+    }
+  }
+}
+const ALLOWED_HUMAN_GATE_KEYS = new Set(["realDischargeRequiredDecisionState", "realDischargeBlockingDecisionStates", "decisionAuthority", ...Object.keys(HUMAN_GATE_SIMULATION_FLAGS)]);
+// Validates the blocks nested under `addendum.semantics` (everything but nonAuthorizations).
+export function semanticContractViolations(semantics) {
+  if (!isPlainObject(semantics)) return ["SEMANTICS_CONTAINER_MALFORMED"];
+  const violations = [];
+  if (semantics.id !== SEMANTICS_ID) violations.push("SEMANTICS_ID_MISMATCH");
+  if (!isPlainObject(semantics.separation)) violations.push("SEPARATION_MISSING");
+  else exactFieldViolations(CANONICAL_SEPARATION, semantics.separation, "SEPARATION_FIELD", violations, true);
+  if (!isPlainObject(semantics.classifications)) {
+    violations.push("CLASSIFICATIONS_MISSING");
+  } else {
+    for (const key of Object.keys(CANONICAL_CLASSIFICATIONS)) {
+      classificationFieldViolations(key, CANONICAL_CLASSIFICATIONS[key], semantics.classifications[key], violations);
+    }
+    for (const key of Object.keys(semantics.classifications)) {
+      if (!(key in CANONICAL_CLASSIFICATIONS)) violations.push(`CLASSIFICATION_EXTRA:${key}`);
+    }
+  }
+  const gate = semantics.humanGatePolicy;
+  if (!isPlainObject(gate)) {
+    violations.push("HUMAN_GATE_POLICY_MISSING");
+  } else {
+    if (gate.realDischargeRequiredDecisionState !== HUMAN_GATE_REQUIRED_DECISION_STATE) violations.push("HUMAN_GATE_REQUIRED_DECISION_STATE_MISMATCH");
+    if (gate.decisionAuthority !== HUMAN_GATE_DECISION_AUTHORITY) violations.push("HUMAN_GATE_DECISION_AUTHORITY_MISMATCH");
+    if (!Array.isArray(gate.realDischargeBlockingDecisionStates)) {
+      violations.push("HUMAN_GATE_BLOCKING_STATES_MISSING");
+    } else {
+      const canonicalSet = new Set(HUMAN_GATE_BLOCKING_DECISION_STATES);
+      const seen = new Set();
+      for (const state of gate.realDischargeBlockingDecisionStates) {
+        if (seen.has(state)) violations.push(`HUMAN_GATE_BLOCKING_STATE_DUPLICATE:${state}`);
+        seen.add(state);
+        if (!canonicalSet.has(state)) violations.push(`HUMAN_GATE_BLOCKING_STATE_EXTRA:${state}`);
+      }
+      for (const state of canonicalSet) if (!seen.has(state)) violations.push(`HUMAN_GATE_BLOCKING_STATE_MISSING:${state}`);
+    }
+    exactFieldViolations(HUMAN_GATE_SIMULATION_FLAGS, gate, "HUMAN_GATE_SIMULATION_FIELD", violations, false);
+    for (const field of Object.keys(gate)) {
+      if (!ALLOWED_HUMAN_GATE_KEYS.has(field)) violations.push(`HUMAN_GATE_POLICY_FIELD_EXTRA:${field}`);
+    }
+  }
+  if (!isPlainObject(semantics.successorAdmission)) violations.push("SUCCESSOR_ADMISSION_MISSING");
+  else exactFieldViolations(SUCCESSOR_ADMISSION, semantics.successorAdmission, "SUCCESSOR_ADMISSION_FIELD", violations, true);
+  if (!isPlainObject(semantics.appendOnly)) violations.push("APPEND_ONLY_MISSING");
+  else exactFieldViolations(APPEND_ONLY, semantics.appendOnly, "APPEND_ONLY_FIELD", violations, true);
+  return dedupe(violations);
+}
+
+// Exact ordered match against the canonical six-entry list; missing/extra/reorder/reword/duplicate all reported; never throws.
+export function nonAuthorizationViolations(nonAuthorizations) {
+  if (!Array.isArray(nonAuthorizations)) return ["NON_AUTHORIZATIONS_MALFORMED"];
+  const violations = [];
+  if (nonAuthorizations.length !== CANONICAL_NON_AUTHORIZATIONS.length) {
+    violations.push(`NON_AUTHORIZATIONS_LENGTH_MISMATCH:${nonAuthorizations.length}!=${CANONICAL_NON_AUTHORIZATIONS.length}`);
+  }
+  const limit = Math.max(nonAuthorizations.length, CANONICAL_NON_AUTHORIZATIONS.length);
+  for (let index = 0; index < limit; index += 1) {
+    if (nonAuthorizations[index] !== CANONICAL_NON_AUTHORIZATIONS[index]) violations.push(`NON_AUTHORIZATION_MISMATCH:${index}`);
+  }
+  const seen = new Set();
+  for (const entry of nonAuthorizations) {
+    if (seen.has(entry)) violations.push(`NON_AUTHORIZATION_DUPLICATE:${JSON.stringify(entry)}`);
+    seen.add(entry);
+  }
+  return dedupe(violations);
+}
+
+const CAPABILITY_DELTA = "NONE";
+// Composes the two above and refuses a non-"NONE" capabilityDelta. Does not exact-close every
+// top-level addendum key: later packages append projections/pins under their own gates.
+export function addendumContractViolations(addendum) {
+  if (!isPlainObject(addendum)) return ["ADDENDUM_MALFORMED"];
+  const violations = [...semanticContractViolations(addendum.semantics), ...nonAuthorizationViolations(addendum.nonAuthorizations)];
+  if (addendum.capabilityDelta !== CAPABILITY_DELTA) violations.push("CAPABILITY_DELTA_MISMATCH");
+  return dedupe(violations);
+}
