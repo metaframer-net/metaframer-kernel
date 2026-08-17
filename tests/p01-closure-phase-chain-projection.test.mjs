@@ -27,22 +27,27 @@ const ROW_KEYS = [
   "predecessorReceiptRequired",
   "noSkip",
   "mutatesAnyFlag",
+  "closureEdgeCount",
+  "closureEdgeIds",
 ];
 
+// Canonical per-source-phase closureObligations, sourced from 00-PHASE-CHAIN.json (sha256
+// 7794df62ef49829f134f742172eb2e6ed32cbc68a140a1ce5f70bdd4c23176c9), each edgeIds array equal to
+// that phase's closureObligations.edgeIds verbatim.
 const CANONICAL_PHASES = [
-  { id: "P00", ordinal: 0, title: "Authority and Program Foundation", receiptId: "RCPT-00", predecessor: null, successor: "P01", predecessorReceiptId: null, predecessorReceiptRequired: false, noSkip: true, mutatesAnyFlag: false },
-  { id: "P01", ordinal: 1, title: "Architectural Constitution and Topology", receiptId: "RCPT-01", predecessor: "P00", successor: "P02", predecessorReceiptId: "RCPT-00", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P02", ordinal: 2, title: "Deterministic Kernel Core", receiptId: "RCPT-02", predecessor: "P01", successor: "P03", predecessorReceiptId: "RCPT-01", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P03", ordinal: 3, title: "One Write Path and Transactional Integrity", receiptId: "RCPT-03", predecessor: "P02", successor: "P04", predecessorReceiptId: "RCPT-02", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P04", ordinal: 4, title: "Zero Trust Identity, Tenancy and PDP", receiptId: "RCPT-04", predecessor: "P03", successor: "P05", predecessorReceiptId: "RCPT-03", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P05", ordinal: 5, title: "Archetype IR Compiler Registry and Evolution", receiptId: "RCPT-05", predecessor: "P04", successor: "P06", predecessorReceiptId: "RCPT-04", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P06", ordinal: 6, title: "Workflow ECA Scheduler and Eventing", receiptId: "RCPT-06", predecessor: "P05", successor: "P07", predecessorReceiptId: "RCPT-05", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P07", ordinal: 7, title: "AI-native Multi-LLM Orchestration", receiptId: "RCPT-07", predecessor: "P06", successor: "P08", predecessorReceiptId: "RCPT-06", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P08", ordinal: 8, title: "Tools Plugins Skills and Supply Chain Security", receiptId: "RCPT-08", predecessor: "P07", successor: "P09", predecessorReceiptId: "RCPT-07", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P09", ordinal: 9, title: "SDK Codegen Protocols and Surface Readiness", receiptId: "RCPT-09", predecessor: "P08", successor: "P10", predecessorReceiptId: "RCPT-08", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P10", ordinal: 10, title: "Performance Observability and Capacity", receiptId: "RCPT-10", predecessor: "P09", successor: "P11", predecessorReceiptId: "RCPT-09", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P11", ordinal: 11, title: "Resilience HA DR Privacy and Compliance", receiptId: "RCPT-11", predecessor: "P10", successor: "P12", predecessorReceiptId: "RCPT-10", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
-  { id: "P12", ordinal: 12, title: "Golden Slices Conformance and Kernel Promotion", receiptId: "RCPT-12", predecessor: "P11", successor: null, predecessorReceiptId: "RCPT-11", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false },
+  { id: "P00", ordinal: 0, title: "Authority and Program Foundation", receiptId: "RCPT-00", predecessor: null, successor: "P01", predecessorReceiptId: null, predecessorReceiptRequired: false, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 0, closureEdgeIds: [] },
+  { id: "P01", ordinal: 1, title: "Architectural Constitution and Topology", receiptId: "RCPT-01", predecessor: "P00", successor: "P02", predecessorReceiptId: "RCPT-00", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 5, closureEdgeIds: ["E-002", "E-003", "E-005", "E-152", "E-153"] },
+  { id: "P02", ordinal: 2, title: "Deterministic Kernel Core", receiptId: "RCPT-02", predecessor: "P01", successor: "P03", predecessorReceiptId: "RCPT-01", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 12, closureEdgeIds: ["E-010", "E-012", "E-013", "E-014", "E-016", "E-019", "E-020", "E-021", "E-022", "E-023", "E-025", "E-027"] },
+  { id: "P03", ordinal: 3, title: "One Write Path and Transactional Integrity", receiptId: "RCPT-03", predecessor: "P02", successor: "P04", predecessorReceiptId: "RCPT-02", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 5, closureEdgeIds: ["E-030", "E-031", "E-033", "E-035", "E-037"] },
+  { id: "P04", ordinal: 4, title: "Zero Trust Identity, Tenancy and PDP", receiptId: "RCPT-04", predecessor: "P03", successor: "P05", predecessorReceiptId: "RCPT-03", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 17, closureEdgeIds: ["E-045", "E-046", "E-048", "E-049", "E-051", "E-052", "E-053", "E-057", "E-058", "E-060", "E-062", "E-064", "E-066", "E-068", "E-070", "E-073", "E-075"] },
+  { id: "P05", ordinal: 5, title: "Archetype IR Compiler Registry and Evolution", receiptId: "RCPT-05", predecessor: "P04", successor: "P06", predecessorReceiptId: "RCPT-04", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 4, closureEdgeIds: ["E-083", "E-086", "E-090", "E-092"] },
+  { id: "P06", ordinal: 6, title: "Workflow ECA Scheduler and Eventing", receiptId: "RCPT-06", predecessor: "P05", successor: "P07", predecessorReceiptId: "RCPT-05", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 4, closureEdgeIds: ["E-100", "E-102", "E-106", "E-111"] },
+  { id: "P07", ordinal: 7, title: "AI-native Multi-LLM Orchestration", receiptId: "RCPT-07", predecessor: "P06", successor: "P08", predecessorReceiptId: "RCPT-06", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 1, closureEdgeIds: ["E-140"] },
+  { id: "P08", ordinal: 8, title: "Tools Plugins Skills and Supply Chain Security", receiptId: "RCPT-08", predecessor: "P07", successor: "P09", predecessorReceiptId: "RCPT-07", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 2, closureEdgeIds: ["E-138", "E-150"] },
+  { id: "P09", ordinal: 9, title: "SDK Codegen Protocols and Surface Readiness", receiptId: "RCPT-09", predecessor: "P08", successor: "P10", predecessorReceiptId: "RCPT-08", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 1, closureEdgeIds: ["E-130"] },
+  { id: "P10", ordinal: 10, title: "Performance Observability and Capacity", receiptId: "RCPT-10", predecessor: "P09", successor: "P11", predecessorReceiptId: "RCPT-09", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 1, closureEdgeIds: ["E-134"] },
+  { id: "P11", ordinal: 11, title: "Resilience HA DR Privacy and Compliance", receiptId: "RCPT-11", predecessor: "P10", successor: "P12", predecessorReceiptId: "RCPT-10", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 1, closureEdgeIds: ["E-136"] },
+  { id: "P12", ordinal: 12, title: "Golden Slices Conformance and Kernel Promotion", receiptId: "RCPT-12", predecessor: "P11", successor: null, predecessorReceiptId: "RCPT-11", predecessorReceiptRequired: true, noSkip: true, mutatesAnyFlag: false, closureEdgeCount: 0, closureEdgeIds: [] },
 ];
 
 const isPlainObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -93,7 +98,10 @@ function phaseChainProjectionViolations(projection) {
     const row = phases[idx];
     if (!isPlainObject(row)) return;
     for (const key of ROW_KEYS) {
-      if (row[key] !== expected[key]) violations.push(`ROW_FIELD_MISMATCH:${idx}:${key}`);
+      const matches = Array.isArray(expected[key])
+        ? Array.isArray(row[key]) && row[key].length === expected[key].length && row[key].every((v, i) => v === expected[key][i])
+        : row[key] === expected[key];
+      if (!matches) violations.push(`ROW_FIELD_MISMATCH:${idx}:${key}`);
     }
   });
 
@@ -200,6 +208,20 @@ test("adversarial clone: injected unknown container key is detected", () => {
   const bad = clone(canonicalAddendum.phaseChainProjection);
   bad.injected = "unexpected";
   assert.ok(phaseChainProjectionViolations(bad).includes("TOP_LEVEL_FIELD_EXTRA:injected"));
+});
+
+test("closureEdgeCount/closureEdgeIds are consistent per row and sum to the canonical 53 CLOSURE edges", () => {
+  const phases = canonicalAddendum.phaseChainProjection.phases;
+  let total = 0;
+  const allIds = [];
+  for (const row of phases) {
+    assert.equal(row.closureEdgeCount, row.closureEdgeIds.length);
+    assert.equal(new Set(row.closureEdgeIds).size, row.closureEdgeIds.length);
+    total += row.closureEdgeCount;
+    allIds.push(...row.closureEdgeIds);
+  }
+  assert.equal(total, 53);
+  assert.equal(new Set(allIds).size, 53);
 });
 
 test("no duplicate id or receiptId across rows", () => {
