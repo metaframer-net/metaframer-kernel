@@ -50,6 +50,28 @@
       "schema": "planning/p01-closure-discharge.schema.json"
     }
   },
+  "phaseChainProjection": {
+    "chain": "P00 -> P01 -> P02 -> P03 -> P04 -> P05 -> P06 -> P07 -> P08 -> P09 -> P10 -> P11 -> P12",
+    "phaseCount": 13,
+    "noSkip": true,
+    "derivationRuleId": "DRV-P01-PHASE-PROJECTION-V1",
+    "derivationRule": "One row per phase of 00-PHASE-CHAIN.json, in chain order, carrying only the fields the execution projection needs. No field is invented and no field is edited.",
+    "phases": [
+      {"id": "P00", "ordinal": 0, "title": "Authority and Program Foundation", "receiptId": "RCPT-00", "predecessor": null, "successor": "P01", "predecessorReceiptId": null, "predecessorReceiptRequired": false, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P01", "ordinal": 1, "title": "Architectural Constitution and Topology", "receiptId": "RCPT-01", "predecessor": "P00", "successor": "P02", "predecessorReceiptId": "RCPT-00", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P02", "ordinal": 2, "title": "Deterministic Kernel Core", "receiptId": "RCPT-02", "predecessor": "P01", "successor": "P03", "predecessorReceiptId": "RCPT-01", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P03", "ordinal": 3, "title": "One Write Path and Transactional Integrity", "receiptId": "RCPT-03", "predecessor": "P02", "successor": "P04", "predecessorReceiptId": "RCPT-02", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P04", "ordinal": 4, "title": "Zero Trust Identity, Tenancy and PDP", "receiptId": "RCPT-04", "predecessor": "P03", "successor": "P05", "predecessorReceiptId": "RCPT-03", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P05", "ordinal": 5, "title": "Archetype IR Compiler Registry and Evolution", "receiptId": "RCPT-05", "predecessor": "P04", "successor": "P06", "predecessorReceiptId": "RCPT-04", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P06", "ordinal": 6, "title": "Workflow ECA Scheduler and Eventing", "receiptId": "RCPT-06", "predecessor": "P05", "successor": "P07", "predecessorReceiptId": "RCPT-05", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P07", "ordinal": 7, "title": "AI-native Multi-LLM Orchestration", "receiptId": "RCPT-07", "predecessor": "P06", "successor": "P08", "predecessorReceiptId": "RCPT-06", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P08", "ordinal": 8, "title": "Tools Plugins Skills and Supply Chain Security", "receiptId": "RCPT-08", "predecessor": "P07", "successor": "P09", "predecessorReceiptId": "RCPT-07", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P09", "ordinal": 9, "title": "SDK Codegen Protocols and Surface Readiness", "receiptId": "RCPT-09", "predecessor": "P08", "successor": "P10", "predecessorReceiptId": "RCPT-08", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P10", "ordinal": 10, "title": "Performance Observability and Capacity", "receiptId": "RCPT-10", "predecessor": "P09", "successor": "P11", "predecessorReceiptId": "RCPT-09", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P11", "ordinal": 11, "title": "Resilience HA DR Privacy and Compliance", "receiptId": "RCPT-11", "predecessor": "P10", "successor": "P12", "predecessorReceiptId": "RCPT-10", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false},
+      {"id": "P12", "ordinal": 12, "title": "Golden Slices Conformance and Kernel Promotion", "receiptId": "RCPT-12", "predecessor": "P11", "successor": null, "predecessorReceiptId": "RCPT-11", "predecessorReceiptRequired": true, "noSkip": true, "mutatesAnyFlag": false}
+    ]
+  },
   "nonAuthorizations": [
     "No RCPT-01 is produced, and this package does not authorise P01 entry.",
     "No human decision is answered, retyped, signed or closed.",
