@@ -236,5 +236,16 @@
       "KG-089": "P12",
       "KG-090": "P12"
     }
+  },
+  "sourcePins": {
+    "evidenceRoot": "/Users/karaca/Documents/Codex/2026-08-08/files-mentioned-by-the-user-k",
+    "files": [
+      {"path": "reports/p00-treaty-correction/RCPT-00.json", "bytes": 20813, "sha256": "2dbee1e439357b2848915c87739e1f8b704ffbfe9915f8bf77809c92e67ff473"},
+      {"path": "reports/p00-treaty-correction/07-OWNERSHIP-OVERLAY.tsv", "bytes": 9365, "sha256": "5a4ecba5b4cff30e10165a5dcc082b862f288475fdd19a7cb317ed31fdd63e0a"},
+      {"path": "reports/p00-treaty-correction/08-DEPENDENCY-OVERLAY.tsv", "bytes": 21886, "sha256": "482bdba5c54f1f08fb89821c86991d7b86b23f65c6815d7b601d5ac81f8d3a30"},
+      {"path": "reports/kernel-development-roadmap/00-PHASE-CHAIN.json", "bytes": 119950, "sha256": "7794df62ef49829f134f742172eb2e6ed32cbc68a140a1ce5f70bdd4c23176c9"},
+      {"path": "reports/p00-treaty-correction/19-CORRECTION-NOTE.md", "bytes": 138441, "sha256": "201168e714160836dbe996833f1a2d7022bfb62262b6b29c781957d1ecf3e838"},
+      {"path": "reports/p00-treaty-correction/validate-p00-treaty-correction-final.mjs", "bytes": 468170, "sha256": "75efc281dcd78add736a0757ced5253052e066e9e1a6cf35c5bd6ac28bb5bd3f"}
+    ]
   }
 }
