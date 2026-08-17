@@ -5,8 +5,9 @@
   "description": "Current-authority consumer for the Actionplan governance chain and the MetaFramer runtime-kernel boundary.",
   "type": "module",
   "scripts": {
-    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs && node tools/check-kernel-runtime-substrate-s1.mjs && node tools/check-token-economy.mjs && node tools/check-versioning-changelog.mjs && node tools/compose-current-effective.mjs tools/check-kernel-runtime-pilot-consumer-sync.mjs",
+    "check": "node tools/check-repository-boundary.mjs && node tools/check-control-plane-bootstrap.mjs && node tools/check-kernel-ai-development-readiness.mjs && node tools/check-kernel-runtime-substrate-s1.mjs && node tools/check-token-economy.mjs && node tools/check-p01-architecture-fitness.mjs && node tools/check-versioning-changelog.mjs && node tools/compose-current-effective.mjs tools/check-kernel-runtime-pilot-consumer-sync.mjs",
     "check:readiness": "node tools/check-kernel-ai-development-readiness.mjs",
+    "check:p01-architecture-fitness": "node tools/check-p01-architecture-fitness.mjs",
     "check:consumer-sync": "node tools/check-kernel-runtime-pilot-consumer-sync.mjs",
     "check:sources": "node tools/check-source-snapshot.mjs",
     "check:substrate-s1": "node tools/check-kernel-runtime-substrate-s1.mjs",
