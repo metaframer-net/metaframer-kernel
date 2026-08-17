@@ -1,3 +1,7 @@
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import path from "node:path";
+
 // PKG-01B — reusable fail-closed JSON-Schema-subset validator and structural inspector for the
 // merged CLOSURE_DISCHARGE schema (planning/p01-closure-discharge.schema.json).
 //
@@ -564,4 +568,190 @@ export function schemaViolations(schema) {
   collectUnclosedObjectLevels(schema, "", violations);
 
   return violations;
+}
+
+// PKG-04 — pure projection adapter and fail-closed external evidence pin verifier.
+//
+// `modelFromAddendum` hands out a deep clone so a negative probe run against the returned model
+// can never mutate a future canonical addendum. `externalEvidenceReport` verifies every present
+// pinned file by exact relative path confinement (realpath-checked within the real evidence
+// root, so a traversal, absolute path or symlink escape can never cause a read outside it),
+// byte length and sha256, and honestly distinguishes absent evidence (root missing) from
+// verified evidence (every pin confined, present and exact) from drift (anything else,
+// including a malformed pin declaration or a filesystem error).
+
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+// Returns a normalized, root-relative path, or null if `raw` is empty, absolute, or carries any
+// raw ".." segment — refused before normalization so a path like "a/../b.txt" that would
+// normalize back inside the root is still treated as unsafe.
+function normalizeConfinedRelativePath(raw) {
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  if (path.isAbsolute(raw)) return null;
+  if (raw.split(/[/\\]/).includes("..")) return null;
+  const normalized = path.normalize(raw);
+  if (normalized === "." || normalized === ".." || normalized.startsWith(`..${path.sep}`)) {
+    return null;
+  }
+  return normalized;
+}
+
+/**
+ * Deep-clones the closure model `{phases, edges, gapPhase}` out of the canonical nested
+ * projection fields `addendum.phaseChainProjection.phases`,
+ * `addendum.closureEdgeProjection.edges` and `addendum.gapRegistryProjection.gapPhase`. The
+ * clone shares no references with the source, so callers (including negative probes) can freely
+ * mutate the returned model without ever touching a future canonical addendum.
+ */
+export function modelFromAddendum(addendum) {
+  const phases = Array.isArray(addendum?.phaseChainProjection?.phases)
+    ? addendum.phaseChainProjection.phases
+    : [];
+  const edges = Array.isArray(addendum?.closureEdgeProjection?.edges)
+    ? addendum.closureEdgeProjection.edges
+    : [];
+  const gapPhase = isPlainObject(addendum?.gapRegistryProjection?.gapPhase)
+    ? addendum.gapRegistryProjection.gapPhase
+    : {};
+  return structuredClone({ phases, edges, gapPhase });
+}
+
+/**
+ * Verifies the external evidence pinned by `addendum.sourcePins = {evidenceRoot, files}`.
+ *
+ * - `absent`: pins are well-formed but `evidenceRoot` does not exist at all.
+ * - `verified`: `evidenceRoot` exists as a directory and every unique pin is confined, present,
+ *   exact-byte and exact-sha256.
+ * - `drifted`: malformed pins/root, an existing but non-directory or unreadable root, a
+ *   duplicate path, an unsafe absolute/traversal path, a symlink escape, a file missing inside
+ *   an existing root, or a bytes/sha256 mismatch.
+ *
+ * Never reads a target outside the real (symlink-resolved) evidence root. A filesystem error
+ * while reading a confined, present target becomes an explicit drift finding, never a silent
+ * skip or an uncontrolled success.
+ */
+export function externalEvidenceReport(addendum) {
+  const drifted = (findings) => ({
+    state: "drifted",
+    findings: dedupe(findings),
+    verifiedFiles: 0,
+    derivedProjectionMatches: null,
+  });
+
+  const pins = isPlainObject(addendum) ? addendum.sourcePins : undefined;
+  if (!isPlainObject(pins)) return drifted(["PINS_MALFORMED:sourcePins"]);
+  if (!Array.isArray(pins.files)) return drifted(["PINS_MALFORMED:files"]);
+  if (typeof pins.evidenceRoot !== "string" || pins.evidenceRoot.length === 0) {
+    return drifted(["PINS_MALFORMED:evidenceRoot"]);
+  }
+
+  const shapeFindings = [];
+  const seenPaths = new Set();
+  const entries = [];
+  for (const file of pins.files) {
+    if (!isPlainObject(file)) {
+      shapeFindings.push("PIN_MALFORMED:entry");
+      continue;
+    }
+    const relativePath = normalizeConfinedRelativePath(file.path);
+    if (relativePath === null) {
+      shapeFindings.push(`PIN_UNSAFE_PATH:${JSON.stringify(file.path ?? null)}`);
+      continue;
+    }
+    if (!Number.isInteger(file.bytes) || file.bytes < 0) {
+      shapeFindings.push(`PIN_MALFORMED_BYTES:${relativePath}`);
+      continue;
+    }
+    if (typeof file.sha256 !== "string" || !SHA256_PATTERN.test(file.sha256)) {
+      shapeFindings.push(`PIN_MALFORMED_SHA256:${relativePath}`);
+      continue;
+    }
+    if (seenPaths.has(relativePath)) {
+      shapeFindings.push(`PIN_DUPLICATE:${relativePath}`);
+      continue;
+    }
+    seenPaths.add(relativePath);
+    entries.push({ relativePath, bytes: file.bytes, sha256: file.sha256 });
+  }
+  if (shapeFindings.length > 0) return drifted(shapeFindings);
+
+  if (!existsSync(pins.evidenceRoot)) {
+    return { state: "absent", findings: [], verifiedFiles: 0, derivedProjectionMatches: null };
+  }
+
+  let rootStat;
+  try {
+    rootStat = statSync(pins.evidenceRoot);
+  } catch {
+    return drifted(["EVIDENCE_ROOT_UNREADABLE"]);
+  }
+  if (!rootStat.isDirectory()) {
+    return drifted(["EVIDENCE_ROOT_NOT_A_DIRECTORY"]);
+  }
+
+  let realRoot;
+  try {
+    realRoot = realpathSync(pins.evidenceRoot);
+  } catch {
+    return drifted(["EVIDENCE_ROOT_UNREADABLE"]);
+  }
+
+  const driftFindings = [];
+  let verifiedFiles = 0;
+
+  for (const entry of entries) {
+    const resolved = path.resolve(realRoot, entry.relativePath);
+
+    let realTarget;
+    try {
+      realTarget = realpathSync(resolved);
+    } catch {
+      driftFindings.push(`MISSING_FILE:${entry.relativePath}`);
+      continue;
+    }
+
+    if (realTarget !== realRoot && !realTarget.startsWith(`${realRoot}${path.sep}`)) {
+      driftFindings.push(`PATH_ESCAPE:${entry.relativePath}`);
+      continue;
+    }
+
+    let stat;
+    try {
+      stat = statSync(realTarget);
+    } catch {
+      driftFindings.push(`UNREADABLE_FILE:${entry.relativePath}`);
+      continue;
+    }
+    if (!stat.isFile()) {
+      driftFindings.push(`NOT_A_FILE:${entry.relativePath}`);
+      continue;
+    }
+
+    let bytes;
+    try {
+      bytes = readFileSync(realTarget);
+    } catch {
+      driftFindings.push(`UNREADABLE_FILE:${entry.relativePath}`);
+      continue;
+    }
+
+    if (bytes.length !== entry.bytes) {
+      driftFindings.push(`BYTES_MISMATCH:${entry.relativePath}`);
+      continue;
+    }
+    if (createHash("sha256").update(bytes).digest("hex") !== entry.sha256) {
+      driftFindings.push(`SHA256_MISMATCH:${entry.relativePath}`);
+      continue;
+    }
+
+    verifiedFiles += 1;
+  }
+
+  if (driftFindings.length > 0) return drifted(driftFindings);
+
+  return { state: "verified", findings: [], verifiedFiles, derivedProjectionMatches: null };
 }
