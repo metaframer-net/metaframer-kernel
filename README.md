@@ -267,6 +267,34 @@ log, no cache, and no generated client. Naming these two value types is not the 
 building the thing that produces or consumes them: nothing here evaluates a `PolicyRequest`
 into a `PolicyDecision`, and no substrate row-level-security integration exists or is claimed.
 
+**M1-09 — the AuthorizationEvaluator.**
+[`src/application/authorization-evaluator.mjs`](src/application/authorization-evaluator.mjs) ·
+[`tests/kernel-authorization-evaluator.test.mjs`](tests/kernel-authorization-evaluator.test.mjs) ·
+change gate: [`planning/kernel-authorization-evaluator-pkg12.json`](planning/kernel-authorization-evaluator-pkg12.json)
+(`p01-pkg12-authorization-decision`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `AuthorizationEvaluator`, a frozen, stateless, no-arg class. Its one method,
+`decide({request, candidates})`, is entirely synchronous and pure: `request` must be an exact
+genuine `PolicyRequest`; `candidates` must be an exact, dense array of exact `{policyId, effect,
+applies}` data objects, each `policyId` a bounded lowercase canonical id, each `effect` exactly
+`"allow"` or `"deny"`, each `applies` a primitive boolean, with no duplicate `policyId` across
+the array. It combines the already-scoped candidates it is given, and derives no candidate of
+its own: no applicable candidate defaults to deny with `matchedPolicyId` `null`; an applicable
+deny always outranks every applicable allow; the winner within the deciding effect is the
+lexicographically smallest applicable `policyId`, independent of array order. The returned
+`PolicyDecision` carries `request.action.correlationId` as `traceId`, by identity, and neither
+the request nor the candidates are ever mutated.
+
+*Non-goals:* still no rule or condition evaluated against `resource`/`context`, no
+role/permission/grant model, no row-level access story, no record of a decision once made, no
+lookup, no I/O, and no generated client. `AuthorizationEvaluator` combines candidate outcomes it
+is handed; it is not the central policy decision point that produces those candidates, and
+naming it does not open one.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
@@ -274,12 +302,14 @@ activated) → kernel primitives, typed action and PDP → generated SDK → one
 golden slice.
 
 The second stage is under way and is not finished. The primitives, the typed action contracts,
-the ports and the PolicyDecision protocol values listed above are implemented; the policy
-decision point that same stage names is not — `src/application/policy.mjs` forwards a question
-and decides nothing, and `src/application/policy-decision.mjs` names the shape of a question and
-an answer without evaluating either. PDP evaluation and RLS integration remain unimplemented.
-The generated SDK and the golden slice remain closed and unstarted, and nothing here may be
-read as opening them.
+the ports, the PolicyDecision protocol values and the candidate-outcome combining rule listed
+above are implemented; the central policy decision point that same stage names is not —
+`src/application/policy.mjs` forwards a question and decides nothing,
+`src/application/policy-decision.mjs` names the shape of a question and an answer without
+evaluating either, and `src/application/authorization-evaluator.mjs` combines candidate outcomes
+it is given without deriving any of them from a rule. Central PDP evaluation and RLS integration
+remain unimplemented. The generated SDK and the golden slice remain closed and unstarted, and
+nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
