@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { Command } from "../src/application/action-primitives.mjs";
 import { PolicyRequest, PolicyDecision } from "../src/application/policy-decision.mjs";
+import { AuthorizationCandidate } from "../src/application/authorization-candidate.mjs";
 import {
   ActorId, CorrelationId, IdempotencyKey, Principal, TenantId,
 } from "../src/domain/identity-primitives.mjs";
@@ -96,6 +97,7 @@ test("module reaches no forbidden import and carries no PDP/RBAC/cache/audit voc
     ["a central decision point", /\bPDP\b|\bPEP\b|central\s+decision/i],
     ["a policy model", /\brbac\b|\babac\b|\brebac\b|\brule\s*match/i],
     ["persistence or telemetry", /\baudit\b|\bcache\b|\bmemo\b|\brepositor|\bpersist|\bRLS\b/i],
+    ["a future production-target transport/SDK vocabulary", /fastapi|uvicorn|hypercorn|\basgi\b|\bhttp\b|\bdelivery\b|\bsdk\b/i],
   ]) {
     assert.ok(!pattern.test(text), `${modulePath} must not reach for or name ${label}`);
   }
@@ -354,4 +356,99 @@ test("PKG12 change-gate contract: identity, authority, budget, allowed files, no
     /fresh.*review/i, /no readiness.*claim|no release claim/i,
     /source.*(<=|at most|no more than).*300/i, /net.*(<=|at most|no more than).*800/i,
   ]) hasMatch(c.exitCriteria, re, "exitCriteria");
+});
+
+// F. PKG14 additive coverage: decide also accepts typed AuthorizationCandidate values, mixed
+// alongside legacy plain records, with every legacy decision semantic unchanged.
+const typedCand = (policyId, effect, applies) => new AuthorizationCandidate({ policyId, effect, applies });
+
+test("decide accepts an array of exact typed AuthorizationCandidate values and reaches the identical decision as the equivalent legacy plain records", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  const legacy = [cand("pol-alpha", "allow", true), cand("pol-beta", "deny", true), cand("pol-gamma", "allow", true)];
+  const typed = legacy.map((c) => typedCand(c.policyId, c.effect, c.applies));
+
+  const legacyDecision = decisionOf(evaluator, REQUEST, legacy);
+  const typedDecision = decisionOf(evaluator, REQUEST, typed);
+  assert.equal(typedDecision.effect, legacyDecision.effect);
+  assert.equal(typedDecision.matchedPolicyId, legacyDecision.matchedPolicyId);
+  assert.equal(typedDecision.effect, "deny");
+  assert.equal(typedDecision.matchedPolicyId, "pol-beta");
+});
+
+test("decide accepts a mixed dense array of legacy plain candidates and typed AuthorizationCandidate values, preserving deny-overrides and smallest-policyId semantics", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  const mixed = [
+    typedCand("pol-zulu", "allow", true), cand("pol-alpha", "allow", true), typedCand("pol-mike", "allow", true),
+  ];
+  const allowDecision = decisionOf(evaluator, REQUEST, mixed);
+  assert.equal(allowDecision.effect, "allow");
+  assert.equal(allowDecision.matchedPolicyId, "pol-alpha", "smallest applicable allow policyId wins across representations");
+
+  const mixedWithDeny = [
+    cand("pol-alpha", "allow", true), typedCand("pol-beta", "deny", true), cand("pol-gamma", "allow", true),
+  ];
+  const denyDecision = decisionOf(evaluator, REQUEST, mixedWithDeny);
+  assert.equal(denyDecision.effect, "deny", "a typed deny still overrides every applicable allow, whichever representation carries it");
+  assert.equal(denyDecision.matchedPolicyId, "pol-beta");
+});
+
+test("decide rejects a duplicate policyId across a typed and a legacy representation of the same candidate", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  throws(
+    () => evaluator.decide({ request: REQUEST, candidates: [cand("pol-a", "allow", true), typedCand("pol-a", "deny", false)] }),
+    "duplicate policyId must be refused across a plain record and a typed value, whichever arrives first",
+  );
+  throws(
+    () => evaluator.decide({ request: REQUEST, candidates: [typedCand("pol-a", "allow", true), typedCand("pol-a", "deny", false)] }),
+    "duplicate policyId must be refused between two typed values",
+  );
+});
+
+test("decide refuses a subclassed or hollow AuthorizationCandidate value, the same as any other malformed candidate entry", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  class DerivedCandidate extends AuthorizationCandidate {}
+  const derived = new DerivedCandidate({ policyId: "pol-a", effect: "allow", applies: true });
+  const hollow = Object.create(AuthorizationCandidate.prototype);
+
+  throws(() => evaluator.decide({ request: REQUEST, candidates: [derived] }),
+    "a subclass AuthorizationCandidate instance must be refused, exact-class only");
+  throws(() => evaluator.decide({ request: REQUEST, candidates: [hollow] }),
+    "a hollow AuthorizationCandidate-prototype object with no private state must be refused");
+});
+
+test("decide never mutates a typed AuthorizationCandidate value passed as a candidate", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  const candidate = typedCand("pol-a", "allow", true);
+  const before = candidate.toString();
+  evaluator.decide({ request: REQUEST, candidates: [candidate] });
+  assert.equal(candidate.toString(), before, "a typed candidate must be unchanged after decide");
+});
+
+test("decide refuses a Proxy over a genuine AuthorizationCandidate whose traps forge the prototype and fabricate fields, exactly TypeError, without ever reaching the fabricating get traps", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  const genuine = typedCand("pol-a", "allow", true);
+  const reached = { policyId: 0, effect: 0, applies: 0 };
+  const forged = new Proxy(genuine, {
+    getPrototypeOf: () => AuthorizationCandidate.prototype,
+    get(target, prop, receiver) {
+      if (prop === "policyId") { reached.policyId += 1; return "pol-forged"; }
+      if (prop === "effect") { reached.effect += 1; return "deny"; }
+      if (prop === "applies") { reached.applies += 1; return true; }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  assert.throws(
+    () => evaluator.decide({ request: REQUEST, candidates: [forged] }),
+    TypeError,
+    "a Proxy forging AuthorizationCandidate admission must be refused with exactly a TypeError",
+  );
+  assert.deepEqual(reached, { policyId: 0, effect: 0, applies: 0 },
+    "the field-forging get traps must never be reached: refusal happens before any forged field is read");
 });

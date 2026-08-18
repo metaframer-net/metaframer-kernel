@@ -321,6 +321,34 @@ is supplied by the caller; no RBAC, ABAC or ReBAC model is introduced; no row-le
 integration exists or is claimed; there is no enforcement point, no SDK, app, module or delivery
 surface, and no readiness or release claim is made.
 
+**M1-11 — the AuthorizationCandidate typed value.**
+[`src/application/authorization-candidate.mjs`](src/application/authorization-candidate.mjs) ·
+[`tests/kernel-authorization-candidate.test.mjs`](tests/kernel-authorization-candidate.test.mjs) ·
+change gate: [`planning/kernel-authorization-candidate-pkg14.json`](planning/kernel-authorization-candidate-pkg14.json)
+(`p01-pkg14-authorization-candidate-contract`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `AuthorizationCandidate`, an immutable, exact, frozen typed value for the existing
+`{policyId, effect, applies}` candidate-outcome shape and nothing else. Construction validates
+`policyId`/`effect`/`applies` identically to the plain-record validation `AuthorizationEvaluator`
+already applies; the constructed instance is frozen with read-only getters, exact-class equality
+(never `instanceof`, so a subclass or a hollow prototype-only object is refused), and a stable
+`toJSON`/`toString`. `AuthorizationEvaluator.decide` now additionally accepts an exact genuine
+`AuthorizationCandidate` wherever it already accepted a plain candidate record, in any mix within
+the same dense array, still refusing a duplicate `policyId` across representations and still
+refusing a subclassed or hollow typed value. This changes no decision: deny-overrides,
+default-deny, the smallest-`policyId` winner rule, the trace `traceId` and every mutation/error
+semantic already documented for M1-09 are unchanged.
+
+*Non-goals:* still no `PolicyStatement`, no action-coordinate wildcard, no rule or condition
+schema, no `deriveCandidate`, no candidate matching or scoping, no RBAC, ABAC or ReBAC model, no
+`PolicyRequest`/`PDP`/`Policy` port change, and no RLS, DB, SDK or delivery vocabulary. A typed
+candidate value is not a policy statement and does not open rule matching or candidate
+derivation.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
@@ -328,17 +356,21 @@ activated) → kernel primitives, typed action and PDP → generated SDK → one
 golden slice.
 
 The second stage is under way and is not finished. The primitives, the typed action contracts,
-the ports, the PolicyDecision protocol values, the candidate-outcome combining rule and the
-central `PolicyDecisionPoint` orchestration listed above are implemented; what that stage still
-lacks is the piece that scopes candidates in the first place — `src/application/policy.mjs`
-forwards a question and decides nothing, `src/application/policy-decision.mjs` names the shape
-of a question and an answer without evaluating either, `src/application/authorization-evaluator.mjs`
-combines candidate outcomes it is given without deriving any of them from a rule, and
+the ports, the PolicyDecision protocol values, the candidate-outcome combining rule, the
+central `PolicyDecisionPoint` orchestration and the `AuthorizationCandidate` typed value listed
+above are implemented; what that stage still lacks is the piece that scopes candidates in the
+first place — `src/application/policy.mjs` forwards a question and decides nothing,
+`src/application/policy-decision.mjs` names the shape of a question and an answer without
+evaluating either, `src/application/authorization-evaluator.mjs` combines candidate outcomes it
+is given (now typed or plain) without deriving any of them from a rule,
 `src/application/policy-decision-point.mjs` orchestrates that combining step around a
-caller-supplied `candidatesFor` without deriving a candidate itself. Rule/candidate derivation
-and RLS integration remain unimplemented, so the typed-action/PDP stage is not yet complete. The
-generated SDK and the golden slice remain closed and unstarted, and nothing here may be read as
-opening them.
+caller-supplied `candidatesFor` without deriving a candidate itself, and
+`src/application/authorization-candidate.mjs` gives that already-scoped candidate shape a typed,
+frozen carrier without matching a rule against it. A typed candidate contract now exists, but
+`PolicyStatement`, rule matching, candidate derivation and RLS integration still do not. Rule/
+candidate derivation and RLS integration remain unimplemented, so the typed-action/PDP stage is
+not yet complete. The generated SDK and the golden slice remain closed and unstarted, and
+nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is

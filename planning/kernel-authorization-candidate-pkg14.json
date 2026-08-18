@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "packageId": "p01-pkg14-authorization-candidate-contract",
+  "baseCommit": "60568e88eb8236ec347c5b9bd392a2494d3d676c",
+  "status": "implementation-complete-external-evidence-pending",
+  "classification": "security-test-conformance",
+  "authority": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequenceId": "kernel-primitives-typed-action-pdp",
+    "sequenceOrder": 5,
+    "subset": "authorization-candidate-typed-value"
+  },
+  "budget": {
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 20,
+    "fullQaBudget": 2,
+    "requirements": [
+      "single-narrow-problem",
+      "bounded-file-set",
+      "no-redundant-repetition",
+      "no-quality-tradeoff",
+      "full-green",
+      "fresh-reviewer-accept",
+      "explicit-rollback"
+    ]
+  },
+  "allowedFiles": [
+    "README.md",
+    "planning/kernel-authorization-candidate-pkg14.json",
+    "src/application/authorization-candidate.mjs",
+    "src/application/authorization-evaluator.mjs",
+    "tests/kernel-authorization-candidate.test.mjs",
+    "tests/kernel-authorization-evaluator.test.mjs",
+    "tests/repository-boundary.test.mjs"
+  ],
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "snapshotMutationRequired": false,
+    "required": ["qa1", "qa2", "fresh-independent-review"]
+  },
+  "nonGoals": [
+    "No PolicyStatement, policy statement, or rule schema is introduced.",
+    "No action-coordinate wildcard is introduced.",
+    "No rule or condition matching is introduced.",
+    "No deriveCandidate or candidate derivation/matching/scoping is introduced; candidates still arrive already scoped.",
+    "No RBAC, ABAC or ReBAC model is introduced.",
+    "No RLS or row-level access story is introduced.",
+    "No DB, SDK or delivery surface is introduced.",
+    "No PDP change or central decision point behavior change is introduced; AuthorizationEvaluator's deny-overrides/default-deny/winner/trace semantics are unchanged.",
+    "No Policy port or use-case port change is introduced.",
+    "No release, deploy, production or readiness claim is made.",
+    "This package builds on, and does not reopen, pkg11, pkg12 or pkg13."
+  ],
+  "red": {
+    "commands": [
+      "node --test tests/kernel-authorization-candidate.test.mjs",
+      "node --test tests/kernel-authorization-candidate.test.mjs tests/kernel-authorization-evaluator.test.mjs tests/repository-boundary.test.mjs"
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-authorization-candidate.test.mjs tests/kernel-authorization-evaluator.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN",
+      "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+      "a fresh independent review, by a reviewer who did not author this package, must accept it"
+    ]
+  },
+  "exitCriteria": [
+    "src/application/authorization-candidate.mjs and src/application/authorization-evaluator.mjs source are each at most 300 lines",
+    "the change package net is at most 800 lines",
+    "the changed-file set has exact allowed-file parity with allowedFiles",
+    "QA1 (the local full QA by the implementation writer) is recorded",
+    "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+    "a fresh independent review has accepted the package",
+    "AuthorizationEvaluator still accepts every legacy plain candidate record; legacy compat is unbroken",
+    "no readiness claim or release claim is made anywhere in this package"
+  ],
+  "rollback": "Rollback reverts exactly this seven-file shard: README.md, planning/kernel-authorization-candidate-pkg14.json, src/application/authorization-candidate.mjs, src/application/authorization-evaluator.mjs, tests/kernel-authorization-candidate.test.mjs, tests/kernel-authorization-evaluator.test.mjs, tests/repository-boundary.test.mjs, restoring the base commit's state for each.",
+  "standardsMatrix": [
+    {
+      "standardId": "architecture",
+      "applies": true,
+      "reason": "AuthorizationCandidate is a new module materialized inside src/application, the second onion ring; it must respect the ring's closed manifest and dependency direction (no import from adapters/delivery/sdk/infrastructure/api, no substrate import) exactly as authorization-evaluator.mjs already does.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/architecture.json",
+      "consumer": "src/application/authorization-candidate.mjs; enforced by tests/repository-boundary.test.mjs RING_MODULE_MANIFEST and tests/kernel-authorization-candidate.test.mjs forbidden-import assertions",
+      "test": "tests/repository-boundary.test.mjs: \"a real tree reaches the same verdict...\"; tests/kernel-authorization-candidate.test.mjs: \"module reaches no forbidden import...\"",
+      "evidence": "Targeted GREEN run 2026-08-19: both tests pass with the module present and the manifest entry added.",
+      "waiver": null
+    },
+    {
+      "standardId": "coding-standards",
+      "applies": true,
+      "reason": "AuthorizationCandidate is authored as an exact frozen value class matching the repository's established pattern (PolicyRequest/PolicyDecision/AuthorizationEvaluator): private fields, Object.freeze on instance/prototype/class, exact-class identity via prototype comparison rather than instanceof, no default export, no namespace import.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/coding-standards.json",
+      "consumer": "src/application/authorization-candidate.mjs",
+      "test": "tests/kernel-authorization-candidate.test.mjs sections A, C, D, E (module surface, frozen exact value, stable toJSON/toString, exact-class equality/subclass-hollow refusal)",
+      "evidence": "Targeted GREEN run 2026-08-19: all listed sections pass against the implemented module.",
+      "waiver": null
+    },
+    {
+      "standardId": "short-code",
+      "applies": true,
+      "reason": "This package is classified security-test-conformance at the conditional band, which caps it at maxNet=800 and maxChangedFiles=20 per the canonical changePackageBudget; the seven-file shard (tests plus the two production modules plus this planning file plus README) is measured against that shared ceiling.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/short-code.json#changePackageBudget",
+      "consumer": "the whole PKG14 change package (allowedFiles union across candidate + production + planning writers), measured together",
+      "test": "tests/kernel-authorization-candidate.test.mjs: \"PKG14 change-gate contract...\" (asserts budget.band=conditional, maxNet=800, maxChangedFiles=20, fullQaBudget=2)",
+      "evidence": "git diff --numstat across the seven-file shard confirms the net stays within the 800-line conditional-band ceiling and 20-file ceiling.",
+      "waiver": null
+    },
+    {
+      "standardId": "authz-rbac-abac",
+      "applies": false,
+      "reason": "AuthorizationCandidate is an inert typed data value carrying {policyId, effect, applies}; it implements no role/permission/grant/relationship model and performs no rule evaluation, matching, or scoping. The standard governs an RBAC/ABAC/ReBAC engine, which this package's nonGoals explicitly exclude (no PolicyStatement, no action-coordinate wildcard, no rule/condition schema, no deriveCandidate).",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/authz-rbac-abac.json",
+      "consumer": "n/a - no RBAC/ABAC/ReBAC surface exists in this package",
+      "test": "tests/kernel-authorization-candidate.test.mjs: \"module surface...\" and \"module reaches no forbidden import...\" assert absence of Rbac/Abac/Rebac/Role/Permission/Grant vocabulary and of rule/condition/deriveCandidate/wildcard patterns in source",
+      "evidence": "Targeted GREEN run 2026-08-19 confirms the forbidden-vocabulary assertions hold against the implemented module.",
+      "waiver": null
+    },
+    {
+      "standardId": "testing-strategy",
+      "applies": true,
+      "reason": "This package was test-first by construction: targeted RED was established for the absent module (import failure), the absent manifest entry (repository-boundary), and the absent planning contract, before any production code existed, per the change-gate's test-first requirement.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/testing-strategy.json",
+      "consumer": "tests/kernel-authorization-candidate.test.mjs, tests/kernel-authorization-evaluator.test.mjs, tests/repository-boundary.test.mjs",
+      "test": "targeted run: node --test tests/kernel-authorization-candidate.test.mjs tests/kernel-authorization-evaluator.test.mjs tests/repository-boundary.test.mjs",
+      "evidence": "Targeted RED confirmed 178 tests / 166 pass / 12 fail before implementation; targeted GREEN after implementation shows all targeted tests passing with 0 unrelated regressions.",
+      "waiver": null
+    },
+    {
+      "standardId": "quality-gates",
+      "applies": true,
+      "reason": "This change-gate contract itself asserts QA1/QA2/fresh-independent-review evidence, allowed-file parity, and exit criteria, matching the repository's persistent quality-gate shape already used by PKG11/PKG12/PKG13.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/quality-gates.json",
+      "consumer": "planning/kernel-authorization-candidate-pkg14.json",
+      "test": "tests/kernel-authorization-candidate.test.mjs: \"PKG14 change-gate contract...\" (evidencePolicy.required, green.requirements, exitCriteria assertions)",
+      "evidence": "Targeted GREEN run 2026-08-19 confirms this contract file satisfies every asserted field.",
+      "waiver": null
+    },
+    {
+      "standardId": "kernel-delivery-boundary",
+      "applies": true,
+      "reason": "AuthorizationCandidate stays inside src/application and carries no delivery/HTTP/ASGI/SDK vocabulary or import; this is exactly the boundary the standard draws, enforced at the module-source level in addition to the ring-membership check.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/kernel-delivery-boundary.json",
+      "consumer": "src/application/authorization-candidate.mjs",
+      "test": "tests/kernel-authorization-candidate.test.mjs: \"module reaches no forbidden import...\" (refuses an outer-ring import, the substrate package, PDP/PEP, and SDK/Delivery vocabulary)",
+      "evidence": "Targeted GREEN run 2026-08-19 confirms the assertion holds against the implemented module's source text.",
+      "waiver": null
+    },
+    {
+      "standardId": "release-versioning",
+      "applies": false,
+      "reason": "This package makes no version, CHANGELOG, npm version/publish, tag, or release claim; it touches no package.json, CHANGELOG.md, or versioning-policy.json byte, and this scope's nonGoals already exclude release/deploy/production/readiness claims.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards/release-versioning.json",
+      "consumer": "n/a - no version or changelog surface touched by this package",
+      "test": "n/a - the seven-file allowedFiles set carries no package.json, CHANGELOG.md, or versioning-policy.json path",
+      "evidence": "git diff --numstat on the completed package lists exactly the seven allowedFiles paths and no other.",
+      "waiver": null
+    },
+    {
+      "standardId": "sso",
+      "applies": false,
+      "reason": "identity-access overlay ref ssoRef. AuthorizationCandidate carries no session, login, or single-sign-on flow of any kind; it is an in-process value type consumed only by AuthorizationEvaluator.decide, which itself takes no HTTP/session input.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards-applicability.json#identity-access.requiredRefs.ssoRef",
+      "consumer": "n/a - no SSO/session surface exists anywhere in the application ring this package touches",
+      "test": "n/a - no test exercises an SSO surface; absence is structural (no delivery/HTTP ring reachable from src/application per the architecture and kernel-delivery-boundary rows above)",
+      "evidence": "Repository topology: src/adapters, src/delivery and src/sdk remain forbidden roots per tests/repository-boundary.test.mjs ROOT_SRC_FORBIDDEN_CHILDREN, so no SSO-carrying surface is reachable from this package.",
+      "waiver": null
+    },
+    {
+      "standardId": "oidc",
+      "applies": false,
+      "reason": "identity-access overlay ref oidcRef. No OIDC token, claim, or identity-provider integration is introduced or touched by an immutable {policyId, effect, applies} value type.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards-applicability.json#identity-access.requiredRefs.oidcRef",
+      "consumer": "n/a - no OIDC surface exists in this package",
+      "test": "n/a - no test exercises an OIDC surface; absence is structural, same reasoning as the sso row above",
+      "evidence": "Same topology evidence as the sso row: no delivery/HTTP ring is reachable from src/application.",
+      "waiver": null
+    },
+    {
+      "standardId": "mfa",
+      "applies": false,
+      "reason": "identity-access overlay ref mfaRef. No multi-factor-authentication flow, factor, or challenge is introduced or touched; AuthorizationCandidate is downstream of authentication and carries no principal or credential.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards-applicability.json#identity-access.requiredRefs.mfaRef",
+      "consumer": "n/a - no MFA surface exists in this package",
+      "test": "n/a - no test exercises an MFA surface; AuthorizationCandidate's only fields are policyId/effect/applies, none of which name a principal, factor, or credential",
+      "evidence": "tests/kernel-authorization-candidate.test.mjs section B fixes the admitted option keys to exactly policyId/effect/applies, closed by construction.",
+      "waiver": null
+    },
+    {
+      "standardId": "identity-data",
+      "applies": false,
+      "reason": "identity-access overlay ref identityDataRef. AuthorizationCandidate stores no person, organization, tenant, or party data; its three fields are a policy identifier string, an effect enum, and a boolean, none of which are identity data under the standard's definition.",
+      "canonicalSource": "fc3bcda411bb36a93c228544b285ce4e869589af:src/data/standards-applicability.json#identity-access.requiredRefs.identityDataRef",
+      "consumer": "n/a - no identity-data field exists on AuthorizationCandidate",
+      "test": "tests/kernel-authorization-candidate.test.mjs section B (exact-keys assertion: policyId/effect/applies only, extra key refused)",
+      "evidence": "Targeted GREEN run 2026-08-19 confirms the exact-keys admission test passes against the implemented module.",
+      "waiver": null
+    }
+  ]
+}

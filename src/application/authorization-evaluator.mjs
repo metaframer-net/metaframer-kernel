@@ -1,4 +1,5 @@
 import { PolicyRequest, PolicyDecision } from "./policy-decision.mjs";
+import { AuthorizationCandidate } from "./authorization-candidate.mjs";
 
 // =====================================================================================
 // AuthorizationEvaluator: candidate-outcome combining, and nothing else.
@@ -68,7 +69,24 @@ const EFFECTS = new Set(["allow", "deny"]);
 const POLICY_ID_MAX = 128;
 const POLICY_ID_FORM = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
 
+const isExactCandidate = (value) => isExactly(value, AuthorizationCandidate);
+
+const CANDIDATE_POLICY_ID_GETTER = Object.getOwnPropertyDescriptor(AuthorizationCandidate.prototype, "policyId").get;
+const CANDIDATE_EFFECT_GETTER = Object.getOwnPropertyDescriptor(AuthorizationCandidate.prototype, "effect").get;
+const CANDIDATE_APPLIES_GETTER = Object.getOwnPropertyDescriptor(AuthorizationCandidate.prototype, "applies").get;
+
 function checkCandidate(candidate) {
+  if (isExactCandidate(candidate)) {
+    try {
+      return {
+        policyId: CANDIDATE_POLICY_ID_GETTER.call(candidate),
+        effect: CANDIDATE_EFFECT_GETTER.call(candidate),
+        applies: CANDIDATE_APPLIES_GETTER.call(candidate),
+      };
+    } catch {
+      throw new TypeError("an authorization candidate needs a genuine AuthorizationCandidate instance");
+    }
+  }
   if (!isOrdinaryDataObject(candidate) || !hasExactEnumerableDataKeys(candidate, CANDIDATE_KEYS)) {
     throw new TypeError(`an authorization candidate takes exactly these keys: ${CANDIDATE_KEYS.join(", ")}`);
   }
