@@ -7,7 +7,7 @@
     "location": "external",
     "inRepoStatusFlipAfterQa": false,
     "snapshotMutationRequired": false,
-    "required": ["qa1", "required-ci-qa2", "fresh-independent-review"]
+    "required": ["qa1", "qa2", "fresh-independent-review"]
   },
   "authority": {
     "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
@@ -50,6 +50,7 @@
       "Targeted run node --test tests/kernel-policy-decision.test.mjs reports 8/8 passing.",
       "npm test passes for the full suite.",
       "npm run check passes.",
+      "QA2 uses required CI when configured, and otherwise a second local full QA: this repository carries no status checks and no .github/workflows, so QA2 here is a second local full QA run recorded by a party other than the QA1 runner.",
       "A fresh independent review, performed by a reviewer who did not author this change package, reports GREEN."
     ]
   },
@@ -60,7 +61,7 @@
     "Net diff across the shard is <= 800 lines (maxNet).",
     "Targeted node --test tests/kernel-policy-decision.test.mjs is GREEN (8/8).",
     "QA1: one full local QA run by the implementation writer, after targeted RED-to-GREEN, is recorded.",
-    "Required CI QA2: one required CI full QA run is recorded.",
+    "QA2 uses required CI when configured, and otherwise a second local full QA: this repository has no status checks and no .github/workflows configured, so QA2 is recorded as one second local full QA run.",
     "A fresh independent review is recorded as GREEN.",
     "No readiness claim and no release claim is made by this package; the in-repo status stays implementation-complete-external-evidence-pending, is immutable, and is never flipped in-repo after QA — completion of QA1, QA2 and the fresh independent review is recorded externally, per evidencePolicy."
   ]

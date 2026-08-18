@@ -276,6 +276,8 @@ test("PKG11 change-gate contract: identity, authority, budget, allowed files, no
     "src/application/policy-decision.mjs", "tests/kernel-policy-decision.test.mjs",
     "tests/repository-boundary.test.mjs",
   ].sort(), "allowedFiles must be exactly these five paths");
+  assert.deepEqual(c.evidencePolicy?.required, ["qa1", "qa2", "fresh-independent-review"],
+    "evidencePolicy.required must be exactly qa1, qa2, fresh-independent-review — never a bare required-ci-qa2 token");
   for (const re of [
     /evaluator|pdp execution/i, /rls|db adapter/i, /rbac|abac|rebac/i,
     /audit|cache|pep/i, /sdk|app|module|surface/i, /release|deploy|production/i,
@@ -286,11 +288,17 @@ test("PKG11 change-gate contract: identity, authority, budget, allowed files, no
   hasMatch(c.green?.requirements, /npm test/, "green.requirements (npm test)");
   hasMatch(c.green?.requirements, /npm run check/, "green.requirements (npm run check)");
   hasMatch(c.green?.requirements, /fresh independent review/i, "green.requirements (fresh independent review)");
+  hasMatch(
+    c.green?.requirements,
+    /qa2.*required ci.*when configured.*otherwise.*second local full qa/is,
+    "green.requirements (QA2 truthfully uses required CI when configured, otherwise a second local full QA)",
+  );
   assert.match(String(c.rollback), /revert(s|ed)?.*five.file.*shard/i, "rollback must revert this five-file shard");
   assert.match(String(c.rollback), /s1 substrate.*untouched/i, "rollback must leave the S1 substrate untouched");
   for (const re of [
     /allowed.?file parity/i, /source.*(<=|≤)\s*300/i, /net.*(<=|≤)\s*800/i,
-    /targeted.*green/i, /\bqa\s*1\b/i, /(required\s+)?ci.*qa\s*2/i,
+    /targeted.*green/i, /\bqa\s*1\b/i,
+    /qa2.*required ci.*when configured.*otherwise.*second local full qa/is,
     /fresh.*review/i, /no readiness.*claim|no release claim/i,
   ]) hasMatch(c.exitCriteria, re, "exitCriteria");
 });
