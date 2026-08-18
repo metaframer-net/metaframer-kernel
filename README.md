@@ -237,16 +237,49 @@ permit or enforce; it authors no answer, wraps no value or error, and remembers 
 is no request type and no decision type, because those two would be the halves of a decision
 protocol this kernel has not committed to.
 
+**M1-08 — the PolicyDecision protocol values.**
+[`src/application/policy-decision.mjs`](src/application/policy-decision.mjs) ·
+[`tests/kernel-policy-decision.test.mjs`](tests/kernel-policy-decision.test.mjs) ·
+change gate: [`planning/kernel-policy-decision-protocol-pkg11.json`](planning/kernel-policy-decision-protocol-pkg11.json)
+(`p01-pkg11-policy-decision-protocol`, status `implementation-complete-external-evidence-pending` —
+targeted 8/8 GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a
+fresh independent review are not yet recorded. The in-repo package status is immutable and is
+never flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is
+recorded externally, so no readiness or release claim is made here)
+
+Exports `PolicyRequest` and `PolicyDecision`: the two halves of a decision protocol M1-07 named
+but deliberately did not build. A `PolicyRequest` takes exactly `{action, resource, context}`;
+`action` must be an exact genuine `Command` or `Query`, kept by reference, and `tenantId` /
+`actorId` are read off `action.principal` on every access rather than stored. `resource` and
+`context` are canonicalised by the same rule `Command` and `Query` already apply to a payload —
+sorted keys, deep freeze, and a refusal for a custom or null prototype, an unsafe key, an
+accessor, a symbol key, a non-finite number, a cycle or a value repeated by reference. A
+`PolicyDecision` takes exactly `{effect, reason, matchedPolicyId, traceId}`: `effect` is exactly
+`"allow"` or `"deny"`; `reason` is bounded, trimmed, nonempty, control-character-free text;
+`matchedPolicyId` is `null` only where a deny stands for no match found, otherwise a bounded
+lowercase canonical id, and is required and non-null once `effect` is `"allow"`; `traceId` must
+be an exact genuine `CorrelationId`. Both types are frozen, exact-class values with stable
+JSON/string forms and no default export.
+
+*Non-goals:* still no evaluator, no policy decision point or enforcement point, no rule
+matching, no combining algorithm, no RBAC, ReBAC or ABAC, no row-level access story, no audit
+log, no cache, and no generated client. Naming these two value types is not the same as
+building the thing that produces or consumes them: nothing here evaluates a `PolicyRequest`
+into a `PolicyDecision`, and no substrate row-level-security integration exists or is claimed.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
 activated) → kernel primitives, typed action and PDP → generated SDK → one walking-skeleton
 golden slice.
 
-The second stage is under way and is not finished. The primitives, the typed action contracts
-and the ports listed above are implemented; the policy decision point that same stage names is
-not — `src/application/policy.mjs` forwards a question and decides nothing. The generated SDK
-and the golden slice remain closed and unstarted, and nothing here may be read as opening them.
+The second stage is under way and is not finished. The primitives, the typed action contracts,
+the ports and the PolicyDecision protocol values listed above are implemented; the policy
+decision point that same stage names is not — `src/application/policy.mjs` forwards a question
+and decides nothing, and `src/application/policy-decision.mjs` names the shape of a question and
+an answer without evaluating either. PDP evaluation and RLS integration remain unimplemented.
+The generated SDK and the golden slice remain closed and unstarted, and nothing here may be
+read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
