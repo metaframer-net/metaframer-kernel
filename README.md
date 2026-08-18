@@ -295,6 +295,32 @@ lookup, no I/O, and no generated client. `AuthorizationEvaluator` combines candi
 is handed; it is not the central policy decision point that produces those candidates, and
 naming it does not open one.
 
+**M1-10 — the PolicyDecisionPoint.**
+[`src/application/policy-decision-point.mjs`](src/application/policy-decision-point.mjs) ·
+[`tests/kernel-policy-decision-point.test.mjs`](tests/kernel-policy-decision-point.test.mjs) ·
+change gate: [`planning/kernel-policy-decision-point-pkg13.json`](planning/kernel-policy-decision-point-pkg13.json)
+(`p01-pkg13-central-policy-decision-point`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `PolicyDecisionPoint`, a frozen class carrying one injected `{candidatesFor}`
+collaborator and one internal, private `AuthorizationEvaluator` instance constructed per
+`PolicyDecisionPoint`. Its one method, `decide(request)`, is async: it rejects an exact genuine
+`PolicyRequest` check before ever touching the collaborator, calls `candidatesFor` exactly once
+with an undefined receiver and the request by identity, awaits its ordinary resolution once, and
+passes whatever it resolved — unchanged, alongside the exact request — into the internal
+`AuthorizationEvaluator`, answering with its exact `PolicyDecision`. A thrown or rejected error
+from `candidatesFor` surfaces by identity as `decide`'s rejection; nothing is mutated, cached,
+retried, timed out, queued, defaulted or evaluated a second time.
+
+*Non-goals:* this is central orchestration of already-scoped candidate outcomes and nothing
+more. It derives no candidate and matches no rule or policy statement of its own — `candidatesFor`
+is supplied by the caller; no RBAC, ABAC or ReBAC model is introduced; no row-level-security
+integration exists or is claimed; there is no enforcement point, no SDK, app, module or delivery
+surface, and no readiness or release claim is made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
@@ -302,14 +328,17 @@ activated) → kernel primitives, typed action and PDP → generated SDK → one
 golden slice.
 
 The second stage is under way and is not finished. The primitives, the typed action contracts,
-the ports, the PolicyDecision protocol values and the candidate-outcome combining rule listed
-above are implemented; the central policy decision point that same stage names is not —
-`src/application/policy.mjs` forwards a question and decides nothing,
-`src/application/policy-decision.mjs` names the shape of a question and an answer without
-evaluating either, and `src/application/authorization-evaluator.mjs` combines candidate outcomes
-it is given without deriving any of them from a rule. Central PDP evaluation and RLS integration
-remain unimplemented. The generated SDK and the golden slice remain closed and unstarted, and
-nothing here may be read as opening them.
+the ports, the PolicyDecision protocol values, the candidate-outcome combining rule and the
+central `PolicyDecisionPoint` orchestration listed above are implemented; what that stage still
+lacks is the piece that scopes candidates in the first place — `src/application/policy.mjs`
+forwards a question and decides nothing, `src/application/policy-decision.mjs` names the shape
+of a question and an answer without evaluating either, `src/application/authorization-evaluator.mjs`
+combines candidate outcomes it is given without deriving any of them from a rule, and
+`src/application/policy-decision-point.mjs` orchestrates that combining step around a
+caller-supplied `candidatesFor` without deriving a candidate itself. Rule/candidate derivation
+and RLS integration remain unimplemented, so the typed-action/PDP stage is not yet complete. The
+generated SDK and the golden slice remain closed and unstarted, and nothing here may be read as
+opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is

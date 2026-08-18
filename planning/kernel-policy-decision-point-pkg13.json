@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "packageId": "p01-pkg13-central-policy-decision-point",
+  "baseCommit": "d895593a615aba0ace9161b2c392366a24bceed5",
+  "status": "implementation-complete-external-evidence-pending",
+  "classification": "security-test-conformance",
+  "authority": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequenceId": "kernel-primitives-typed-action-pdp",
+    "sequenceOrder": 4,
+    "subset": "central-policy-decision-point-orchestration"
+  },
+  "budget": {
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 20,
+    "fullQaBudget": 2,
+    "requirements": [
+      "single-narrow-problem",
+      "bounded-file-set",
+      "no-redundant-repetition",
+      "no-quality-tradeoff",
+      "full-green",
+      "fresh-reviewer-accept",
+      "explicit-rollback"
+    ]
+  },
+  "allowedFiles": [
+    "README.md",
+    "planning/kernel-policy-decision-point-pkg13.json",
+    "src/application/policy-decision-point.mjs",
+    "tests/kernel-policy-decision-point.test.mjs",
+    "tests/repository-boundary.test.mjs"
+  ],
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "snapshotMutationRequired": false,
+    "required": ["qa1", "qa2", "fresh-independent-review"]
+  },
+  "nonGoals": [
+    "No policy statement, rule schema, or rule-matching engine is introduced.",
+    "No candidate derivation or candidate matching is introduced; candidates arrive already scoped from the injected collaborator.",
+    "No RBAC, ABAC or ReBAC model is introduced.",
+    "No RLS, DB, transaction, audit, outbox or adapter integration is introduced.",
+    "No enforcement point is introduced; this remains a decision point only.",
+    "No SDK, app, module, archetype or delivery surface is introduced.",
+    "No Policy port or use-case port change is introduced.",
+    "No release, deploy, production or readiness claim is made.",
+    "This package builds on, and does not reopen, pkg11 or pkg12."
+  ],
+  "red": {
+    "commands": [
+      "node --test tests/kernel-policy-decision-point.test.mjs"
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-policy-decision-point.test.mjs and node --test tests/kernel-policy-decision-point.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN",
+      "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+      "a fresh independent review, by a reviewer who did not author this package, must accept it"
+    ]
+  },
+  "exitCriteria": [
+    "src/application/policy-decision-point.mjs source is at most 300 lines",
+    "the change package net is at most 800 lines",
+    "the changed-file set has exact allowed-file parity with allowedFiles",
+    "QA1 (the local full QA by the implementation writer) is recorded",
+    "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+    "a fresh independent review has accepted the package",
+    "no readiness claim or release claim is made anywhere in this package"
+  ],
+  "rollback": "Rollback reverts exactly this five-file shard: README.md, planning/kernel-policy-decision-point-pkg13.json, src/application/policy-decision-point.mjs, tests/kernel-policy-decision-point.test.mjs, tests/repository-boundary.test.mjs, restoring the base commit's state for each."
+}
