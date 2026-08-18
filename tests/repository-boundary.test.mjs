@@ -608,7 +608,7 @@ const MOVED_CHILD = "application";
  */
 const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
-  ["application", ["action-primitives.mjs", "clock.mjs", "identity.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
+  ["application", ["action-primitives.mjs", "clock.mjs", "identity.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();
 const refuseChild = (child) => [`forbidden-root-src-child:${child}`];

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "packageId": "p01-pkg11-policy-decision-protocol",
+  "baseCommit": "a62ab8411946e05f9279b64456bc784f3d337622",
+  "status": "implementation-complete-external-evidence-pending",
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "snapshotMutationRequired": false,
+    "required": ["qa1", "required-ci-qa2", "fresh-independent-review"]
+  },
+  "authority": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequenceId": "kernel-primitives-typed-action-pdp",
+    "sequenceOrder": 2,
+    "subset": "policy-request-decision-protocol-values"
+  },
+  "classification": "security-test-conformance",
+  "budget": {
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 20,
+    "fullQaBudget": 2
+  },
+  "allowedFiles": [
+    "planning/kernel-policy-decision-protocol-pkg11.json",
+    "src/application/policy-decision.mjs",
+    "tests/kernel-policy-decision.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "README.md"
+  ],
+  "nonGoals": [
+    "No evaluator and no PDP execution: this package names PolicyRequest/PolicyDecision as values only, it does not evaluate a request into a decision.",
+    "No RLS and no DB adapter: no row-level-security integration and no substrate/persistence adapter of any kind.",
+    "No RBAC, ABAC or ReBAC: no role, permission, grant, rule or policy model is implemented.",
+    "No audit, no cache and no PEP: no audit log, no memoization/cache, and no policy enforcement point.",
+    "No SDK, app, module or surface: no generated client, no application composition, and no new public module beyond the two value types.",
+    "No release, deploy or production claim: this package makes no readiness, release or deploy claim of any kind."
+  ],
+  "red": {
+    "commands": [
+      "node --test tests/kernel-policy-decision.test.mjs"
+    ],
+    "evidence": [
+      "Prior to this contract file existing, the targeted run reported 7/7 passing and 1 failing (section D, missing planning/kernel-policy-decision-protocol-pkg11.json), for a total of 8 tests in the file."
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted run node --test tests/kernel-policy-decision.test.mjs reports 8/8 passing.",
+      "npm test passes for the full suite.",
+      "npm run check passes.",
+      "A fresh independent review, performed by a reviewer who did not author this change package, reports GREEN."
+    ]
+  },
+  "rollback": "Rollback reverts exactly this five-file shard (planning/kernel-policy-decision-protocol-pkg11.json, src/application/policy-decision.mjs, tests/kernel-policy-decision.test.mjs, tests/repository-boundary.test.mjs, README.md) and leaves the S1 substrate (DB/RLS/transaction/outbox/audit) untouched.",
+  "exitCriteria": [
+    "Allowed-file parity: only the five allowedFiles paths above are changed.",
+    "Source size for src/application/policy-decision.mjs is <= 300 lines.",
+    "Net diff across the shard is <= 800 lines (maxNet).",
+    "Targeted node --test tests/kernel-policy-decision.test.mjs is GREEN (8/8).",
+    "QA1: one full local QA run by the implementation writer, after targeted RED-to-GREEN, is recorded.",
+    "Required CI QA2: one required CI full QA run is recorded.",
+    "A fresh independent review is recorded as GREEN.",
+    "No readiness claim and no release claim is made by this package; the in-repo status stays implementation-complete-external-evidence-pending, is immutable, and is never flipped in-repo after QA — completion of QA1, QA2 and the fresh independent review is recorded externally, per evidencePolicy."
+  ]
+}
