@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "packageId": "p01-pkg12-authorization-decision",
+  "baseCommit": "8c6dd899da7ace4cec0e8760038d5741837092e8",
+  "status": "implementation-complete-external-evidence-pending",
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "snapshotMutationRequired": false,
+    "required": ["qa1", "qa2", "fresh-independent-review"]
+  },
+  "authority": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequenceId": "kernel-primitives-typed-action-pdp",
+    "sequenceOrder": 3,
+    "subset": "authorization-evaluator-candidate-outcome-combining"
+  },
+  "classification": "security-test-conformance",
+  "budget": {
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 20,
+    "fullQaBudget": 2
+  },
+  "allowedFiles": [
+    "planning/kernel-authorization-evaluator-pkg12.json",
+    "src/application/authorization-evaluator.mjs",
+    "tests/kernel-authorization-evaluator.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "README.md"
+  ],
+  "nonGoals": [
+    "No RBAC, ABAC or ReBAC: no role, permission, grant, rule or policy model is implemented.",
+    "No audit, no cache and no RLS: no audit log, no memoization/cache, and no row-level-security integration of any kind.",
+    "No adapter: no substrate or persistence adapter is introduced.",
+    "No SDK: no generated client of any kind is introduced.",
+    "No central PDP: this evaluator combines already-scoped candidate outcomes, it is not a central policy decision point and does not itself derive a candidate from a rule.",
+    "No Policy port change: src/application/policy.mjs is untouched by this package.",
+    "No release, deploy, production or readiness claim: this package makes no release, deploy, production or readiness claim of any kind."
+  ],
+  "red": {
+    "commands": [
+      "node --test tests/kernel-authorization-evaluator.test.mjs"
+    ],
+    "evidence": [
+      "Prior to this contract file existing, the targeted run reported the module and its behavior GREEN, with exactly one failing test in section E (missing planning/kernel-authorization-evaluator-pkg12.json)."
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted run node --test tests/kernel-authorization-evaluator.test.mjs tests/repository-boundary.test.mjs reports all tests passing.",
+      "npm test passes for the full suite.",
+      "npm run check passes.",
+      "QA2 uses required CI when configured, and otherwise a second local full QA: this repository carries no status checks and no .github/workflows, so QA2 here is a second local full QA run recorded by a party other than the QA1 runner.",
+      "A fresh independent review, performed by a reviewer who did not author this change package, reports GREEN."
+    ]
+  },
+  "rollback": "Rollback reverts exactly this five-file shard (planning/kernel-authorization-evaluator-pkg12.json, src/application/authorization-evaluator.mjs, tests/kernel-authorization-evaluator.test.mjs, tests/repository-boundary.test.mjs, README.md) and leaves the S1 substrate (DB/RLS/transaction/outbox/audit) and every prior M1 module untouched.",
+  "exitCriteria": [
+    "Allowed-file parity: only the five allowedFiles paths above are changed.",
+    "Source size for src/application/authorization-evaluator.mjs is <= 300 lines.",
+    "Net diff across the shard is <= 800 lines (maxNet).",
+    "Targeted node --test tests/kernel-authorization-evaluator.test.mjs tests/repository-boundary.test.mjs is GREEN.",
+    "QA1: one full local QA run by the implementation writer, after targeted RED-to-GREEN, is recorded.",
+    "QA2 uses required CI when configured, and otherwise a second local full QA: this repository has no status checks and no .github/workflows configured, so QA2 is recorded as one second local full QA run.",
+    "A fresh independent review is recorded as GREEN.",
+    "No readiness claim and no release claim is made by this package; the in-repo status stays implementation-complete-external-evidence-pending, is immutable, and is never flipped in-repo after QA — completion of QA1, QA2 and the fresh independent review is recorded externally, per evidencePolicy."
+  ]
+}
