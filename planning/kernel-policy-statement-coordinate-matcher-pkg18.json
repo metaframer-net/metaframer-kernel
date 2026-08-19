@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "packageId": "p01-pkg18-policy-statement-coordinate-matcher",
+  "baseCommit": "cc98e5afdb952215921f0ed67cde2bd0ec513d6f",
+  "status": "implementation-complete-external-evidence-pending",
+  "classification": "security-test-conformance",
+  "authority": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequenceId": "kernel-primitives-typed-action-pdp",
+    "sequenceOrder": 9,
+    "subset": "policy-statement-coordinate-matcher"
+  },
+  "scope": {
+    "sha256": "9ba354d3db36e0ed06193bc6451474579df301521424a731d64869130de00505",
+    "waiver": null,
+    "decision": "The selected candidate bytes narrow PolicyStatement matching to a coordinate wrapper only: a frozen, stateless, no-arg PolicyStatementCoordinateMatcher whose matchesCoordinates calls the existing PolicyStatementActionMatcher#matchesAction and PolicyStatementResourceTypeMatcher#matchesResourceType exactly once each, both unconditionally, and answers their boolean AND. No new matching strategy, candidate derivation, priority/layer ordering, or RLS/SDK/HTTP surface is in scope; if the selected bytes had required any of that, the writer would stop before implementation and return measured scope evidence instead."
+  },
+  "budget": {
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 5,
+    "fullQaBudget": 2,
+    "requirements": [
+      "single-narrow-problem",
+      "bounded-file-set",
+      "no-redundant-repetition",
+      "no-quality-tradeoff",
+      "full-green",
+      "fresh-reviewer-accept",
+      "explicit-rollback"
+    ]
+  },
+  "allowedFiles": [
+    "README.md",
+    "planning/kernel-policy-statement-coordinate-matcher-pkg18.json",
+    "src/application/policy-statement-coordinate-matcher.mjs",
+    "tests/kernel-policy-statement-coordinate-matcher.test.mjs",
+    "tests/repository-boundary.test.mjs"
+  ],
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "snapshotMutationRequired": false,
+    "required": ["qa1", "qa2", "fresh-independent-review"]
+  },
+  "nonGoals": [
+    "No targetActor, condition, priority, layer, or version semantics reach this module.",
+    "No deriveCandidate, candidate derivation, or evaluator wiring is introduced.",
+    "No PDP or Policy port is introduced; no central decision point is wired.",
+    "No RBAC/ABAC/ReBAC model or permission/grant model is introduced.",
+    "No RLS or row-level access story is introduced.",
+    "No DB or database surface is introduced.",
+    "No SDK surface is introduced.",
+    "No delivery surface is introduced.",
+    "No HTTP or ASGI/FastAPI/Uvicorn/Hypercorn surface is introduced.",
+    "No wildcard, prefix, suffix, case-fold, or coercion matching strategy is introduced.",
+    "No short-circuit evaluation across the two collaborators is introduced.",
+    "No config, CI, version bump, release, or deploy step is introduced.",
+    "No modification of any existing production source file."
+  ],
+  "router": {
+    "standardMatrix": [
+      "applies=true reason=\"PolicyStatementCoordinateMatcher is a thin Application-ring wrapper coordinating the two existing exact-equality coordinate matchers into one boolean AND\" source=src/application/policy-statement-coordinate-matcher.mjs consumer=\"future PDP/Evaluator wiring, not yet introduced by this package\" test=tests/kernel-policy-statement-coordinate-matcher.test.mjs evidence=qa1 waiver=null"
+    ]
+  },
+  "red": {
+    "canonicalProof": "The canonical RED proved both the absent module (an import failure at src/application/policy-statement-coordinate-matcher.mjs) and the absent boundary manifest entry (repository-boundary.test.mjs RING_MODULE_MANIFEST) before any production implementation existed.",
+    "commands": [
+      "node --test tests/kernel-policy-statement-coordinate-matcher.test.mjs tests/repository-boundary.test.mjs"
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-policy-statement-coordinate-matcher.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN",
+      "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+      "a fresh independent review, by a reviewer who did not author this package, must accept it"
+    ]
+  },
+  "qa": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "qa1": "one full local QA by the implementation writer, run once, after targeted GREEN",
+    "qa2": "the second and last full run, on the unchanged final snapshot, since no mandatory CI is configured"
+  },
+  "reviewer": "a fresh read-only independent reviewer inspects the same final snapshot; the writer does not review its own package",
+  "exitCriteria": [
+    "the source file src/application/policy-statement-coordinate-matcher.mjs is at most 200 lines",
+    "the change package net is at most 800 lines across at most 5 changed files",
+    "the changed-file set has exact allowed-file parity with allowedFiles",
+    "QA1 (the local full QA by the implementation writer) is recorded",
+    "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+    "a fresh independent review has accepted the package",
+    "no readiness claim or release claim is made anywhere in this package"
+  ],
+  "rollback": "Rollback reverts exactly the five allowed files of this shard to baseCommit cc98e5afdb952215921f0ed67cde2bd0ec513d6f, restoring each to its base-commit state. No migration, remote, tag, release, or deploy exists for this package.",
+  "capabilityDelta": "Before, the kernel cannot combine an action match and a resource-type match into one coordinate decision for a policy statement. After, it can decide exact enabled-action-and-resource-type matching for one statement in isolation via a thin wrapper, but no candidate derivation, evaluator, priority/layer ordering, or decision surface exists yet and no user journey is runnable."
+}

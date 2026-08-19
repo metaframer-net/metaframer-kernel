@@ -433,6 +433,35 @@ wiring; no RBAC, ABAC or ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabula
 enabled-resource-type matching against one already-held statement now exists, but nothing yet
 selects which statements to check, orders them, or turns a match into a `PolicyDecision`.
 
+**M1-15 — the PolicyStatementCoordinateMatcher.**
+[`src/application/policy-statement-coordinate-matcher.mjs`](src/application/policy-statement-coordinate-matcher.mjs) ·
+[`tests/kernel-policy-statement-coordinate-matcher.test.mjs`](tests/kernel-policy-statement-coordinate-matcher.test.mjs) ·
+change gate: [`planning/kernel-policy-statement-coordinate-matcher-pkg18.json`](planning/kernel-policy-statement-coordinate-matcher-pkg18.json)
+(`p01-pkg18-policy-statement-coordinate-matcher`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `PolicyStatementCoordinateMatcher`, a frozen, stateless, no-arg class. Its one method,
+`matchesCoordinates({statement, actionName, resourceType})`, is entirely synchronous and pure: it
+is an exact wrapper over the two existing exact-equality matchers, calling
+`PolicyStatementActionMatcher#matchesAction` and
+`PolicyStatementResourceTypeMatcher#matchesResourceType` exactly once each, with the coordinate
+pinned to the same statement, both evaluated unconditionally before the boolean `AND` is taken —
+never a short-circuit that skips the second collaborator once the first has already answered
+false. `statement`, `actionName` and `resourceType` admission is inherited exactly from those two
+collaborators, so a hollow prototype object, a subclass instance, a plain lookalike, and a Proxy
+forging the prototype are all refused before any fabricated field is read, and a malformed
+`actionName`/`resourceType` is refused by the same grammar those collaborators already enforce.
+Every refusal is a stable `TypeError`/`RangeError` that never echoes the rejected value.
+
+*Non-goals:* no `targetActor`, `condition`, `priority`, `layer` or `version` semantics reach this
+module; no candidate derivation, no `Evaluator`, no `PDP` or Policy-port wiring; no RBAC, ABAC or
+ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabulary. Exact enabled-action-and-resource-type
+coordinate matching against one already-held statement now exists, but nothing yet selects which
+statements to check, orders them, or turns a match into a `PolicyDecision`.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
@@ -452,16 +481,20 @@ caller-supplied `candidatesFor` without deriving a candidate itself, and
 `src/application/authorization-candidate.mjs` gives that already-scoped candidate shape a typed,
 frozen carrier without matching a rule against it, `src/application/policy-statement.mjs` gives
 the complete ten-field canonical rule row a typed, frozen carrier of its own without matching it
-against anything, and `src/application/policy-statement-action-matcher.mjs` now answers exactly
-one question — does one already-held `PolicyStatement` match one requested action name by exact
-string identity, given `enabled` — without selecting, ordering, or deriving a candidate from
-anything. Exact enabled-action matching against a single statement now exists locally, but full
-rule matching (against `targetActor`/`resourceType`/`condition`), candidate derivation, priority/
-layer ordering and RLS integration all remain closed: no code path selects which `PolicyStatement`
-values to check, matches more than the action name, or produces a candidate from a match.
-Rule matching, candidate derivation and RLS integration remain unimplemented, so the
-typed-action/PDP stage is not yet complete and `product_runnable=false`. The generated SDK and
-the golden slice remain closed and unstarted, and nothing here may be read as opening them.
+against anything, `src/application/policy-statement-action-matcher.mjs` answers exactly one
+question — does one already-held `PolicyStatement` match one requested action name by exact
+string identity, given `enabled` — `src/application/policy-statement-resource-type-matcher.mjs`
+answers the same shaped question for resource type, and
+`src/application/policy-statement-coordinate-matcher.mjs` now combines those two exact answers
+into one coordinate `AND`, without selecting, ordering, or deriving a candidate from anything.
+Exact enabled-action-and-resource-type coordinate matching against a single statement now exists
+locally, but full rule matching (against `targetActor`/`condition`), candidate derivation,
+priority/layer ordering and RLS integration all remain closed: no code path selects which
+`PolicyStatement` values to check, matches `targetActor` or `condition`, or produces a candidate
+from a match. Rule matching against `targetActor`/`condition`, candidate derivation and RLS
+integration remain unimplemented, so the typed-action/PDP stage is not yet complete and
+`product_runnable=false`. The generated SDK and the golden slice remain closed and unstarted, and
+nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
