@@ -462,6 +462,34 @@ ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabulary. Exact enabled-action-
 coordinate matching against one already-held statement now exists, but nothing yet selects which
 statements to check, orders them, or turns a match into a `PolicyDecision`.
 
+**M1-16 — the PolicyStatementCandidateProjector.**
+[`src/application/policy-statement-candidate-projector.mjs`](src/application/policy-statement-candidate-projector.mjs) ·
+[`tests/kernel-policy-statement-candidate-projector.test.mjs`](tests/kernel-policy-statement-candidate-projector.test.mjs) ·
+change gate: [`planning/kernel-policy-statement-candidate-projector-pkg19.json`](planning/kernel-policy-statement-candidate-projector-pkg19.json)
+(`p01-pkg19-policy-statement-candidate-projector`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `PolicyStatementCandidateProjector`, a frozen, stateless, no-arg class. Its one method,
+`projectCandidate({statement, actionName, resourceType})`, is entirely synchronous and pure: it
+composes the existing `PolicyStatementCoordinateMatcher#matchesCoordinates` exactly once, then
+answers a genuine `AuthorizationCandidate` carrying `statement.id` as `policyId`, `statement.effect`
+as `effect`, and the coordinate matcher's boolean as `applies`. `statement`, `actionName` and
+`resourceType` admission is inherited exactly from that composed matcher, so a hollow prototype
+object, a subclass instance, a plain lookalike, and a Proxy forging the prototype are all refused
+before any fabricated field is read, and a malformed `actionName`/`resourceType` is refused by the
+same grammar the matcher already enforces. Every refusal is a stable `TypeError`/`RangeError` that
+never echoes the rejected value.
+
+*Non-goals:* no `targetActor`, `condition`, `priority`, `layer` or `version` semantics reach this
+module; no candidate combining, precedence or `Evaluator` wiring; no `PDP` or Policy-port wiring; no
+RBAC, ABAC or ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabulary. One statement plus one
+action/resourceType coordinate can now be projected into a genuine `AuthorizationCandidate` in
+isolation, but nothing yet combines candidates across statements, orders them, or turns them into a
+`PolicyDecision`.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
