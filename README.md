@@ -405,6 +405,34 @@ wiring; no RBAC, ABAC or ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabula
 enabled-action matching against one already-held statement now exists, but nothing yet selects
 which statements to check, orders them, or turns a match into a `PolicyDecision`.
 
+**M1-14 — the PolicyStatementResourceTypeMatcher.**
+[`src/application/policy-statement-resource-type-matcher.mjs`](src/application/policy-statement-resource-type-matcher.mjs) ·
+[`tests/kernel-policy-statement-resource-type-matcher.test.mjs`](tests/kernel-policy-statement-resource-type-matcher.test.mjs) ·
+change gate: [`planning/kernel-policy-statement-resource-type-matcher-pkg17.json`](planning/kernel-policy-statement-resource-type-matcher-pkg17.json)
+(`p01-pkg17-policy-statement-resource-type-matcher`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `PolicyStatementResourceTypeMatcher`, a frozen, stateless, no-arg class. Its one method,
+`matchesResourceType({statement, resourceType})`, is entirely synchronous and pure: `statement`
+must be an exact genuine `PolicyStatement` — refused via exact prototype identity plus a
+captured private-brand getter, so a hollow prototype object, a subclass instance, a plain
+lookalike exposing the same enumerable fields, and a Proxy forging the prototype and fabricating
+`enabled`/`targetResourceType` are all refused before any fabricated field is ever read;
+`resourceType` must be a primitive lowercase dot/hyphen-separated identifier string, 1 to 128
+characters, never coerced. The answer is exactly `statement.enabled === true &&
+statement.targetResourceType === resourceType`, string identity only — no wildcard, prefix,
+suffix, substring or case-fold. Every refusal is a stable `TypeError`/`RangeError` that never
+echoes the rejected value.
+
+*Non-goals:* no `targetAction`, `targetActor`, `condition`, `priority`, `layer` or `version`
+semantics reach this module; no candidate derivation, no `Evaluator`, no `PDP` or Policy-port
+wiring; no RBAC, ABAC or ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabulary. Exact
+enabled-resource-type matching against one already-held statement now exists, but nothing yet
+selects which statements to check, orders them, or turns a match into a `PolicyDecision`.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
