@@ -349,6 +349,34 @@ schema, no `deriveCandidate`, no candidate matching or scoping, no RBAC, ABAC or
 candidate value is not a policy statement and does not open rule matching or candidate
 derivation.
 
+**M1-12 — the PolicyStatement typed value.**
+[`src/application/policy-statement.mjs`](src/application/policy-statement.mjs) ·
+[`tests/kernel-policy-statement.test.mjs`](tests/kernel-policy-statement.test.mjs) ·
+change gate: [`planning/kernel-policy-statement-pkg15.json`](planning/kernel-policy-statement-pkg15.json)
+(`p01-pkg15-policy-statement-contract`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `PolicyStatement`, an immutable, exact, frozen typed value carrying the complete
+canonical ten-field policy-as-data row: `id`, `effect`, `targetActor`, `targetAction`,
+`targetResourceType`, `condition`, `priority`, `layer`, `version`, `enabled`. The scalar fields
+each carry their own bounded rule (canonical lowercase ids, a dotted lowercase action name, an
+exact `allow`/`deny` effect, an exact `system`/`platform`/`tenant` tier, a safe-integer
+precedence, a SemVer 2.0.0 string retained exactly, a primitive boolean); `targetActor` and
+`condition` are canonicalized JSON-data objects — sorted keys, deep freeze, defensive clone,
+empty admitted, hostile structured data refused (cycles, repeated references, symbol keys,
+accessor properties, array holes, non-finite numbers, and every value `JSON.stringify` would
+silently change). The constructed instance is frozen with read-only getters, exact-class
+equality (never `instanceof`, so a subclass or a hollow prototype-only object is refused), and a
+stable `toJSON`/`toString` with a fixed field order.
+
+*Non-goals:* no rule or condition semantics, no wildcard behavior, no matching, no candidate
+derivation, no candidate combining, and no `PDP`/`Evaluator`/`Policy`-port wiring. A
+`PolicyStatement` is inert data: nothing matches it, evaluates it, or derives a candidate from
+it yet.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
@@ -366,11 +394,14 @@ is given (now typed or plain) without deriving any of them from a rule,
 `src/application/policy-decision-point.mjs` orchestrates that combining step around a
 caller-supplied `candidatesFor` without deriving a candidate itself, and
 `src/application/authorization-candidate.mjs` gives that already-scoped candidate shape a typed,
-frozen carrier without matching a rule against it. A typed candidate contract now exists, but
-`PolicyStatement`, rule matching, candidate derivation and RLS integration still do not. Rule/
-candidate derivation and RLS integration remain unimplemented, so the typed-action/PDP stage is
-not yet complete. The generated SDK and the golden slice remain closed and unstarted, and
-nothing here may be read as opening them.
+frozen carrier without matching a rule against it, and `src/application/policy-statement.mjs`
+now gives the complete ten-field canonical rule row a typed, frozen carrier of its own without
+matching it against anything. A typed statement contract now exists, but rule matching, candidate
+derivation and RLS integration still do not: no code path reads a `PolicyStatement`, tests it
+against a candidate, or produces a candidate from one. Rule matching, candidate derivation and
+RLS integration remain unimplemented, so the typed-action/PDP stage is not yet complete. The
+generated SDK and the golden slice remain closed and unstarted, and nothing here may be read as
+opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
