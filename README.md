@@ -377,6 +377,34 @@ derivation, no candidate combining, and no `PDP`/`Evaluator`/`Policy`-port wirin
 `PolicyStatement` is inert data: nothing matches it, evaluates it, or derives a candidate from
 it yet.
 
+**M1-13 — the PolicyStatementActionMatcher.**
+[`src/application/policy-statement-action-matcher.mjs`](src/application/policy-statement-action-matcher.mjs) ·
+[`tests/kernel-policy-statement-action-matcher.test.mjs`](tests/kernel-policy-statement-action-matcher.test.mjs) ·
+change gate: [`planning/kernel-policy-statement-action-matcher-pkg16.json`](planning/kernel-policy-statement-action-matcher-pkg16.json)
+(`p01-pkg16-policy-statement-action-matcher`, status `implementation-complete-external-evidence-pending` —
+targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded. The in-repo package status is immutable and is never
+flipped in-repo after QA; completion of QA1, QA2 and the fresh independent review is recorded
+externally, so no readiness or release claim is made here)
+
+Exports `PolicyStatementActionMatcher`, a frozen, stateless, no-arg class. Its one method,
+`matchesAction({statement, actionName})`, is entirely synchronous and pure: `statement` must be
+an exact genuine `PolicyStatement` — refused via exact prototype identity plus a captured
+private-brand getter, so a hollow prototype object, a subclass instance, a plain lookalike
+exposing the same enumerable fields, and a Proxy forging the prototype and fabricating
+`enabled`/`targetAction` are all refused before any fabricated field is ever read; `actionName`
+must be a primitive string of at least two dotted lowercase identifier segments, at most 128
+characters, never coerced. The answer is exactly `statement.enabled === true &&
+statement.targetAction === actionName`, string identity only — no wildcard, prefix, suffix,
+substring or case-fold. Every refusal is a stable `TypeError`/`RangeError` that never echoes the
+rejected value.
+
+*Non-goals:* no `targetActor`, `resourceType`, `condition`, `priority`, `layer` or `version`
+semantics reach this module; no candidate derivation, no `Evaluator`, no `PDP` or Policy-port
+wiring; no RBAC, ABAC or ReBAC model; no RLS, DB, SDK, delivery or HTTP vocabulary. Exact
+enabled-action matching against one already-held statement now exists, but nothing yet selects
+which statements to check, orders them, or turns a match into a `PolicyDecision`.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
@@ -394,14 +422,18 @@ is given (now typed or plain) without deriving any of them from a rule,
 `src/application/policy-decision-point.mjs` orchestrates that combining step around a
 caller-supplied `candidatesFor` without deriving a candidate itself, and
 `src/application/authorization-candidate.mjs` gives that already-scoped candidate shape a typed,
-frozen carrier without matching a rule against it, and `src/application/policy-statement.mjs`
-now gives the complete ten-field canonical rule row a typed, frozen carrier of its own without
-matching it against anything. A typed statement contract now exists, but rule matching, candidate
-derivation and RLS integration still do not: no code path reads a `PolicyStatement`, tests it
-against a candidate, or produces a candidate from one. Rule matching, candidate derivation and
-RLS integration remain unimplemented, so the typed-action/PDP stage is not yet complete. The
-generated SDK and the golden slice remain closed and unstarted, and nothing here may be read as
-opening them.
+frozen carrier without matching a rule against it, `src/application/policy-statement.mjs` gives
+the complete ten-field canonical rule row a typed, frozen carrier of its own without matching it
+against anything, and `src/application/policy-statement-action-matcher.mjs` now answers exactly
+one question — does one already-held `PolicyStatement` match one requested action name by exact
+string identity, given `enabled` — without selecting, ordering, or deriving a candidate from
+anything. Exact enabled-action matching against a single statement now exists locally, but full
+rule matching (against `targetActor`/`resourceType`/`condition`), candidate derivation, priority/
+layer ordering and RLS integration all remain closed: no code path selects which `PolicyStatement`
+values to check, matches more than the action name, or produces a candidate from a match.
+Rule matching, candidate derivation and RLS integration remain unimplemented, so the
+typed-action/PDP stage is not yet complete and `product_runnable=false`. The generated SDK and
+the golden slice remain closed and unstarted, and nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is

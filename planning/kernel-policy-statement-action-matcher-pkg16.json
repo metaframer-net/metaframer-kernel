@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "packageId": "p01-pkg16-policy-statement-action-matcher",
+  "baseCommit": "5740f693c609e76a4849652e7579992cc35345eb",
+  "status": "implementation-complete-external-evidence-pending",
+  "classification": "security-test-conformance",
+  "authority": {
+    "verdict": "GO-KERNEL-DEVELOPMENT-ONLY",
+    "sequenceId": "kernel-primitives-typed-action-pdp",
+    "sequenceOrder": 7,
+    "subset": "policy-statement-action-matcher"
+  },
+  "scope": {
+    "sha256": "44b870f3f3d6c7a347ce7cd72f68d26783d0fe9a216aff9faad24fe44c125b68",
+    "decision": "The selected candidate bytes narrow PolicyStatement matching to exact-equality action matching only: a frozen, stateless, no-arg PolicyStatementActionMatcher whose matchesAction reads exactly statement.enabled and statement.targetAction and compares targetAction to actionName by string identity. No rule matching, candidate derivation, priority/layer ordering, or RLS/SDK/HTTP surface is in scope; if the selected bytes had required any of that, the writer would stop before implementation and return measured scope evidence instead."
+  },
+  "budget": {
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 5,
+    "fullQaBudget": 2,
+    "requirements": [
+      "single-narrow-problem",
+      "bounded-file-set",
+      "no-redundant-repetition",
+      "no-quality-tradeoff",
+      "full-green",
+      "fresh-reviewer-accept",
+      "explicit-rollback"
+    ]
+  },
+  "allowedFiles": [
+    "README.md",
+    "planning/kernel-policy-statement-action-matcher-pkg16.json",
+    "src/application/policy-statement-action-matcher.mjs",
+    "tests/kernel-policy-statement-action-matcher.test.mjs",
+    "tests/repository-boundary.test.mjs"
+  ],
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "snapshotMutationRequired": false,
+    "required": ["qa1", "qa2", "fresh-independent-review"]
+  },
+  "nonGoals": [
+    "No targetActor, resourceType, condition, priority, layer, or version semantics reach this module.",
+    "No deriveCandidate, candidate derivation, or evaluator wiring is introduced.",
+    "No PDP or Policy port is introduced; no central decision point is wired.",
+    "No RBAC/ABAC/ReBAC model or permission/grant model is introduced.",
+    "No RLS or row-level access story is introduced.",
+    "No DB or database surface is introduced.",
+    "No SDK surface is introduced.",
+    "No delivery surface is introduced.",
+    "No HTTP surface is introduced.",
+    "No wildcard, prefix, suffix, case-fold, or coercion matching strategy is introduced.",
+    "No config, CI, version bump, release, or deploy step is introduced.",
+    "No modification of any existing production source file."
+  ],
+  "red": {
+    "canonicalProof": "The canonical RED proved both the absent module (an import failure at src/application/policy-statement-action-matcher.mjs) and the absent boundary manifest entry (repository-boundary.test.mjs RING_MODULE_MANIFEST) before any production implementation existed.",
+    "commands": [
+      "node --test tests/kernel-policy-statement-action-matcher.test.mjs tests/repository-boundary.test.mjs"
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-policy-statement-action-matcher.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN",
+      "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+      "a fresh independent review, by a reviewer who did not author this package, must accept it"
+    ]
+  },
+  "qa": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "qa1": "one full local QA by the implementation writer, run once, after targeted GREEN",
+    "qa2": "the second and last full run, on the unchanged final snapshot, since no mandatory CI is configured"
+  },
+  "reviewer": "a fresh read-only independent reviewer inspects the same final snapshot; the writer does not review its own package",
+  "exitCriteria": [
+    "the source file src/application/policy-statement-action-matcher.mjs is at most 300 lines",
+    "the change package net is at most 800 lines across at most 5 changed files",
+    "the changed-file set has exact allowed-file parity with allowedFiles",
+    "QA1 (the local full QA by the implementation writer) is recorded",
+    "QA2 uses the required CI when configured for this package, otherwise a second local full QA",
+    "a fresh independent review has accepted the package",
+    "no readiness claim or release claim is made anywhere in this package"
+  ],
+  "rollback": "Rollback reverts exactly the five allowed files of this shard to baseCommit 5740f693c609e76a4849652e7579992cc35345eb, restoring each to its base-commit state. No migration, remote, tag, release, or deploy exists for this package.",
+  "capabilityDelta": "Before, the kernel cannot compare a policy statement's target action against a requested action name. After, it can decide exact enabled-action matching for one statement in isolation, but no rule matching, candidate derivation, priority/layer ordering, or decision surface exists yet and no user journey is runnable."
+}
