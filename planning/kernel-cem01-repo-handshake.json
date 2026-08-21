@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-cem01-repo-handshake-2026-08-21",
+  "generatedAt": "2026-08-21",
+  "packageKind": "cem01-repo-handshake-overlay",
+  "packageState": "prepared-awaiting-main-activation",
+  "overlayMode": "additive-passive",
+
+  "cem01": {
+    "rootAuthorizer": "chatgpt-codex-governance-master",
+    "authorizedRootCreators": ["codex-desktop-master"],
+    "verifiedDelegate": "pane-claude-execution-master",
+    "delegateProvider": "claude",
+    "broker": "narrower-child-lease-only",
+    "delegateCapabilityMintAllowed": false,
+    "directRunpaneByDelegateAllowed": false,
+    "selfDeclaredActorSufficient": false,
+    "rootAuthorizationActorSeparation": true,
+    "delegateWorkerProviderSeparation": false,
+    "independentReviewSessionSeparation": true,
+    "rootContainment": false,
+    "note": "This is the M4 CEM-01 schema model as specified for M4, not the disabled Pane Codex Orkestra Şefi role. It is not renamed and it mints no authority."
+  },
+
+  "targetFields": {
+    "cem01Prepared": true,
+    "cem01Active": false,
+    "cem01RepoHandshakePrepared": false,
+    "paneClaudeExecutionMasterAllowed": false,
+    "rootAuthorizedCreatorsUnchanged": true,
+    "note": "cem01RepoHandshakePrepared may only become true externally, after this artifact lands on protected Kernel main, npm test and npm run check pass there, and an independent reviewer accepts the unchanged snapshot. This branch never sets it true."
+  },
+
+  "redSet": [
+    "self-declared-master",
+    "child-lease-without-parent-envelope",
+    "scope-base-allowed-files-expansion",
+    "expired-nonce-or-lease",
+    "create-submit-while-guardian-auth-policy-red",
+    "second-active-writer",
+    "delegation-depth-gt-1",
+    "root-capability-mint-attempt",
+    "worker-delegation-attempt",
+    "reviewer-write-request"
+  ],
+
+  "activation": {
+    "state": "prepared-awaiting-main-activation",
+    "effective": false,
+    "deterministic": true,
+    "predicates": [
+      { "id": "artifact-present-on-kernel-main", "satisfiedOnThisBranch": false, "evaluator": "codex-master" },
+      { "id": "npm-test-passes-on-kernel-main", "satisfiedOnThisBranch": false, "evaluator": "codex-master" },
+      { "id": "npm-run-check-passes-on-kernel-main", "satisfiedOnThisBranch": false, "evaluator": "codex-master" },
+      { "id": "independent-reviewer-accept-recorded", "satisfiedOnThisBranch": false, "evaluator": "codex-master" }
+    ],
+    "note": "Activation is a deterministic function of external predicates only; this branch neither flips a status field nor records its own commit as evidence."
+  },
+
+  "nonGoals": [
+    "do not activate CEM-01 or set cem01Active true",
+    "do not create a worker, broker or lease implementation",
+    "do not grant any authority or mint any capability",
+    "do not start any runtime feature, SDK, app, release or deploy",
+    "do not introduce FastAPI or any framework as the development base",
+    "do not mutate Actionplan",
+    "do not stage, commit, push, tag or merge Git from this shard"
+  ],
+
+  "rollback": {
+    "owner": "codex-master",
+    "trigger": "packageState, any targetFields value, the RED set or the activation predicate set drifts",
+    "action": "revert planning/kernel-cem01-repo-handshake.json, tools/check-kernel-cem01-repo-handshake.mjs, tests/kernel-cem01-repo-handshake.test.mjs and the package.json wiring as one logical shard",
+    "blastRadius": "planning-only; no runtime, worker or broker artifact exists to revert",
+    "runtimeDataImpact": "none"
+  }
+}
