@@ -325,12 +325,28 @@ test("canonicalAddendum preserves capabilityDelta, nonAuthorizations, semantics 
   assert.equal(canonicalAddendum.gapRegistryProjection.gapCount, 90);
 });
 
-test("a byte or sha256 mutation on a canonical pin is reported as drift, never as verified", () => {
-  const mutatedBytes = structuredClone(canonicalAddendum);
+test("a byte or sha256 mutation on a canonical pin is reported as drift, never as verified", (t) => {
+  // The canonical evidence root is a private local path, absent in CI: mutating a pin against it
+  // would prove nothing there (both the honest baseline and the mutation report "absent"). This
+  // test instead builds its own minimal, deterministic, self-consistent evidence fixture — same
+  // shape as canonicalAddendum.sourcePins, content and digests it controls — so the "verified" ->
+  // "drifted" transition is proven independent of any private local path.
+  const root = tempRoot(t, "p01-evidence-mutation-");
+  const bytes = Buffer.from("p01-closure-provenance-mutation-fixture");
+  writeFileSync(path.join(root, "fixture.txt"), bytes);
+  const baseline = {
+    sourcePins: {
+      evidenceRoot: root,
+      files: [{ path: "fixture.txt", bytes: bytes.length, sha256: sha256(bytes) }],
+    },
+  };
+  assert.equal(externalEvidenceReport(baseline).state, "verified");
+
+  const mutatedBytes = structuredClone(baseline);
   mutatedBytes.sourcePins.files[0].bytes += 1;
   assert.equal(externalEvidenceReport(mutatedBytes).state, "drifted");
 
-  const mutatedSha = structuredClone(canonicalAddendum);
+  const mutatedSha = structuredClone(baseline);
   mutatedSha.sourcePins.files[0].sha256 = "f".repeat(64);
   assert.equal(externalEvidenceReport(mutatedSha).state, "drifted");
 });

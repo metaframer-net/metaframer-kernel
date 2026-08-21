@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node-checks:
+    name: node-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "22"
+      - name: Provision public Actionplan checkout
+        run: |
+          workspace_parent="$(dirname "${GITHUB_WORKSPACE}")"
+          actionplan_dir="${workspace_parent}/actionplan"
+          git clone --no-single-branch https://github.com/karacaismail/actionplan.git "${actionplan_dir}"
+          echo "METAFRAMER_ACTIONPLAN_PATH=${actionplan_dir}" >> "$GITHUB_ENV"
+      - name: Provision CI-only frozen collector-ledger test-evidence fixture
+        run: |
+          # This is a CI-only frozen fixture reproducing the two collector-ledger records the
+          # readiness checker cross-validates. It is NOT the private canonical ledger; it carries
+          # only the fields tools/check-kernel-ai-development-readiness.mjs actually reads.
+          ledger_dir="${HOME}/.codex/actionplan-changelog-ledger"
+          mkdir -p "${ledger_dir}"
+          ledger_file="${ledger_dir}/kernel-ai-readiness-actionplan-2026-08-01-7ac00334f43f.jsonl"
+          printf '%s\n' \
+            '{"event_id":"bc594837225bd49b449a","phase":"red","timestamp":"2026-08-02T02:22:49.463298+00:00","facts":{"missing":"planning/kernel-ai-development-readiness.json"},"tests":["node --test tests/kernel-ai-development-readiness.test.mjs # readiness-artifact-missing: planning/kernel-ai-development-readiness.json"],"summary":"kernel-ai-development readiness oracle is RED on missing artifact planning/kernel-ai-development-readiness.json","note":"CI-only frozen test-evidence fixture; not the private canonical source."}' \
+            '{"event_id":"66f8369293744c534dde","phase":"completion","timestamp":"2026-08-02T04:04:39.577513+00:00","facts":{"original_event_id":"bc594837225bd49b449a","original_timestamp":"2026-08-02T02:22:49.463298+00:00","pre_write_test_sha256":"ee66e6fb8600d6cb61d6e445bccf455faa0999aa3bf1df62245178511a7cb260","reRunProducesRed":"false because no historical file rewritten; re-running the readiness test after artifact creation no longer reproduces the RED failure"},"tests":["node --test tests/kernel-ai-development-readiness.test.mjs exit 1 token readiness-artifact-missing: planning/kernel-ai-development-readiness.json"],"summary":"CI-only frozen test-evidence fixture; not the private canonical source.","note":"CI-only frozen test-evidence fixture; not the private canonical source."}' \
+            '{"event_id":"37e87ad17327e4e5f004","phase":"handoff","timestamp":"2026-08-02T04:55:48.555639+00:00","facts":{"current_worker_invocation":"pane-visible-agent-claude","forbidden_invocation":"mcp-claude_implement","runtimeStarted":"false","auth":"claude.ai firstParty max model=claude-opus-5 effort=high fail-closed","codex_role":"MASTER read-only verifier Git executor","historical_policy":"2026-07-30 codingPolicy remains byte-faithful; successor policy is additive"},"summary":"CI-only frozen test-evidence fixture; not the private canonical source.","note":"CI-only frozen test-evidence fixture; not the private canonical source."}' \
+            > "${ledger_file}"
+      - name: Run governance checkers
+        run: npm run check
+      - name: Run node test suite
+        run: npm test
+
+  substrate-static:
+    name: substrate-static
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          python-version: "3.12"
+      - name: Run substrate static analysis
+        run: npm run check:substrate-s1:static
+
+  substrate-pytest:
+    name: substrate-pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          python-version: "3.12"
+      - name: Run substrate pytest suite
+        run: npm run test:substrate-s1
+
+  governance-security:
+    name: governance-security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "22"
+      - name: Provision public Actionplan checkout
+        run: |
+          workspace_parent="$(dirname "${GITHUB_WORKSPACE}")"
+          actionplan_dir="${workspace_parent}/actionplan"
+          git clone --no-single-branch https://github.com/karacaismail/actionplan.git "${actionplan_dir}"
+          echo "METAFRAMER_ACTIONPLAN_PATH=${actionplan_dir}" >> "$GITHUB_ENV"
+      - name: Provision CI-only frozen collector-ledger test-evidence fixture
+        run: |
+          # This is a CI-only frozen fixture reproducing the two collector-ledger records the
+          # readiness checker cross-validates. It is NOT the private canonical ledger; it carries
+          # only the fields tools/check-kernel-ai-development-readiness.mjs actually reads.
+          ledger_dir="${HOME}/.codex/actionplan-changelog-ledger"
+          mkdir -p "${ledger_dir}"
+          ledger_file="${ledger_dir}/kernel-ai-readiness-actionplan-2026-08-01-7ac00334f43f.jsonl"
+          printf '%s\n' \
+            '{"event_id":"bc594837225bd49b449a","phase":"red","timestamp":"2026-08-02T02:22:49.463298+00:00","facts":{"missing":"planning/kernel-ai-development-readiness.json"},"tests":["node --test tests/kernel-ai-development-readiness.test.mjs # readiness-artifact-missing: planning/kernel-ai-development-readiness.json"],"summary":"kernel-ai-development readiness oracle is RED on missing artifact planning/kernel-ai-development-readiness.json","note":"CI-only frozen test-evidence fixture; not the private canonical source."}' \
+            '{"event_id":"66f8369293744c534dde","phase":"completion","timestamp":"2026-08-02T04:04:39.577513+00:00","facts":{"original_event_id":"bc594837225bd49b449a","original_timestamp":"2026-08-02T02:22:49.463298+00:00","pre_write_test_sha256":"ee66e6fb8600d6cb61d6e445bccf455faa0999aa3bf1df62245178511a7cb260","reRunProducesRed":"false because no historical file rewritten; re-running the readiness test after artifact creation no longer reproduces the RED failure"},"tests":["node --test tests/kernel-ai-development-readiness.test.mjs exit 1 token readiness-artifact-missing: planning/kernel-ai-development-readiness.json"],"summary":"CI-only frozen test-evidence fixture; not the private canonical source.","note":"CI-only frozen test-evidence fixture; not the private canonical source."}' \
+            '{"event_id":"37e87ad17327e4e5f004","phase":"handoff","timestamp":"2026-08-02T04:55:48.555639+00:00","facts":{"current_worker_invocation":"pane-visible-agent-claude","forbidden_invocation":"mcp-claude_implement","runtimeStarted":"false","auth":"claude.ai firstParty max model=claude-opus-5 effort=high fail-closed","codex_role":"MASTER read-only verifier Git executor","historical_policy":"2026-07-30 codingPolicy remains byte-faithful; successor policy is additive"},"summary":"CI-only frozen test-evidence fixture; not the private canonical source.","note":"CI-only frozen test-evidence fixture; not the private canonical source."}' \
+            > "${ledger_file}"
+      - name: Run token-economy and token-guard governance tests
+        run: node --test tests/token-economy.test.mjs tests/token-guard.test.mjs
+      - name: Run repository-side CI-shape and secretless-workflow assertions
+        run: node --test tests/kernel-runtime-substrate-s1.test.mjs

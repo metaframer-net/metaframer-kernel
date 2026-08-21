@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -1459,8 +1459,85 @@ test("any next-version output is labelled a recommendation and never an authoriz
   }
 });
 
-test("npm run check runs the versioning checker and still ends with the checkout-local projection", () => {
-  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
+// Two disposable, deterministic checkouts of this exact commit, built fresh per test rather than
+// relying on whichever branch this worktree happens to be on. Each is a full `git clone --local` of
+// this checkout (never a linked worktree of the shared repository, so cleanup is a plain directory
+// removal), sited next to it so ambient sibling discovery — the Actionplan checkout this package's
+// activation base itself depends on — still resolves. Branch name alone decides admission: "main"
+// mirrors exact origin/main and can be admitted; the other never can, whatever it is named.
+// Deterministically simulates, inside the scratch checkout itself, the two facts an exact-main
+// admission needs from the outside world — a canonical origin/main ref and a published annotated
+// activation tag — so the assertion never depends on this worktree's ambient GitHub state (a stale
+// origin/main, or a tag that has not actually been pushed). `refs/remotes/origin/main` is pinned to
+// this checkout's own head, and the canonical remote URL is redirected, via a repository-local
+// `insteadOf` rule, to the checkout itself, which already carries the tag it needs to answer
+// `git ls-remote` with — no network, no ambient state, feature-vs-exact-main semantics unchanged.
+const simulateExactMainActivation = (dir, headSha) => {
+  execFileSync("git", ["-C", dir, "update-ref", "refs/remotes/origin/main", headSha], { stdio: ["ignore", "pipe", "pipe"] });
+  const introduced = execFileSync(
+    "git",
+    ["-C", dir, "log", "--diff-filter=A", "--format=%H", "--reverse", "refs/remotes/origin/main", "--", "db/kernel-runtime-substrate-s1.json"],
+    { encoding: "utf8" },
+  ).trim();
+  const packageCommit = introduced.split("\n")[0].trim();
+  const tagMessage = [
+    "KERNEL-RUNTIME-SUBSTRATE-S1-ACTIVATION",
+    "packageId=kernel-runtime-substrate-s1-2026-08-06",
+    `packageCommit=${packageCommit}`,
+    "independentVerification=root-codex",
+    "verifiedCommands=npm test|npm run check|npm run check:substrate-s1:static|npm run test:substrate-s1",
+    "results=GREEN",
+  ].join("\n");
+  execFileSync(
+    "git",
+    ["-C", dir, "-c", "user.name=metaframer-ci-scratch", "-c", "user.email=metaframer-ci-scratch@invalid", "tag", "-f", "-a", "kernel-runtime-substrate-s1-activated", packageCommit, "-m", tagMessage],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const canonicalRemote = "git@github.com:metaframer-net/metaframer-kernel.git";
+  const scratchOriginPlaceholder = `metaframer-scratch-origin-placeholder://${path.basename(dir)}`;
+  // `git remote get-url` and `git ls-remote` resolve URLs through the same `insteadOf` table, so a
+  // single rule redirecting the canonical remote straight to this checkout would also make
+  // `remote get-url origin` report the checkout's local path instead of the canonical string the
+  // checker compares against. Two rules avoid that: origin's configured URL is a placeholder that
+  // resolves *to* the canonical string (so identity verification sees the real value), and the
+  // canonical string separately resolves *to* this checkout (so the tag lookup runs locally).
+  execFileSync("git", ["-C", dir, "remote", "set-url", "origin", scratchOriginPlaceholder], { stdio: ["ignore", "pipe", "pipe"] });
+  execFileSync("git", ["-C", dir, "config", `url.${canonicalRemote}.insteadOf`, scratchOriginPlaceholder], { stdio: ["ignore", "pipe", "pipe"] });
+  execFileSync(
+    "git",
+    ["-C", dir, "config", `url.${dir}.insteadOf`, canonicalRemote],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+};
+
+const buildGitContextCheckouts = async () => {
+  const headSha = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const canonicalRemote = execFileSync("git", ["-C", root, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
+  const parent = path.dirname(root);
+  const build = async (branchName) => {
+    const dir = await mkdtemp(path.join(parent, ".scratch-mfk-ctx-"));
+    execFileSync("git", ["clone", "--quiet", "--local", root, dir], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["remote", "set-url", "origin", canonicalRemote], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["checkout", "--quiet", "-B", branchName, headSha], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    if (branchName === "main") simulateExactMainActivation(dir, headSha);
+    return dir;
+  };
+  const exactMain = await build("main");
+  const featureCheckout = await build("scratch-feature-checkout");
+  return {
+    exactMain,
+    featureCheckout,
+    async cleanup() {
+      await rm(exactMain, { recursive: true, force: true });
+      await rm(featureCheckout, { recursive: true, force: true });
+    },
+  };
+};
+
+test("on a constructed feature checkout, npm run check runs the versioning checker and still ends with the checkout-local projection", async (t) => {
+  const checkouts = await buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: checkouts.featureCheckout, encoding: "utf8" });
   assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
   const lines = String(result.stdout)
     .split("\n")
@@ -1475,6 +1552,38 @@ test("npm run check runs the versioning checker and still ends with the checkout
   assert.equal(lines.at(-1), projection[0], `the compositor must still own the final line${context}`);
   assert.ok(
     lines.indexOf(ok[0]) < lines.indexOf(projection[0]),
+    `the versioning checker must run before the compositor${context}`,
+  );
+  assert.deepEqual(
+    lines.filter((line) => line.startsWith("CURRENT EFFECTIVE")),
+    [],
+    `a feature checkout must emit zero CURRENT EFFECTIVE lines${context}`,
+  );
+});
+
+test("on a constructed exact-main checkout, npm run check runs the versioning checker and still ends with the CURRENT EFFECTIVE line", async (t) => {
+  const checkouts = await buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: checkouts.exactMain, encoding: "utf8" });
+  assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
+  const lines = String(result.stdout)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith(">"));
+  const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
+  assert.equal(result.status, 0, `npm run check must stay green${context}`);
+  const ok = lines.filter((line) => line.startsWith("OK kernel-versioning:"));
+  assert.equal(ok.length, 1, `npm run check must carry exactly one versioning OK line${context}`);
+  assert.deepEqual(
+    lines.filter((line) => line.startsWith("CHECKOUT-LOCAL PROJECTION")),
+    [],
+    `exact-main must emit zero checkout-local projection lines${context}`,
+  );
+  const current = lines.filter((line) => line.startsWith("CURRENT EFFECTIVE"));
+  assert.equal(current.length, 1, `expected exactly one CURRENT EFFECTIVE line${context}`);
+  assert.equal(lines.at(-1), current[0], `the compositor must still own the final line${context}`);
+  assert.ok(
+    lines.indexOf(ok[0]) < lines.indexOf(current[0]),
     `the versioning checker must run before the compositor${context}`,
   );
 });
