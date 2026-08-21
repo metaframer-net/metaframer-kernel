@@ -28,8 +28,10 @@ jobs:
           node-version: "22"
       - name: Provision public Actionplan checkout
         run: |
-          git clone --no-single-branch https://github.com/karacaismail/actionplan.git "${RUNNER_TEMP}/actionplan"
-          echo "METAFRAMER_ACTIONPLAN_PATH=${RUNNER_TEMP}/actionplan" >> "$GITHUB_ENV"
+          workspace_parent="$(dirname "${GITHUB_WORKSPACE}")"
+          actionplan_dir="${workspace_parent}/actionplan"
+          git clone --no-single-branch https://github.com/karacaismail/actionplan.git "${actionplan_dir}"
+          echo "METAFRAMER_ACTIONPLAN_PATH=${actionplan_dir}" >> "$GITHUB_ENV"
       - name: Run governance checkers
         run: npm run check
       - name: Run node test suite
@@ -79,8 +81,10 @@ jobs:
           node-version: "22"
       - name: Provision public Actionplan checkout
         run: |
-          git clone --no-single-branch https://github.com/karacaismail/actionplan.git "${RUNNER_TEMP}/actionplan"
-          echo "METAFRAMER_ACTIONPLAN_PATH=${RUNNER_TEMP}/actionplan" >> "$GITHUB_ENV"
+          workspace_parent="$(dirname "${GITHUB_WORKSPACE}")"
+          actionplan_dir="${workspace_parent}/actionplan"
+          git clone --no-single-branch https://github.com/karacaismail/actionplan.git "${actionplan_dir}"
+          echo "METAFRAMER_ACTIONPLAN_PATH=${actionplan_dir}" >> "$GITHUB_ENV"
       - name: Run token-economy and token-guard governance tests
         run: node --test tests/token-economy.test.mjs tests/token-guard.test.mjs
       - name: Run repository-side CI-shape and secretless-workflow assertions
