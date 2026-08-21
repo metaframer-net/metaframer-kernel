@@ -1490,7 +1490,7 @@ const simulateExactMainActivation = (dir, headSha) => {
   ].join("\n");
   execFileSync(
     "git",
-    ["-C", dir, "tag", "-f", "-a", "kernel-runtime-substrate-s1-activated", packageCommit, "-m", tagMessage],
+    ["-C", dir, "-c", "user.name=metaframer-ci-scratch", "-c", "user.email=metaframer-ci-scratch@invalid", "tag", "-f", "-a", "kernel-runtime-substrate-s1-activated", packageCommit, "-m", tagMessage],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
   const canonicalRemote = "git@github.com:metaframer-net/metaframer-kernel.git";
