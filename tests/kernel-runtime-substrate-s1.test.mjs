@@ -309,6 +309,51 @@ test("the check wires the compositor around the activation base without editing 
 // removal), sited next to it so ambient sibling discovery — the Actionplan checkout this package's
 // activation base itself depends on — still resolves. Branch name alone decides admission: "main"
 // mirrors exact origin/main and can be admitted; the other never can, whatever it is named.
+// Deterministically simulates, inside the scratch checkout itself, the two facts an exact-main
+// admission needs from the outside world — a canonical origin/main ref and a published annotated
+// activation tag — so the assertion never depends on this worktree's ambient GitHub state (a stale
+// origin/main, or a tag that has not actually been pushed). `refs/remotes/origin/main` is pinned to
+// this checkout's own head, and the canonical remote URL is redirected, via a repository-local
+// `insteadOf` rule, to the checkout itself, which already carries the tag it needs to answer
+// `git ls-remote` with — no network, no ambient state, feature-vs-exact-main semantics unchanged.
+const simulateExactMainActivation = (dir, headSha) => {
+  execFileSync("git", ["-C", dir, "update-ref", "refs/remotes/origin/main", headSha], { stdio: ["ignore", "pipe", "pipe"] });
+  const introduced = execFileSync(
+    "git",
+    ["-C", dir, "log", "--diff-filter=A", "--format=%H", "--reverse", "refs/remotes/origin/main", "--", "db/kernel-runtime-substrate-s1.json"],
+    { encoding: "utf8" },
+  ).trim();
+  const packageCommit = introduced.split("\n")[0].trim();
+  const tagMessage = [
+    "KERNEL-RUNTIME-SUBSTRATE-S1-ACTIVATION",
+    "packageId=kernel-runtime-substrate-s1-2026-08-06",
+    `packageCommit=${packageCommit}`,
+    "independentVerification=root-codex",
+    "verifiedCommands=npm test|npm run check|npm run check:substrate-s1:static|npm run test:substrate-s1",
+    "results=GREEN",
+  ].join("\n");
+  execFileSync(
+    "git",
+    ["-C", dir, "tag", "-f", "-a", "kernel-runtime-substrate-s1-activated", packageCommit, "-m", tagMessage],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const canonicalRemote = "git@github.com:metaframer-net/metaframer-kernel.git";
+  const scratchOriginPlaceholder = `metaframer-scratch-origin-placeholder://${path.basename(dir)}`;
+  // `git remote get-url` and `git ls-remote` resolve URLs through the same `insteadOf` table, so a
+  // single rule redirecting the canonical remote straight to this checkout would also make
+  // `remote get-url origin` report the checkout's local path instead of the canonical string the
+  // checker compares against. Two rules avoid that: origin's configured URL is a placeholder that
+  // resolves *to* the canonical string (so identity verification sees the real value), and the
+  // canonical string separately resolves *to* this checkout (so the tag lookup runs locally).
+  execFileSync("git", ["-C", dir, "remote", "set-url", "origin", scratchOriginPlaceholder], { stdio: ["ignore", "pipe", "pipe"] });
+  execFileSync("git", ["-C", dir, "config", `url.${canonicalRemote}.insteadOf`, scratchOriginPlaceholder], { stdio: ["ignore", "pipe", "pipe"] });
+  execFileSync(
+    "git",
+    ["-C", dir, "config", `url.${dir}.insteadOf`, canonicalRemote],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+};
+
 const buildGitContextCheckouts = () => {
   const headSha = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const canonicalRemote = execFileSync("git", ["-C", root, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
@@ -318,6 +363,7 @@ const buildGitContextCheckouts = () => {
     execFileSync("git", ["clone", "--quiet", "--local", root, dir], { stdio: ["ignore", "pipe", "pipe"] });
     execFileSync("git", ["remote", "set-url", "origin", canonicalRemote], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
     execFileSync("git", ["checkout", "--quiet", "-B", branchName, headSha], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    if (branchName === "main") simulateExactMainActivation(dir, headSha);
     return dir;
   };
   const exactMain = build("main");
@@ -1447,7 +1493,7 @@ test("the CI workflow is fork-safe, pins every action to a full commit SHA, and 
   assert.match(ci, /push:\s*\n\s*branches:\s*\n\s*-\s*main\s*$/m);
 
   // Top-level permissions are declared and read-only.
-  const topLevelPermissions = ci.match(/^permissions:\s*\n(\s+\S.*\n?)+/m)?.[0] ?? "";
+  const topLevelPermissions = ci.match(/^permissions:[ \t]*\n((?:[ \t]+\S.*\n?)+)/m)?.[0] ?? "";
   assert.ok(topLevelPermissions.length > 0, "a top-level read-only permissions block must be declared");
   assert.match(topLevelPermissions, /contents:\s*read/);
   assert.ok(!/write/.test(topLevelPermissions), `top-level permissions must be read-only:\n${topLevelPermissions}`);
