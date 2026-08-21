@@ -303,8 +303,39 @@ test("the check wires the compositor around the activation base without editing 
   assert.equal(sha256(verifierBytes), contract.activationBase.verifierSha256);
 });
 
-test("the composed check ends in a checkout-local projection after one relabelled activation base", () => {
-  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
+// Two disposable, deterministic checkouts of this exact commit, built fresh per test rather than
+// relying on whichever branch this worktree happens to be on. Each is a full `git clone --local` of
+// this checkout (never a linked worktree of the shared repository, so cleanup is a plain directory
+// removal), sited next to it so ambient sibling discovery — the Actionplan checkout this package's
+// activation base itself depends on — still resolves. Branch name alone decides admission: "main"
+// mirrors exact origin/main and can be admitted; the other never can, whatever it is named.
+const buildGitContextCheckouts = () => {
+  const headSha = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const canonicalRemote = execFileSync("git", ["-C", root, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
+  const parent = path.dirname(root);
+  const build = (branchName) => {
+    const dir = mkdtempSync(path.join(parent, ".scratch-mfk-ctx-"));
+    execFileSync("git", ["clone", "--quiet", "--local", root, dir], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["remote", "set-url", "origin", canonicalRemote], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["checkout", "--quiet", "-B", branchName, headSha], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    return dir;
+  };
+  const exactMain = build("main");
+  const featureCheckout = build("scratch-feature-checkout");
+  return {
+    exactMain,
+    featureCheckout,
+    cleanup() {
+      rmSync(exactMain, { recursive: true, force: true });
+      rmSync(featureCheckout, { recursive: true, force: true });
+    },
+  };
+};
+
+test("on a constructed feature checkout, the composed check ends in a checkout-local projection after one relabelled activation base", (t) => {
+  const checkouts = buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: checkouts.featureCheckout, encoding: "utf8" });
   assert.equal(result.status, 0, `npm run check failed: ${result.stderr}`);
   const lines = String(result.stdout).split("\n").map((l) => l.trim()).filter(Boolean).filter((l) => !l.startsWith(">"));
 
@@ -329,6 +360,36 @@ test("the composed check ends in a checkout-local projection after one relabelle
   assert.match(projection[0], /activationRecord=absent/);
   for (const flag of SHUT_FLAGS) assert.match(projection[0], new RegExp(`${flag}=false`));
   for (const name of FORBIDDEN_FLAG_NAMES) assert.ok(!projection[0].includes(name));
+});
+
+test("on a constructed exact-main checkout, the composed check ends in one CURRENT EFFECTIVE line after one relabelled activation base", (t) => {
+  const checkouts = buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: checkouts.exactMain, encoding: "utf8" });
+  assert.equal(result.status, 0, `npm run check failed: ${result.stderr}`);
+  const lines = String(result.stdout).split("\n").map((l) => l.trim()).filter(Boolean).filter((l) => !l.startsWith(">"));
+
+  const current = lines.filter((l) => l.startsWith(CURRENT_PREFIX));
+  const base = lines.filter((l) => l.startsWith("ACTIVATION BASE"));
+  assert.equal(
+    current.length,
+    1,
+    `expected one line prefixed "${CURRENT_PREFIX}", got ${current.length}:\n${lines.join("\n")}`,
+  );
+  assert.equal(base.length, 1, `expected one ACTIVATION BASE line, got ${base.length}`);
+  assert.equal(lines.at(-1), current[0], "the CURRENT EFFECTIVE line must be last");
+  assert.ok(lines.indexOf(base[0]) < lines.indexOf(current[0]));
+  // Exact origin/main with the published tag is admitted, so no checkout-local projection may appear.
+  assert.deepEqual(
+    lines.filter((l) => l.startsWith(PROJECTION_PREFIX)),
+    [],
+    `exact-main must emit zero checkout-local projection lines:\n${lines.join("\n")}`,
+  );
+  // Activation moved exactly the one dimension it is entitled to, and nothing stronger.
+  assert.match(current[0], /runtimeImplementationStarted=true/);
+  assert.match(current[0], /activationRecord=external-annotated-tag/);
+  for (const flag of SHUT_FLAGS) assert.match(current[0], new RegExp(`${flag}=false`));
+  for (const name of FORBIDDEN_FLAG_NAMES) assert.ok(!current[0].includes(name));
 });
 
 test("an expired claim lease is a proven behaviour, not a promise", () => {
@@ -1032,8 +1093,10 @@ test("npm run check wires this verifier before the activation-base verifier, and
   assert.equal(pkg.scripts["test:substrate-s1:red"], undefined, "the stale RED-only script name must be gone");
 });
 
-test("npm run check ends with exactly one checkout-local projection, owned by the compositor, after a relabelled activation base and an earlier branch candidate", () => {
-  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
+test("on a constructed feature checkout, npm run check ends with exactly one checkout-local projection, owned by the compositor, after a relabelled activation base and an earlier branch candidate", (t) => {
+  const checkouts = buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: checkouts.featureCheckout, encoding: "utf8" });
   assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
   const lines = String(result.stdout)
     .split("\n")
@@ -1095,6 +1158,76 @@ test("npm run check ends with exactly one checkout-local projection, owned by th
   // and the last is a statement about this checkout. None of them is the project's authority.
   assert.ok(!candidates[0].startsWith(PROJECTION_PREFIX));
   assert.ok(!base[0].startsWith(PROJECTION_PREFIX));
+  for (const legacy of ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"]) {
+    assert.ok(!candidates[0].includes(legacy), `the candidate line reuses the legacy token ${legacy}`);
+  }
+  for (const overreach of ["GO-RUNTIME-PILOT", "GO-PRODUCTION"]) {
+    assert.ok(!candidates[0].includes(overreach), `the candidate line overreaches with ${overreach}`);
+  }
+});
+
+test("on a constructed exact-main checkout, npm run check ends with exactly one CURRENT EFFECTIVE line, owned by the compositor, after a relabelled activation base and an earlier branch candidate", (t) => {
+  const checkouts = buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: checkouts.exactMain, encoding: "utf8" });
+  assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
+  const lines = String(result.stdout)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith(">"));
+  const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
+
+  // Exact origin/main with the published tag is admitted, so no checkout-local projection may appear.
+  assert.deepEqual(
+    lines.filter((line) => line.startsWith(PROJECTION_PREFIX)),
+    [],
+    `exact-main must emit zero checkout-local projection lines${context}`,
+  );
+
+  const current = lines.filter((line) => line.startsWith(CURRENT_PREFIX));
+  assert.equal(current.length, 1, `expected exactly one CURRENT EFFECTIVE line${context}`);
+  assert.equal(lines.at(-1), current[0], `the CURRENT EFFECTIVE line must be last${context}`);
+  assert.match(current[0], new RegExp(CURRENT_VERDICT));
+  // Activation moved exactly the one dimension it is entitled to, and nothing stronger.
+  assert.match(current[0], /runtimeImplementationStarted=true/);
+  assert.match(current[0], /activationRecord=external-annotated-tag/);
+  for (const flag of SHUT_FLAGS) {
+    assert.match(current[0], new RegExp(`${flag}=false`), `${flag} must stay false on the CURRENT EFFECTIVE line${context}`);
+  }
+  for (const legacy of ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"]) {
+    assert.ok(!current[0].includes(legacy), `the CURRENT EFFECTIVE line reuses the legacy token ${legacy}${context}`);
+  }
+  for (const overreach of ["GO-RUNTIME-PILOT", "GO-PRODUCTION", "GO-RELEASE", "GO-DEPLOY"]) {
+    assert.ok(!current[0].includes(overreach), `the CURRENT EFFECTIVE line overreaches with ${overreach}${context}`);
+  }
+
+  // The activation base is explicit, non-effective, and sits before the line that closes the run.
+  const base = lines.filter((line) => line.startsWith("ACTIVATION BASE"));
+  assert.equal(base.length, 1, `expected exactly one ACTIVATION BASE line${context}`);
+  assert.match(base[0], /non-effective/, `the activation base must be explicitly non-effective${context}`);
+  assert.ok(lines.indexOf(base[0]) < lines.indexOf(current[0]), `the activation base must precede the current-effective line${context}`);
+
+  // The branch candidate is present, distinct, explicitly non-effective, and comes earlier still.
+  const candidates = lines.filter((line) => line.startsWith("BRANCH CANDIDATE"));
+  assert.equal(candidates.length, 1, `expected exactly one BRANCH CANDIDATE line${context}`);
+  assert.match(candidates[0], /not effective/);
+  assert.match(candidates[0], /runtimeImplementationStarted=true/);
+  assert.ok(
+    lines.indexOf(candidates[0]) < lines.indexOf(base[0]),
+    `the branch candidate must precede the activation base${context}`,
+  );
+  assert.ok(lines.indexOf(candidates[0]) < lines.indexOf(current[0]), `the candidate must precede the final line${context}`);
+
+  // Every historical snapshot line is explicit, non-effective, and earlier than the final line.
+  const historical = lines.filter((line) => line.startsWith("HISTORICAL SNAPSHOT"));
+  assert.ok(historical.length >= 3, `the historical snapshot lines must survive verbatim${context}`);
+  for (const line of historical) {
+    assert.match(line, /non-effective/, `a historical line lost its non-effective label:\n  ${line}${context}`);
+    assert.ok(lines.indexOf(line) < lines.indexOf(current[0]), `a historical line must precede the final line${context}`);
+  }
+
+  assert.ok(!candidates[0].startsWith(CURRENT_PREFIX));
+  assert.ok(!base[0].startsWith(CURRENT_PREFIX));
   for (const legacy of ["PLANNING_ONLY", "VALID_BLOCKED", "NO_GO", "NO-GO", "code start denied", "BLOCKED"]) {
     assert.ok(!candidates[0].includes(legacy), `the candidate line reuses the legacy token ${legacy}`);
   }
@@ -1294,4 +1427,71 @@ test("the real checkout carries exactly both inner rings, and this narrowing mov
   assert.deepEqual(checkProductionSurface(root), [], "the real production surface stays clean");
   for (const flag of SHUT_FLAGS) assert.equal(contract.desiredState[flag], false, `${flag} must stay false through this narrowing`);
   assert.deepEqual(contract.stateDelta.changedDimensions, MOVED_DIMENSIONS, "no new dimension may move here");
+});
+
+// =====================================================================================
+// CI wiring: fork-safe triggers, pinned actions, read-only permissions, required jobs
+// =====================================================================================
+
+test("the CI workflow is fork-safe, pins every action to a full commit SHA, and wires the required jobs", async () => {
+  const ciPath = path.join(root, ".github/workflows/ci.yml");
+  assert.ok(existsSync(ciPath), ".github/workflows/ci.yml must exist");
+  const ci = await readFile(ciPath, "utf8");
+
+  // Fork-safe triggers only: pull_request (never pull_request_target) and push to main, no
+  // merge_group.
+  assert.match(ci, /^on:\s*$/m);
+  assert.match(ci, /^\s*pull_request:\s*$/m);
+  assert.ok(!/pull_request_target/.test(ci), "pull_request_target must never be used");
+  assert.ok(!/merge_group/.test(ci), "merge_group must not be used");
+  assert.match(ci, /push:\s*\n\s*branches:\s*\n\s*-\s*main\s*$/m);
+
+  // Top-level permissions are declared and read-only.
+  const topLevelPermissions = ci.match(/^permissions:\s*\n(\s+\S.*\n?)+/m)?.[0] ?? "";
+  assert.ok(topLevelPermissions.length > 0, "a top-level read-only permissions block must be declared");
+  assert.match(topLevelPermissions, /contents:\s*read/);
+  assert.ok(!/write/.test(topLevelPermissions), `top-level permissions must be read-only:\n${topLevelPermissions}`);
+
+  // No secrets of any kind.
+  assert.ok(!/secrets\./.test(ci), "the workflow must not reference any secret");
+
+  // Every `uses:` step is pinned to a full 40-character commit SHA, never a tag or branch.
+  const usesLines = [...ci.matchAll(/^\s*uses:\s*(\S+)/gm)].map((m) => m[1]);
+  assert.ok(usesLines.length > 0, "the workflow must use at least one action");
+  for (const usesLine of usesLines) {
+    assert.match(
+      usesLine,
+      /^[^@]+@[0-9a-f]{40}(\s|$)/,
+      `every uses: step must be pinned to a full commit SHA, found: ${usesLine}`,
+    );
+  }
+
+  // Every actions/checkout step fetches full history (fetch-depth: 0), never the default shallow
+  // clone: annotated activation tags and complete branch history must be present on every PR and
+  // push runner, or the activation reader's exact-origin/main and tag-ancestry checks would be
+  // starved of the very facts they read.
+  const steps = ci.split(/^\s*-\s+name:/m).slice(1);
+  const checkoutSteps = steps.filter((step) => /^\s*uses:\s*actions\/checkout@/m.test(step));
+  assert.ok(checkoutSteps.length > 0, "the workflow must check out the repository at least once");
+  for (const step of checkoutSteps) {
+    assert.match(
+      step,
+      /fetch-depth:\s*0\b/,
+      `every actions/checkout step must set fetch-depth: 0, found step:\n${step}`,
+    );
+  }
+
+  // The required jobs exist, each under its own stable name.
+  for (const jobId of ["node-checks", "substrate-static", "substrate-pytest", "governance-security"]) {
+    assert.match(ci, new RegExp(`^\\s{2}${jobId}:\\s*$`, "m"), `job ${jobId} must be declared`);
+  }
+
+  // The required commands are wired in, and governance-security never claims a live external
+  // quarantine verifier exists — only the repository's own token/security tests and this
+  // secretless-workflow assertion.
+  assert.match(ci, /npm run check\b/);
+  assert.match(ci, /npm test\b/);
+  assert.match(ci, /npm run check:substrate-s1:static\b/);
+  assert.match(ci, /npm run test:substrate-s1\b/);
+  assert.ok(!/quarantine/i.test(ci), "the workflow must not claim an external quarantine verifier is live");
 });

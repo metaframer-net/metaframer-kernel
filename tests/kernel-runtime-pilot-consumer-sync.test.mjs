@@ -797,8 +797,8 @@ const consumerSyncOutput = () =>
     .map((line) => line.trim())
     .filter(Boolean);
 
-const runCheck = () => {
-  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd: root, encoding: "utf8" });
+const runCheckIn = (cwd) => {
+  const result = spawnSync("npm", ["run", "check", "--silent"], { cwd, encoding: "utf8" });
   assert.equal(result.error, undefined, `npm run check could not be executed: ${result.error?.message}`);
   return String(result.stdout)
     .split("\n")
@@ -806,12 +806,37 @@ const runCheck = () => {
     .filter((line) => line.length > 0 && !line.startsWith(">"));
 };
 
-test("npm run check labels every historical line and ends with one checkout-local projection", () => {
-  const lines = runCheck();
-  assert.ok(lines.length > 0, "npm run check produced no output to evaluate");
-  const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
+// Two disposable, deterministic checkouts of this exact commit, built fresh per test rather than
+// relying on whichever branch this worktree happens to be on. Each is a full `git clone --local` of
+// this checkout (never a linked worktree of the shared repository, so cleanup is a plain directory
+// removal), sited next to it so ambient sibling discovery — the Actionplan checkout this package's
+// activation base itself depends on — still resolves. Branch name alone decides admission: "main"
+// mirrors exact origin/main and can be admitted; the other never can, whatever it is named.
+const buildGitContextCheckouts = () => {
+  const headSha = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const canonicalRemote = execFileSync("git", ["-C", root, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
+  const parent = path.dirname(root);
+  const build = (branchName) => {
+    const dir = mkdtempSync(path.join(parent, ".scratch-mfk-ctx-"));
+    execFileSync("git", ["clone", "--quiet", "--local", root, dir], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["remote", "set-url", "origin", canonicalRemote], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["checkout", "--quiet", "-B", branchName, headSha], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+    return dir;
+  };
+  const exactMain = build("main");
+  const featureCheckout = build("scratch-feature-checkout");
+  return {
+    exactMain,
+    featureCheckout,
+    cleanup() {
+      rmSync(exactMain, { recursive: true, force: true });
+      rmSync(featureCheckout, { recursive: true, force: true });
+    },
+  };
+};
 
-  // 1-3. Each historical checker line is explicitly labelled as a non-effective snapshot.
+/** Assertions 1-4: shared by both git contexts, regardless of who may close the run. */
+const assertHistoricalLinesLabelled = (lines, context) => {
   const historicalIndices = [];
   for (const [name, marker] of HISTORICAL_LINES) {
     const index = lines.findIndex((line) => line.includes(marker));
@@ -822,8 +847,6 @@ test("npm run check labels every historical line and ends with one checkout-loca
       `the ${name} line is not labelled HISTORICAL SNAPSHOT / non-effective:\n  ${lines[index]}${context}`,
     );
   }
-
-  // 4. No legacy verdict token may sit on an unlabelled, current-looking line.
   for (const line of lines) {
     const legacy = LEGACY_TOKENS.filter((token) => line.includes(token));
     if (legacy.length === 0) continue;
@@ -832,18 +855,29 @@ test("npm run check labels every historical line and ends with one checkout-loca
       `legacy verdict token(s) ${legacy.join(", ")} appear on an unlabelled current-looking line:\n  ${line}${context}`,
     );
   }
+  return historicalIndices;
+};
 
-  // 5. Not one line may speak with project authority. This checkout is not exact origin/main, so
-  //    the activation reader never looks the tag up, and the answer it composes is about this
-  //    working copy. Saying that under the project-authority label would deny the published
-  //    activation record in the project's own vocabulary.
+test("on a constructed feature checkout, npm run check labels every historical line and ends with one checkout-local projection", (t) => {
+  const checkouts = buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const lines = runCheckIn(checkouts.featureCheckout);
+  assert.ok(lines.length > 0, "npm run check produced no output to evaluate");
+  const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
+
+  const historicalIndices = assertHistoricalLinesLabelled(lines, context);
+
+  // Not one line may speak with project authority. This checkout is not exact origin/main, so the
+  // activation reader never looks the tag up, and the answer it composes is about this working
+  // copy. Saying that under the project-authority label would deny the published activation record
+  // in the project's own vocabulary.
   assert.deepEqual(
     lines.filter((line) => line.includes(CURRENT_LABEL)),
     [],
     `a feature checkout must emit zero lines carrying "${CURRENT_LABEL}"${context}`,
   );
 
-  // 6. Exactly one checkout-local projection, and it is the final line.
+  // Exactly one checkout-local projection, and it is the final line.
   const projectionIndices = lines
     .map((line, index) => (line.startsWith(PROJECTION_PREFIX) ? index : -1))
     .filter((i) => i !== -1);
@@ -880,7 +914,7 @@ test("npm run check labels every historical line and ends with one checkout-loca
     assert.ok(!current.includes(token), `the checkout-local projection reuses the legacy token ${token}:\n  ${current}${context}`);
   }
 
-  // 7. The activation base is explicit, non-effective, and earlier than the final line.
+  // The activation base is explicit, non-effective, and earlier than the final line.
   const baseIndices = lines
     .map((line, index) => (line.startsWith("ACTIVATION BASE") ? index : -1))
     .filter((i) => i !== -1);
@@ -888,11 +922,77 @@ test("npm run check labels every historical line and ends with one checkout-loca
   assert.match(lines[baseIndices[0]], /non-effective/, `the activation base must be explicitly non-effective${context}`);
   assert.ok(baseIndices[0] < currentIndex, `the activation base must precede the final line${context}`);
 
-  // 8. The final line comes after every historical line.
+  // The final line comes after every historical line.
   for (const [position, [name]] of HISTORICAL_LINES.entries()) {
     assert.ok(
       currentIndex > historicalIndices[position],
       `the checkout-local projection must come after the ${name} line${context}`,
+    );
+  }
+});
+
+test("on a constructed exact-main checkout, npm run check labels every historical line and ends with one CURRENT EFFECTIVE line", (t) => {
+  const checkouts = buildGitContextCheckouts();
+  t.after(() => checkouts.cleanup());
+  const lines = runCheckIn(checkouts.exactMain);
+  assert.ok(lines.length > 0, "npm run check produced no output to evaluate");
+  const context = `\n--- npm run check output ---\n${lines.join("\n")}\n---`;
+
+  const historicalIndices = assertHistoricalLinesLabelled(lines, context);
+
+  // Exact origin/main carrying the published annotated tag is the one admitted path, so exactly
+  // one project-authority line must close the run, and zero checkout-local projections may appear.
+  assert.deepEqual(
+    lines.filter((line) => line.startsWith(PROJECTION_PREFIX)),
+    [],
+    `exact-main must emit zero checkout-local projection lines${context}`,
+  );
+  const currentIndices = lines
+    .map((line, index) => (line.startsWith(CURRENT_PREFIX) ? index : -1))
+    .filter((i) => i !== -1);
+  assert.equal(
+    currentIndices.length,
+    1,
+    `expected exactly one line prefixed "${CURRENT_PREFIX}", found ${currentIndices.length}${context}`,
+  );
+  const currentIndex = currentIndices[0];
+  assert.equal(currentIndex, lines.length - 1, `the CURRENT EFFECTIVE line must be the final line${context}`);
+  const current = lines[currentIndex];
+
+  for (const token of [
+    CURRENT_VERDICT,
+    "codeStartAllowed=true",
+    "runtimeCodeAllowed=true",
+    "runtimeImplementationStarted=true",
+    "activationRecord=external-annotated-tag",
+    "kernelReady=false",
+    "sdkReady=false",
+    "appBuildable=false",
+    "releaseAllowed=false",
+    "deployAllowed=false",
+    "productionAllowed=false",
+    "gapClosed=false",
+  ]) {
+    assert.ok(current.includes(token), `the CURRENT EFFECTIVE line is missing ${token}:\n  ${current}${context}`);
+  }
+  for (const forbidden of [PROMOTION_VERDICT, FORBIDDEN_VERDICT, "GO-RELEASE", "GO-DEPLOY"]) {
+    assert.ok(!current.includes(forbidden), `the CURRENT EFFECTIVE line overreaches with ${forbidden}:\n  ${current}${context}`);
+  }
+  for (const token of LEGACY_TOKENS) {
+    assert.ok(!current.includes(token), `the CURRENT EFFECTIVE line reuses the legacy token ${token}:\n  ${current}${context}`);
+  }
+
+  const baseIndices = lines
+    .map((line, index) => (line.startsWith("ACTIVATION BASE") ? index : -1))
+    .filter((i) => i !== -1);
+  assert.equal(baseIndices.length, 1, `expected exactly one ACTIVATION BASE line${context}`);
+  assert.match(lines[baseIndices[0]], /non-effective/, `the activation base must be explicitly non-effective${context}`);
+  assert.ok(baseIndices[0] < currentIndex, `the activation base must precede the final line${context}`);
+
+  for (const [position, [name]] of HISTORICAL_LINES.entries()) {
+    assert.ok(
+      currentIndex > historicalIndices[position],
+      `the CURRENT EFFECTIVE line must come after the ${name} line${context}`,
     );
   }
 });
