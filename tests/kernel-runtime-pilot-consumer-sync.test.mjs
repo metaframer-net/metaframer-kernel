@@ -29,7 +29,10 @@ const overlay = await readJson(overlayPath);
 
 // The canonical documents are read exactly as production reads them: by git show at the exact
 // pinned commit, from a checkout admitted on repository identity and commit object alone.
-const { root: apRoot } = discoverActionplanRoot({ base: root });
+const { root: apRoot } = discoverActionplanRoot({
+  hints: [process.env.METAFRAMER_ACTIONPLAN_PATH].filter(Boolean),
+  base: root,
+});
 assert.ok(apRoot, `canonical ${ACTIONPLAN_REPO} checkout carrying ${ACTIONPLAN_SHA} was not discoverable`);
 const canonical = {
   contract: JSON.parse(readCanonicalAt(apRoot, CONTRACT_REF).toString("utf8")),
