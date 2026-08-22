@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14K evidence package (`planning/gj01-v14k-asgi-postgres-slice.json`): a new Docker-backed
+  test in `tests/kernel-create-customer-asgi-composition.test.mjs` proves the existing
+  framework-neutral `createCustomerAsgiComposition.app(scope, receive, send)` callable, given an
+  ALLOW policy candidate and an invariants-ok evaluation, carries a POST `/customers` request all
+  the way to a real PostgreSQL 16 commit: a 201 `http.response.start`, a body decoding to a frozen
+  `CommitReceipt` with all four intents (customer, audit, transactionalOutbox, idempotency)
+  committed and none deferred, and matching rows actually persisted in `customer_records`,
+  `audit_log` and `transactional_outbox` for the same tenant. Three new DB-connectionless tests in
+  `tests/postgres-commit-adapter.test.mjs` cover the adapter fix below: a null-prototype
+  `customer.payload` with a non-empty name passes shape checks (proved via a
+  reachable-but-refusing connection string, so the resulting rejection is a connection failure,
+  not the payload-shape check); a payload with no `name` is still refused whether ordinary or
+  null-prototype; and an array/class-instance/function payload is still refused. No schema,
+  migration or dependency changes; no server, framework or host adapter is introduced.
 - Optional `encodeResponseHeader` parameter on `AsgiCoreProfileAdapter#call` and
   `#callFromReceive` in `src/delivery/asgi-core-profile.mjs`: when supplied (and validated as a
   function), it encodes every `http.response.start` header name and value before send/return,
@@ -430,3 +444,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   feature checkout can no longer print a line that reads as the project's verdict.
 - The package version moved from the planning placeholder 0.0.0-planning onto the prerelease train
   at 0.1.0-alpha.1. This is a train entry, not a release.
+
+### Fixed
+- `PostgresCommitAdapter.commit` in `src/adapters/postgres-commit-adapter.mjs` now accepts a
+  `customer.payload` that is either an ordinary `Object.prototype` record or a null-prototype safe
+  record (e.g. `Object.create(null)`), instead of only the former. RED evidence for GJ-01 V14K
+  showed the real ASGI-\>pipeline path decoding a JSON body into a null-prototype safe record,
+  which the adapter's prior `isOrdinaryObject`-only check refused before any DB work with
+  `intents.customer.payload.name must be a non-empty string` — a genuine product gap, not a test
+  artifact. The `payload.name` non-empty-string requirement is unchanged, arrays/class
+  instances/functions/other exotic objects are still refused, every other intent/option strictness
+  check is untouched, and the DB payload column is still written via `JSON.stringify(payload)`.

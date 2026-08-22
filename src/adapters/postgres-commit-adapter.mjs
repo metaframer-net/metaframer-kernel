@@ -34,6 +34,14 @@ const isOrdinaryObject = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value)
   && Object.getPrototypeOf(value) === Object.prototype;
 
+// A customer.payload may legitimately arrive as either an ordinary Object.prototype record or a
+// null-prototype safe record (e.g. Object.create(null)) — both shapes the real ASGI/pipeline path
+// produces for a decoded JSON body — but never an array, class instance, function or exotic/proxy
+// object. Used only for customer.payload; every other intent/option strictness is unchanged.
+const isSafePlainRecord = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+  && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+
 function checkPreparedChangeSet(preparedChangeSet) {
   if (!isOrdinaryObject(preparedChangeSet)) {
     throw new TypeError("PostgresCommitAdapter.commit needs an ordinary preparedChangeSet object");
@@ -55,7 +63,7 @@ function checkPreparedChangeSet(preparedChangeSet) {
       throw new TypeError(`preparedChangeSet.intents.${name} must be an ordinary object`);
     }
   }
-  if (!isOrdinaryObject(customer.payload) || typeof customer.payload.name !== "string" || !customer.payload.name) {
+  if (!isSafePlainRecord(customer.payload) || typeof customer.payload.name !== "string" || !customer.payload.name) {
     throw new TypeError("intents.customer.payload.name must be a non-empty string");
   }
   if (typeof audit.action !== "string" || !audit.action) {
