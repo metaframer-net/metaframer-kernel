@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- The first generated-SDK artifact, `src/sdk/create-customer.mjs`, materializing the `src/sdk`
+  boundary opened by `planning/gj01-src-sdk-boundary-authority.json` with a framework-neutral,
+  capability-free module for CreateCustomer@1, byte-derived from the frozen protocol contract in
+  `planning/gj01-generated-sdk-protocol-readiness.json`. `planning/gj01-generated-sdk-generation.json`
+  records the package's scope, non-goals and rollback, including a narrow architecture-fitness
+  supplement that `tools/check-p01-architecture-fitness.mjs` merges at runtime to admit `src/sdk`
+  as a generated-boundary onion layer (order 3, after Application, before Adapters) without editing
+  the pinned, byte-immutable `planning/kernel-runtime-pilot-consumer-sync.json` activation-base
+  artifact, which stays byte-identical to its historical content throughout. This introduces no
+  generator, no HTTP/ASGI delivery surface, no persistence and no runtime; every stronger-stage
+  readiness flag stays false.
 - The token economy governance package. `token-economy-policy.json` is the canonical owner of
   every token-economy rule, threshold, model route and escalation gate; the skill at
   `.claude/skills/metaframer-token-economy/SKILL.md`, the agent at

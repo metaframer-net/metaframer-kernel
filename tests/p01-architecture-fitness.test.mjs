@@ -7,11 +7,15 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, symlinkSync, rmSyn
 import { fileURLToPath } from "node:url";
 import {
   parseCanonicalLayers, extractLocalImportSpecifiers, resolveLocalImportTarget,
-  evaluateArchitectureFitness, readSourceFacts,
+  evaluateArchitectureFitness, readSourceFacts, mergeArchitectureFitnessSupplement,
 } from "../tools/check-p01-architecture-fitness.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const toolPath = path.join(root, "tools", "check-p01-architecture-fitness.mjs");
+// This is the canonical historical onion.layers shape exactly as it stands unmerged in
+// planning/kernel-runtime-pilot-consumer-sync.json — that pinned, byte-immutable activation-base
+// artifact is never touched by this package, so this fixture stays at four layers. SDK is admitted
+// only through the narrow supplement merge covered separately below.
 const LAYERS = [
   { order: 1, name: "Domain", dependsOn: [] },
   { order: 2, name: "Application", dependsOn: ["Domain"] },
@@ -19,6 +23,8 @@ const LAYERS = [
   { order: 4, name: "Delivery", dependsOn: ["Adapters"] },
 ];
 const contract = (layers) => ({ onion: { layers } });
+// The narrow V9 supplement shape read from planning/gj01-generated-sdk-generation.json.
+const SDK_SUPPLEMENT = { layer: { order: 3, name: "SDK", position: "generated-boundary", dependsOn: ["Application"] } };
 
 test("parseCanonicalLayers accepts a well-formed onion contract", () => {
   const result = parseCanonicalLayers(contract(LAYERS));
@@ -32,6 +38,88 @@ test("parseCanonicalLayers fails closed on missing/malformed contract", () => {
   assert.equal(parseCanonicalLayers(contract([])).ok, false);
   assert.equal(parseCanonicalLayers(contract([{ order: 1, name: "Domain" }, { order: 1, name: "Application" }])).ok, false);
   assert.equal(parseCanonicalLayers(contract([{ order: 1, name: "Domain" }, { order: 3, name: "Application" }])).ok, false);
+});
+
+// =====================================================================================
+// mergeArchitectureFitnessSupplement — the narrow V9 route that admits src/sdk without rewriting
+// the pinned activation-base artifact. `null` (no supplement present) must be a no-op; anything
+// else malformed, duplicate, non-contiguous after merge, or not named SDK must fail closed by name.
+// =====================================================================================
+
+test("mergeArchitectureFitnessSupplement is a no-op when no supplement is present", () => {
+  const result = mergeArchitectureFitnessSupplement(contract(LAYERS), null);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.architectureContract, contract(LAYERS));
+});
+
+test("mergeArchitectureFitnessSupplement inserts SDK at order 3 and shifts Adapters/Delivery outward", () => {
+  const result = mergeArchitectureFitnessSupplement(contract(LAYERS), SDK_SUPPLEMENT);
+  assert.equal(result.ok, true);
+  const parsed = parseCanonicalLayers(result.architectureContract);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.layerOrder.get("domain"), 1);
+  assert.equal(parsed.layerOrder.get("application"), 2);
+  assert.equal(parsed.layerOrder.get("sdk"), 3);
+  assert.equal(parsed.layerOrder.get("adapters"), 4);
+  assert.equal(parsed.layerOrder.get("delivery"), 5);
+});
+
+test("mergeArchitectureFitnessSupplement fails closed on a malformed layer entry", () => {
+  for (const bad of [
+    { layer: null },
+    { layer: { order: 3, name: "SDK", position: "", dependsOn: ["Application"] } },
+    { layer: { order: 3, name: "SDK", position: "generated-boundary", dependsOn: [] } },
+    { layer: { order: "3", name: "SDK", position: "generated-boundary", dependsOn: ["Application"] } },
+    { layer: { order: 3, name: "", position: "generated-boundary", dependsOn: ["Application"] } },
+  ]) {
+    const result = mergeArchitectureFitnessSupplement(contract(LAYERS), bad);
+    assert.equal(result.ok, false, JSON.stringify(bad));
+    assert.match(result.reason, /architecture-fitness-supplement-invalid/);
+  }
+});
+
+test("mergeArchitectureFitnessSupplement fails closed on a name other than SDK", () => {
+  const result = mergeArchitectureFitnessSupplement(
+    contract(LAYERS),
+    { layer: { order: 3, name: "Adapters", position: "generated-boundary", dependsOn: ["Application"] } },
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /architecture-fitness-supplement-invalid/);
+  assert.match(result.reason, /only SDK is a permitted V9 supplement/);
+});
+
+test("mergeArchitectureFitnessSupplement fails closed on a duplicate layer already canonical", () => {
+  const layersWithSdk = [...LAYERS, { order: 5, name: "SDK", dependsOn: ["Application"] }];
+  const result = mergeArchitectureFitnessSupplement(contract(layersWithSdk), SDK_SUPPLEMENT);
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /duplicate layer/);
+});
+
+test("mergeArchitectureFitnessSupplement fails closed on a dependsOn naming an unknown layer", () => {
+  const result = mergeArchitectureFitnessSupplement(
+    contract(LAYERS),
+    { layer: { order: 3, name: "SDK", position: "generated-boundary", dependsOn: ["Nonexistent"] } },
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /dependsOn names an unknown layer/);
+});
+
+test("mergeArchitectureFitnessSupplement fails closed if the canonical layers are missing", () => {
+  const result = mergeArchitectureFitnessSupplement({ onion: {} }, SDK_SUPPLEMENT);
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /canonical layers missing/);
+});
+
+test("evaluateArchitectureFitness passes src/sdk once the supplement is merged", () => {
+  const merged = mergeArchitectureFitnessSupplement(contract(LAYERS), SDK_SUPPLEMENT);
+  assert.equal(merged.ok, true);
+  const result = evaluateArchitectureFitness({ canonicalLayerContract: merged.architectureContract, files: [
+    { relPath: "domain/a.mjs", text: `export const a = 1;` },
+    { relPath: "application/b.mjs", text: `import { a } from "../domain/a.mjs";\nexport const b = a;` },
+    { relPath: "sdk/create-customer.mjs", text: `export const ACTION_NAME = "customer.create";` },
+  ] });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.findings, []);
 });
 
 test("extractLocalImportSpecifiers covers static, side-effect, export-from and literal dynamic import", () => {
@@ -165,7 +253,10 @@ test("readSourceFacts fails closed on an absent source root, a symlinked sourceR
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 });
 
-test("CLI exits zero with the GREEN marker on the real current src", () => {
+// The real repository now carries src/sdk/create-customer.mjs, admitted only through the narrow
+// V9 supplement in planning/gj01-generated-sdk-generation.json merged at runtime by the CLI — the
+// canonical activation-base contract on disk is unmerged and still four layers.
+test("CLI exits zero with the GREEN marker on the real current src, including the merged src/sdk ring", () => {
   const startedAt = Date.now();
   const real = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
   const durationMs = Date.now() - startedAt;
