@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14n-asgi-scope-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "365a7021e92123d534ccdf23f454cf84d17326b6",
+
+  "goal": "Make isValidScope in src/delivery/asgi-core-profile.mjs reject structurally invalid ASGI HTTP scopes at the profile boundary, before StandardRouter or receive() ever see them. Before this package, isValidScope only checked that scope.method and scope.path were strings, so an empty method (''), an empty path (''), or a path without a leading slash (e.g. 'customers') passed the profile check and reached StandardRouter, which would answer with an ordinary 404/405 router response instead of the frozen 400 PROFILE_SCOPE_INVALID profile-error response every other malformed-scope shape already gets. This package closes that gap so all structurally invalid HTTP scopes are rejected uniformly at the profile boundary.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14n-asgi-scope-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to valid-scope routing behavior, response shapes, header encoding, or query_string handling",
+    "no path normalization, decoding, or semantic validation beyond the non-empty/leading-slash structural check"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: isValidScope now additionally requires scope.method.length > 0, scope.path.length > 0, and scope.path.startsWith('/'). No router, receive, or response-encoding logic touched."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added three scope shapes to the existing malformed-scope test (empty method, empty path, path without leading slash 'customers') plus a new dedicated callFromReceive test proving a leading-slash-missing path short-circuits to the 400 profile response without ever calling receive(). Against the pre-fix source, the malformed-scope test failed with 404 !== 400 (StandardRouter answered instead of the profile boundary), and the new callFromReceive test failed the same way, proving the profile boundary was leaking these shapes to the router."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 36 tests pass, including the new empty-method, empty-path, missing-leading-slash, and callFromReceive-does-not-call-receive assertions. npm run check exits GREEN with no new failures. Existing valid /customers behavior and query_string-ignored behavior are unchanged."
+  },
+
+  "acceptance": {
+    "emptyMethodRejected": "scope.method === '' returns the frozen 400 PROFILE_SCOPE_INVALID profile response instead of reaching StandardRouter",
+    "emptyPathRejected": "scope.path === '' returns the frozen 400 PROFILE_SCOPE_INVALID profile response instead of reaching StandardRouter",
+    "pathWithoutLeadingSlashRejected": "scope.path values like 'customers' (no leading slash) return the frozen 400 PROFILE_SCOPE_INVALID profile response instead of reaching StandardRouter",
+    "callFromReceiveDoesNotCallReceiveOnInvalidPath": "callFromReceive short-circuits to the 400 profile response for an invalid path before ever invoking receive()",
+    "validScopeUnchanged": "existing valid-scope routing, response encoding, and query_string-ignored behavior are byte-identical to before this package"
+  },
+
+  "rollback": {
+    "trigger": "the added structural checks are found to reject a scope shape that must be valid, or any existing test regresses",
+    "action": "revert the three added conditions in isValidScope, the added test assertions/test, this planning file and the CHANGELOG entry as one shard",
+    "blastRadius": "one function (isValidScope) inside src/delivery/asgi-core-profile.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_PROFILE_SCOPE_STRUCTURAL_CONFORMANCE: the profile boundary now rejects empty method, empty path, and path-without-leading-slash HTTP scopes uniformly as 400 PROFILE_SCOPE_INVALID, before router or receive ever run, instead of letting some of these shapes leak through to StandardRouter as an ordinary 404/405.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, isValidScope sadece scope.method ve scope.path'in string olup olmadığını kontrol ediyordu; boş method (''), boş path ('') veya baştaki '/' olmayan path (örn. 'customers') bu kontrolü geçip StandardRouter'a ulaşıyor ve sıradan bir 404/405 yanıtı alıyordu, oysa diğer bozuk scope şekilleri zaten donmuş 400 PROFILE_SCOPE_INVALID yanıtını alıyordu.",
+    "simdi": "isValidScope artık method'un boş olmamasını, path'in boş olmamasını ve path'in '/' ile başlamasını da şart koşuyor; bu şekiller artık router/receive'e hiç ulaşmadan, profil sınırında donmuş 400 PROFILE_SCOPE_INVALID yanıtını alıyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde tek fonksiyonda (isValidScope) üç ek yapısal koşul eklendi. Geçerli scope davranışı, yanıt kodlaması ve query_string yok sayma davranışı hiç değişmedi.",
+    "kullaniciYolculugu": "Bir host adaptörü boş method, boş path veya '/' ile başlamayan path içeren bir ASGI scope gönderdiğinde artık StandardRouter'ın sıradan 404/405 yanıtı yerine, diğer tüm bozuk scope şekilleriyle aynı donmuş 400 PROFILE_SCOPE_INVALID profil hatasını alır. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun profil sınırı tutarlılığını sağlıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

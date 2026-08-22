@@ -53,7 +53,10 @@ function isValidScope(scope) {
   return isOrdinaryObject(scope)
     && scope.type === "http"
     && typeof scope.method === "string"
+    && scope.method.length > 0
     && typeof scope.path === "string"
+    && scope.path.length > 0
+    && scope.path.startsWith("/")
     && Array.isArray(scope.headers);
 }
 
