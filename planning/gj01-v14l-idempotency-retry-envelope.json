@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14l-idempotency-retry-envelope-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "smallest-retry-idempotency-delivery-fix",
+  "packageState": "GREEN",
+  "baseCommit": "b6c1f3375061413404e958da5f5bdf699e3e18d7",
+
+  "goal": "GJ-01 Create Customer already atomically rolls back a duplicate tenant-scoped idempotency fingerprint in PostgreSQL (transactional_outbox_tenant_dedup_key), but the delivery/ASGI path let the raw pg unique-violation error propagate unmapped. Deterministically map exactly this one known conflict to a frozen delivery response: 409, body.error.code IDEMPOTENCY_CONFLICT, retryable false, requestId preserved where available, and no second customer/audit/outbox row. Every other database failure must keep propagating unmasked.",
+
+  "allowedFiles": [
+    "src/adapters/postgres-commit-adapter.mjs",
+    "src/delivery/create-customer-request-handler.mjs",
+    "tests/postgres-commit-adapter.test.mjs",
+    "tests/kernel-create-customer-request-handler.test.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "planning/gj01-v14l-idempotency-retry-envelope.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no FastAPI/Django/Uvicorn/Hypercorn dependency",
+    "no server/listener",
+    "no SDK outcome expansion",
+    "no schema/migration change",
+    "no generated artifact change",
+    "no broad/generic error envelope beyond the one known idempotency conflict",
+    "no release/version change",
+    "no private repo or visibility changes",
+    "no change to CreateCustomerCommitService (not in allowedFiles) — the conflict is caught at the request handler, which already awaits the service and can distinguish this one thrown error shape"
+  ],
+
+  "scopeResolution": {
+    "note": "PostgresCommitAdapter.commit now catches the pg 23505 unique-violation on constraint transactional_outbox_tenant_dedup_key specifically (checked by both code and constraint name) and throws a new frozen IdempotencyConflictError (code IDEMPOTENCY_CONFLICT, retryable false, tenantId, fingerprint) instead of the raw pg error; every other error is rethrown unchanged. CreateCustomerRequestHandler.handle wraps its await of service.handle(actionSpec) in try/catch and duck-types the error (name === 'IdempotencyConflictError' && code === 'IDEMPOTENCY_CONFLICT') rather than importing the adapter class, preserving the handler's existing framework-free, Postgres-free-import contract (already enforced by an existing import-shape test in kernel-create-customer-request-handler.test.mjs). A recognized conflict maps to a frozen 409 response reusing the request's raw requestId (same best-effort extraction already used for the 400 ACTION_SPEC_INVALID path); any other thrown error is rethrown unmasked."
+  },
+
+  "red": {
+    "commands": [
+      "node --test tests/postgres-commit-adapter.test.mjs",
+      "node --test tests/kernel-create-customer-request-handler.test.mjs",
+      "node --test tests/kernel-create-customer-asgi-composition.test.mjs"
+    ],
+    "note": "Before this package, a duplicate idempotency commit rejected with the raw pg error (no .code === 'IDEMPOTENCY_CONFLICT' shape, no name === 'IdempotencyConflictError'), and CreateCustomerRequestHandler had no mapping for it at all — the duplicate-commit assertion in postgres-commit-adapter.test.mjs was a bare assert.rejects() with no shape check, and the ASGI composition test never issued a second identical request. Adding the shape-checked adapter assertion, the new handler-level duck-typed-mapping tests and the second-request ASGI assertion against real PostgreSQL failed against the pre-fix code: the adapter rejected with a generic pg error lacking .code/.name, and the handler either rethrew it unmapped (surfacing as an unhandled rejection / non-409 status) or, before the try/catch was added, never returned a 409 at all."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/postgres-commit-adapter.test.mjs tests/kernel-create-customer-request-handler.test.mjs tests/kernel-create-customer-asgi-composition.test.mjs",
+      "npm run check"
+    ],
+    "results": "34/34 tests pass. postgres-commit-adapter.test.mjs: IdempotencyConflictError is exported, frozen, and carries { code: 'IDEMPOTENCY_CONFLICT', retryable: false, tenantId, fingerprint }; the real-PostgreSQL-backed duplicate-commit test now asserts the adapter rejects with exactly that shape, not a bare error. kernel-create-customer-request-handler.test.mjs: a thrown duck-typed IdempotencyConflictError-shaped error maps to a frozen 409 with body.error.code IDEMPOTENCY_CONFLICT, retryable false, requestId preserved; a generic commit failure and a lookalike error with the right code but wrong name both still propagate unmasked; the existing import-shape test (no Postgres import in the handler) still passes. kernel-create-customer-asgi-composition.test.mjs: the Docker-backed test now issues the same POST /customers request twice — first 201 with a persisted CommitReceipt, then 409 IDEMPOTENCY_CONFLICT with the same requestId and retryable false — and asserts customer_records/audit_log/transactional_outbox each still carry exactly one row after the second request. npm run check exits zero (all governance/fitness gates GREEN)."
+  },
+
+  "acceptance": {
+    "adapterMapsExactlyOneKnownConflict": "PostgresCommitAdapter.commit throws IdempotencyConflictError only for a pg 23505 unique violation on constraint transactional_outbox_tenant_dedup_key; every other thrown error (connection failure, other constraint, syntax error) is left unchanged and unmapped",
+    "handlerMaps409Deterministically": "CreateCustomerRequestHandler.handle returns a frozen { status: 409, requestId, outcome: 'IDEMPOTENCY_CONFLICT', body: { error: { code: 'IDEMPOTENCY_CONFLICT', message, requestId, retryable: false } } } when the service throws the recognized conflict shape",
+    "requestIdPreserved": "the 409 response's requestId and body.error.requestId reuse the original request's requestId string when present, matching the existing best-effort extraction used by the 400 ACTION_SPEC_INVALID path",
+    "genericFailuresPropagate": "a commit failure that is not the recognized IdempotencyConflictError shape (wrong name, wrong code, or no such properties) rejects handler.handle() unmasked, proven by a dedicated unit test and by the handler never wrapping non-matching errors",
+    "noSecondRowOnConflict": "the real-PostgreSQL Docker test proves a second identical request produces zero additional customer_records/audit_log/transactional_outbox rows",
+    "noArchitectureLeak": "the handler still imports no Postgres/framework/ambient capability, proven by the existing import-shape test — the conflict is recognized by duck-typing, not by importing PostgresCommitAdapter",
+    "checkGreen": "npm run check exits zero"
+  },
+
+  "rollback": {
+    "trigger": "the adapter's constraint-name/code check is found to also match an unrelated unique violation, the handler's duck-typed check is found to swallow a generic database failure, or any of the three test files is found to assert against a mock instead of the real PostgreSQL container for the Docker-backed proofs",
+    "action": "revert src/adapters/postgres-commit-adapter.mjs, src/delivery/create-customer-request-handler.mjs, tests/postgres-commit-adapter.test.mjs, tests/kernel-create-customer-request-handler.test.mjs, tests/kernel-create-customer-asgi-composition.test.mjs, this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "the idempotency-conflict mapping and its tests only; no schema, migration, SDK, pipeline or commit-service code is touched",
+    "runtimeDataImpact": "none beyond the ephemeral Docker container the Docker-backed tests start and remove themselves"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "IDEMPOTENCY_CONFLICT_DELIVERY_MAPPED: a duplicate tenant-scoped idempotency fingerprint, which PostgreSQL already refused atomically, now surfaces through the full ASGI delivery path as a deterministic 409 IDEMPOTENCY_CONFLICT with retryable false and the original requestId preserved, instead of leaking a raw database exception. All other database failures still propagate unmasked.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "Bir CRM/HRMS kullanıcısı aynı 'yeni müşteri oluştur' formunu ağ zaman aşımı yüzünden ikinci kez gönderdiğinde (aynı idempotency anahtarıyla), PostgreSQL ikinci kaydı ve outbox satırını doğru şekilde reddediyordu, ama bu red delivery/ASGI katmanına ham bir veritabanı hatası olarak sızıyordu: ne 409 durumu, ne IDEMPOTENCY_CONFLICT kodu, ne de 'tekrar deneme' için net bir sinyal vardı.",
+    "after": "Aynı senaryoda artık delivery katmanı 409 durumu ve body.error.code = IDEMPOTENCY_CONFLICT, retryable: false döndürüyor; orijinal requestId korunuyor ve ikinci bir müşteri/denetim/outbox satırı hiç oluşmuyor. Bu tanınan tek çakışma dışındaki her veritabanı hatası (bağlantı kopması, başka bir kısıt ihlali, vb.) hâlâ olduğu gibi, maskelenmeden yukarı taşınıyor.",
+    "kullaniciYolculugu": "Form gönder -> ağ zaman aşımı -> kullanıcı 'tekrar dene'ye basar -> aynı istek ikinci kez gelir -> sistem artık net ve öngörülebilir şekilde 'bu istek zaten işlendi, tekrar denemene gerek yok' (409, retryable: false) yanıtı verir; istemci tarafı bu sinyali görüp kullanıcıya 'zaten kaydedildi' diyebilir, aksine kör bir hata veya sonsuz tekrar denemesi göstermez.",
+    "kalanEngel": "Delivery katmanının kendisini gerçekten bir HTTP host'a (örn. bir ASGI sunucusu) bağlayan hiçbir şey hâlâ yok; bu paket sadece mevcut app(scope, receive, send) çağrılabilirinin, bu tek bilinen çakışma durumunda, artık doğru ve deterministik yanıt verdiğini kanıtlıyor. runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package. A broader generic-error envelope, retry-after guidance, or a real HTTP host binding remain out of scope by design (see nonGoals).",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

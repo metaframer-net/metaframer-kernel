@@ -211,6 +211,59 @@ test("an unknown service outcome throws TypeError", async () => {
   await assert.rejects(() => handler.handle(validRequest()), TypeError);
 });
 
+test("a duplicate-idempotency commit failure maps to a frozen 409 IDEMPOTENCY_CONFLICT, not a leaked raw error", async () => {
+  class IdempotencyConflictError extends Error {
+    code = "IDEMPOTENCY_CONFLICT";
+    retryable = false;
+    constructor() {
+      super("duplicate idempotency fingerprint for tenant");
+      this.name = "IdempotencyConflictError";
+    }
+  }
+  let called = 0;
+  const service = new CreateCustomerCommitService({
+    pipeline: pipelineOf(),
+    commit: async () => { called += 1; throw new IdempotencyConflictError(); },
+  });
+  const handler = new CreateCustomerRequestHandler({ service });
+
+  const response = await handler.handle(validRequest());
+
+  assert.equal(called, 1);
+  assert.equal(response.status, 409);
+  assert.equal(response.outcome, "IDEMPOTENCY_CONFLICT");
+  assert.equal(response.requestId, REQUEST_ID);
+  assert.equal(response.body.error.code, "IDEMPOTENCY_CONFLICT");
+  assert.equal(response.body.error.requestId, REQUEST_ID);
+  assert.equal(response.body.error.retryable, false);
+  assert.ok(Object.isFrozen(response));
+  assert.ok(Object.isFrozen(response.body));
+  assert.ok(Object.isFrozen(response.body.error));
+});
+
+test("a generic commit failure (not the known idempotency conflict) propagates unmasked", async () => {
+  const service = new CreateCustomerCommitService({
+    pipeline: pipelineOf(),
+    commit: async () => { throw new Error("connection reset"); },
+  });
+  const handler = new CreateCustomerRequestHandler({ service });
+
+  await assert.rejects(() => handler.handle(validRequest()), /connection reset/);
+});
+
+test("an error with the IDEMPOTENCY_CONFLICT code but the wrong name still propagates unmasked", async () => {
+  class SomeOtherError extends Error {
+    code = "IDEMPOTENCY_CONFLICT";
+  }
+  const service = new CreateCustomerCommitService({
+    pipeline: pipelineOf(),
+    commit: async () => { throw new SomeOtherError("not the real thing"); },
+  });
+  const handler = new CreateCustomerRequestHandler({ service });
+
+  await assert.rejects(() => handler.handle(validRequest()), SomeOtherError);
+});
+
 test("the handler module imports no ambient capability and no framework/runtime dependency", async () => {
   const source = await readFile(path.join(root, handlerPath), "utf8");
   const forbiddenImports = /from\s+["'](node:)?(fs|net|http|https)["']/i;

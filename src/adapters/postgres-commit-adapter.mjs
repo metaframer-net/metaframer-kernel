@@ -28,6 +28,39 @@ import pg from "pg";
 export const COMMITTED_INTENTS = Object.freeze(["customer", "audit", "transactionalOutbox", "idempotency"]);
 export const DEFERRED_INTENTS = Object.freeze([]);
 
+// The substrate's own per-tenant unique index name, from
+// db/metaframer_kernel_db/alembic/versions/0001_runtime_substrate.py — the one and only
+// constraint a duplicate idempotency fingerprint can violate.
+const DEDUP_KEY_CONSTRAINT = "transactional_outbox_tenant_dedup_key";
+const POSTGRES_UNIQUE_VIOLATION = "23505";
+
+// Thrown in place of the raw pg unique-violation error, for exactly the one known conflict this
+// adapter can distinguish deterministically: a repeated tenant-scoped idempotency fingerprint.
+// Every other database failure (connection loss, constraint violations elsewhere, syntax
+// errors, ...) is left as the original pg error and must keep propagating unmasked.
+export class IdempotencyConflictError extends Error {
+  code = "IDEMPOTENCY_CONFLICT";
+  retryable = false;
+  tenantId;
+  fingerprint;
+
+  constructor(tenantId, fingerprint) {
+    super(`duplicate idempotency fingerprint for tenant ${tenantId}`);
+    this.name = "IdempotencyConflictError";
+    this.tenantId = tenantId;
+    this.fingerprint = fingerprint;
+  }
+}
+Object.freeze(IdempotencyConflictError.prototype);
+Object.freeze(IdempotencyConflictError);
+
+/** True only for the exact, known duplicate-idempotency-fingerprint unique violation. */
+function isDuplicateIdempotencyFingerprintError(error) {
+  return error != null
+    && error.code === POSTGRES_UNIQUE_VIOLATION
+    && error.constraint === DEDUP_KEY_CONSTRAINT;
+}
+
 const INTENT_KEYS = Object.freeze(["customer", "audit", "transactionalOutbox", "idempotency"]);
 
 const isOrdinaryObject = (value) =>
@@ -154,6 +187,9 @@ export class PostgresCommitAdapter {
       });
     } catch (error) {
       await client.query("ROLLBACK").catch(() => {});
+      if (isDuplicateIdempotencyFingerprintError(error)) {
+        throw new IdempotencyConflictError(tenantId, idempotency.fingerprint);
+      }
       throw error;
     } finally {
       client.release();

@@ -454,6 +454,31 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
       assert.equal(outbox.rows[0].tenant_id, tenantId);
       assert.equal(outbox.rows[0].event_type, "customer.created");
     });
+
+    // GJ-01 V14L: a second, identical request (same tenant, same idempotency fingerprint) must
+    // surface as a deterministic delivery 409 IDEMPOTENCY_CONFLICT — never a leaked raw
+    // PostgreSQL error, and never a second customer/audit/outbox row.
+    const { events: retryEvents, send: retrySend } = collectingSend();
+    const retryResult = await composition.app(scope, receiveOnce(jsonBytes), retrySend);
+
+    assert.equal(retryEvents.length, 2);
+    const [retryStart, retryBody] = retryEvents;
+    assert.equal(retryStart.type, "http.response.start");
+    assert.equal(retryStart.status, 409);
+    const retryDecoded = JSON.parse(new TextDecoder().decode(retryBody.body));
+    assert.equal(retryDecoded.error.code, "IDEMPOTENCY_CONFLICT");
+    assert.equal(retryDecoded.error.requestId, requestId);
+    assert.equal(retryDecoded.error.retryable, false);
+    assert.deepEqual(retryResult, retryEvents);
+
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const customerCount = await client.query("SELECT count(*) FROM customer_records WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(customerCount.rows[0].count), 1, "the duplicate request must not insert a second customer row");
+      const auditCount = await client.query("SELECT count(*) FROM audit_log WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(auditCount.rows[0].count), 1, "the duplicate request must not insert a second audit row");
+      const outboxCount = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(outboxCount.rows[0].count), 1, "the duplicate request must not enqueue a second outbox row");
+    });
   } finally {
     await composition.close();
   }

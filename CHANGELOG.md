@@ -16,6 +16,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14L idempotency-conflict delivery mapping (`planning/gj01-v14l-idempotency-retry-envelope.json`):
+  `PostgresCommitAdapter.commit` now catches the one known duplicate tenant-scoped idempotency
+  conflict — a PostgreSQL `23505` unique violation on `transactional_outbox_tenant_dedup_key` —
+  and throws a new frozen `IdempotencyConflictError` (`code: "IDEMPOTENCY_CONFLICT"`,
+  `retryable: false`, `tenantId`, `fingerprint`) instead of leaking the raw pg error; every other
+  database failure still propagates unchanged. `CreateCustomerRequestHandler.handle` now wraps its
+  call to the commit service and duck-types that one error shape (never importing the Postgres
+  adapter, preserving the handler's existing framework-free/Postgres-free-import contract), mapping
+  it to a frozen `409` response with `body.error.code: "IDEMPOTENCY_CONFLICT"`, `retryable: false`
+  and the original request's `requestId` preserved; any other thrown error still rejects
+  `handle()` unmasked. A real-PostgreSQL Docker-backed test in
+  `tests/kernel-create-customer-asgi-composition.test.mjs` now issues the same `POST /customers`
+  request twice through the full ASGI callable and proves the second request returns 409 with no
+  second `customer_records`/`audit_log`/`transactional_outbox` row; `tests/postgres-commit-adapter.test.mjs`
+  proves the adapter's exact error shape and exports it; `tests/kernel-create-customer-request-handler.test.mjs`
+  proves the handler's 409 mapping and that a non-matching error still propagates unmasked.
 - GJ-01 V14K evidence package (`planning/gj01-v14k-asgi-postgres-slice.json`): a new Docker-backed
   test in `tests/kernel-create-customer-asgi-composition.test.mjs` proves the existing
   framework-neutral `createCustomerAsgiComposition.app(scope, receive, send)` callable, given an
