@@ -67,8 +67,27 @@ test("malformed scope short-circuits to a frozen 400 profile response without ca
     assert.ok(Object.isFrozen(events));
     assert.ok(Object.isFrozen(events[0]));
     assert.ok(Object.isFrozen(events[1]));
+    assert.ok(Object.isFrozen(events[0].headers));
+    for (const pair of events[0].headers) {
+      assert.ok(Object.isFrozen(pair));
+    }
   }
   assert.equal(called, false);
+});
+
+test("callFromReceive malformed receive-event 400 profile response has frozen header pairs", async () => {
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => Object.freeze({ status: 200 })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => ({ type: "http.disconnect" });
+  const send = async () => {};
+
+  const events = await adapter.callFromReceive({ scope, receive, send });
+  assert.equal(events[0].status, 400);
+  assert.ok(Object.isFrozen(events[0].headers));
+  for (const pair of events[0].headers) {
+    assert.ok(Object.isFrozen(pair));
+  }
 });
 
 test("valid scope dispatches router.handle exactly once with frozen plain message", async () => {
