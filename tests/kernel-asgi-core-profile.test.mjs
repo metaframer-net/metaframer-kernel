@@ -55,6 +55,9 @@ test("malformed scope short-circuits to a frozen 400 profile response without ca
     { type: "http", method: "GET", path: "/x", headers: [["only-one"]] },
     { type: "http", method: "GET", path: "/x", headers: [[1, "v"]] },
     { type: "http", method: "GET", path: "/x", headers: [["name", 1]] },
+    { type: "http", method: "", path: "/x", headers: [] },
+    { type: "http", method: "GET", path: "", headers: [] },
+    { type: "http", method: "GET", path: "customers", headers: [] },
   ];
 
   for (const scope of badScopes) {
@@ -353,6 +356,22 @@ test("callFromReceive short-circuits to a 400 profile response on invalid scope 
   const send = async (event) => { sent.push(event); };
 
   const events = await adapter.callFromReceive({ scope: { type: "websocket" }, receive, send });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].status, 400);
+  assert.equal(receiveCalled, false);
+  assert.deepEqual(sent, events);
+});
+
+test("callFromReceive short-circuits to a 400 profile response on a path missing the leading slash without ever calling receive", async () => {
+  let receiveCalled = false;
+  const router = routerWith([{ method: "GET", path: "/customers", handler: stubHandler(() => Object.freeze({ status: 200 })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "customers", headers: [] };
+  const receive = async () => { receiveCalled = true; return { type: "http.request", body: new Uint8Array(), more_body: false }; };
+  const sent = [];
+  const send = async (event) => { sent.push(event); };
+
+  const events = await adapter.callFromReceive({ scope, receive, send });
   assert.equal(events.length, 2);
   assert.equal(events[0].status, 400);
   assert.equal(receiveCalled, false);

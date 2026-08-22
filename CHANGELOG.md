@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14N ASGI scope structural conformance (`planning/gj01-v14n-asgi-scope-conformance.json`):
+  `isValidScope()` in `src/delivery/asgi-core-profile.mjs` now rejects an empty `method`, an empty
+  `path`, and a `path` without a leading `/` at the profile boundary, before `StandardRouter` or
+  `receive()` ever run. Previously these shapes passed the structural check and reached
+  `StandardRouter`, producing an ordinary 404/405 instead of the frozen 400 `PROFILE_SCOPE_INVALID`
+  profile response every other malformed-scope shape already gets. Valid-scope routing, response
+  encoding, and `query_string`-ignored behavior are unchanged. Not a server/host selection.
 - GJ-01 V14M ASGI event conformance hardening (`planning/gj01-v14m-asgi-event-conformance.json`):
   `profileErrorEvents()` in `src/delivery/asgi-core-profile.mjs` now freezes its inner
   `["content-type", "application/json"]` header pair tuple, matching the per-pair freezing the
