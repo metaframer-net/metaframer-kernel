@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/delivery/standard-router.mjs`, `StandardRouter`, the smallest framework-neutral route
+  table in the delivery ring. Constructor takes exactly `{ routes }` (non-empty
+  `{ method, path, handler }` records; duplicate `method`+`path` refused); router/class/
+  prototype/records frozen. `handle({ method, path })` dispatches to the exact-match handler
+  once, returning its response unchanged (throws `TypeError` on a non-object response);
+  malformed shape -> 400, unknown path -> 404, unsupported method -> 405, no handler call. No
+  body/header parsing, no framework/server import. See `planning/gj01-v14b-standard-router.json`.
 - `src/delivery/create-customer-http-message-adapter.mjs`, `CreateCustomerHttpMessageAdapter`,
   the smallest framework-neutral HTTP message adapter for GJ-01 Create Customer. Constructor
   accepts exactly `{ handler }`, requires an exact `CreateCustomerRequestHandler` instance by

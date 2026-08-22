@@ -632,7 +632,7 @@ const RING_MODULE_MANIFEST = [
   ["application", ["action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
   ["sdk", ["create-customer.mjs"]],
   ["adapters", ["postgres-commit-adapter.mjs"]],
-  ["delivery", ["create-customer-composition.mjs", "create-customer-http-message-adapter.mjs", "create-customer-request-handler.mjs"]],
+  ["delivery", ["create-customer-composition.mjs", "create-customer-http-message-adapter.mjs", "create-customer-request-handler.mjs", "standard-router.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();
 const refuseRoot = (name) => [`forbidden-root-path-present:${name}`];
