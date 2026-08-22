@@ -16,6 +16,21 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `createCustomerAsgiComposition(options)` in `src/delivery/create-customer-asgi-composition.mjs`,
+  a framework-neutral composition root that wires a real `createCustomerComposition` handler to a
+  real `CreateCustomerHttpMessageAdapter`, a real `StandardRouter` (its only route: `POST
+  /customers`) and a real `AsgiCoreProfileAdapter`. It accepts exactly the same four keys as
+  `createCustomerComposition` (`connectionString`, `current`, `candidatesFor`,
+  `evaluateInvariants`) and returns a frozen `{ asgi, router, close }` object; `close` delegates to
+  the composed `PostgresCommitAdapter` close. It is not an HTTP server and adds no Python ASGI app,
+  Uvicorn, Hypercorn, FastAPI or Django dependency.
+  `tests/kernel-create-customer-asgi-composition.test.mjs` proves the four-key options exactness,
+  the frozen `{ asgi, router, close }` shape, a DENY outcome traversing `POST /customers` through
+  `asgi.call` without ever touching the database, wrong-method/wrong-path short-circuiting before
+  the handler runs, `close` delegation, and the absence of any forbidden import.
+  `tests/repository-boundary.test.mjs`'s `src/delivery` module manifest is extended with
+  `create-customer-asgi-composition.mjs`. See
+  `planning/gj01-v14f-create-customer-asgi-composition.json`.
 - `AsgiCoreProfileAdapter#call({ scope, body, send })` in `src/delivery/asgi-core-profile.mjs`,
   a framework-neutral ASGI send/call boundary around the existing `handle` method. It requires
   `send` to be a function (throws `TypeError` otherwise, without calling the router), computes

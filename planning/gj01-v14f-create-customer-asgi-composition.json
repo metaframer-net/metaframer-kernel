@@ -1,0 +1,47 @@
+{
+  "package": "gj01-v14f-create-customer-asgi-composition",
+  "baseCommit": "b7a7d030d4ccf6a79571bc6eeb102e711b1b4e8b",
+  "writer": "claude",
+  "scope": "Add a framework-neutral composition root that wires the existing createCustomerComposition handler to CreateCustomerHttpMessageAdapter, StandardRouter and AsgiCoreProfileAdapter, returning a frozen { asgi, router, close } object.",
+  "allowedFiles": [
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/gj01-v14f-create-customer-asgi-composition.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no HTTP server",
+    "no Python ASGI app",
+    "no Uvicorn/Hypercorn/FastAPI/Django dependency or selection",
+    "no package dependency change",
+    "no migration/DB schema change",
+    "no release/readiness/product-runnable claim"
+  ],
+  "change": {
+    "added": "createCustomerAsgiComposition(options) in src/delivery/create-customer-asgi-composition.mjs",
+    "behavior": [
+      "accepts exactly the same four keys as createCustomerComposition: connectionString, current, candidatesFor, evaluateInvariants",
+      "builds a real createCustomerComposition, wraps its handler in a real CreateCustomerHttpMessageAdapter, registers it as the only route (POST /customers) on a real StandardRouter, and wraps that router in a real AsgiCoreProfileAdapter",
+      "returns a frozen { asgi, router, close } object; close delegates to the composed PostgresCommitAdapter close",
+      "no HTTP/ASGI server, network or runtime import of any kind"
+    ]
+  },
+  "tests": {
+    "targeted": [
+      "the factory refuses anything but exactly the four-key options object",
+      "the result is frozen and carries exactly { asgi, router, close }",
+      "a DENY outcome traverses POST /customers through asgi.call without touching the database",
+      "a wrong method or path short-circuits before the handler ever runs",
+      "close delegates to the composed PostgresCommitAdapter close",
+      "the ASGI composition module imports no ambient capability and no framework/server/runtime dependency"
+    ],
+    "unchanged": "repository-boundary.test.mjs manifest extended with create-customer-asgi-composition.mjs; all prior rows remain GREEN"
+  },
+  "evidence": {
+    "targetedNodeTests": "node --test tests/kernel-create-customer-asgi-composition.test.mjs tests/repository-boundary.test.mjs -> 173 pass, 0 fail",
+    "npmTest": "1190 pass, 1 pre-existing fail (postgres-commit-adapter.test.mjs: docker not available in this environment, unrelated to this package)",
+    "npmRunCheck": "GREEN, exit 0"
+  },
+  "marker": "V14F_WRITER_GREEN"
+}
