@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "packageId": "gj01-v3b-pure-core-pipeline",
+  "baseCommit": "8c2e5f0acf52338d2617547fad6585dd459b75f4",
+  "actionplanReference": {
+    "repository": "karacaismail/actionplan",
+    "commit": "0ea17838c345f088066e3a457a9c2b0e277c8a3d",
+    "consumed": ["GJ-01 V1", "GJ-01 V2", "GJ-01 V3A"],
+    "readMode": "public-main-reference",
+    "mutationAllowed": false
+  },
+  "status": "implementation-complete-external-evidence-pending",
+  "classification": "kernel-application-pipeline",
+  "scope": {
+    "blindScopeHash": "cbeb343348a911105bf26e7770b8cf4da01a3990ccd460daa1bfec1fb0723b4",
+    "masterScopeHash": "f1abac856a6ea67142f26b265711edc7182a92539c6fcbc2027f45bd70f08520",
+    "synthesizedScopeHash": "ec9d813386aacc6b5e9936eaff319d9132eaf3ab9bf81b39e5d2bff09c51b2ba"
+  },
+  "allowedFiles": [
+    "planning/gj01-v3b-pure-core-pipeline.json",
+    "src/application/create-customer-pipeline.mjs",
+    "tests/kernel-create-customer-pipeline.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "CHANGELOG.md"
+  ],
+  "goal": "One deterministic, framework-free CreateCustomer@1 Application pipeline from exact raw ActionSpec fields (requestId, actorId, tenantId, payload, idempotencyKey) to one of the closed outcomes ALLOW_COMMIT, DENY, INVALID, CROSS_TENANT_DENY, reusing Identity, PolicyDecisionPoint, Command, PolicyRequest and KernelError, with one injected pure evaluateInvariants collaborator.",
+  "executionAuthorization": {
+    "consumedByReference": true,
+    "repository": "karacaismail/actionplan",
+    "reportPath": "reports/gj01-v3b-execution-authorization-2026-08-22.json",
+    "mergeCommit": "72a6f76c612d474e3765f1ff5920df76b2f786f2",
+    "ref": "public-main",
+    "nature": "additive-execution-authorization"
+  },
+  "stageOrder": [
+    "actionSpecShapeCheck",
+    "identityTenantGuard",
+    "policyDecisionEvaluation",
+    "invariantEvaluation",
+    "idempotencyIntentResolution",
+    "outcomeProjection",
+    "preparedChangeSetProjection",
+    "errorEnvelopeProjection"
+  ],
+  "nonGoals": [
+    "No UnitOfWork, begin/commit/rollback or db import is introduced.",
+    "No PostgreSQL, RLS, persistence, audit or outbox execution is introduced.",
+    "No CommitReceipt is minted; ALLOW_COMMIT means allowed-to-commit only.",
+    "No ASGI, Uvicorn, Hypercorn, FastAPI or Django surface is introduced.",
+    "No SDK, UI or second journey is introduced.",
+    "No new policy logic or duplicated PolicyDecisionPoint evaluation is introduced.",
+    "No version bump, release or deploy is performed."
+  ],
+  "red": {
+    "commands": [
+      "node --test tests/kernel-create-customer-pipeline.test.mjs"
+    ]
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-create-customer-pipeline.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN",
+      "exactly one local full QA run, per the fullQaExecutionsPerChangePackage=2 budget with QA2 external"
+    ]
+  },
+  "exitCriteria": [
+    "src/application/create-customer-pipeline.mjs source is at most 300 lines",
+    "the change package net is at most 800 lines",
+    "the changed-file set has exact allowed-file parity with allowedFiles",
+    "same inputs plus same collaborator answers serialize byte-identically",
+    "no readiness, release, MVP or production claim is made anywhere in this package"
+  ],
+  "evidencePolicy": {
+    "location": "external",
+    "inRepoStatusFlipAfterQa": false,
+    "required": ["qa1", "qa2-external", "independent-review"]
+  },
+  "rollback": "Rollback reverts exactly this five-file shard: planning/gj01-v3b-pure-core-pipeline.json, src/application/create-customer-pipeline.mjs, tests/kernel-create-customer-pipeline.test.mjs, tests/repository-boundary.test.mjs, CHANGELOG.md, restoring the base commit's state for each."
+}
