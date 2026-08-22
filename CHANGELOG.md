@@ -63,6 +63,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   `KernelError` surfaces plus one injected pure `evaluateInvariants` collaborator.
   `ALLOW_COMMIT` means allowed-to-commit only: it returns a frozen `PreparedChangeSet` with
   `persistenceState: "pending"` and exactly four write intents, and mints no `CommitReceipt`.
+- The generated-SDK protocol readiness contract in
+  `planning/gj01-generated-sdk-protocol-readiness.json`: a declarative pin of the
+  `customer.create@1` typed-action fields, outcome enum and error-envelope shape, read off the
+  already-closed `CreateCustomerPipeline` rather than invented. It narrows step 3
+  (`generated-sdk`) of the pinned runtime-start sequence to a protocol contract only —
+  `sdkReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`,
+  `gapClosed` and `kernelReady` all stay `false`, `capabilityDelta` is `NONE` and
+  `runnableProduct` is `false`. It introduces no `src/sdk`, no generator, no generated client and
+  no ASGI/Uvicorn/Hypercorn/FastAPI delivery surface; V5 delivery stays blocked on both the
+  generated-SDK step and the one-golden-slice step of that sequence closing GREEN.
 
 ### Changed
 - The repository root source-topology fence was narrowed: a root `src` is permitted and may hold
