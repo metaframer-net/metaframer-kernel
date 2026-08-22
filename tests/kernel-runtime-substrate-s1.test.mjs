@@ -1315,10 +1315,12 @@ const S1_MOVED_CHILDREN = ["adapters", "delivery"];
  * Rings actually materialized as real directories in this checkout. `sdk` joins `domain` and
  * `application` once the separately authorized generated-SDK generation package writes its first
  * artifact, and `adapters` joins them once the separately authorized
- * `planning/gj01-v12b1-postgres-adapter.json` package writes its first artifact, both under the
- * boundary this substrate package's contract re-exports.
+ * `planning/gj01-v12b1-postgres-adapter.json` package writes its first artifact, and `delivery`
+ * joins them once the separately authorized
+ * `planning/gj01-v13b-framework-neutral-delivery-handler.json` package writes its first artifact,
+ * all under the boundary this substrate package's contract re-exports.
  */
-const S1_MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters"];
+const S1_MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters", "delivery"];
 const sortedNames = (values) => [...(values ?? [])].sort();
 /** Only root-topology findings are in scope; a scratch tree has no substrate package at all. */
 const rootFindings = (found) => found.filter((f) => /root-src-child|root-path-present:/.test(f));
@@ -1498,7 +1500,7 @@ test("the real checkout carries exactly both inner rings, and this narrowing mov
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "the narrowed fence permits a root src, and P-M1-01 materializes it");
   // sdk is a permitted boundary, materialized by the separately authorized generated-SDK
   // generation package's first artifact — this substrate package neither owns it nor writes it.
-  assert.deepEqual(readdirSync(src).sort(), sortedNames(S1_MATERIALIZED_RINGS), "domain, application, sdk and adapters must be the only first children of the materialized root src");
+  assert.deepEqual(readdirSync(src).sort(), sortedNames(S1_MATERIALIZED_RINGS), "domain, application, sdk, adapters and delivery must be the only first children of the materialized root src");
   assert.ok(statSync(path.join(src, "domain/identity-primitives.mjs")).isFile(), "src/domain must hold the identity primitives module as a file");
   assert.ok(statSync(path.join(src, "application/action-primitives.mjs")).isFile(), "src/application must hold the action primitives module as a file");
   // The substrate did not follow either ring out of db/: a second production home is still the

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v13b-framework-neutral-delivery-handler-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "delivery-boundary-materialization",
+  "packageState": "delivery-handler-GREEN-no-server",
+  "baseCommit": "747779f19e1dca0dd7dc031895c08b094a00a251",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v12-src-adapters-delivery-boundary-authority.json",
+    "field": "nextPackage",
+    "note": "This is the separately scoped Package B this package's predecessor anticipated: it walks through the src/delivery boundary that planning/gj01-v12-src-adapters-delivery-boundary-authority.json opened but did not itself walk through, scoped narrowly to one framework-neutral request handler — not an HTTP server or ASGI runtime."
+  },
+
+  "goal": "Give CreateCustomerCommitService a framework-neutral delivery entry point: CreateCustomerRequestHandler accepts an ordinary CreateCustomer@1 request object, builds the ActionSpec via the generated SDK, runs it through exactly one injected service instance, and maps its outcome to a frozen generic delivery response — no HTTP server, no ASGI runtime.",
+
+  "allowedFiles": [
+    "src/delivery/create-customer-request-handler.mjs",
+    "tests/kernel-create-customer-request-handler.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "tests/kernel-one-golden-slice-boundary-authority.test.mjs",
+    "tests/kernel-runtime-substrate-s1.test.mjs",
+    "planning/gj01-v13b-framework-neutral-delivery-handler.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no HTTP server of any kind",
+    "no ASGI runtime",
+    "no Uvicorn",
+    "no Hypercorn",
+    "no FastAPI",
+    "no Django",
+    "no Postgres, db or schema change",
+    "no Python change",
+    "no CI, package.json or dependency change",
+    "no release, deploy, readiness or product-runnable claim",
+    "no change to src/adapters",
+    "no app, module or release/deploy/publish path"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-create-customer-request-handler.test.mjs"],
+    "note": "Before src/delivery/create-customer-request-handler.mjs existed, every test importing it failed with ERR_MODULE_NOT_FOUND — a real capability gap, not an environment failure."
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-create-customer-request-handler.test.mjs tests/repository-boundary.test.mjs tests/kernel-one-golden-slice-boundary-authority.test.mjs tests/kernel-runtime-substrate-s1.test.mjs",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the handler's constructor exactness, outcome mapping, or the src/delivery ring materialization it proves drifts from this record",
+    "action": "revert src/delivery/create-customer-request-handler.mjs, tests/kernel-create-customer-request-handler.test.mjs, the repository-boundary/substrate/boundary-authority test updates, and this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "delivery-handler-and-tests-only; no adapters, application, domain, db or CI surface touched",
+    "runtimeDataImpact": "none: the handler is pure request-in/response-out and performs no I/O of its own"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "CreateCustomerCommitService bir müşteri oluşturma isteğini uçtan uca işleyebiliyordu ama onu çağıracak hiçbir framework-nötr giriş noktası yoktu; bir form gönderiminin bu servise nasıl ulaşacağı tanımsızdı.",
+    "after": "Artık CreateCustomerRequestHandler sıradan bir istek nesnesini (requestId, actorId, tenantId, payload, idempotencyKey) kabul edip servisi tam olarak bir kez çağırıyor ve COMMITTED/INVALID/DENY/CROSS_TENANT_DENY sonuçlarını donmuş, framework'ten bağımsız bir 201/400/403 yanıtına eşliyor. Hâlâ hiçbir HTTP sunucusu veya form gönderimi gerçekten çalışmıyor — bu paket yalnızca uygulama ile bir gelecekteki teslimat çerçevesi arasındaki köprüyü kanıtlıyor.",
+    "note": "Hiçbir sunucu, ASGI çalışma zamanı veya framework bu paketle çalışır hale gelmiyor; bu sadece framework-nötr bir işleyicidir."
+  },
+
+  "nextPackage": {
+    "note": "A future, separately scoped package may wire an actual HTTP/ASGI framework around this handler — out of this package's scope and non-goals.",
+    "preconditions": [
+      "this package's targeted GREEN and npm run check both pass",
+      "a separate Codex MASTER-approved package scopes the delivery framework decision"
+    ]
+  },
+
+  "versionBump": false
+}

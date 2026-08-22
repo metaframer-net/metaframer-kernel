@@ -16,6 +16,36 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/delivery/create-customer-request-handler.mjs`, `CreateCustomerRequestHandler`, a
+  framework-neutral Delivery-ring handler materializing the `src/delivery` boundary opened by
+  `planning/gj01-v12-src-adapters-delivery-boundary-authority.json`. The constructor accepts
+  exactly `{ service }`, requires an exact `CreateCustomerCommitService` instance by prototype
+  identity (not `instanceof`), and freezes the instance; the class and its prototype are frozen
+  too. `handle(request)` accepts an ordinary object carrying exactly `requestId`, `actorId`,
+  `tenantId`, `payload`, `idempotencyKey`, builds the ActionSpec via
+  `buildCreateCustomerActionSpec` from `src/sdk/create-customer.mjs`, and calls
+  `service.handle(actionSpec)` exactly once. `COMMITTED` maps to a frozen
+  `{ status: 201, requestId, outcome: "COMMITTED", body: { commitReceipt } }`; `INVALID` maps to
+  `status: 400`; `DENY` and `CROSS_TENANT_DENY` map to `status: 403`, both with
+  `body: { error }`; an unknown service outcome throws `TypeError`. If
+  `buildCreateCustomerActionSpec` throws, `handle` returns a frozen `400`
+  `{ outcome: "INVALID", body: { error: { code: "ACTION_SPEC_INVALID", ... } } }` response without
+  ever calling the service, using the raw string `requestId` (or `""`) from the malformed
+  request. No HTTP/ASGI import, dependency or runtime coupling — FastAPI, Django, Uvicorn and
+  Hypercorn are named only as non-goals, never imported, depended on or coupled to a runtime
+  handle — no Postgres import, no clock/random/env/socket/file access — a delivery-shaped
+  adapter, not a server.
+  `tests/kernel-create-customer-request-handler.test.mjs` proves constructor exactness, service
+  prototype-identity exactness, an invalid request maps to 400 without calling the service,
+  `COMMITTED` maps to 201 and calls the service exactly once with a frozen ActionSpec,
+  `DENY`/`CROSS_TENANT_DENY` map to 403, an unknown outcome throws, and the module imports no
+  forbidden capability or framework/runtime dependency. `tests/repository-boundary.test.mjs`,
+  `tests/kernel-one-golden-slice-boundary-authority.test.mjs` and
+  `tests/kernel-runtime-substrate-s1.test.mjs` now admit `src/delivery` as a materialized ring
+  holding exactly `create-customer-request-handler.mjs`, alongside `domain`, `application`,
+  `sdk` and `adapters`. `planning/gj01-v13b-framework-neutral-delivery-handler.json` records
+  scope, RED/GREEN evidence and rollback. `flags.runnableProduct` stays `false` — no HTTP server
+  or ASGI runtime wires this handler to anything yet.
 - `src/application/create-customer-commit-service.mjs`, `CreateCustomerCommitService`, a small
   framework-neutral Application-ring service composing one exact `CreateCustomerPipeline`
   instance with one injected `commit` port function. `handle(actionSpec)` runs
