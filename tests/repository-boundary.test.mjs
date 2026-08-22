@@ -602,8 +602,13 @@ const SRC_PERMITTED = ["domain", "application", "sdk"];
 const SRC_FORBIDDEN = ["adapters", "delivery"];
 /** The one name this package moves across the line, named once so both attacks can cite it. */
 const MOVED_CHILD = "sdk";
-/** Rings actually materialized as real directories in this checkout — `sdk` is not one of them. */
-const MATERIALIZED_RINGS = ["domain", "application"];
+/**
+ * Rings actually materialized as real directories in this checkout. `sdk` joins `domain` and
+ * `application` once the separately authorized generated-SDK generation package
+ * (`planning/gj01-generated-sdk-generation.json`) writes its first artifact — the boundary this
+ * package opened is walked through, not merely kept open.
+ */
+const MATERIALIZED_RINGS = ["domain", "application", "sdk"];
 /**
  * The closed per-ring module manifest: which flat modules each materialized ring may hold.
  *
@@ -612,11 +617,13 @@ const MATERIALIZED_RINGS = ["domain", "application"];
  * that is missing is a finding, and an unlisted third file is a finding — because "which module
  * owns this" stops being answerable from the tree the moment a ring can grow without saying so.
  * P-M1-01 entered `identity-primitives.mjs`, P-M1-02 entered `action-primitives.mjs`, and P-M1-03
- * enters `use-case.mjs` beside it.
+ * enters `use-case.mjs` beside it. The generated-SDK generation package enters
+ * `create-customer.mjs` as the first `src/sdk` module.
  */
 const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
   ["application", ["action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
+  ["sdk", ["create-customer.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();
 const refuseChild = (child) => [`forbidden-root-src-child:${child}`];
@@ -753,16 +760,15 @@ test("the narrowed root topology is decided from injected facts", () => {
   for (const [label, given, expected] of TOPOLOGY_ROWS) assertRow(rootTopologyViolations(given), expected, label);
 });
 
-test("a real tree reaches the same verdict, and this checkout materializes exactly domain and application (sdk stays a boundary, not a directory)", (t) => {
+test("a real tree reaches the same verdict, and this checkout materializes domain, application and sdk", (t) => {
   assert.equal(typeof checkRootTopology, "function", `${checkerRelative} must export checkRootTopology(rootDirectory) — nothing reads a real tree into the narrowed root first-child facts yet`);
   for (const [label, layout, expected] of READER_ROWS) assertRow(checkRootTopology(scratchTree(t, layout)), expected, `scratch: ${label}`);
-  // The narrowing permitted a root src; P-M1-01 created `domain` and P-M1-02 created
-  // `application`. This boundary-authority package permits `sdk` as a first child but creates no
-  // directory for it — opening a door is not walking through it — so the real checkout must still
-  // materialize only the two rings actually built, never the full permitted set.
+  // The narrowing permitted a root src; P-M1-01 created `domain`, P-M1-02 created `application`,
+  // and the separately authorized generated-SDK generation package now materializes `sdk` with its
+  // first artifact — the boundary this package opened is walked through, not merely kept open.
   const src = path.join(root, "src");
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "this checkout must carry a real root src directory");
-  assert.deepEqual(readdirSync(src).sort(), sortedNames(MATERIALIZED_RINGS), "domain and application must be the only first children materialized in root src; sdk stays a permitted boundary with no directory in this package");
+  assert.deepEqual(readdirSync(src).sort(), sortedNames(MATERIALIZED_RINGS), "domain, application and sdk must be the only first children materialized in root src");
   for (const [ring, manifest] of RING_MODULE_MANIFEST) {
     const dir = path.join(src, ring);
     assert.ok(existsSync(dir) && statSync(dir).isDirectory(), `src/${ring} must exist as a real directory`);

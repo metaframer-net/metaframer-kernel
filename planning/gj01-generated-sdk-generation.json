@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-generated-sdk-generation-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "generated-sdk-generation",
+  "packageState": "artifact-written-not-a-runtime",
+  "baseCommit": "7060e4776a0f6266e97ab032b4b8c72de09b3b21",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 3,
+    "id": "generated-sdk",
+    "note": "This package writes the first generated-SDK artifact, src/sdk/create-customer.mjs, into the boundary opened by planning/gj01-src-sdk-boundary-authority.json, byte-derived from the frozen protocol contract in planning/gj01-generated-sdk-protocol-readiness.json. It narrows step 3 of the pinned sequence to one artifact; it does not close step 3 and does not open the walking-skeleton step."
+  },
+
+  "implementsSdkGeneration": true,
+
+  "goal": "Materialize src/sdk/create-customer.mjs as a framework-neutral, capability-free generated SDK artifact for CreateCustomer@1, exporting exactly the pinned action name/version, ActionSpec fields, outcome enum and error-envelope fields, plus small deterministic helpers to build and recognize them. Introduces no code generator, no HTTP/ASGI/framework delivery surface, no persistence, and no runtime.",
+
+  "authority": {
+    "approvedBy": "Codex Desktop MASTER",
+    "writer": "Claude implementation writer (single writer)",
+    "boundaryOpenedBy": "planning/gj01-src-sdk-boundary-authority.json",
+    "note": "The boundary-authority package's nextPackage.preconditions required this generation package to be separately scoped test-first with its own allowedFiles, non-goals, RED/GREEN and rollback, which this record provides."
+  },
+
+  "allowedFiles": [
+    "src/sdk/create-customer.mjs",
+    "tests/kernel-generated-sdk-generation.test.mjs",
+    "planning/gj01-generated-sdk-generation.json",
+    "tests/repository-boundary.test.mjs",
+    "tests/kernel-runtime-substrate-s1.test.mjs",
+    "db/kernel-runtime-substrate-s1.json",
+    "CHANGELOG.md",
+    "tools/check-p01-architecture-fitness.mjs",
+    "tests/p01-architecture-fitness.test.mjs"
+  ],
+
+  "architectureFitnessSupplement": {
+    "role": "v9-only-current-repo-topology-evidence-not-activation-base-rewrite",
+    "note": "This supplement is read only by tools/check-p01-architecture-fitness.mjs, which merges it into a clone of the canonical onion.layers list read from planning/kernel-runtime-pilot-consumer-sync.json. It admits the src/sdk ring this V9 package materializes without editing, rewriting, or re-basing that pinned, byte-immutable activation-base artifact, which stays byte-identical to HEAD. If this generation package is ever reverted, this supplement disappears with it and the fitness checker falls back to evaluating the unmerged canonical contract, which has no SDK layer and would again refuse src/sdk as an unknown ring — that is the correct, honest state for a reverted package, not a regression to guard against.",
+    "layer": { "order": 3, "name": "SDK", "position": "generated-boundary", "dependsOn": ["Application"] }
+  },
+
+  "artifact": {
+    "path": "src/sdk/create-customer.mjs",
+    "exports": [
+      "ACTION_NAME", "ACTION_VERSION", "ACTION_SPEC_FIELDS", "OUTCOMES", "ERROR_ENVELOPE_FIELDS",
+      "buildCreateCustomerActionSpec", "isCreateCustomerOutcome", "isCreateCustomerErrorEnvelope"
+    ],
+    "derivedFrom": [
+      "planning/gj01-generated-sdk-protocol-readiness.json#protocolContract",
+      "src/application/create-customer-pipeline.mjs"
+    ],
+    "constraints": [
+      "no import statements at all: framework-neutral by construction, coupled to nothing",
+      "no network, environment read, clock, random value or file I/O",
+      "no ASGI, Uvicorn, Hypercorn, FastAPI or Django reference",
+      "every exported collection is frozen; every exported function is frozen"
+    ]
+  },
+
+  "boundaryUpdate": {
+    "note": "src/sdk was a permitted-but-empty boundary. This package is the first to materialize it, so the root-source-topology tests and the substrate contract's mirrored clause are updated to say sdk is now a materialized ring alongside domain and application. The permitted/forbidden first-child lists themselves are unchanged; only the description of what this checkout has built moves.",
+    "filesUpdatedForThisReason": [
+      "tests/repository-boundary.test.mjs",
+      "tests/kernel-runtime-substrate-s1.test.mjs",
+      "db/kernel-runtime-substrate-s1.json"
+    ]
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "generatedSdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+
+  "capabilityDelta": "SDK_ARTIFACT_ONLY",
+  "capabilityDeltaExplanation": "A caller can now import a static, pure module that names the CreateCustomer@1 action, its ActionSpec shape, its outcome enum and its error-envelope shape, and can build/validate values against that shape in memory. Nothing runs the pipeline, nothing talks to a network, a database or a framework, and no product or runtime capability exists as a result of this package.",
+  "runnableProduct": false,
+
+  "nonGoals": [
+    "no code generator or generation tooling of any kind",
+    "no HTTP, ASGI, Uvicorn, Hypercorn, FastAPI or Django delivery surface",
+    "no database, persistence, CommitReceipt, audit or outbox runtime implementation",
+    "no change to src/application or src/domain source",
+    "no package metadata, README or CI/config change",
+    "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package",
+    "generatedSdkReady, sdkReady, kernelReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed and gapClosed all stay false"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-generated-sdk-generation.test.mjs"],
+    "observedFailure": "ERR_MODULE_NOT_FOUND: src/sdk/create-customer.mjs did not exist before this package"
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/p01-architecture-fitness.test.mjs tests/kernel-generated-sdk-generation.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs tests/kernel-generated-sdk-protocol-readiness.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the artifact's exported surface, its capability-free constraints, the flags/non-goals block, or the architecture-fitness supplement drifts from this record",
+    "action": "revert src/sdk/create-customer.mjs, tests/kernel-generated-sdk-generation.test.mjs, planning/gj01-generated-sdk-generation.json, the boundary-description edits in tests/repository-boundary.test.mjs and tests/kernel-runtime-substrate-s1.test.mjs, the rootSourceTopology.note edit in db/kernel-runtime-substrate-s1.json, the supplement-merge edit in tools/check-p01-architecture-fitness.mjs, the supplement-merge test coverage in tests/p01-architecture-fitness.test.mjs, and the CHANGELOG.md entry as one nine-file shard. planning/kernel-runtime-pilot-consumer-sync.json is never part of this shard: it is not touched by this package and stays byte-identical to HEAD throughout.",
+    "blastRadius": "sdk-artifact-and-boundary-description-and-architecture-fitness-supplement-and-tests-only",
+    "runtimeDataImpact": "none"
+  },
+
+  "versionBump": false
+}

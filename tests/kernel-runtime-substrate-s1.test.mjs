@@ -1307,8 +1307,12 @@ const S1_SRC_PERMITTED = ["domain", "application", "sdk"];
 const S1_SRC_FORBIDDEN = ["adapters", "delivery"];
 /** The one name the boundary-authority package moves across the line, named once so both attacks can cite it. */
 const S1_MOVED_CHILD = "sdk";
-/** Rings actually materialized as real directories in this checkout — sdk is not one of them. */
-const S1_MATERIALIZED_RINGS = ["domain", "application"];
+/**
+ * Rings actually materialized as real directories in this checkout. `sdk` joins `domain` and
+ * `application` once the separately authorized generated-SDK generation package writes its first
+ * artifact under the boundary this substrate package's contract re-exports.
+ */
+const S1_MATERIALIZED_RINGS = ["domain", "application", "sdk"];
 const sortedNames = (values) => [...(values ?? [])].sort();
 /** Only root-topology findings are in scope; a scratch tree has no substrate package at all. */
 const rootFindings = (found) => found.filter((f) => /root-src-child|root-path-present:/.test(f));
@@ -1431,7 +1435,6 @@ test("the contract carries a closed rootSourceTopology clause, and Phase A keeps
   assert.match(String(topology.note ?? ""), /domain/, "the clause needs a note saying what narrowed and what did not");
   assert.match(String(topology.note ?? ""), /application/, "the note still describes a single permitted ring; it must say that application is permitted too");
   assert.match(String(topology.note ?? ""), /sdk/, "the note must say sdk is a permitted boundary");
-  assert.match(String(topology.note ?? ""), /not materialized|boundary-only/i, "the note must say sdk is boundary-only, not a materialized directory");
   assert.deepEqual(contract.forbiddenAlways, FORBIDDEN_ROOT_PATHS);
   assert.ok(!contract.forbiddenAlways.includes("src"), "forbiddenAlways must no longer list bare src");
   // History is not rewritten to match the narrowing: src was on the Phase A list, and stays on it.
@@ -1478,9 +1481,9 @@ test("the verifier's own comments and the substrate pyproject state the narrowed
 test("the real checkout carries exactly both inner rings, and this narrowing moves no state", () => {
   const src = path.join(root, "src");
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "the narrowed fence permits a root src, and P-M1-01 materializes it");
-  // sdk is a permitted boundary, not a materialized ring: the boundary-authority package creates
-  // no directory for it, so the real checkout must still show only domain and application.
-  assert.deepEqual(readdirSync(src).sort(), sortedNames(S1_MATERIALIZED_RINGS), "domain and application must be the only first children of the materialized root src; sdk stays a permitted boundary with no directory");
+  // sdk is a permitted boundary, materialized by the separately authorized generated-SDK
+  // generation package's first artifact — this substrate package neither owns it nor writes it.
+  assert.deepEqual(readdirSync(src).sort(), sortedNames(S1_MATERIALIZED_RINGS), "domain, application and sdk must be the only first children of the materialized root src");
   assert.ok(statSync(path.join(src, "domain/identity-primitives.mjs")).isFile(), "src/domain must hold the identity primitives module as a file");
   assert.ok(statSync(path.join(src, "application/action-primitives.mjs")).isFile(), "src/application must hold the action primitives module as a file");
   // The substrate did not follow either ring out of db/: a second production home is still the

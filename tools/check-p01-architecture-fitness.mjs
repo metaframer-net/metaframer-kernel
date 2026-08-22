@@ -2,10 +2,18 @@ import { readFileSync, readdirSync, lstatSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// P01-PKG10 — deterministic Onion import-direction fitness gate; layer order comes only from the canonical architectureContract.onion.layers.
+// P01-PKG10 — deterministic Onion import-direction fitness gate. Base layer order comes from the
+// canonical historical architectureContract.onion.layers; V9 may additionally merge exactly one
+// narrow SDK supplement from planning/gj01-generated-sdk-generation.json, without editing the
+// pinned activation-base artifact itself.
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CANONICAL_CONTRACT_PATH = path.join(root, "planning", "kernel-runtime-pilot-consumer-sync.json");
+// A narrow, same-package supplement: it admits the src/sdk ring this V9 package materializes
+// without rewriting the pinned, byte-immutable activation-base artifact above. It is merged, never
+// substituted, and every existing fail-closed rule (contiguity, no duplicates, malformed shape)
+// still applies to the merged result.
+const SUPPLEMENT_PATH = path.join(root, "planning", "gj01-generated-sdk-generation.json");
 const SOURCE_ROOT = path.join(root, "src");
 
 // Validates and indexes the canonical onion layer contract; fails closed on anything malformed.
@@ -178,15 +186,87 @@ function loadCanonicalContract() {
   catch { return null; }
 }
 
+// Reads the narrow V9 supplement, if any. Its absence is not an error: a checkout without the
+// generated-SDK generation package simply evaluates the canonical historical contract unmerged.
+function loadArchitectureFitnessSupplement() {
+  try { return JSON.parse(readFileSync(SUPPLEMENT_PATH, "utf8"))?.architectureFitnessSupplement ?? null; }
+  catch { return null; }
+}
+
+/**
+ * Merge exactly one narrow layer supplement into the canonical onion contract, or fail closed.
+ *
+ * This never edits, substitutes for, or bypasses the canonical contract — it only inserts one
+ * additional layer into a clone of it, shifting any layer at or beyond the supplement's declared
+ * order outward by one, and re-checks the merged result against the same contiguity and
+ * uniqueness rules `parseCanonicalLayers` already enforces. `supplement === null` (no supplement
+ * present) is success-with-no-change, so a checkout without the generation package is unaffected.
+ * Anything else that is malformed, duplicate, non-contiguous after the shift, or names a layer
+ * other than `SDK` is refused by name.
+ */
+export function mergeArchitectureFitnessSupplement(architectureContract, supplement) {
+  if (supplement === null || supplement === undefined) return { ok: true, architectureContract };
+  const layers = architectureContract?.onion?.layers;
+  if (!Array.isArray(layers) || layers.length === 0) {
+    return { ok: false, reason: "architecture-fitness-supplement-invalid: canonical layers missing or empty" };
+  }
+  const layer = supplement?.layer;
+  const shapeValid =
+    layer !== null && typeof layer === "object" &&
+    typeof layer.name === "string" && layer.name.trim() !== "" &&
+    Number.isInteger(layer.order) &&
+    typeof layer.position === "string" && layer.position.trim() !== "" &&
+    Array.isArray(layer.dependsOn) && layer.dependsOn.length > 0 &&
+    layer.dependsOn.every((dep) => typeof dep === "string" && dep.trim() !== "");
+  if (!shapeValid) {
+    return { ok: false, reason: "architecture-fitness-supplement-invalid: malformed layer entry" };
+  }
+  if (layer.name !== "SDK") {
+    return { ok: false, reason: `architecture-fitness-supplement-invalid: names ${layer.name}, only SDK is a permitted V9 supplement` };
+  }
+  const existingNames = new Set(layers.map((existing) => String(existing.name).toLowerCase()));
+  if (existingNames.has(layer.name.toLowerCase())) {
+    return { ok: false, reason: "architecture-fitness-supplement-invalid: duplicate layer, SDK is already canonical" };
+  }
+  for (const dep of layer.dependsOn) {
+    if (!existingNames.has(dep.toLowerCase())) {
+      return { ok: false, reason: `architecture-fitness-supplement-invalid: dependsOn names an unknown layer ${dep}` };
+    }
+  }
+  const shifted = layers.map((existing) =>
+    existing.order >= layer.order ? { ...existing, order: existing.order + 1 } : { ...existing });
+  const merged = [...shifted, { order: layer.order, name: layer.name, position: layer.position, dependsOn: [...layer.dependsOn] }];
+
+  const orders = merged.map((entry) => entry.order).slice().sort((a, b) => a - b);
+  for (let i = 0; i < orders.length; i += 1) {
+    if (orders[i] !== i + 1) {
+      return { ok: false, reason: "architecture-fitness-supplement-invalid: non-contiguous order after merge" };
+    }
+  }
+  const mergedNames = merged.map((entry) => String(entry.name).toLowerCase());
+  if (new Set(mergedNames).size !== mergedNames.length) {
+    return { ok: false, reason: "architecture-fitness-supplement-invalid: duplicate name after merge" };
+  }
+  merged.sort((a, b) => a.order - b.order);
+  return { ok: true, architectureContract: { ...architectureContract, onion: { ...architectureContract.onion, layers: merged } } };
+}
+
 async function main() {
   const startedAt = process.hrtime.bigint();
-  const facts = { canonicalLayerContract: loadCanonicalContract(), files: readSourceFacts(SOURCE_ROOT) };
+  const canonical = loadCanonicalContract();
+  const merge = mergeArchitectureFitnessSupplement(canonical, loadArchitectureFitnessSupplement());
+  const facts = {
+    canonicalLayerContract: merge.ok ? merge.architectureContract : null,
+    files: readSourceFacts(SOURCE_ROOT),
+  };
   const result = evaluateArchitectureFitness(facts);
+  const findings = merge.ok ? result.findings : [merge.reason, ...result.findings];
+  const ok = merge.ok && result.ok;
   const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
 
-  if (!result.ok || result.findings.length > 0) {
+  if (!ok || findings.length > 0) {
     console.error(`P01_PKG10_ARCHITECTURE_FITNESS_RED (${durationMs.toFixed(2)}ms)`);
-    for (const finding of result.findings) console.error(`  - ${finding}`);
+    for (const finding of findings) console.error(`  - ${finding}`);
     process.exitCode = 1;
     return;
   }
