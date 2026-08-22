@@ -6,14 +6,14 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // =====================================================================================
-// PostgresCommitAdapter — targeted RED/GREEN for V12B1.
+// PostgresCommitAdapter — targeted RED/GREEN for V12B2B.
 //
-// Proves the adapter commits three of the four CreateCustomerPipeline ALLOW_COMMIT write
-// intents — audit, transactionalOutbox, idempotency — atomically, inside one attested tenant
+// Proves the adapter commits all four CreateCustomerPipeline ALLOW_COMMIT write intents —
+// customer, audit, transactionalOutbox, idempotency — atomically, inside one attested tenant
 // transaction, against a REAL PostgreSQL 16 container (never a mock or in-memory substrate).
-// The fourth intent, customer, is deferred: the S1 substrate owns exactly two runtime tables
-// (transactional_outbox, audit_log) and no customer-owning table, and materializing one is out
-// of this package's scope. See planning/gj01-v12b1-postgres-adapter.json.
+// The customer intent is written into customer_records, added in
+// db/metaframer_kernel_db/alembic/versions/0002_customer_records.py. See
+// planning/gj01-v12b2b-customer-commit-receipt.json.
 // =====================================================================================
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -101,8 +101,8 @@ test("importing the adapter exposes PostgresCommitAdapter with no side effects",
   const module = await import(pathToFileURL(path.join(root, adapterPath)).href);
   assert.equal(typeof module.PostgresCommitAdapter, "function", "PostgresCommitAdapter must be exported");
   assert.equal(typeof module.COMMITTED_INTENTS, "object");
-  assert.deepEqual([...module.COMMITTED_INTENTS].sort(), ["audit", "idempotency", "transactionalOutbox"]);
-  assert.deepEqual([...module.DEFERRED_INTENTS], ["customer"]);
+  assert.deepEqual([...module.COMMITTED_INTENTS].sort(), ["audit", "customer", "idempotency", "transactionalOutbox"]);
+  assert.deepEqual([...module.DEFERRED_INTENTS], []);
 });
 
 test("the adapter refuses a preparedChangeSet that is not persistenceState pending", async () => {
@@ -114,9 +114,45 @@ test("the adapter refuses a preparedChangeSet that is not persistenceState pendi
   );
 });
 
+function validIntentsForTenant(tenantId) {
+  const correlationId = crypto.randomUUID();
+  return {
+    customer: { type: "customer.create", tenantId, payload: { name: "Ada" } },
+    audit: { type: "audit.append", tenantId, actorId: "actor-1", action: "customer.create", correlationId },
+    transactionalOutbox: { type: "outbox.enqueue", eventName: "customer.created", tenantId, correlationId },
+    idempotency: { type: "idempotency.record", tenantId, fingerprint: `fp-${correlationId}`, correlationId },
+  };
+}
+
+test("the adapter refuses a customer intent with no tenantId, before any DB work", async () => {
+  const { PostgresCommitAdapter } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+  // An unroutable connectionString proves rejection happens before any DB work is attempted:
+  // pool.connect() would hang or error differently if the adapter ever reached it.
+  const adapter = new PostgresCommitAdapter({ connectionString: "postgresql://example/does-not-matter" });
+  const tenantId = crypto.randomUUID();
+  const intents = validIntentsForTenant(tenantId);
+  delete intents.customer.tenantId;
+  await assert.rejects(
+    () => adapter.commit({ persistenceState: "pending", intents }, { tenantId }),
+    TypeError,
+  );
+});
+
+test("the adapter refuses a customer intent whose tenantId mismatches options.tenantId, before any DB work", async () => {
+  const { PostgresCommitAdapter } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+  const adapter = new PostgresCommitAdapter({ connectionString: "postgresql://example/does-not-matter" });
+  const tenantId = crypto.randomUUID();
+  const intents = validIntentsForTenant(tenantId);
+  intents.customer.tenantId = crypto.randomUUID();
+  await assert.rejects(
+    () => adapter.commit({ persistenceState: "pending", intents }, { tenantId }),
+    TypeError,
+  );
+});
+
 // The real, Docker-backed proof. Skipped with a loud, separately-reported failure if Docker is
 // unavailable — never silently skipped, and never satisfied against a mock substrate.
-test("ALLOW_COMMIT audit, outbox and idempotency intents are committed atomically against a real PostgreSQL 16 instance; customer stays deferred", async (t) => {
+test("all four ALLOW_COMMIT intents, including customer, are committed atomically against a real PostgreSQL 16 instance", async (t) => {
   if (!dockerAvailable()) {
     throw new Error(
       "docker is not available in this environment: this is an environment failure, not a " +
@@ -172,10 +208,23 @@ test("ALLOW_COMMIT audit, outbox and idempotency intents are committed atomicall
     const receipt = await adapter.commit(preparedChangeSet, { tenantId });
     assert.deepEqual([...receipt.committedIntents].sort(), [...COMMITTED_INTENTS].sort());
     assert.deepEqual([...receipt.deferredIntents], [...DEFERRED_INTENTS]);
+    assert.equal(receipt.deferredReason, undefined);
+    assert.equal(receipt.receiptType, "CommitReceipt");
+    assert.equal(typeof receipt.customerRecordId, "string");
     assert.equal(typeof receipt.auditLogId, "string");
     assert.equal(typeof receipt.outboxId, "string");
+    assert.ok(Object.isFrozen(receipt));
 
     await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const customer = await client.query(
+        "SELECT tenant_id, name, payload FROM customer_records WHERE id = $1",
+        [receipt.customerRecordId],
+      );
+      assert.equal(customer.rows.length, 1);
+      assert.equal(customer.rows[0].tenant_id, tenantId);
+      assert.equal(customer.rows[0].name, "Ada");
+      assert.deepEqual(customer.rows[0].payload, { name: "Ada" });
+
       const audit = await client.query("SELECT tenant_id, event_type, correlation_id FROM audit_log WHERE id = $1", [receipt.auditLogId]);
       assert.equal(audit.rows.length, 1);
       assert.equal(audit.rows[0].tenant_id, tenantId);
@@ -191,11 +240,14 @@ test("ALLOW_COMMIT audit, outbox and idempotency intents are committed atomicall
       assert.equal(outbox.rows[0].dedup_key, `fp-${correlationId}`);
     });
 
-    // A second commit with the same idempotency fingerprint must not create a second outbox row.
+    // A second commit with the same idempotency fingerprint must not create a second outbox row,
+    // and must not create a second customer row either.
     await assert.rejects(() => adapter.commit(preparedChangeSet, { tenantId }));
     await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
-      const count = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
-      assert.equal(Number(count.rows[0].count), 1, "the duplicate commit must not enqueue a second outbox row");
+      const outboxCount = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(outboxCount.rows[0].count), 1, "the duplicate commit must not enqueue a second outbox row");
+      const customerCount = await client.query("SELECT count(*) FROM customer_records WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(customerCount.rows[0].count), 1, "the duplicate commit must not insert a second customer row");
     });
   } finally {
     // Close the adapter's own connections before t.after() tears down the container, so the

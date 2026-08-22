@@ -8,27 +8,25 @@ import pg from "pg";
 // real, attested tenant transaction (`mfk_begin_tenant_context`), never against a mock or
 // in-memory database.
 //
-// The S1 substrate owns exactly two runtime tables — `transactional_outbox` and `audit_log` —
-// and no customer-owning table. This adapter therefore commits three of the pipeline's four
-// write intents for real:
+// The S1 substrate owns the two runtime tables `transactional_outbox` and `audit_log`; the
+// tenant-owned domain table `customer_records` was added in
+// db/metaframer_kernel_db/alembic/versions/0002_customer_records.py. This adapter commits all
+// four of the pipeline's write intents for real, in one transaction:
 //
+//   - `customer`            -> one row in `customer_records`
 //   - `audit`               -> one row in `audit_log`
 //   - `transactionalOutbox` -> one row in `transactional_outbox`
 //   - `idempotency`         -> realized as that outbox row's `dedup_key`, which the substrate's
 //                              own per-tenant unique index already enforces; a repeated commit
-//                              with the same fingerprint is refused by the database itself
+//                              with the same fingerprint is refused by the database itself, and
+//                              rolls back the customer insert along with everything else
 //
-// The fourth intent, `customer`, has no backing table in this substrate and is left deferred.
-// Materializing a customer-owning table is a separate, out-of-scope decision — see
-// planning/gj01-v12b1-postgres-adapter.json — so this adapter mints no CommitReceipt claiming a
-// customer was persisted. It is a bounded, honest commit contract, not the full B2 commit.
+// The mint receipt is a frozen CommitReceipt-shaped object covering all four intents, with no
+// deferred intent and no deferredReason.
 // =====================================================================================
 
-export const COMMITTED_INTENTS = Object.freeze(["audit", "transactionalOutbox", "idempotency"]);
-export const DEFERRED_INTENTS = Object.freeze(["customer"]);
-export const DEFERRED_REASON =
-  "no customer-owning runtime table exists in the S1 substrate (transactional_outbox, audit_log " +
-  "only); materializing one is a separate, out-of-scope decision";
+export const COMMITTED_INTENTS = Object.freeze(["customer", "audit", "transactionalOutbox", "idempotency"]);
+export const DEFERRED_INTENTS = Object.freeze([]);
 
 const INTENT_KEYS = Object.freeze(["customer", "audit", "transactionalOutbox", "idempotency"]);
 
@@ -51,11 +49,14 @@ function checkPreparedChangeSet(preparedChangeSet) {
   if (keys.length !== INTENT_KEYS.length || INTENT_KEYS.some((key) => !keys.includes(key))) {
     throw new TypeError(`preparedChangeSet.intents must carry exactly these keys: ${INTENT_KEYS.join(", ")}`);
   }
-  const { audit, transactionalOutbox, idempotency } = intents;
-  for (const [name, intent] of [["audit", audit], ["transactionalOutbox", transactionalOutbox], ["idempotency", idempotency]]) {
+  const { customer, audit, transactionalOutbox, idempotency } = intents;
+  for (const [name, intent] of [["customer", customer], ["audit", audit], ["transactionalOutbox", transactionalOutbox], ["idempotency", idempotency]]) {
     if (!isOrdinaryObject(intent)) {
       throw new TypeError(`preparedChangeSet.intents.${name} must be an ordinary object`);
     }
+  }
+  if (!isOrdinaryObject(customer.payload) || typeof customer.payload.name !== "string" || !customer.payload.name) {
+    throw new TypeError("intents.customer.payload.name must be a non-empty string");
   }
   if (typeof audit.action !== "string" || !audit.action) {
     throw new TypeError("intents.audit.action must be a non-empty string");
@@ -66,7 +67,7 @@ function checkPreparedChangeSet(preparedChangeSet) {
   if (typeof idempotency.fingerprint !== "string" || !idempotency.fingerprint) {
     throw new TypeError("intents.idempotency.fingerprint must be a non-empty string");
   }
-  return { audit, transactionalOutbox, idempotency };
+  return { customer, audit, transactionalOutbox, idempotency };
 }
 
 function checkTenantId(tenantId) {
@@ -74,6 +75,15 @@ function checkTenantId(tenantId) {
     throw new TypeError("commit needs an options.tenantId string");
   }
   return tenantId;
+}
+
+function checkCustomerTenant(customer, tenantId) {
+  if (typeof customer.tenantId !== "string" || !customer.tenantId) {
+    throw new TypeError("intents.customer.tenantId must be a non-empty string");
+  }
+  if (customer.tenantId !== tenantId) {
+    throw new TypeError("intents.customer.tenantId must exactly match options.tenantId");
+  }
 }
 
 export class PostgresCommitAdapter {
@@ -87,18 +97,25 @@ export class PostgresCommitAdapter {
   }
 
   /**
-   * Commit the audit, transactionalOutbox and idempotency intents of one ALLOW_COMMIT
-   * preparedChangeSet atomically, inside one attested tenant transaction. Rolls back and rejects
-   * on any failure, including a repeated idempotency fingerprint for the same tenant.
+   * Commit the customer, audit, transactionalOutbox and idempotency intents of one
+   * ALLOW_COMMIT preparedChangeSet atomically, inside one attested tenant transaction. Rolls
+   * back and rejects on any failure, including a repeated idempotency fingerprint for the same
+   * tenant.
    */
   async commit(preparedChangeSet, options) {
-    const { audit, transactionalOutbox, idempotency } = checkPreparedChangeSet(preparedChangeSet);
+    const { customer, audit, transactionalOutbox, idempotency } = checkPreparedChangeSet(preparedChangeSet);
     const tenantId = checkTenantId(isOrdinaryObject(options) ? options.tenantId : undefined);
+    checkCustomerTenant(customer, tenantId);
 
     const client = await this.#pool.connect();
     try {
       await client.query("BEGIN");
       await client.query("SELECT mfk_begin_tenant_context($1::uuid)", [tenantId]);
+
+      const customerResult = await client.query(
+        "INSERT INTO customer_records (tenant_id, name, payload) VALUES ($1, $2, $3) RETURNING id",
+        [tenantId, customer.payload.name, JSON.stringify(customer.payload)],
+      );
 
       const auditResult = await client.query(
         "INSERT INTO audit_log (tenant_id, event_type, actor_id, correlation_id, details) " +
@@ -120,9 +137,10 @@ export class PostgresCommitAdapter {
 
       await client.query("COMMIT");
       return Object.freeze({
+        receiptType: "CommitReceipt",
         committedIntents: COMMITTED_INTENTS,
         deferredIntents: DEFERRED_INTENTS,
-        deferredReason: DEFERRED_REASON,
+        customerRecordId: customerResult.rows[0].id,
         auditLogId: auditResult.rows[0].id,
         outboxId: outboxResult.rows[0].id,
       });
