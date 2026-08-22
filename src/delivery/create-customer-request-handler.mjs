@@ -49,6 +49,32 @@ function rawRequestIdOf(request) {
   return "";
 }
 
+// Duck-typed, not instanceof: this module stays Postgres-free by construction, and the commit
+// port is injected, so the only safe way to recognize the one known duplicate-idempotency
+// conflict is the frozen shape PostgresCommitAdapter's IdempotencyConflictError always carries —
+// never a generic DB failure, which this handler must keep letting propagate unmasked.
+function isIdempotencyConflictError(error) {
+  return error != null
+    && error.name === "IdempotencyConflictError"
+    && error.code === "IDEMPOTENCY_CONFLICT";
+}
+
+function idempotencyConflictResponse(requestId) {
+  return Object.freeze({
+    status: 409,
+    requestId,
+    outcome: "IDEMPOTENCY_CONFLICT",
+    body: Object.freeze({
+      error: Object.freeze({
+        code: "IDEMPOTENCY_CONFLICT",
+        message: "a request with this idempotency fingerprint was already committed",
+        requestId,
+        retryable: false,
+      }),
+    }),
+  });
+}
+
 function invalidActionSpecResponse(request) {
   const requestId = rawRequestIdOf(request);
   return Object.freeze({
@@ -83,7 +109,15 @@ export class CreateCustomerRequestHandler {
       return invalidActionSpecResponse(request);
     }
 
-    const result = await this.#service.handle(actionSpec);
+    let result;
+    try {
+      result = await this.#service.handle(actionSpec);
+    } catch (error) {
+      if (isIdempotencyConflictError(error)) {
+        return idempotencyConflictResponse(rawRequestIdOf(request));
+      }
+      throw error;
+    }
 
     if (result.outcome === "COMMITTED") {
       return Object.freeze({

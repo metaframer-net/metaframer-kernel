@@ -105,6 +105,20 @@ test("importing the adapter exposes PostgresCommitAdapter with no side effects",
   assert.deepEqual([...module.DEFERRED_INTENTS], []);
 });
 
+test("IdempotencyConflictError is exported, frozen, and carries a deterministic non-retryable shape", async () => {
+  const { IdempotencyConflictError } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+  assert.equal(typeof IdempotencyConflictError, "function");
+  assert.ok(Object.isFrozen(IdempotencyConflictError));
+  assert.ok(Object.isFrozen(IdempotencyConflictError.prototype));
+  const tenantId = crypto.randomUUID();
+  const error = new IdempotencyConflictError(tenantId, "fp-1");
+  assert.ok(error instanceof Error);
+  assert.equal(error.code, "IDEMPOTENCY_CONFLICT");
+  assert.equal(error.retryable, false);
+  assert.equal(error.tenantId, tenantId);
+  assert.equal(error.fingerprint, "fp-1");
+});
+
 test("the adapter refuses a preparedChangeSet that is not persistenceState pending", async () => {
   const { PostgresCommitAdapter } = await import(pathToFileURL(path.join(root, adapterPath)).href);
   const adapter = new PostgresCommitAdapter({ connectionString: "postgresql://example/does-not-matter" });
@@ -300,8 +314,21 @@ test("all four ALLOW_COMMIT intents, including customer, are committed atomicall
     });
 
     // A second commit with the same idempotency fingerprint must not create a second outbox row,
-    // and must not create a second customer row either.
-    await assert.rejects(() => adapter.commit(preparedChangeSet, { tenantId }));
+    // and must not create a second customer row either. GJ-01 V14L: the adapter must map this
+    // specific, known duplicate-idempotency conflict to a deterministic IdempotencyConflictError
+    // — never leak the raw pg unique-violation error.
+    const { IdempotencyConflictError } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+    await assert.rejects(
+      () => adapter.commit(preparedChangeSet, { tenantId }),
+      (error) => {
+        assert.ok(error instanceof IdempotencyConflictError);
+        assert.equal(error.code, "IDEMPOTENCY_CONFLICT");
+        assert.equal(error.retryable, false);
+        assert.equal(error.tenantId, tenantId);
+        assert.equal(error.fingerprint, `fp-${correlationId}`);
+        return true;
+      },
+    );
     await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
       const outboxCount = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
       assert.equal(Number(outboxCount.rows[0].count), 1, "the duplicate commit must not enqueue a second outbox row");
