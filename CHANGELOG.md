@@ -16,6 +16,24 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/delivery/create-customer-http-message-adapter.mjs`, `CreateCustomerHttpMessageAdapter`,
+  the smallest framework-neutral HTTP message adapter for GJ-01 Create Customer. Constructor
+  accepts exactly `{ handler }`, requires an exact `CreateCustomerRequestHandler` instance by
+  prototype identity, and freezes instance/class/prototype. `handle(message)` accepts an
+  ordinary `{ method, path, headers, body }`; a malformed shape, non-`POST` method or path
+  other than `/customers` returns a frozen generic 400/405/404 without ever calling the
+  handler. A valid `POST /customers` message extracts `requestId`/`actorId`/`tenantId`/
+  `idempotencyKey` from the `x-request-id`/`x-actor-id`/`x-tenant-id`/`idempotency-key`
+  headers (case-insensitive), sets `payload` to `body`, calls the handler exactly once, and
+  maps its response to a frozen `{ status, headers, body }` carrying `content-type` and
+  `x-request-id`. No Node `http`/`net`/`fs`/`fetch`, no ASGI/FastAPI/Django/Uvicorn/Hypercorn
+  dependency, no clock/random/env access — proves the boundary a future host could call
+  without selecting one. `tests/kernel-create-customer-http-message-adapter.test.mjs` proves
+  option exactness, frozen response shapes, case-insensitive headers, the 400/404/405
+  short-circuits and forbidden-import checks. `tests/repository-boundary.test.mjs` now admits
+  `src/delivery` holding the new module alongside the composition root and request handler.
+  `planning/gj01-v14a-framework-neutral-http-message.json` records scope and evidence.
+  `flags.runnableProduct` stays `false`.
 - `src/delivery/create-customer-composition.mjs`, `createCustomerComposition(options)`, the
   smallest framework-neutral composition root wiring the existing
   `CreateCustomerRequestHandler` to a real `CreateCustomerCommitService` and the existing

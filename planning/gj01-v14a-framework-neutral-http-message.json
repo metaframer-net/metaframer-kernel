@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14a-framework-neutral-http-message-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "delivery-boundary-materialization",
+  "packageState": "http-message-adapter-GREEN-no-host",
+  "baseCommit": "f4e8784290b3bbfd256922f6c1ed69511630c284",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v13b-framework-neutral-delivery-handler.json",
+    "field": "nextPackage",
+    "note": "The nextPackage this package's predecessor named: a framework-neutral HTTP message boundary in front of CreateCustomerRequestHandler, no host framework selected."
+  },
+
+  "goal": "Add the smallest framework-neutral HTTP message adapter for GJ-01 Create Customer: CreateCustomerHttpMessageAdapter converts a plain { method, path, headers, body } message into the existing CreateCustomerRequestHandler request shape, calls exactly one injected handler instance, and returns a frozen { status, headers, body } response. Proves the host boundary a future host could call, without selecting one.",
+
+  "allowedFiles": [
+    "src/delivery/create-customer-http-message-adapter.mjs",
+    "tests/kernel-create-customer-http-message-adapter.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/gj01-v14a-framework-neutral-http-message.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no HTTP server of any kind",
+    "no ASGI runtime",
+    "no Uvicorn",
+    "no Hypercorn",
+    "no FastAPI",
+    "no Django",
+    "no Express, Koa or any Node HTTP framework",
+    "no Node http.IncomingMessage/ServerResponse or net listener",
+    "no fetch Request/Response usage",
+    "no Postgres, db or schema change",
+    "no Python change",
+    "no CI, package.json or dependency change",
+    "no release, deploy, readiness or product-runnable claim",
+    "no change to src/adapters or src/application",
+    "no app, module or release/deploy/publish path"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-create-customer-http-message-adapter.test.mjs"],
+    "note": "Before the adapter existed, the import failed with ERR_MODULE_NOT_FOUND — a real capability gap."
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-create-customer-http-message-adapter.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the adapter's constructor exactness, message-shape validation, or delivery-response mapping drifts from this record",
+    "action": "revert src/delivery/create-customer-http-message-adapter.mjs, its test file, the repository-boundary manifest edit, this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "http-message-adapter-and-tests-only; no adapters, application, domain, db or CI surface touched",
+    "runtimeDataImpact": "none: pure message-in/response-out, no I/O of its own"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "runnableProduct": false
+  },
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "CreateCustomerRequestHandler bir istek nesnesi kabul edebiliyordu ama gerçek bir HTTP çağrısından (metod, yol, başlık, gövde) nasıl türetileceği tanımsızdı.",
+    "after": "Artık CreateCustomerHttpMessageAdapter { method, path, headers, body } mesajını kabul edip başlıklardan isteği kuruyor, handler'ı bir kez çağırıyor ve donmuş { status, headers, body } yanıtı döndürüyor. Hâlâ hiçbir sunucu çalışmıyor — bu paket yalnızca mesaj sınırını kanıtlıyor, host seçmiyor.",
+    "note": "Hiçbir sunucu, ASGI çalışma zamanı veya framework çalışır hale gelmiyor; framework-nötr bir mesaj adaptörü."
+  },
+
+  "kalanEngel": "gerçek bir HTTP sunucusu, host framework seçimi ve ağ dinleyicisi hâlâ yok.",
+
+  "nextPackage": {
+    "note": "A future package may wire an actual HTTP server/host framework around this adapter — out of scope here.",
+    "preconditions": ["this package's targeted GREEN and npm run check both pass", "a separate approved package scopes the host/server decision"]
+  },
+
+  "versionBump": false
+}
