@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-generated-sdk-protocol-readiness-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "generated-sdk-protocol-readiness",
+  "packageState": "implementation-complete-external-evidence-pending",
+  "baseCommit": "359389c4d8438b2e6624ca30e9350240bfc2a80e",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 3,
+    "id": "generated-sdk",
+    "note": "This package narrows step 3 of the pinned sequence to protocol/readiness only. It does not close step 3; it freezes the contract a later, separately authorized generation package must target byte-identically."
+  },
+
+  "implementsSdkGeneration": false,
+
+  "goal": "Freeze a declarative typed-action/envelope protocol contract for CreateCustomer@1, derived only from the already-closed CreateCustomerPipeline surface, so a future generated-SDK package has a pinned, deterministic target. Introduces no generator, no generated client, no src/sdk tree and no delivery surface.",
+
+  "allowedFiles": [
+    "planning/gj01-generated-sdk-protocol-readiness.json",
+    "tests/kernel-generated-sdk-protocol-readiness.test.mjs",
+    "CHANGELOG.md"
+  ],
+
+  "protocolContract": {
+    "typedAction": {
+      "createCustomerV1": {
+        "actionName": "customer.create",
+        "actionVersion": 1,
+        "source": "src/application/create-customer-pipeline.mjs",
+        "actionSpecFields": ["requestId", "actorId", "tenantId", "payload", "idempotencyKey"],
+        "outcomes": ["ALLOW_COMMIT", "DENY", "INVALID", "CROSS_TENANT_DENY"],
+        "note": "These fields and outcomes are read off the closed CreateCustomerPipeline, not invented here. A future generator must regenerate byte-identically from this pin, never from a redefinition."
+      }
+    },
+    "errorEnvelope": {
+      "source": "src/application/create-customer-pipeline.mjs",
+      "fields": ["code", "message", "requestId", "retryable"],
+      "note": "The flat V2-shaped non-allow envelope the pipeline already returns; the SDK's error type has no field beyond these four."
+    }
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "v5DeliveryBlockedUntil": [
+    "the generated-sdk step of the pinned sequence closes GREEN (this package only narrows it to a protocol contract; it does not close it)",
+    "the one-golden-slice step of the pinned sequence closes GREEN"
+  ],
+
+  "versionBump": false,
+
+  "nonGoals": [
+    "no src/sdk directory or any generated SDK output",
+    "no code generator, no generation tooling",
+    "no ASGI, Uvicorn or Hypercorn delivery surface",
+    "no FastAPI development base; FastAPI stays an optional future adapter host only",
+    "no app, module or surface",
+    "no release, deploy or production path",
+    "no change to src/application or src/domain source",
+    "no readiness, MVP or production claim anywhere in this package"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-generated-sdk-protocol-readiness.test.mjs"]
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-generated-sdk-protocol-readiness.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the pinned protocol contract, the flags block or the non-goals set drifts from this record",
+    "action": "revert planning/gj01-generated-sdk-protocol-readiness.json, tests/kernel-generated-sdk-protocol-readiness.test.mjs and the CHANGELOG.md entry as one three-file shard",
+    "blastRadius": "planning-and-tests-only",
+    "runtimeDataImpact": "none"
+  }
+}
