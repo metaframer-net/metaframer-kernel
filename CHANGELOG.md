@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `AsgiCoreProfileAdapter#callFromReceive({ scope, receive, send, decodeBody })` in
+  `src/delivery/asgi-core-profile.mjs`, a framework-neutral receive-driven ASGI profile method
+  that lets a host supply `receive()`/`send()` functions: it validates both are functions before
+  any router call, awaits `http.request` events from `receive` in order, concatenates their
+  `body` byte chunks until `more_body` is not `true`, optionally passes the merged bytes through
+  a caller-supplied deterministic `decodeBody` function, and then dispatches through the existing
+  `call` method unchanged. An invalid scope, a malformed/non-`http.request` receive event, a
+  non-`Uint8Array` chunk, or a `decodeBody` failure each short-circuit deterministically to the
+  existing frozen 400 profile events without ever calling the router. It adds no server,
+  framework, network or Python ASGI dependency. `tests/kernel-asgi-core-profile.test.mjs` adds
+  targeted coverage for multi-chunk body collection, invalid `receive`/`send`/`decodeBody`
+  short-circuiting, malformed receive event responses, receive rejection propagation, `decodeBody`
+  success and failure paths, and confirms existing `call`/`handle` behavior is unchanged.
 - `createCustomerAsgiComposition(options)` in `src/delivery/create-customer-asgi-composition.mjs`,
   a framework-neutral composition root that wires a real `createCustomerComposition` handler to a
   real `CreateCustomerHttpMessageAdapter`, a real `StandardRouter` (its only route: `POST

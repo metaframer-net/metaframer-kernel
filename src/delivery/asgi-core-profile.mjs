@@ -147,6 +147,70 @@ export class AsgiCoreProfileAdapter {
     return events;
   }
 
+  async callFromReceive({ scope, receive, send, decodeBody } = {}) {
+    if (typeof receive !== "function" || typeof send !== "function") {
+      throw new TypeError("AsgiCoreProfileAdapter callFromReceive needs receive and send functions");
+    }
+    if (decodeBody !== undefined && typeof decodeBody !== "function") {
+      throw new TypeError("AsgiCoreProfileAdapter callFromReceive decodeBody must be a function when provided");
+    }
+
+    if (!isValidScope(scope)) {
+      const events = profileErrorEvents();
+      for (const event of events) {
+        await send(event);
+      }
+      return events;
+    }
+
+    const chunks = [];
+    for (;;) {
+      const event = await receive();
+      if (!isOrdinaryObject(event) || event.type !== "http.request") {
+        const events = profileErrorEvents();
+        for (const e of events) {
+          await send(e);
+        }
+        return events;
+      }
+      const chunk = event.body === undefined ? new Uint8Array() : event.body;
+      if (!(chunk instanceof Uint8Array)) {
+        const events = profileErrorEvents();
+        for (const e of events) {
+          await send(e);
+        }
+        return events;
+      }
+      chunks.push(chunk);
+      if (event.more_body !== true) break;
+    }
+
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const merged = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    let body;
+    if (decodeBody !== undefined) {
+      try {
+        body = decodeBody(merged);
+      } catch {
+        const events = profileErrorEvents();
+        for (const e of events) {
+          await send(e);
+        }
+        return events;
+      }
+    } else {
+      body = merged;
+    }
+
+    return this.call({ scope, body, send });
+  }
+
   get [Symbol.toStringTag]() {
     return "AsgiCoreProfileAdapter";
   }

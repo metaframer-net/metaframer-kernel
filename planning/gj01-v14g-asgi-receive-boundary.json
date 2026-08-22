@@ -1,0 +1,51 @@
+{
+  "package": "gj01-v14g-asgi-receive-boundary",
+  "baseCommit": "df41541d2c86a4eaa11739c44e59f6ef114187e1",
+  "writer": "claude",
+  "scope": "Add a framework-neutral receive-driven ASGI profile method around the existing AsgiCoreProfileAdapter, so a host can provide receive() and send() and the adapter collects http.request body chunks before dispatching through the existing call/handle.",
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14g-asgi-receive-boundary.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no HTTP server",
+    "no Python ASGI app",
+    "no Uvicorn/Hypercorn/FastAPI/Django dependency or selection",
+    "no create-customer composition change",
+    "no DB/application/PDP/SDK/package dependency change",
+    "no release/readiness/product-runnable claim"
+  ],
+  "change": {
+    "added": "AsgiCoreProfileAdapter#callFromReceive({ scope, receive, send, decodeBody }) in src/delivery/asgi-core-profile.mjs",
+    "behavior": [
+      "validates receive and send are functions, and decodeBody is a function when provided, before any router call",
+      "validates scope the same way handle/call do; an invalid scope short-circuits to the existing frozen 400 profile events without ever calling receive",
+      "awaits receive() repeatedly, collecting http.request event body chunks in order until more_body is not true",
+      "a malformed receive event (not an ordinary object, wrong type, or a non-Uint8Array body chunk) short-circuits deterministically to the existing frozen 400 profile events without calling the router",
+      "a rejecting receive() propagates its rejection",
+      "concatenates collected chunks into a single Uint8Array; when decodeBody is provided, passes the merged bytes through it and uses its return value as body, short-circuiting to the 400 profile events on a thrown decode error; otherwise uses the merged bytes directly as body",
+      "dispatches the resolved scope/body through the existing call method unchanged, so send/event/error behavior of call is reused verbatim",
+      "no server/framework/network import; no Python ASGI app"
+    ]
+  },
+  "tests": {
+    "targeted": [
+      "rejects non-function receive/send without invoking receive or the router",
+      "rejects a non-function decodeBody without invoking the router",
+      "collects a multi-chunk http.request body in order before dispatching",
+      "short-circuits to a 400 profile response on a malformed receive event (bad type, non-Uint8Array body) without calling the router",
+      "short-circuits to a 400 profile response on an invalid scope without ever calling receive",
+      "propagates a rejecting receive",
+      "decodeBody success path applies it to the merged bytes; decodeBody throwing short-circuits to the 400 profile response",
+      "existing call/handle behavior is unchanged"
+    ]
+  },
+  "evidence": {
+    "targetedNodeTests": "node --test tests/kernel-asgi-core-profile.test.mjs -> 18 pass, 0 fail",
+    "npmTest": "1198 pass, 1 pre-existing fail (postgres-commit-adapter.test.mjs: docker not available in this environment, unrelated to this package)",
+    "npmRunCheck": "GREEN, exit 0"
+  },
+  "marker": "V14G_WRITER_GREEN"
+}
