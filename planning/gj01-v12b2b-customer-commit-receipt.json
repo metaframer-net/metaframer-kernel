@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v12b2b-customer-commit-receipt-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "adapter-commit-receipt-closure-shard",
+  "packageState": "GREEN",
+  "baseCommit": "f51a2002a54a4275a6902c697aa069cb2105726d",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v12b2a-ii-customer-oracle.json",
+    "field": "nextPackage.followUps[0]",
+    "note": "V12B2A-ii closed the JS-oracle drift and explicitly declared this follow-up: the adapter still deferred the customer intent because no customer-owning table existed in the JS oracle's world. This package (V12B2B) closes that follow-up now that db/metaframer_kernel_db/alembic/versions/0002_customer_records.py and the JS oracle both agree customer_records exists."
+  },
+
+  "goal": "src/adapters/postgres-commit-adapter.mjs commits the customer write intent into customer_records and mints a full CommitReceipt covering all four intents (customer, audit, transactionalOutbox, idempotency), atomically, in the same attested tenant transaction as the existing three.",
+
+  "allowedFiles": [
+    "src/adapters/postgres-commit-adapter.mjs",
+    "tests/postgres-commit-adapter.test.mjs",
+    "planning/gj01-v12b2b-customer-commit-receipt.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no delivery/HTTP/ASGI/Uvicorn/Hypercorn/FastAPI/Django code",
+    "no schema/Alembic/Python DB change; customer_records already exists from 0002_customer_records",
+    "no application pipeline change; ALLOW_COMMIT still starts as pending",
+    "no CI/workflow/package dependency change",
+    "no broad full-suite test run beyond the targeted adapter test and the repo check gate"
+  ],
+
+  "scopeResolution": {
+    "note": "The adapter validates intents.customer as an ordinary object with a non-empty payload.name, and requires intents.customer.tenantId to be a non-empty string that exactly matches options.tenantId; a missing or mismatched tenantId is rejected before any DB work. It inserts into customer_records (tenant_id, name, payload) inside the same BEGIN/mfk_begin_tenant_context transaction as the audit and outbox inserts, and returns customerRecordId from RETURNING id. A duplicate idempotency fingerprint still fails the outbox insert's unique index, which rolls back the whole transaction including the customer row — no partial commit is possible."
+  },
+
+  "red": {
+    "commands": ["node --test tests/postgres-commit-adapter.test.mjs"],
+    "note": "Before this package: 2 of 4 tests failed. The module-export test expected COMMITTED_INTENTS to include \"customer\" and DEFERRED_INTENTS to be empty, but the adapter still reported customer as deferred. The real-PostgreSQL test expected receipt.deferredReason to be undefined and a customer row in customer_records, but the adapter returned deferredReason set and inserted no customer row."
+  },
+  "green": {
+    "commands": ["node --test tests/postgres-commit-adapter.test.mjs", "npm run check --silent"],
+    "results": "postgres-commit-adapter.test.mjs: 6/6 pass, including two connectionless unit tests proving a missing or mismatched intents.customer.tenantId is rejected before any DB work, and the real Docker-backed PostgreSQL 16 test proving a customer_records row is inserted, a full CommitReceipt with customerRecordId/auditLogId/outboxId is returned frozen, and a duplicate idempotency fingerprint rolls back and leaves exactly one customer row and one outbox row. npm run check: exits zero."
+  },
+
+  "acceptance": {
+    "allFourIntentsCommitted": "COMMITTED_INTENTS = [customer, audit, transactionalOutbox, idempotency]; DEFERRED_INTENTS = []; no deferredReason on the receipt",
+    "customerValidated": "intents.customer must be an ordinary object with a non-empty payload.name string; intents.customer.tenantId is mandatory, must be a non-empty string, and must exactly match options.tenantId — a missing or mismatched tenantId is rejected before any DB work",
+    "sameTransaction": "the customer_records insert happens after mfk_begin_tenant_context inside the same BEGIN/COMMIT as the audit and outbox inserts, using the runtime role's existing grants",
+    "atomicRollback": "a duplicate idempotency fingerprint rolls back the whole transaction, including the customer insert; no second customer_records row and no second transactional_outbox row are created",
+    "receiptShape": "commit() returns Object.freeze()'d receipt with receiptType: \"CommitReceipt\", committedIntents, deferredIntents, customerRecordId, auditLogId, outboxId",
+    "docsUpdated": "adapter file header no longer claims the S1 substrate has no customer-owning table"
+  },
+
+  "rollback": {
+    "trigger": "the adapter is found to commit the customer row outside the atomic transaction, to leak a partial commit on duplicate idempotency, or to mint a CommitReceipt that does not match the four declared intents",
+    "action": "revert src/adapters/postgres-commit-adapter.mjs, tests/postgres-commit-adapter.test.mjs, this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "adapter and its test only; no schema, migration or delivery code is touched",
+    "runtimeDataImpact": "none beyond what the adapter itself writes at commit time; no migration runs"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "the adapter now actually persists a customer.create write intent into customer_records and returns a full CommitReceipt covering all four ALLOW_COMMIT intents; previously the customer intent was silently dropped at the adapter layer",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "customer.create isteği ALLOW_COMMIT durumuna geliyordu ama PostgreSQL adaptörü sadece audit ve outbox kayıtlarını yazıyor, müşteri kaydını hiç veritabanına yazmıyordu. CommitReceipt eksik bir kanıttı: dört niyetten sadece üçü gerçekten commit edilmişti.",
+    "after": "Adaptör artık müşteri kaydını customer_records tablosuna, audit ve outbox kayıtlarıyla aynı atomik işlemde yazıyor. Dönen CommitReceipt dört niyetin de (customer, audit, transactionalOutbox, idempotency) gerçekten commit edildiğini gösteriyor; hiçbir niyet ertelenmiyor.",
+    "kullaniciYolculugu": "Bir tenant customer.create isteği gönderip ALLOW_COMMIT aldığında, adaptör katmanı artık müşteriyi gerçekten kaydediyor ve tam kanıt döndürüyor. Bu paket sadece adaptör katmanını kapatıyor; uçtan uca HTTP/delivery katmanı ve uygulama borusu hâlâ ayrı, planlanmamış işler.",
+    "kalanEngel": "Bu adaptörü çağıran bir delivery/HTTP katmanı henüz yok; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

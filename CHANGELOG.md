@@ -16,6 +16,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/adapters/postgres-commit-adapter.mjs` now commits the `customer` write intent into
+  `customer_records` (added by `0002_customer_records.py`) inside the same attested tenant
+  transaction as `audit` and `transactionalOutbox`, and mints a full `CommitReceipt` — all four
+  ALLOW_COMMIT intents (`customer`, `audit`, `transactionalOutbox`, `idempotency`) committed, no
+  deferred intents, `receiptType: "CommitReceipt"`, `customerRecordId`/`auditLogId`/`outboxId`
+  returned frozen. `intents.customer` is validated as an ordinary object with a non-empty
+  `payload.name`; `intents.customer.tenantId` is mandatory — a non-empty string that must exactly
+  match `options.tenantId` — and a missing or mismatched `tenantId` is rejected before any DB
+  work. A duplicate
+  idempotency fingerprint still rolls back the whole transaction, so no partial customer row can
+  ever be left behind. `tests/postgres-commit-adapter.test.mjs` proves this against a real
+  disposable Docker-backed PostgreSQL 16 instance. `planning/gj01-v12b2b-customer-commit-receipt.json`
+  records scope, RED/GREEN evidence and rollback; this closes the declared V12B2A-ii follow-up.
+  `flags.gapClosed` is `true`; `kernelReady`, `oneGoldenSliceReady`, `walkingSkeletonReady`,
+  `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed` and `runnableProduct`
+  all stay `false` — no delivery/HTTP layer calls this adapter yet.
 - `db/metaframer_kernel_db/alembic/versions/0002_customer_records.py`, a second Alembic revision
   (`down_revision = "0001_runtime_substrate"`) adding `customer_records`, the S1 substrate's first
   tenant-owned domain table — `id`, `tenant_id`, `name`, `payload`, `created_at`, `recorded_at` —
