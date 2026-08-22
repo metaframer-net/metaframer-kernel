@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v11-generated-sdk-step-closure-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "generated-sdk-step-closure",
+  "packageState": "step-closed-by-composition-no-new-artifact",
+  "baseCommit": "076a6fe3f02ed42ff1063b90d7e6f91f555e0a6a",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 3,
+    "id": "generated-sdk",
+    "note": "This package closes step 3 (generated-sdk) of the pinned runtime-start sequence for CreateCustomer@1 by composing four already-GREEN upstream evidence records into one package-local closure claim. It writes no new production code, no generator change and no artifact change. It does not open step 4 (one-golden-slice / walking-skeleton) of that sequence."
+  },
+
+  "implementsSdkGeneration": false,
+
+  "goal": "Add the smallest closure record proving the generated-sdk step is closed for CreateCustomer@1 by composing existing artifact, generator, public-boundary and contract-parity evidence, without editing any of the composed evidence, the artifact, or the generator.",
+
+  "authority": {
+    "approvedBy": "Codex Desktop MASTER",
+    "writer": "Claude implementation writer (single writer)",
+    "note": "V11 implementation approved with a fixed three-file allowedFiles set and an explicit must-not-touch list, per the approving instruction."
+  },
+
+  "allowedFiles": [
+    "planning/gj01-v11-generated-sdk-step-closure.json",
+    "tests/kernel-generated-sdk-step-closure.test.mjs",
+    "CHANGELOG.md"
+  ],
+
+  "mustNotTouch": [
+    "src/sdk/create-customer.mjs",
+    "tools/generate-create-customer-sdk.mjs",
+    "planning/gj01-generated-sdk-protocol-readiness.json",
+    "planning/gj01-generated-sdk-generation.json",
+    "planning/gj01-src-sdk-boundary-authority.json",
+    "planning/gj01-v10-deterministic-sdk-generator.json",
+    "planning/kernel-runtime-pilot-consumer-sync.json",
+    "src/application/**",
+    "src/domain/**",
+    "tools/check-repository-boundary.mjs",
+    "tools/check-p01-*",
+    "tools/check-kernel-*",
+    "tools/check-token-economy.mjs",
+    "db/**",
+    "src/adapters",
+    "src/delivery",
+    "package.json",
+    "README.md",
+    "CI/config"
+  ],
+
+  "composedEvidence": {
+    "boundaryAuthority": {
+      "path": "planning/gj01-src-sdk-boundary-authority.json",
+      "id": "gj01-src-sdk-boundary-authority-2026-08-22",
+      "contributes": "opened src/sdk as a permitted first child of root src, verified live by tests/repository-boundary.test.mjs"
+    },
+    "protocolReadiness": {
+      "path": "planning/gj01-generated-sdk-protocol-readiness.json",
+      "id": "gj01-generated-sdk-protocol-readiness-2026-08-22",
+      "contributes": "pins the CreateCustomer@1 ActionSpec fields, outcome enum and error-envelope shape, matched exactly against CreateCustomerPipeline"
+    },
+    "artifactGeneration": {
+      "path": "planning/gj01-generated-sdk-generation.json",
+      "id": "gj01-generated-sdk-generation-2026-08-22",
+      "artifactPath": "src/sdk/create-customer.mjs",
+      "contributes": "materializes the framework-neutral CreateCustomer@1 SDK artifact matching the pinned protocol contract byte-for-byte in surface, verified live by tests/kernel-generated-sdk-generation.test.mjs"
+    },
+    "deterministicGenerator": {
+      "path": "planning/gj01-v10-deterministic-sdk-generator.json",
+      "id": "gj01-v10-deterministic-sdk-generator-2026-08-22",
+      "generatorPath": "tools/generate-create-customer-sdk.mjs",
+      "contributes": "a pure renderCreateCustomerSdk(protocol) function that regenerates the committed artifact byte-identically from the pinned protocol, verified live by tests/kernel-generated-sdk-generation-determinism.test.mjs"
+    }
+  },
+
+  "closureClaim": {
+    "note": "Deterministic regeneration, the public src/sdk boundary, and contract parity with CreateCustomerPipeline are each independently GREEN in the four composed records above and their still-passing tests. This package draws no new evidence and performs no new verification; it only records that, taken together, those four already-GREEN pieces of evidence satisfy the pinned generated-sdk GREEN criteria for CreateCustomer@1.",
+    "deterministicRegeneration": true,
+    "publicBoundary": true,
+    "contractParity": true
+  },
+
+  "flags": {
+    "generatedSdkStepClosed": true,
+    "kernelReady": false,
+    "sdkReady": false,
+    "generatedSdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+
+  "capabilityDelta": "NONE",
+  "capabilityDeltaExplanation": "No new artifact, generator, or runtime capability is introduced by this package. It is a package-local closure record only, composing four already-GREEN evidence records; nothing runs the pipeline, nothing talks to a network, a database or a framework, and no product or runtime capability changes as a result of this package.",
+  "runnableProduct": false,
+
+  "nonGoals": [
+    "no HTTP, ASGI, Uvicorn, Hypercorn, FastAPI or Django delivery surface",
+    "no database, persistence, CommitReceipt, audit or outbox runtime implementation",
+    "no adapters, no delivery module",
+    "no change to src/sdk/create-customer.mjs, tools/generate-create-customer-sdk.mjs, or any of the four composed evidence records",
+    "no change to src/application or src/domain source",
+    "no walking-skeleton, one-golden-slice, package metadata, README or CI/config change",
+    "does not open step 4 (one-golden-slice / walking-skeleton) of the pinned runtime-start sequence",
+    "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package",
+    "kernelReady, sdkReady, generatedSdkReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed and gapClosed all stay false"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-generated-sdk-step-closure.test.mjs"],
+    "observedFailure": "ENOENT: planning/gj01-v11-generated-sdk-step-closure.json did not exist before this package"
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-generated-sdk-step-closure.test.mjs tests/kernel-generated-sdk-generation-determinism.test.mjs tests/kernel-generated-sdk-generation.test.mjs tests/kernel-generated-sdk-protocol-readiness.test.mjs tests/repository-boundary.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the composed-evidence references, the flags/non-goals block, or the package-local closure claim drifts from this record",
+    "action": "revert planning/gj01-v11-generated-sdk-step-closure.json, tests/kernel-generated-sdk-step-closure.test.mjs and the CHANGELOG.md entry as one three-file shard; none of the four composed evidence records or their artifacts are touched by this rollback because this package never wrote to them.",
+    "blastRadius": "planning-and-tests-only",
+    "runtimeDataImpact": "none"
+  },
+
+  "versionBump": false
+}
