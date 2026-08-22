@@ -67,9 +67,11 @@ def test_a_tenant_reads_only_its_own_customer_rows(substrate):
         _insert(connection, TENANT_B, "customer-b")
 
     with tenant_transaction(url, TENANT_A) as connection:
-        names = connection.execute(
-            sqlalchemy.text(f'SELECT name FROM "{schema.CUSTOMER_TABLE}"')
-        ).scalars().all()
+        names = (
+            connection.execute(sqlalchemy.text(f'SELECT name FROM "{schema.CUSTOMER_TABLE}"'))
+            .scalars()
+            .all()
+        )
         assert names == ["customer-a"], f"tenant A saw foreign customer rows: {names}"
 
 
