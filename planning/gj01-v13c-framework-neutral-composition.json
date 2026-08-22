@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v13c-framework-neutral-composition-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "delivery-boundary-composition",
+  "packageState": "composition-root-GREEN-no-server",
+  "baseCommit": "f5bb4369c629028b9978845b9381ae295602870b",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v13b-framework-neutral-delivery-handler.json",
+    "field": "nextPackage",
+    "note": "This is a further separately scoped package: it composes the existing CreateCustomerRequestHandler with a real CreateCustomerCommitService and the existing PostgresCommitAdapter, still with no HTTP/ASGI framework wired around any of it."
+  },
+
+  "goal": "Add the smallest framework-neutral composition factory that wires the existing CreateCustomerRequestHandler to a real CreateCustomerCommitService and the existing PostgresCommitAdapter, without adding any HTTP server, ASGI runtime, Uvicorn, Hypercorn, FastAPI, Django, app, release, deploy, or production claim.",
+
+  "allowedFiles": [
+    "src/delivery/create-customer-composition.mjs",
+    "tests/kernel-create-customer-composition.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "tests/kernel-runtime-substrate-s1.test.mjs",
+    "planning/gj01-v13c-framework-neutral-composition.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no HTTP server of any kind",
+    "no ASGI runtime",
+    "no Uvicorn",
+    "no Hypercorn",
+    "no FastAPI",
+    "no Django",
+    "no Postgres, db or schema change",
+    "no Python change",
+    "no CI, package.json or dependency change",
+    "no release, deploy, readiness or product-runnable claim",
+    "no change to src/adapters, src/application or src/domain",
+    "no app, module or release/deploy/publish path",
+    "no exposure of the composed adapter, service, pipeline, identity or policy decision point"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-create-customer-composition.test.mjs"],
+    "note": "Before src/delivery/create-customer-composition.mjs existed, every test importing it failed with ERR_MODULE_NOT_FOUND — a real capability gap, not an environment failure."
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-create-customer-composition.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the factory's option exactness, wiring order, returned-shape exactness, or the src/delivery ring materialization it proves drifts from this record",
+    "action": "revert src/delivery/create-customer-composition.mjs, tests/kernel-create-customer-composition.test.mjs, the repository-boundary/substrate test updates, and this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "delivery-composition-and-tests-only; no adapters, application, domain, db or CI surface touched",
+    "runtimeDataImpact": "none: the factory performs no I/O beyond constructing a lazy PostgresCommitAdapter connection pool, and no test in this package opens a real database connection"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "CreateCustomerRequestHandler ve CreateCustomerCommitService ayrı ayrı çalışabiliyordu ama ikisini ve gerçek PostgresCommitAdapter'ı tek bir çağrıda birbirine bağlayacak bir kompozisyon noktası yoktu; bir çağıranın bunları doğru sırayla elle bağlaması gerekiyordu.",
+    "after": "Artık createCustomerComposition({ connectionString, current, candidatesFor, evaluateInvariants }) tam olarak dört sıradan işbirlikçiyi alıp Identity, PolicyDecisionPoint, CreateCustomerPipeline, PostgresCommitAdapter, CreateCustomerCommitService ve CreateCustomerRequestHandler'ı doğru sırayla kuruyor ve donmuş { handler, close } döndürüyor. Hâlâ hiçbir HTTP sunucusu veya form gönderimi gerçekten çalışmıyor — bu paket yalnızca uygulama ile gerçek persistence adaptörü arasındaki tek bağlantı noktasını kanıtlıyor.",
+    "note": "Hiçbir sunucu, ASGI çalışma zamanı veya framework bu paketle çalışır hale gelmiyor; bu sadece framework-nötr bir kompozisyon köküdür."
+  },
+
+  "kalanEngel": "Hâlâ hiçbir HTTP/ASGI framework bu handler'ı dışarıya açmıyor; bu ayrı, henüz yetkilendirilmemiş bir paket kararı.",
+
+  "nextPackage": {
+    "note": "A future, separately scoped package may wire an actual HTTP/ASGI framework around this composition — out of this package's scope and non-goals.",
+    "preconditions": [
+      "this package's targeted GREEN and npm run check both pass",
+      "a separate Codex MASTER-approved package scopes the delivery framework decision"
+    ]
+  },
+
+  "versionBump": false
+}
