@@ -165,6 +165,73 @@ test("malformed router response rejects with TypeError", async () => {
   }
 });
 
+test("call rejects a non-function send without invoking the router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+
+  for (const badSend of [undefined, null, "send", {}, 1]) {
+    await assert.rejects(
+      () => adapter.call({ scope, body: undefined, send: badSend }),
+      TypeError,
+    );
+  }
+  assert.equal(called, false);
+});
+
+test("call awaits send for each event in order and returns the same events as handle", async () => {
+  const routerResponse = Object.freeze({
+    status: 201,
+    headers: Object.freeze({ "content-type": "application/json" }),
+    body: Object.freeze({ ok: true }),
+  });
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(async () => routerResponse),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const sent = [];
+  const send = async (event) => {
+    await Promise.resolve();
+    sent.push(event);
+  };
+
+  const events = await adapter.call({ scope, body: undefined, send });
+
+  assert.equal(sent.length, 2);
+  assert.equal(sent[0].type, "http.response.start");
+  assert.equal(sent[1].type, "http.response.body");
+  assert.deepEqual(events, sent);
+
+  const directEvents = await adapter.handle({ scope, body: undefined });
+  assert.deepEqual(events, directEvents);
+});
+
+test("call propagates a rejecting send and stops without sending further events", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+
+  const sent = [];
+  const send = async (event) => {
+    sent.push(event);
+    if (event.type === "http.response.start") {
+      throw new Error("send failed");
+    }
+  };
+
+  await assert.rejects(() => adapter.call({ scope, body: undefined, send }), /send failed/);
+  assert.equal(sent.length, 1);
+});
+
 test("source imports no server/framework/runtime-nondeterminism surface", async () => {
   const source = await readFile(path.join(root, profilePath), "utf8");
   const forbiddenTokens = [
