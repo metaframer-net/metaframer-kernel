@@ -117,7 +117,7 @@ export class AsgiCoreProfileAdapter {
     Object.freeze(this);
   }
 
-  handle({ scope, body } = {}) {
+  async handle({ scope, body } = {}) {
     if (!isValidScope(scope)) {
       return profileErrorEvents();
     }
@@ -132,7 +132,7 @@ export class AsgiCoreProfileAdapter {
       headers,
       body,
     });
-    const response = this.#router.handle(message);
+    const response = await this.#router.handle(message);
     return toResponseEvents(response);
   }
 

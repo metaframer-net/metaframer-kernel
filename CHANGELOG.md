@@ -317,6 +317,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   package rather than drifting apart.
 
 ### Changed
+- `src/delivery/standard-router.mjs`, `StandardRouter.handle` is now an `async` method. It
+  awaits exactly one call to `route.handler.handle(message)`, whether the handler returns a
+  plain object synchronously or a Promise, so `StandardRouter` composes with async delivery
+  handlers (e.g. `CreateCustomerHttpMessageAdapter.handle`) without a synchronous-shape
+  mismatch. Short-circuit responses (`400 MESSAGE_SHAPE_INVALID`, `404 ROUTE_NOT_FOUND`,
+  `405 METHOD_NOT_SUPPORTED`) remain the same deterministic frozen objects, only now
+  delivered through the async method; a non-ordinary-object response (sync or resolved by
+  an async handler) still causes the returned promise to reject with `TypeError`.
+  `src/delivery/asgi-core-profile.mjs`, `AsgiCoreProfileAdapter.handle` is now `async` and
+  awaits `router.handle` before converting the response into frozen ASGI-profile events; a
+  malformed scope still short-circuits without ever calling the router.
+  `tests/kernel-standard-router.test.mjs` and `tests/kernel-asgi-core-profile.test.mjs` now
+  await every `handle` call, and add coverage proving `handle` returns a Promise, an async
+  handler resolving a response is awaited and its response returned, and a malformed
+  response (sync or from an async handler) rejects with `TypeError` instead of throwing
+  synchronously. See `planning/gj01-v14d-async-standard-router.json`.
 - The repository root source-topology fence was widened again: a root `src` is permitted and may
   hold `src/domain`, `src/application` and `src/sdk` as its only first children — `src/domain` and
   `src/application` materialized, `src/sdk` a permitted-but-not-yet-materialized boundary — with

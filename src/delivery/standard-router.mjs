@@ -90,7 +90,7 @@ export class StandardRouter {
     Object.freeze(this);
   }
 
-  handle(message) {
+  async handle(message) {
     if (!isOrdinaryObject(message) || typeof message.method !== "string" || typeof message.path !== "string") {
       return messageShapeInvalidResponse();
     }
@@ -107,7 +107,7 @@ export class StandardRouter {
       return methodNotSupportedResponse();
     }
 
-    const response = route.handler.handle(message);
+    const response = await route.handler.handle(message);
     if (!isOrdinaryObject(response)) {
       throw new TypeError("StandardRouter route handler must return an ordinary response object");
     }
