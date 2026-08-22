@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14b-standard-router-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "delivery-boundary-materialization",
+  "packageState": "standard-router-GREEN-no-server",
+  "baseCommit": "35d3bb0389864b46f64bad6cdd3b4d4c64ce2996",
+
+  "goal": "Add the smallest framework-neutral StandardRouter in the delivery ring: it dispatches a plain HTTP-like message to a registered plain handler by exact method+path match, with no dependency on any HTTP server or framework. It is the stable route-selection surface a future ASGI/Uvicorn/Hypercorn/FastAPI host can call; it does not select any host.",
+
+  "allowedFiles": [
+    "src/delivery/standard-router.mjs",
+    "tests/kernel-standard-router.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/gj01-v14b-standard-router.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no HTTP server of any kind",
+    "no ASGI runtime",
+    "no Uvicorn",
+    "no Hypercorn",
+    "no FastAPI",
+    "no Django",
+    "no Express or Koa",
+    "no body or header parsing",
+    "no CreateCustomer-specific dispatch logic",
+    "no Postgres, db or schema change",
+    "no Python change",
+    "no CI, package.json or dependency change",
+    "no release, deploy, readiness or product-runnable claim",
+    "no change to src/adapters, src/application or src/sdk",
+    "no host selection of any kind"
+  ],
+
+  "standardRefs": [
+    { "standardId": "SR-01", "applies": true, "reason": "Standard Router obligation itself: this package is the router; the matrix below reports its own applicability instead of pasting SR text.", "canonicalSource": "src/delivery/standard-router.mjs", "consumer": "future delivery-ring host adapter", "test": "tests/kernel-standard-router.test.mjs", "evidence": "node --test tests/kernel-standard-router.test.mjs GREEN (11 tests)", "waiver": "none" },
+    { "standardId": "SR-03", "applies": true, "reason": "Known FastAPI-family drift (ASGI Core Profile / Uvicorn / Hypercorn / FastAPI optional adapter): business rules cannot bind to FastAPI. Router satisfies the negative half only — no ASGI/Uvicorn/Hypercorn/FastAPI import or coupling anywhere in this module; it does not itself implement the ASGI Core Profile or any adapter, which stays a future, separately scoped host package.", "canonicalSource": "src/delivery/standard-router.mjs", "consumer": "future ASGI Core Profile host (not built here)", "test": "tests/kernel-standard-router.test.mjs", "evidence": "forbidden-token source scan (fastapi/django/uvicorn/hypercorn/express/koa/asgi) GREEN", "waiver": "none" },
+    { "standardId": "SR-05", "applies": false, "reason": "Deterministic mutation chain ActionSpec->PDP->invariants->ChangeSet->UoW->audit/outbox->CommitReceipt is not touched: StandardRouter only matches method+path and calls a handler once; it builds no ActionSpec, calls no PDP, and performs no mutation or commit. That chain belongs to downstream handlers such as CreateCustomerRequestHandler.", "canonicalSource": "n/a — no mutation code in this module", "consumer": "n/a", "test": "n/a", "evidence": "source contains no ActionSpec/PDP/ChangeSet/UoW/CommitReceipt reference", "waiver": "not applicable; router is upstream of the chain, not a participant" },
+    { "standardId": "SR-06", "applies": false, "reason": "Tenant isolation is not enforced or read here: the router's message shape is only { method, path }, with no tenantId field parsed, validated or compared. Tenant isolation is downstream handler and PDP responsibility.", "canonicalSource": "n/a — no tenant field in this module", "consumer": "n/a", "test": "n/a", "evidence": "route dispatch keys only on method+path; message shape check does not read tenantId", "waiver": "not applicable; router performs no tenant-scoped operation" },
+    { "standardId": "SR-07", "applies": false, "reason": "Authorization / PDP / PEP is not performed here: the router makes no allow/deny decision and calls the matched handler unconditionally once matched. Enforcement point authority stays with downstream handlers (e.g. CreateCustomerRequestHandler -> PolicyDecisionPoint).", "canonicalSource": "n/a — no authorization code in this module", "consumer": "n/a", "test": "n/a", "evidence": "handle() has no PDP/PEP call; only 400/404/405/handler-dispatch branches", "waiver": "not applicable; router is not an enforcement point" }
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-standard-router.test.mjs"],
+    "note": "Before src/delivery/standard-router.mjs existed, this failed with ERR_MODULE_NOT_FOUND."
+  },
+  "green": {
+    "requirements": [
+      "node --test tests/kernel-standard-router.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "constructor exactness, dispatch status mapping, or freeze discipline drifts from this record",
+    "action": "revert the 5 files in allowedFiles as one shard",
+    "blastRadius": "standard-router-and-tests-only; no adapters/application/domain/db/CI touched",
+    "runtimeDataImpact": "none: pure message-in/response-out, no I/O"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "Delivery ring'de CreateCustomer isteğini işleyen bir handler vardı, ama birden çok yol/metod kombinasyonunu tek bir giriş noktasına yönlendirecek genel bir yönlendirici yoktu.",
+    "after": "StandardRouter sıradan { method, path } mesajlarını kayıtlı handler'lara tam bir kez yönlendiriyor; bozuk mesaj 400, bilinmeyen yol 404, desteklenmeyen metod 405. Hâlâ hiçbir HTTP sunucusu çalışmıyor — bu paket yalnızca yol seçim yüzeyinin şeklini kanıtlıyor.",
+    "note": "Bu paketle hiçbir sunucu veya framework çalışır hale gelmiyor."
+  },
+
+  "kalanEngel": "hiçbir HTTP/ASGI host bu yönlendiriciyi henüz çağırmıyor; sunucu bağlama ayrı, kapsamı belirlenecek bir paket.",
+
+  "nextPackage": {
+    "note": "A future, separately scoped package may wire an ASGI Core Profile host around this router.",
+    "preconditions": ["this package's targeted GREEN and npm run check both pass", "a separate approved package scopes the host decision"]
+  },
+
+  "versionBump": false
+}
