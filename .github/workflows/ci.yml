@@ -26,6 +26,10 @@ jobs:
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
+        with:
+          python-version: "3.12"
       - name: Install locked npm dependencies
         run: npm ci
       - name: Provision public Actionplan checkout
