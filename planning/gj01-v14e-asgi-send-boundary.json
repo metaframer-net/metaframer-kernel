@@ -1,0 +1,45 @@
+{
+  "package": "gj01-v14e-asgi-send-boundary",
+  "baseCommit": "37d163f73c55601ace4a770c31a05ce71ffa9446",
+  "writer": "claude",
+  "scope": "Add a framework-neutral ASGI send/call boundary around the existing AsgiCoreProfileAdapter so a host can call one async method that emits http.response.start/body events through an injected send function, preserving existing handle behavior.",
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/gj01-v14e-asgi-send-boundary.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no HTTP server",
+    "no Python ASGI app",
+    "no Uvicorn/Hypercorn/FastAPI/Django dependency or selection",
+    "no DB/application/PDP/SDK changes",
+    "no package dependency change",
+    "no release/readiness claim"
+  ],
+  "change": {
+    "added": "AsgiCoreProfileAdapter#call({ scope, body, send })",
+    "behavior": [
+      "throws TypeError when send is not a function, without invoking the router",
+      "computes events via the unchanged handle({ scope, body })",
+      "awaits send(event) once per event in order",
+      "returns the same frozen event array handle would have returned",
+      "a rejecting send propagates and stops further sends"
+    ]
+  },
+  "tests": {
+    "targeted": [
+      "call rejects a non-function send without invoking the router",
+      "call awaits send for each event in order and returns the same events as handle",
+      "call propagates a rejecting send and stops without sending further events"
+    ],
+    "unchanged": "repository-boundary.test.mjs and prior kernel-asgi-core-profile.test.mjs cases require no edits and remain GREEN"
+  },
+  "evidence": {
+    "targetedNodeTests": "node --test tests/kernel-asgi-core-profile.test.mjs -> 10 pass, 0 fail",
+    "repositoryBoundaryTest": "node --test tests/repository-boundary.test.mjs -> 167 pass, 0 fail",
+    "npmRunCheck": "GREEN, exit 0"
+  },
+  "marker": "V14E_WRITER_GREEN"
+}

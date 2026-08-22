@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `AsgiCoreProfileAdapter#call({ scope, body, send })` in `src/delivery/asgi-core-profile.mjs`,
+  a framework-neutral ASGI send/call boundary around the existing `handle` method. It requires
+  `send` to be a function (throws `TypeError` otherwise, without calling the router), computes
+  the response events via the unchanged `handle({ scope, body })`, then `await`s `send` once
+  per event in order (`http.response.start` then `http.response.body`), returning the same
+  frozen event array `handle` would have returned. A rejecting `send` propagates and stops
+  further sends. It is not an HTTP server and adds no Python ASGI app, Uvicorn, Hypercorn,
+  FastAPI or Django dependency. `tests/kernel-asgi-core-profile.test.mjs` proves the
+  non-function `send` rejection, in-order awaited dispatch with events equal to `handle`'s
+  output, and propagation of a rejecting `send`. See
+  `planning/gj01-v14e-asgi-send-boundary.json`.
 - `src/delivery/asgi-core-profile.mjs`, `AsgiCoreProfileAdapter`, the smallest
   framework-neutral ASGI Core Profile boundary around `StandardRouter`. It is not a Python
   ASGI app and not a server. Constructor takes exactly `{ router }`, requires an exact

@@ -136,6 +136,17 @@ export class AsgiCoreProfileAdapter {
     return toResponseEvents(response);
   }
 
+  async call({ scope, body, send } = {}) {
+    if (typeof send !== "function") {
+      throw new TypeError("AsgiCoreProfileAdapter call needs a send function");
+    }
+    const events = await this.handle({ scope, body });
+    for (const event of events) {
+      await send(event);
+    }
+    return events;
+  }
+
   get [Symbol.toStringTag]() {
     return "AsgiCoreProfileAdapter";
   }
