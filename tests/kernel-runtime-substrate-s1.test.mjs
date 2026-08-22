@@ -1297,11 +1297,18 @@ test("on a constructed exact-main checkout, npm run check ends with exactly one 
 // =====================================================================================
 
 const S1_ABSENT_ROOTS = ["migrations", "apps", "packages", "deploy"];
-/** Onion order, innermost first — the same two rings the boundary checker owns. */
-const S1_SRC_PERMITTED = ["domain", "application"];
-const S1_SRC_FORBIDDEN = ["adapters", "delivery", "sdk"];
-/** The one name P-M1-02 moves across the line, named once so both attacks can cite it. */
-const S1_MOVED_CHILD = "application";
+/**
+ * Onion order, innermost first, plus the sdk boundary — the same set the boundary checker owns.
+ * `domain` and `application` are materialized rings; `sdk` is a permitted boundary opened by
+ * `planning/gj01-src-sdk-boundary-authority.json` for a future, separately authorized
+ * generated-SDK package, and is not materialized by this substrate package.
+ */
+const S1_SRC_PERMITTED = ["domain", "application", "sdk"];
+const S1_SRC_FORBIDDEN = ["adapters", "delivery"];
+/** The one name the boundary-authority package moves across the line, named once so both attacks can cite it. */
+const S1_MOVED_CHILD = "sdk";
+/** Rings actually materialized as real directories in this checkout — sdk is not one of them. */
+const S1_MATERIALIZED_RINGS = ["domain", "application"];
 const sortedNames = (values) => [...(values ?? [])].sort();
 /** Only root-topology findings are in scope; a scratch tree has no substrate package at all. */
 const rootFindings = (found) => found.filter((f) => /root-src-child|root-path-present:/.test(f));
@@ -1312,6 +1319,12 @@ const SURFACE_ROWS = [
   ["a root src holding only application", { "src/application/use-case/place.ts": "file" }, []],
   ["a root src holding both rings", { "src/domain": "dir", "src/application": "dir" }, []],
   ["an empty root src", { src: "dir" }, []],
+  // `sdk` is a permitted boundary opened by planning/gj01-src-sdk-boundary-authority.json, not a
+  // materialized ring — an empty scratch src/sdk is clean, exactly like an empty domain or
+  // application would be, and it is never required to exist.
+  ["a root src holding only sdk", { "src/sdk": "dir" }, []],
+  ["src/sdk beside domain", { "src/domain": "dir", "src/sdk": "dir" }, []],
+  ["src/sdk beside both materialized rings", { "src/domain": "dir", "src/application": "dir", "src/sdk": "dir" }, []],
   ...S1_SRC_FORBIDDEN.map((c) => [`src/${c} beside domain`, { "src/domain": "dir", [`src/${c}`]: "dir" }, [`forbidden-root-src-child:${c}`]]),
   ...S1_SRC_FORBIDDEN.map((c) => [`src/${c} beside both rings`, { "src/domain": "dir", "src/application": "dir", [`src/${c}`]: "dir" }, [`forbidden-root-src-child:${c}`]]),
   ["an unknown first child", { "src/domain": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
@@ -1331,15 +1344,16 @@ const SURFACE_ROWS = [
 /** [label, patch applied to rootSourceTopology (`null` deletes the clause), expected finding]. */
 const CLAUSE_ATTACKS = [
   ["no root topology clause at all", null, "root-source-topology-missing"],
-  ["a widened permit", { permittedFirstChildren: ["domain", "application", "sdk"] }, "root-source-topology-drift:permittedFirstChildren"],
+  ["a widened permit", { permittedFirstChildren: ["domain", "application", "sdk", "adapters"] }, "root-source-topology-drift:permittedFirstChildren"],
   ["an unclassified first child admitted", { unknownFirstChildRefused: false }, "root-source-topology-admits-unknown-first-child"],
   ["nested ring content claimed as classified", { nestedContentClassified: true }, "root-source-topology-overreaches-into-nested-content"],
-  // The two attacks on P-M1-02's one move. A contract that quietly reverts to the single-ring
-  // shape is the failure this package is most likely to suffer later, because it is what every
-  // pre-existing copy of the clause already says — so it is refused explicitly, from both sides.
+  // The two attacks on the boundary-authority package's one move. A contract that quietly
+  // reverts to the pre-boundary two-ring shape is the failure this package is most likely to
+  // suffer later, because it is what every pre-existing copy of the clause already said — so it
+  // is refused explicitly, from both sides.
   [
     `${S1_MOVED_CHILD} dropped from the permitted rings`,
-    { permittedFirstChildren: ["domain"] },
+    { permittedFirstChildren: ["domain", "application"] },
     "root-source-topology-drift:permittedFirstChildren",
   ],
   [
@@ -1416,6 +1430,8 @@ test("the contract carries a closed rootSourceTopology clause, and Phase A keeps
   assert.equal(topology.nestedContentClassified, false);
   assert.match(String(topology.note ?? ""), /domain/, "the clause needs a note saying what narrowed and what did not");
   assert.match(String(topology.note ?? ""), /application/, "the note still describes a single permitted ring; it must say that application is permitted too");
+  assert.match(String(topology.note ?? ""), /sdk/, "the note must say sdk is a permitted boundary");
+  assert.match(String(topology.note ?? ""), /not materialized|boundary-only/i, "the note must say sdk is boundary-only, not a materialized directory");
   assert.deepEqual(contract.forbiddenAlways, FORBIDDEN_ROOT_PATHS);
   assert.ok(!contract.forbiddenAlways.includes("src"), "forbiddenAlways must no longer list bare src");
   // History is not rewritten to match the narrowing: src was on the Phase A list, and stays on it.
@@ -1462,7 +1478,9 @@ test("the verifier's own comments and the substrate pyproject state the narrowed
 test("the real checkout carries exactly both inner rings, and this narrowing moves no state", () => {
   const src = path.join(root, "src");
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "the narrowed fence permits a root src, and P-M1-01 materializes it");
-  assert.deepEqual(readdirSync(src).sort(), sortedNames(S1_SRC_PERMITTED), "domain and application must be the only first children of the materialized root src");
+  // sdk is a permitted boundary, not a materialized ring: the boundary-authority package creates
+  // no directory for it, so the real checkout must still show only domain and application.
+  assert.deepEqual(readdirSync(src).sort(), sortedNames(S1_MATERIALIZED_RINGS), "domain and application must be the only first children of the materialized root src; sdk stays a permitted boundary with no directory");
   assert.ok(statSync(path.join(src, "domain/identity-primitives.mjs")).isFile(), "src/domain must hold the identity primitives module as a file");
   assert.ok(statSync(path.join(src, "application/action-primitives.mjs")).isFile(), "src/application must hold the action primitives module as a file");
   // The substrate did not follow either ring out of db/: a second production home is still the

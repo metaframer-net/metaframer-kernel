@@ -11,10 +11,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 //
 // The fence used to be one flat list: apps, src, packages, deploy, migrations, absent always.
 // Four of those five are unchanged. `src` is not. A root `src` may exist, and it may hold the
-// two inner onion rings — `src/domain` and `src/application` — and nothing else. `src/adapters`,
-// `src/delivery` and `src/sdk` are the outer rings and stay refused by name, because opening
-// them is a separate decision no package has taken. Any first child nobody has classified is
-// refused too.
+// two inner onion rings — `src/domain` and `src/application` — plus `src/sdk`, a boundary opened
+// by `planning/gj01-src-sdk-boundary-authority.json` for a future, separately authorized
+// generated-SDK package: permitted to exist, never required to, and not materialized by this
+// package. `src/adapters` and `src/delivery` remain refused by name, because opening either is a
+// separate decision no package has taken. Any first child nobody has classified is refused too.
 //
 // Why `application` is permitted rather than merely unclassified: the onion says Application is
 // a ring, so it is a name this fence has classified. Leaving it unknown would refuse it for the
@@ -38,10 +39,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const ROOT_ABSENT_PATHS = ["apps", "packages", "deploy", "migrations"];
 /** The one root directory governed by its first children rather than by its absence. */
 export const ROOT_SRC_DIRECTORY = "src";
-/** The first children a root `src` may hold, in onion order: innermost ring first. */
-export const ROOT_SRC_PERMITTED_CHILDREN = ["domain", "application"];
+/**
+ * The first children a root `src` may hold: the two materialized onion rings, innermost first,
+ * then `sdk` — a permitted boundary, not a materialized ring, opened for a future generated-SDK
+ * package and carrying no directory of its own in this package.
+ */
+export const ROOT_SRC_PERMITTED_CHILDREN = ["domain", "application", "sdk"];
 /** First children refused by name, so a finding says which one was added. */
-export const ROOT_SRC_FORBIDDEN_CHILDREN = ["adapters", "delivery", "sdk"];
+export const ROOT_SRC_FORBIDDEN_CHILDREN = ["adapters", "delivery"];
 
 /**
  * Fold A–Z to a–z and touch nothing else.
@@ -824,10 +829,12 @@ async function main() {
   );
 
   // apps, packages, deploy and root migrations stay absent because they are outside the target
-  // areas of the currently authorized package, and SDK, app-core, app and module remain excluded
-  // targets that no verdict so far has opened. Root `src` is no longer one of them: it is
-  // constrained to the two inner rings, and this checkout materializes exactly `src/domain` for
-  // P-M1-01 and `src/application` for P-M1-02.
+  // areas of the currently authorized package, and app-core, app and module remain excluded
+  // targets that no verdict so far has opened. Root `src` is constrained to its two materialized
+  // rings plus the `sdk` boundary: this checkout materializes exactly `src/domain` (P-M1-01) and
+  // `src/application` (P-M1-02); `src/sdk` is permitted by
+  // `planning/gj01-src-sdk-boundary-authority.json` but carries no directory here — a future,
+  // separately authorized generation package materializes it.
   //
   // The decision comes from the shared reader above, not from a second list kept down here. The
   // CLI and the exported contract cannot disagree if there is only one of them.
