@@ -74,10 +74,23 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   no ASGI/Uvicorn/Hypercorn/FastAPI delivery surface; V5 delivery stays blocked on both the
   generated-SDK step and the one-golden-slice step of that sequence closing GREEN.
 
+- The `src/sdk` boundary-authority package in
+  `planning/gj01-src-sdk-boundary-authority.json`: moves `sdk` from the repository root
+  source-topology fence's forbidden first children to its permitted first children, so a future,
+  separately authorized generation package has a boundary to write into. `src/sdk` is permitted to
+  exist and is never required to; this package creates no directory, no generator and no generated
+  client code under it. `src/adapters` and `src/delivery` remain refused by name. `sdkReady`,
+  `generatedSdkReady`, `implementsSdkGeneration` and every other stronger-stage flag stay `false`;
+  `capabilityDelta` is `NONE` and `runnableProduct` is `false`. The shared fence is read by both
+  `tools/check-repository-boundary.mjs` and `tools/check-kernel-runtime-substrate-s1.mjs`
+  (via `db/kernel-runtime-substrate-s1.json#rootSourceTopology`), so both moved together as one
+  package rather than drifting apart.
+
 ### Changed
-- The repository root source-topology fence was narrowed: a root `src` is permitted and may hold
-  `src/domain` and `src/application` as its only first children, with `src/adapters`,
-  `src/delivery` and `src/sdk` refused by name.
+- The repository root source-topology fence was widened again: a root `src` is permitted and may
+  hold `src/domain`, `src/application` and `src/sdk` as its only first children — `src/domain` and
+  `src/application` materialized, `src/sdk` a permitted-but-not-yet-materialized boundary — with
+  `src/adapters` and `src/delivery` refused by name.
 - Authority reporting now separates a checkout-local projection from project authority, so a
   feature checkout can no longer print a line that reads as the project's verdict.
 - The package version moved from the planning placeholder 0.0.0-planning onto the prerelease train

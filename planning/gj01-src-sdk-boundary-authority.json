@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-src-sdk-boundary-authority-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "repository-boundary-authority",
+  "packageState": "boundary-opened-generation-not-started",
+  "baseCommit": "8896e4529140de984e954bcbb03763e10aa3ac03",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 3,
+    "id": "generated-sdk",
+    "note": "This package opens only the repository first-child boundary that a future generated-SDK package would need. It does not narrow, close or execute step 3 of the pinned sequence, and it does not supersede planning/gj01-generated-sdk-protocol-readiness.json, which remains the frozen protocol target."
+  },
+
+  "implementsSdkGeneration": false,
+
+  "goal": "Move `sdk` from the repository root's forbidden first-children-of-src set to its permitted set, so a future, separately authorized generation package has a boundary to write into. Introduces no generator, no generated client, no populated src/sdk tree and no delivery surface.",
+
+  "allowedFiles": [
+    "planning/gj01-src-sdk-boundary-authority.json",
+    "tools/check-repository-boundary.mjs",
+    "tests/repository-boundary.test.mjs",
+    "CHANGELOG.md"
+  ],
+
+  "boundaryChange": {
+    "before": {
+      "rootSrcPermittedChildren": ["domain", "application"],
+      "rootSrcForbiddenChildren": ["adapters", "delivery", "sdk"]
+    },
+    "after": {
+      "rootSrcPermittedChildren": ["domain", "application", "sdk"],
+      "rootSrcForbiddenChildren": ["adapters", "delivery"]
+    },
+    "note": "src/adapters and src/delivery remain refused by name; opening them is a separate, still-unopened decision. This package moves exactly one name across the line, the way src/application moved for P-M1-02."
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "generatedSdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "nextPackage": {
+    "note": "A future, separately scoped, single-writer generation package may target src/sdk, and only src/sdk, once this package is GREEN and separately approved by Codex MASTER. That package must regenerate byte-identically from the frozen protocol contract in planning/gj01-generated-sdk-protocol-readiness.json.",
+    "preconditions": [
+      "this package's RED-to-GREEN checks pass",
+      "npm test and npm run check are GREEN on this package",
+      "separate Codex MASTER approval is recorded",
+      "the generation package is scoped test-first with its own allowedFiles, non-goals, RED/GREEN and rollback"
+    ]
+  },
+
+  "nonGoals": [
+    "no src/sdk directory or file is created in this package",
+    "no code generator, no generation tooling",
+    "no generated SDK client code of any kind",
+    "no change to src/application or src/domain source",
+    "no change to src/adapters or src/delivery boundary (both remain forbidden)",
+    "no ASGI, Uvicorn, Hypercorn or FastAPI delivery surface",
+    "no app, module or release/deploy/publish path",
+    "no version bump, no README change, no CI change",
+    "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/repository-boundary.test.mjs"],
+    "note": "Before the checker is updated, the test suite expects sdk permitted while the checker still forbids it, so the targeted run fails on the boundary-authority rows."
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/repository-boundary.test.mjs tests/kernel-generated-sdk-protocol-readiness.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the boundary change, the flags block or the non-goals set drifts from this record",
+    "action": "revert planning/gj01-src-sdk-boundary-authority.json, tools/check-repository-boundary.mjs, tests/repository-boundary.test.mjs, db/kernel-runtime-substrate-s1.json, tests/kernel-runtime-substrate-s1.test.mjs and the CHANGELOG.md entry as one six-file shard. The two substrate files were added under the same package after full QA showed tools/check-kernel-runtime-substrate-s1.mjs re-imports and re-checks this same shared root-source-topology fence from db/kernel-runtime-substrate-s1.json#rootSourceTopology; reverting only the original four files would leave that mirrored contract pinned to the pre-boundary-authority domain/application-only topology and out of sync with the fence it re-exports.",
+    "blastRadius": "planning-and-fence-and-tests-only",
+    "runtimeDataImpact": "none"
+  },
+
+  "versionBump": false
+}

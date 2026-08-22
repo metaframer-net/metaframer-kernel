@@ -653,17 +653,17 @@
   "rootSourceTopology": {
     "permittedFirstChildren": [
       "domain",
-      "application"
+      "application",
+      "sdk"
     ],
     "forbiddenFirstChildren": [
       "adapters",
-      "delivery",
-      "sdk"
+      "delivery"
     ],
     "unknownFirstChildRefused": true,
     "nestedContentClassified": false,
     "owner": "tools/check-repository-boundary.mjs",
-    "note": "Root src is no longer forbidden outright; it is constrained to the two inner onion rings, src/domain and src/application, stated in onion order and nothing else. An absent root src stays fully compliant and this checkout now materializes exactly src/domain for P-M1-01 and src/application for P-M1-02. The outer rings adapters, delivery and sdk are refused by name and any unclassified first child fails closed. Nothing beneath src/domain or src/application is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
+    "note": "Root src is no longer forbidden outright; it is constrained to the two materialized onion rings, src/domain and src/application, plus src/sdk, a boundary opened by planning/gj01-src-sdk-boundary-authority.json for a future, separately authorized generated-SDK package. src/sdk is permitted to exist and is never required to: it is boundary-only and is not materialized by this substrate package or by the boundary-authority package that opened it. An absent root src stays fully compliant and this checkout materializes exactly src/domain for P-M1-01 and src/application for P-M1-02; src/sdk carries no directory here. The outer rings adapters and delivery remain refused by name and any unclassified first child fails closed. Nothing beneath src/domain or src/application is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
   },
   "staticAnalysis": {
     "script": "check:substrate-s1:static",
