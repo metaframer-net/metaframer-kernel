@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v13a-application-commit-service-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "application-commit-service-shard",
+  "packageState": "GREEN",
+  "baseCommit": "86441fe347d4698275c8b9c977776f80f31da245",
+
+  "goal": "Add src/application/create-customer-commit-service.mjs, a small framework-neutral Application-ring service composing one exact CreateCustomerPipeline instance with one injected commit port, so an ALLOW_COMMIT outcome can be committed exactly once through an injected port and a non-allow outcome is preserved with commitReceipt: null and no commit call.",
+
+  "allowedFiles": [
+    "src/application/create-customer-commit-service.mjs",
+    "tests/kernel-create-customer-commit-service.test.mjs",
+    "planning/gj01-v13a-application-commit-service.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no HTTP/ASGI/Uvicorn/Hypercorn/FastAPI/Django code",
+    "no src/delivery files",
+    "no Postgres/schema/db/Python change",
+    "no CI/dependency/package metadata change",
+    "no release/deploy/readiness/product-runnable claim"
+  ],
+
+  "scopeResolution": {
+    "note": "CreateCustomerCommitService's constructor accepts exactly { pipeline, commit }: pipeline must be an exact CreateCustomerPipeline instance (prototype identity, not instanceof), commit must be a function. handle(actionSpec) runs pipeline.run(actionSpec). A non-ALLOW_COMMIT outcome is returned frozen with outcome/requestId/error preserved and commitReceipt: null, and commit is never invoked. An ALLOW_COMMIT outcome calls commit(preparedChangeSet, { tenantId: preparedChangeSet.intents.customer.tenantId }) exactly once, awaits the frozen CommitReceipt the injected port returns, and answers a frozen result with outcome: \"COMMITTED\", requestId, error: null, preparedChangeSet: null, commitReceipt. The service never imports the Postgres adapter and touches no clock, random value, environment, socket or file."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-create-customer-commit-service.test.mjs"],
+    "note": "Before this package: the test file imported ../src/application/create-customer-commit-service.mjs, which did not exist, so node --test failed at module resolution with ERR_MODULE_NOT_FOUND before any assertion ran."
+  },
+  "green": {
+    "commands": ["node --test tests/kernel-create-customer-commit-service.test.mjs", "npm run check --silent"],
+    "results": "kernel-create-customer-commit-service.test.mjs: 5/5 pass, proving the constructor rejects a non-exact pipeline, a non-function commit, a missing key and an extra key; a DENY outcome and an INVALID outcome are both returned frozen with commitReceipt: null and never call commit; an ALLOW_COMMIT outcome calls commit exactly once with the preparedChangeSet and { tenantId }, and the result is a frozen COMMITTED with preparedChangeSet: null and the injected CommitReceipt. npm run check: exits zero."
+  },
+
+  "acceptance": {
+    "constructorShape": "constructor accepts exactly { pipeline, commit }; pipeline must be an exact CreateCustomerPipeline instance; commit must be a function; anything else throws TypeError",
+    "nonAllowPreserved": "a non-ALLOW_COMMIT outcome is returned frozen with its outcome/requestId/error unchanged and commitReceipt: null; commit is never called",
+    "allowCommitsOnce": "an ALLOW_COMMIT outcome calls commit(preparedChangeSet, { tenantId }) exactly once and awaits its frozen CommitReceipt",
+    "committedResultShape": "the returned frozen result carries outcome: \"COMMITTED\", requestId, error: null, preparedChangeSet: null, commitReceipt",
+    "frameworkFree": "no HTTP/ASGI/delivery import, no Postgres adapter import, no clock/random/env/socket/file access anywhere in the service module"
+  },
+
+  "rollback": {
+    "trigger": "the service is found to call commit more than once, to call commit on a non-allow outcome, to leak preparedChangeSet on COMMITTED, or to import a delivery/Postgres/framework dependency",
+    "action": "revert src/application/create-customer-commit-service.mjs, tests/kernel-create-customer-commit-service.test.mjs, this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "this new Application-ring service and its test only; CreateCustomerPipeline, the Postgres adapter and every delivery surface are untouched",
+    "runtimeDataImpact": "none; the service opens no database connection and the test suite injects a fake commit port"
+  },
+
+  "once": "CreateCustomerPipeline yalnız kararı verirdi (ALLOW_COMMIT/DENY/INVALID/CROSS_TENANT_DENY); kararı gerçek bir kayda çevirecek bir bağlama noktası yoktu.",
+  "simdi": "CreateCustomerCommitService, pipeline kararını alıp ALLOW_COMMIT ise dışarıdan verilen commit fonksiyonunu tam bir kez çağırıyor ve dönen makbuzu (CommitReceipt) sonuca ekliyor; ALLOW_COMMIT değilse commit hiç çağrılmıyor, karar aynen korunuyor.",
+  "fark": "Yeni dosya src/application/create-customer-commit-service.mjs eklendi; hiçbir mevcut dosya davranışı değişmedi.",
+  "kullaniciYolculugu": "Bir CRM temsilcisi 'yeni müşteri ekle' formunu gönderdiğinde: pipeline izin/red kararını verir; izin varsa bu servis kaydı gerçek commit portuna iletip makbuzu döner; red/geçersiz ise commit hiç denenmez. Ama bu servisi çağıran bir HTTP/form katmanı henüz yok — bu paket sadece o bağlama noktasını hazırlıyor.",
+  "kalanEngel": "Servisi gerçek bir delivery/HTTP katmanına ve gerçek PostgresCommitAdapter'a bağlayan uç henüz yazılmadı; ürün hâlâ çalıştırılamıyor.",
+
+  "capabilityDelta": {
+    "added": "framework-neutral Application-ring commit-orchestration service composing CreateCustomerPipeline with an injected commit port",
+    "notAdded": "no delivery/HTTP wiring, no default/real commit port binding, no runnable end-to-end path"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": true,
+    "runnableProduct": false
+  },
+
+  "nextPackage": {
+    "candidate": "wire CreateCustomerCommitService to a real delivery entrypoint and the existing PostgresCommitAdapter",
+    "note": "out of scope for V13A; explicitly deferred as a non-goal here"
+  }
+}
