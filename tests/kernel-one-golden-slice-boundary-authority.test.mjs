@@ -73,14 +73,27 @@ test("the checker now permits src/adapters and src/delivery and forbids nothing 
   }
 });
 
-test("this package does not materialize src/adapters or src/delivery", () => {
-  for (const child of MOVED_CHILDREN) {
-    assert.equal(
-      existsSync(path.join(root, "src", child)),
-      false,
-      `src/${child} must not exist — this package opens the boundary only, it does not walk through it`,
-    );
-  }
+// This package (gj01-v12) itself opened the boundary only and walked through none of it — that
+// remains true of its own commit and is unchanged history. `src/adapters` is materialized by the
+// later, separately authorized `planning/gj01-v12b1-postgres-adapter.json` package; `src/delivery`
+// remains an opened boundary that no package has walked through yet.
+test("src/delivery stays an opened boundary that no package has walked through", () => {
+  assert.equal(
+    existsSync(path.join(root, "src", "delivery")),
+    false,
+    "src/delivery must not exist — no package has walked through this boundary yet",
+  );
+});
+
+test("src/adapters is materialized by the later, separately authorized postgres-adapter package", async () => {
+  assert.ok(
+    existsSync(path.join(root, "src", "adapters")),
+    "src/adapters must exist once planning/gj01-v12b1-postgres-adapter.json walks through the boundary this package opened",
+  );
+  const adapterPlanning = JSON.parse(
+    await readFile(path.join(root, "planning/gj01-v12b1-postgres-adapter.json"), "utf8"),
+  );
+  assert.equal(adapterPlanning.sequenceReference.source, planningPath);
 });
 
 test("the substrate mirror re-exports the same widened boundary", () => {

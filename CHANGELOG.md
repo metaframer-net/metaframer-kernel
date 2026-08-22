@@ -16,6 +16,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/adapters/postgres-commit-adapter.mjs`, materializing the `src/adapters` boundary opened by
+  `planning/gj01-v12-src-adapters-delivery-boundary-authority.json` with `PostgresCommitAdapter`: a
+  JS application-owned persistence port that commits a `CreateCustomerPipeline` `ALLOW_COMMIT`
+  `preparedChangeSet` against the real PostgreSQL S1 substrate inside one attested tenant
+  transaction, using the `pg` driver. `planning/gj01-v12b1-postgres-adapter.json` records the
+  package's scope, non-goals and rollback. The S1 substrate owns exactly two runtime tables
+  (`transactional_outbox`, `audit_log`) and no customer-owning table, so the adapter commits three
+  of the pipeline's four write intents for real — `audit` as an `audit_log` row, `transactionalOutbox`
+  as a `transactional_outbox` row, and `idempotency` realized as that row's `dedup_key`, enforced by
+  the substrate's own per-tenant unique index — and honestly defers `customer`, minting no
+  `CommitReceipt`. `tests/postgres-commit-adapter.test.mjs` proves this against a real, disposable
+  Docker-backed PostgreSQL 16 instance, never a mock. `flags.kernelReady`, `oneGoldenSliceReady`,
+  `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed` and
+  `gapClosed` all stay `false`, `capabilityDelta` is `NONE` and `runnableProduct` is `false`. This
+  introduces no HTTP/ASGI/Uvicorn/Hypercorn/FastAPI/Django delivery surface, no `src/delivery`
+  content and no change to `db/metaframer_kernel_db`.
 - `planning/gj01-v12-src-adapters-delivery-boundary-authority.json`, a repository-boundary-authority
   package moving `src/adapters` and `src/delivery` from the repository root's forbidden
   first-children-of-`src` set to its permitted set, the way `src/sdk` was opened by
