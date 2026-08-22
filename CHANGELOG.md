@@ -16,6 +16,28 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/delivery/create-customer-composition.mjs`, `createCustomerComposition(options)`, the
+  smallest framework-neutral composition root wiring the existing
+  `CreateCustomerRequestHandler` to a real `CreateCustomerCommitService` and the existing
+  `PostgresCommitAdapter`. Accepts exactly
+  `{ connectionString, current, candidatesFor, evaluateInvariants }`; constructs
+  `Identity({ current })`, `PolicyDecisionPoint({ candidatesFor })`,
+  `CreateCustomerPipeline({ identity, policyDecisionPoint, evaluateInvariants })`,
+  `PostgresCommitAdapter({ connectionString })` and
+  `CreateCustomerCommitService({ pipeline, commit: adapter.commit.bind(adapter) })`, then
+  `CreateCustomerRequestHandler({ service })`, and returns exactly one frozen
+  `{ handler, close }` object — never the adapter, service, pipeline, identity or policy
+  decision point. `close()` closes the composed `PostgresCommitAdapter`. No HTTP server, no
+  ASGI runtime — FastAPI, Django, Uvicorn and Hypercorn are named only as non-goals — no
+  clock/random/env/fs/net access; a composition root, not a server.
+  `tests/kernel-create-customer-composition.test.mjs` proves option exactness, the frozen
+  `{ handler, close }` shape, a DENY outcome mapping to 403 without ever touching the
+  database, and that the module imports no forbidden capability or framework/runtime
+  dependency. `tests/repository-boundary.test.mjs` now admits `src/delivery` holding exactly
+  `create-customer-composition.mjs` and `create-customer-request-handler.mjs`.
+  `planning/gj01-v13c-framework-neutral-composition.json` records scope, RED/GREEN evidence
+  and rollback. `flags.runnableProduct` stays `false` — no HTTP server or ASGI runtime wires
+  this composition to anything yet.
 - `src/delivery/create-customer-request-handler.mjs`, `CreateCustomerRequestHandler`, a
   framework-neutral Delivery-ring handler materializing the `src/delivery` boundary opened by
   `planning/gj01-v12-src-adapters-delivery-boundary-authority.json`. The constructor accepts
