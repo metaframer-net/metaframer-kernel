@@ -26,7 +26,19 @@ test("constructor exactness and frozen surfaces", () => {
   assert.deepEqual(Object.keys(adapter), []);
 });
 
-test("malformed scope short-circuits to a frozen 400 profile response without calling router", () => {
+test("handle returns a Promise", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const result = adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined });
+  assert.ok(result instanceof Promise);
+  await result;
+});
+
+test("malformed scope short-circuits to a frozen 400 profile response without calling router", async () => {
   let called = false;
   const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200 }); }) }]);
   const adapter = new AsgiCoreProfileAdapter({ router });
@@ -46,7 +58,7 @@ test("malformed scope short-circuits to a frozen 400 profile response without ca
   ];
 
   for (const scope of badScopes) {
-    const events = adapter.handle({ scope, body: undefined });
+    const events = await adapter.handle({ scope, body: undefined });
     assert.equal(events.length, 2);
     assert.equal(events[0].type, "http.response.start");
     assert.equal(events[0].status, 400);
@@ -59,7 +71,7 @@ test("malformed scope short-circuits to a frozen 400 profile response without ca
   assert.equal(called, false);
 });
 
-test("valid scope dispatches router.handle exactly once with frozen plain message", () => {
+test("valid scope dispatches router.handle exactly once with frozen plain message", async () => {
   let callCount = 0;
   let received;
   const routerResponse = Object.freeze({
@@ -70,7 +82,7 @@ test("valid scope dispatches router.handle exactly once with frozen plain messag
   const router = routerWith([{
     method: "POST",
     path: "/customers",
-    handler: stubHandler((message) => {
+    handler: stubHandler(async (message) => {
       callCount += 1;
       received = message;
       return routerResponse;
@@ -96,7 +108,7 @@ test("valid scope dispatches router.handle exactly once with frozen plain messag
     root_path: "",
   };
   const body = Object.freeze({ name: "acme" });
-  const events = adapter.handle({ scope, body });
+  const events = await adapter.handle({ scope, body });
 
   assert.equal(callCount, 1);
   assert.ok(Object.isFrozen(received));
@@ -120,7 +132,7 @@ test("valid scope dispatches router.handle exactly once with frozen plain messag
   assert.ok(Object.isFrozen(events[1]));
 });
 
-test("response header pairs are sorted by name for determinism", () => {
+test("response header pairs are sorted by name for determinism", async () => {
   const router = routerWith([{
     method: "GET",
     path: "/orders",
@@ -131,11 +143,11 @@ test("response header pairs are sorted by name for determinism", () => {
     })),
   }]);
   const adapter = new AsgiCoreProfileAdapter({ router });
-  const events = adapter.handle({ scope: { type: "http", method: "GET", path: "/orders", headers: [] }, body: undefined });
+  const events = await adapter.handle({ scope: { type: "http", method: "GET", path: "/orders", headers: [] }, body: undefined });
   assert.deepEqual(events[0].headers, [["alpha", "2"], ["mid", "3"], ["zeta", "1"]]);
 });
 
-test("malformed router response throws TypeError", () => {
+test("malformed router response rejects with TypeError", async () => {
   for (const badResponse of [
     Object.freeze({ status: "200", headers: {}, body: {} }),
     Object.freeze({ status: 200, headers: "bad", body: {} }),
@@ -146,7 +158,7 @@ test("malformed router response throws TypeError", () => {
   ]) {
     const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => badResponse) }]);
     const adapter = new AsgiCoreProfileAdapter({ router });
-    assert.throws(
+    await assert.rejects(
       () => adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined }),
       TypeError,
     );

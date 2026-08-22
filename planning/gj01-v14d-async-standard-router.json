@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14d-async-standard-router-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "delivery-boundary-materialization",
+  "packageState": "async-standard-router-GREEN-no-server",
+  "baseCommit": "149356915d721df9a72aba1589ddf499c48c7a9c",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v14c-asgi-core-profile.json",
+    "field": "n/a",
+    "note": "RED observed by MASTER: StandardRouter.handle threw TypeError when a route handler returned a Promise, so it could not compose with the async CreateCustomerHttpMessageAdapter.handle. This package makes StandardRouter.handle and AsgiCoreProfileAdapter.handle async so an async handler composes without a synchronous-object-shape mismatch."
+  },
+
+  "goal": "Make StandardRouter.handle an async method that awaits exactly one handler result (sync or async) before validating and returning it; short-circuit responses (400/404/405) stay deterministic frozen objects delivered through the now-async method. Make AsgiCoreProfileAdapter.handle async and await router.handle before converting the response into frozen ASGI-profile events. No server, no Python ASGI callable, no host runtime.",
+
+  "allowedFiles": ["src/delivery/standard-router.mjs", "src/delivery/asgi-core-profile.mjs", "tests/kernel-standard-router.test.mjs", "tests/kernel-asgi-core-profile.test.mjs", "tests/repository-boundary.test.mjs", "planning/gj01-v14d-async-standard-router.json", "CHANGELOG.md"],
+
+  "nonGoals": ["no HTTP server of any kind", "no Python ASGI callable", "no Uvicorn", "no Hypercorn", "no FastAPI", "no Django", "no dependency, package.json or CI change", "no Docker change", "no database, PDP, tenant or CommitReceipt change", "no release, deploy, readiness or product-runnable claim"],
+
+  "standardRefs": [
+    { "standardId": "SR-01", "applies": true, "reason": "Router/profile matrix obligation: StandardRouter.handle now composes with async delivery handlers (e.g. CreateCustomerHttpMessageAdapter.handle) without a shape mismatch.", "canonicalSource": "src/delivery/standard-router.mjs", "consumer": "AsgiCoreProfileAdapter and any future host adapter", "test": "tests/kernel-standard-router.test.mjs", "evidence": "node --test GREEN", "waiver": "none" },
+    { "standardId": "SR-03", "applies": true, "reason": "No ASGI/Uvicorn/Hypercorn/FastAPI/Django/Express/Koa coupling introduced by making handle async.", "canonicalSource": "src/delivery/standard-router.mjs, src/delivery/asgi-core-profile.mjs", "consumer": "future host conformance package (not built here)", "test": "tests/kernel-standard-router.test.mjs, tests/kernel-asgi-core-profile.test.mjs", "evidence": "forbidden-token source scan GREEN", "waiver": "none" },
+    { "standardId": "SR-05", "applies": false, "reason": "Mutation chain ActionSpec->PDP->ChangeSet->UoW->CommitReceipt untouched: only await/async keywords added around existing dispatch and response conversion.", "canonicalSource": "n/a", "consumer": "n/a", "test": "n/a", "evidence": "no ActionSpec/PDP/ChangeSet/UoW/CommitReceipt reference", "waiver": "not applicable" },
+    { "standardId": "SR-06", "applies": false, "reason": "Tenant isolation not inspected/enforced by this change.", "canonicalSource": "n/a", "consumer": "n/a", "test": "n/a", "evidence": "no tenantId read", "waiver": "not applicable" },
+    { "standardId": "SR-07", "applies": false, "reason": "No PDP/PEP decision introduced.", "canonicalSource": "n/a", "consumer": "n/a", "test": "n/a", "evidence": "no PDP/PEP call in source", "waiver": "not applicable" }
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-standard-router.test.mjs"],
+    "note": "Before this change, StandardRouter.handle called route.handler.handle(message) synchronously and returned its value directly; an async handler resolving a plain object made isOrdinaryObject(response) fail on the returned Promise, throwing TypeError instead of composing."
+  },
+  "green": {
+    "requirements": ["node --test tests/kernel-standard-router.test.mjs tests/kernel-asgi-core-profile.test.mjs tests/repository-boundary.test.mjs must be GREEN", "npm run check must be GREEN", "npm test attempted; observed fact: pre-existing environment-only failure in tests/postgres-commit-adapter.test.mjs (docker not available in this environment) is not caused by and not fixed by this package, so full npm test GREEN is not claimed here"]
+  },
+
+  "rollback": {
+    "trigger": "async signature, await-exactly-once dispatch, or response-validation discipline drifts from this record",
+    "action": "revert the 7 files in allowedFiles as one shard",
+    "blastRadius": "standard-router, asgi-core-profile, their tests, repository-boundary test and this planning/changelog record only; no adapters/application/domain/db/CI touched",
+    "runtimeDataImpact": "none: pure request-in/response-out dispatch, no I/O, no listener"
+  },
+
+  "flags": { "kernelReady": false, "oneGoldenSliceReady": false, "walkingSkeletonReady": false, "appBuildable": false, "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false, "gapClosed": false },
+  "capabilityDelta": "INTERNAL_ONLY: StandardRouter.handle and AsgiCoreProfileAdapter.handle became async so an already-existing async delivery handler (CreateCustomerHttpMessageAdapter.handle) can be dispatched through the router without a TypeError; no new route, no new host, no new endpoint reachable by any external caller, no readiness or product-runnable change.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "StandardRouter senkron bir handler'ı çağırıp sonucu doğrudan döndürüyordu; CreateCustomerHttpMessageAdapter.handle gibi async (Promise döndüren) bir handler'a bağlandığında TypeError fırlatıyordu, çünkü dönen değer bir Promise'ti, sıradan bir yanıt nesnesi değildi.",
+    "after": "StandardRouter.handle artık async: tam olarak bir handler sonucunu await ediyor, ister senkron ister async olsun. Kısa devre yanıtları (400/404/405) hâlâ deterministik donmuş nesneler, sadece artık async metod üzerinden teslim ediliyor. AsgiCoreProfileAdapter.handle da router.handle'ı await ediyor. Hâlâ hiçbir sunucu çalışmıyor.",
+    "note": "Bu paketle hiçbir sunucu, ASGI runtime veya framework çalışır hale gelmiyor; yalnızca StandardRouter artık async handler'larla bileşebiliyor."
+  },
+
+  "kalanEngel": "hiçbir gerçek host bu router'ı henüz çağırmıyor; sunucu bağlama ayrı, kapsamı belirlenecek bir paket.",
+
+  "nextPackage": {
+    "note": "A future, separately scoped package may wire a real host process around AsgiCoreProfileAdapter, or compose StandardRouter with CreateCustomerHttpMessageAdapter end to end.",
+    "preconditions": ["this package's targeted GREEN and npm run check both pass", "a separate approved package scopes the host process or end-to-end composition decision"]
+  },
+
+  "versionBump": false
+}
