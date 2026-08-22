@@ -16,6 +16,27 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/delivery/asgi-core-profile.mjs`, `AsgiCoreProfileAdapter`, the smallest
+  framework-neutral ASGI Core Profile boundary around `StandardRouter`. It is not a Python
+  ASGI app and not a server. Constructor takes exactly `{ router }`, requires an exact
+  `StandardRouter` instance by prototype identity, and freezes instance/class/prototype.
+  `handle({ scope, body })` accepts an ordinary profile request; a malformed `scope`
+  (wrong `type`, non-string `method`/`path`, malformed ASGI-style `headers` pairs) returns
+  frozen 400 profile events without ever calling the router. A valid scope decodes
+  string-or-`Uint8Array` header pairs (lowercase UTF-8 names, UTF-8 values, last value wins
+  on duplicates) into a frozen plain header object, calls `router.handle` exactly once with
+  a frozen `{ method, path, headers, body }` message, and converts the router's
+  `{ status, headers, body }` response into two frozen events: `http.response.start` with
+  lowercase `[name, value]` header pairs sorted by name, and `http.response.body` carrying
+  the body unchanged with `more_body: false`. A malformed router response throws
+  `TypeError`. No Node `http`/`net`/`fs`/`fetch`, no ASGI/FastAPI/Django/Uvicorn/Hypercorn
+  dependency, no clock/random/env access.
+  `tests/kernel-asgi-core-profile.test.mjs` proves constructor exactness, frozen surfaces,
+  the 400 short-circuit, exactly-once dispatch, `Uint8Array` header decoding, deterministic
+  header sorting, the `TypeError` on a malformed router response and forbidden-import
+  checks. `tests/repository-boundary.test.mjs` now admits `asgi-core-profile.mjs` in the
+  closed `src/delivery` ring module manifest. See
+  `planning/gj01-v14c-asgi-core-profile.json`.
 - `src/delivery/standard-router.mjs`, `StandardRouter`, the smallest framework-neutral route
   table in the delivery ring. Constructor takes exactly `{ routes }` (non-empty
   `{ method, path, handler }` records; duplicate `method`+`path` refused); router/class/
