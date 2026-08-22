@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `planning/gj01-v11-generated-sdk-step-closure.json`, a package-local closure record proving
+  step 3 (`generated-sdk`) of the pinned runtime-start sequence is closed for CreateCustomer@1 by
+  composing four already-GREEN evidence records: the `src/sdk` boundary opened by
+  `planning/gj01-src-sdk-boundary-authority.json`, the frozen protocol contract in
+  `planning/gj01-generated-sdk-protocol-readiness.json`, the materialized artifact in
+  `planning/gj01-generated-sdk-generation.json` / `src/sdk/create-customer.mjs`, and the
+  deterministic generator in `planning/gj01-v10-deterministic-sdk-generator.json` /
+  `tools/generate-create-customer-sdk.mjs`. It writes no new production code and edits none of
+  the composed evidence, the artifact, or the generator. `flags.generatedSdkStepClosed` is `true`
+  while `kernelReady`, `sdkReady`, `generatedSdkReady`, `appBuildable`, `releaseAllowed`,
+  `deployAllowed`, `productionAllowed` and `gapClosed` all stay `false`, `capabilityDelta` is
+  `NONE` and `runnableProduct` is `false`. This does not open step 4 (one-golden-slice /
+  walking-skeleton) of the sequence.
 - `tools/generate-create-customer-sdk.mjs`, a deterministic generator exporting a pure
   `renderCreateCustomerSdk(protocol)` function that renders `src/sdk/create-customer.mjs`
   byte-identically from the frozen protocol contract in
