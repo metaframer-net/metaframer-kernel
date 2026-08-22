@@ -1,0 +1,51 @@
+{
+  "package": "gj01-v14j-asgi-header-bytes",
+  "baseCommit": "0a59d50aa0486f1695467124b76d38ec6f7b523c",
+  "writer": "claude",
+  "scope": "Add the smallest framework-neutral optional ASGI response-header bytes encoding boundary so a host adapter can receive response header name/value pairs as Uint8Array without this module selecting or importing Uvicorn, Hypercorn, FastAPI, Django, Node HTTP, or any server.",
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "planning/gj01-v14j-asgi-header-bytes.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no HTTP server",
+    "no Python ASGI app",
+    "no Uvicorn/Hypercorn/FastAPI/Django dependency or selection",
+    "no package dependency change",
+    "no migration/DB schema change",
+    "no release/readiness/runtime-readiness claim"
+  ],
+  "change": {
+    "added": "optional encodeResponseHeader parameter on AsgiCoreProfileAdapter.call and .callFromReceive, plus a default UTF-8 response header encoder wired into createCustomerAsgiComposition.app",
+    "behavior": [
+      "call({ scope, body, send, encodeResponseHeader }) and callFromReceive({ ..., encodeResponseHeader }) accept an optional encoder function",
+      "when encodeResponseHeader is omitted, call/callFromReceive/handle behavior and the internal profile event header shape (string name/value pairs) are unchanged",
+      "when encodeResponseHeader is supplied, it is applied to every http.response.start header name and value before send/return, including the deterministic 400 profile events raised on invalid scope, malformed receive events, and decodeBody throw",
+      "encodeResponseHeader is validated as a function when supplied (TypeError otherwise, no send/router invocation); an encoder throw propagates and is not caught, and send is not called after a header-encoder failure",
+      "createCustomerAsgiComposition.app now passes the existing JSON request decoder, the existing JSON response body encoder, and a new default UTF-8 response header encoder to asgi.callFromReceive, so host-adapter callers receive Uint8Array header pairs and Uint8Array body chunks",
+      "asgi.call/asgi.router/close direct-call behavior (no encoder) is unchanged"
+    ]
+  },
+  "tests": {
+    "targeted": [
+      "call without encodeResponseHeader preserves existing string header pairs",
+      "call with encodeResponseHeader converts success response headers to Uint8Array pairs and returns the same sent events",
+      "call with encodeResponseHeader applies to invalid-scope 400 profile events",
+      "callFromReceive with encodeResponseHeader applies to decode-error 400 profile events",
+      "callFromReceive with encodeResponseHeader applies to a malformed receive-event 400 profile response, with headers as Uint8Array pairs and sent equal to the returned events",
+      "encodeResponseHeader throw propagates and is not swallowed, and send is not called after failure",
+      "call/callFromReceive reject a non-function encodeResponseHeader without invoking send/receive",
+      "app(scope, receive, send) response start headers are Uint8Array pairs decoding to the expected content-type",
+      "all existing kernel-asgi-core-profile and kernel-create-customer-asgi-composition tests remain green"
+    ]
+  },
+  "evidence": {
+    "targetedNodeTests": "node --test tests/kernel-asgi-core-profile.test.mjs tests/kernel-create-customer-asgi-composition.test.mjs -> 44 pass, 0 fail",
+    "npmRunCheck": "GREEN, exit 0"
+  },
+  "marker": "V14J_WRITER_GREEN"
+}
