@@ -145,6 +145,24 @@ test("app treats an empty body as the accepted empty-body shape", async () => {
   }
 });
 
+test("app(scope, receive, send) response start headers are Uint8Array pairs decoding to content-type", async () => {
+  const composition = createCustomerAsgiComposition(validOptions());
+  try {
+    const { events, send } = collectingSend();
+    await composition.app(scopeOf("POST", "/customers"), receiveOnce(new Uint8Array()), send);
+    const [start] = events;
+    assert.equal(start.type, "http.response.start");
+    for (const [name, value] of start.headers) {
+      assert.ok(name instanceof Uint8Array);
+      assert.ok(value instanceof Uint8Array);
+    }
+    const decoded = start.headers.map(([n, v]) => [new TextDecoder().decode(n), new TextDecoder().decode(v)]);
+    assert.deepEqual(decoded.find(([name]) => name === "content-type"), ["content-type", "application/json"]);
+  } finally {
+    await composition.close();
+  }
+});
+
 test("app returns the deterministic 400 profile response for invalid JSON without calling the pipeline", async () => {
   const composition = createCustomerAsgiComposition(
     validOptions({
@@ -161,6 +179,10 @@ test("app returns the deterministic 400 profile response for invalid JSON withou
     assert.equal(events.length, 2);
     assert.equal(events[0].type, "http.response.start");
     assert.equal(events[0].status, 400);
+    for (const [name, value] of events[0].headers) {
+      assert.ok(name instanceof Uint8Array);
+      assert.ok(value instanceof Uint8Array);
+    }
     assert.ok(events[1].body instanceof Uint8Array);
     const decoded = JSON.parse(new TextDecoder().decode(events[1].body));
     assert.equal(decoded.error.code, "PROFILE_SCOPE_INVALID");

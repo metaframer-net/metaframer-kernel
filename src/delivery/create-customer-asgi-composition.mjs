@@ -50,6 +50,14 @@ function encodeJsonBody(body) {
   return utf8Encoder.encode(JSON.stringify(body));
 }
 
+// Default response header encoder for the ASGI callable entrypoint: an ASGI response header
+// name or value (already a string in the internal profile events) is encoded as UTF-8 bytes, so
+// a host adapter (Uvicorn, Hypercorn, ...) receives the Uint8Array pairs an ASGI
+// `http.response.start` event carries.
+function encodeUtf8HeaderPart(part) {
+  return utf8Encoder.encode(part);
+}
+
 const OPTIONS_KEYS = ["connectionString", "current", "candidatesFor", "evaluateInvariants"];
 
 function checkOptions(options) {
@@ -94,7 +102,14 @@ export function createCustomerAsgiComposition(options) {
   const asgi = new AsgiCoreProfileAdapter({ router });
 
   const app = async (scope, receive, send) =>
-    asgi.callFromReceive({ scope, receive, send, decodeBody: decodeJsonBody, encodeResponseBody: encodeJsonBody });
+    asgi.callFromReceive({
+      scope,
+      receive,
+      send,
+      decodeBody: decodeJsonBody,
+      encodeResponseBody: encodeJsonBody,
+      encodeResponseHeader: encodeUtf8HeaderPart,
+    });
 
   return Object.freeze({
     asgi,

@@ -16,6 +16,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- Optional `encodeResponseHeader` parameter on `AsgiCoreProfileAdapter#call` and
+  `#callFromReceive` in `src/delivery/asgi-core-profile.mjs`: when supplied (and validated as a
+  function), it encodes every `http.response.start` header name and value before send/return,
+  including the deterministic 400 profile events raised on invalid scope, a malformed receive
+  event, or a `decodeBody` failure; an encoder throw propagates rather than being caught, and
+  `send` is not called after a header-encoder failure. Omitting `encodeResponseHeader` leaves
+  existing `call`/`callFromReceive`/`handle` behavior — including the internal string header-pair
+  shape — unchanged. `createCustomerAsgiComposition.app` in
+  `src/delivery/create-customer-asgi-composition.mjs` now also passes a default UTF-8 response
+  header encoder alongside the existing JSON request decoder and JSON response body encoder, so a
+  host adapter calling `app(scope, receive, send)` receives `Uint8Array` header name/value pairs
+  in addition to `Uint8Array` body chunks. Neither module adds a server, framework, network or
+  Python ASGI dependency. `tests/kernel-asgi-core-profile.test.mjs` and
+  `tests/kernel-create-customer-asgi-composition.test.mjs` add targeted coverage for the
+  no-encoder default, encoder success/error-path application, and encoder-throw propagation. See
+  `planning/gj01-v14j-asgi-header-bytes.json`.
 - Optional `encodeResponseBody` parameter on `AsgiCoreProfileAdapter#call` and `#callFromReceive`
   in `src/delivery/asgi-core-profile.mjs`: when supplied (and validated as a function), it encodes
   every `http.response.body` event's body before send/return, including the deterministic 400

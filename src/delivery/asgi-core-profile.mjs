@@ -108,11 +108,21 @@ function toResponseEvents(response) {
   return Object.freeze([start, body]);
 }
 
-function encodeEvents(events, encodeResponseBody) {
-  if (encodeResponseBody === undefined) return events;
+function encodeEvents(events, encodeResponseBody, encodeResponseHeader) {
   return Object.freeze(events.map((event) => {
-    if (event.type !== "http.response.body") return event;
-    return Object.freeze({ type: event.type, body: encodeResponseBody(event.body), more_body: event.more_body });
+    if (event.type === "http.response.body") {
+      if (encodeResponseBody === undefined) return event;
+      return Object.freeze({ type: event.type, body: encodeResponseBody(event.body), more_body: event.more_body });
+    }
+    if (event.type === "http.response.start") {
+      if (encodeResponseHeader === undefined) return event;
+      const headers = event.headers.map(([name, value]) => Object.freeze([
+        encodeResponseHeader(name),
+        encodeResponseHeader(value),
+      ]));
+      return Object.freeze({ type: event.type, status: event.status, headers: Object.freeze(headers) });
+    }
+    return event;
   }));
 }
 
@@ -144,22 +154,25 @@ export class AsgiCoreProfileAdapter {
     return toResponseEvents(response);
   }
 
-  async call({ scope, body, send, encodeResponseBody } = {}) {
+  async call({ scope, body, send, encodeResponseBody, encodeResponseHeader } = {}) {
     if (typeof send !== "function") {
       throw new TypeError("AsgiCoreProfileAdapter call needs a send function");
     }
     if (encodeResponseBody !== undefined && typeof encodeResponseBody !== "function") {
       throw new TypeError("AsgiCoreProfileAdapter call encodeResponseBody must be a function when provided");
     }
+    if (encodeResponseHeader !== undefined && typeof encodeResponseHeader !== "function") {
+      throw new TypeError("AsgiCoreProfileAdapter call encodeResponseHeader must be a function when provided");
+    }
     const rawEvents = await this.handle({ scope, body });
-    const events = encodeEvents(rawEvents, encodeResponseBody);
+    const events = encodeEvents(rawEvents, encodeResponseBody, encodeResponseHeader);
     for (const event of events) {
       await send(event);
     }
     return events;
   }
 
-  async callFromReceive({ scope, receive, send, decodeBody, encodeResponseBody } = {}) {
+  async callFromReceive({ scope, receive, send, decodeBody, encodeResponseBody, encodeResponseHeader } = {}) {
     if (typeof receive !== "function" || typeof send !== "function") {
       throw new TypeError("AsgiCoreProfileAdapter callFromReceive needs receive and send functions");
     }
@@ -169,9 +182,12 @@ export class AsgiCoreProfileAdapter {
     if (encodeResponseBody !== undefined && typeof encodeResponseBody !== "function") {
       throw new TypeError("AsgiCoreProfileAdapter callFromReceive encodeResponseBody must be a function when provided");
     }
+    if (encodeResponseHeader !== undefined && typeof encodeResponseHeader !== "function") {
+      throw new TypeError("AsgiCoreProfileAdapter callFromReceive encodeResponseHeader must be a function when provided");
+    }
 
     const sendErrorEvents = async () => {
-      const events = encodeEvents(profileErrorEvents(), encodeResponseBody);
+      const events = encodeEvents(profileErrorEvents(), encodeResponseBody, encodeResponseHeader);
       for (const event of events) {
         await send(event);
       }
@@ -215,7 +231,7 @@ export class AsgiCoreProfileAdapter {
       body = merged;
     }
 
-    return this.call({ scope, body, send, encodeResponseBody });
+    return this.call({ scope, body, send, encodeResponseBody, encodeResponseHeader });
   }
 
   get [Symbol.toStringTag]() {

@@ -516,6 +516,147 @@ test("call rejects a non-function encodeResponseBody without invoking send", asy
   assert.equal(sent.length, 0);
 });
 
+test("call without encodeResponseHeader preserves existing string header pairs", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({ "content-type": "application/json" }), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const sent = [];
+  const events = await adapter.call({ scope, body: undefined, send: async (e) => sent.push(e) });
+  assert.deepEqual(events[0].headers, [["content-type", "application/json"]]);
+  assert.deepEqual(sent, events);
+});
+
+test("call with encodeResponseHeader converts success response headers to Uint8Array pairs and returns the same sent events", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({
+      status: 200,
+      headers: Object.freeze({ "content-type": "application/json", "x-a": "1" }),
+      body: Object.freeze({}),
+    })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const encodeResponseHeader = (part) => new TextEncoder().encode(part);
+  const sent = [];
+  const events = await adapter.call({ scope, body: undefined, send: async (e) => sent.push(e), encodeResponseHeader });
+
+  assert.equal(events[0].type, "http.response.start");
+  for (const [name, value] of events[0].headers) {
+    assert.ok(name instanceof Uint8Array);
+    assert.ok(value instanceof Uint8Array);
+  }
+  const decoded = events[0].headers.map(([n, v]) => [new TextDecoder().decode(n), new TextDecoder().decode(v)]);
+  assert.deepEqual(decoded, [["content-type", "application/json"], ["x-a", "1"]]);
+  assert.deepEqual(sent, events);
+});
+
+test("call with encodeResponseHeader applies to invalid-scope 400 profile events", async () => {
+  const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const encodeResponseHeader = (part) => new TextEncoder().encode(part);
+  const sent = [];
+  const events = await adapter.call({ scope: { type: "websocket" }, body: undefined, send: async (e) => sent.push(e), encodeResponseHeader });
+  assert.equal(events[0].status, 400);
+  for (const [name, value] of events[0].headers) {
+    assert.ok(name instanceof Uint8Array);
+    assert.ok(value instanceof Uint8Array);
+  }
+  const decoded = events[0].headers.map(([n, v]) => [new TextDecoder().decode(n), new TextDecoder().decode(v)]);
+  assert.deepEqual(decoded, [["content-type", "application/json"]]);
+  assert.deepEqual(sent, events);
+});
+
+test("callFromReceive with encodeResponseHeader applies to decode-error 400 profile events", async () => {
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const badBytes = new TextEncoder().encode("not-json{");
+  const receive = async () => ({ type: "http.request", body: badBytes, more_body: false });
+  const decodeBody = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
+  const encodeResponseHeader = (part) => new TextEncoder().encode(part);
+  const sent = [];
+  const events = await adapter.callFromReceive({ scope, receive, send: async (e) => sent.push(e), decodeBody, encodeResponseHeader });
+  assert.equal(events[0].status, 400);
+  for (const [name, value] of events[0].headers) {
+    assert.ok(name instanceof Uint8Array);
+    assert.ok(value instanceof Uint8Array);
+  }
+  assert.deepEqual(sent, events);
+});
+
+test("callFromReceive with encodeResponseHeader applies to a malformed receive-event 400 profile response", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200 }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => ({ type: "http.disconnect" });
+  const encodeResponseHeader = (part) => new TextEncoder().encode(part);
+  const sent = [];
+  const events = await adapter.callFromReceive({ scope, receive, send: async (e) => sent.push(e), encodeResponseHeader });
+
+  assert.equal(called, false);
+  assert.equal(events[0].status, 400);
+  for (const [name, value] of events[0].headers) {
+    assert.ok(name instanceof Uint8Array);
+    assert.ok(value instanceof Uint8Array);
+  }
+  assert.deepEqual(sent, events);
+});
+
+test("callFromReceive rejects a non-function encodeResponseHeader before invoking receive or send", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  let receiveCalled = false;
+  const receive = async () => { receiveCalled = true; return { type: "http.request", body: new Uint8Array(), more_body: false }; };
+  let sendCalled = false;
+  const send = async () => { sendCalled = true; };
+
+  await assert.rejects(
+    () => adapter.callFromReceive({ scope, receive, send, encodeResponseHeader: "not-a-fn" }),
+    TypeError,
+  );
+  assert.equal(receiveCalled, false);
+  assert.equal(sendCalled, false);
+  assert.equal(called, false);
+});
+
+test("call rejects a non-function encodeResponseHeader without invoking send", async () => {
+  const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const sent = [];
+  await assert.rejects(
+    () => adapter.call({ scope, body: undefined, send: async (e) => sent.push(e), encodeResponseHeader: "not-a-fn" }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
+test("encodeResponseHeader throw propagates and is not swallowed, and send is not called after failure", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({ "x-a": "1" }), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const encodeResponseHeader = () => { throw new Error("header encode failed"); };
+  const sent = [];
+  await assert.rejects(
+    () => adapter.call({ scope, body: undefined, send: async (e) => sent.push(e), encodeResponseHeader }),
+    /header encode failed/,
+  );
+  assert.equal(sent.length, 0);
+});
+
 test("source imports no server/framework/runtime-nondeterminism surface", async () => {
   const source = await readFile(path.join(root, profilePath), "utf8");
   const forbiddenTokens = [
