@@ -18,8 +18,8 @@
   "productionSurface": {
     "package": "db/metaframer_kernel_db",
     "importRoot": "metaframer_kernel_db",
-    "headRevision": "0001_runtime_substrate",
-    "revisionCount": 1,
+    "headRevision": "0002_customer_records",
+    "revisionCount": 2,
     "modules": [
       {
         "path": "db/metaframer_kernel_db/__init__.py",
@@ -48,6 +48,10 @@
       {
         "path": "db/metaframer_kernel_db/alembic/versions/0001_runtime_substrate.py",
         "role": "the single cohesive baseline revision"
+      },
+      {
+        "path": "db/metaframer_kernel_db/alembic/versions/0002_customer_records.py",
+        "role": "GJ-01's first tenant-owned domain table, chained onto the baseline"
       }
     ],
     "runtimeTables": [

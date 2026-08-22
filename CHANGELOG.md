@@ -34,6 +34,21 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   — that JS-oracle drift is a declared follow-up, V12B2A-ii. `flags.kernelReady`,
   `oneGoldenSliceReady`, `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`,
   `productionAllowed` and `gapClosed` all stay `false`, and `runnableProduct` is `false`.
+- Closed the V12B2A-i JS-oracle drift. `db/kernel-runtime-substrate-s1.json`,
+  `tools/check-kernel-runtime-substrate-s1.mjs` and `tests/kernel-runtime-substrate-s1.test.mjs`
+  now acknowledge Alembic head `0002_customer_records`, chained onto the baseline
+  `0001_runtime_substrate` via `down_revision`. The checker gains `BASE_REVISION` (the baseline,
+  still required to carry no predecessor) alongside `HEAD_REVISION` (now the head), and a new
+  `CUSTOMER_DOMAIN_TABLES` constant (`["customer_records"]`) checked against the 0002 revision's
+  source and kept structurally separate from `PHYSICAL_RUNTIME_TABLES`/`RUNTIME_TABLES`, which
+  stays exactly `[transactional_outbox, audit_log]`; the S1 substrate's own two-table shape is
+  unchanged. `productionSurface.revisionCount` moves from `1` to `2` and `productionSurface.modules`
+  gains the 0002 revision file. `planning/gj01-v12b2a-ii-customer-oracle.json` records RED (21
+  failing assertions against the working tree V12B2A-i already shipped), scope, non-goals and
+  rollback. This package touches no Python module, migration or table, no
+  `src/adapters/postgres-commit-adapter.mjs`, and mints no `CommitReceipt`. `flags.kernelReady`,
+  `oneGoldenSliceReady`, `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`,
+  `productionAllowed` and `gapClosed` all stay `false`, and `runnableProduct` is `false`.
 - `src/adapters/postgres-commit-adapter.mjs`, materializing the `src/adapters` boundary opened by
   `planning/gj01-v12-src-adapters-delivery-boundary-authority.json` with `PostgresCommitAdapter`: a
   JS application-owned persistence port that commits a `CreateCustomerPipeline` `ALLOW_COMMIT`
