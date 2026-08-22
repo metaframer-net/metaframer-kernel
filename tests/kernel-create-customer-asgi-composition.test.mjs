@@ -78,14 +78,89 @@ test("the factory refuses anything but exactly the four-key options object", () 
   }
 });
 
-test("the result is frozen and carries exactly { asgi, router, close }", async () => {
+test("the result is frozen and carries exactly { asgi, router, app, close }", async () => {
   const composition = createCustomerAsgiComposition(validOptions());
   try {
     assert.ok(Object.isFrozen(composition));
-    assert.deepEqual(Reflect.ownKeys(composition).sort(), ["asgi", "close", "router"]);
+    assert.deepEqual(Reflect.ownKeys(composition).sort(), ["app", "asgi", "close", "router"]);
     assert.ok(Object.getPrototypeOf(composition.asgi) === AsgiCoreProfileAdapter.prototype);
     assert.ok(Object.getPrototypeOf(composition.router) === StandardRouter.prototype);
+    assert.equal(typeof composition.app, "function");
     assert.equal(typeof composition.close, "function");
+  } finally {
+    await composition.close();
+  }
+});
+
+function receiveOnce(body) {
+  let called = false;
+  return async () => {
+    if (called) throw new Error("receive should only be called once for a single-chunk body");
+    called = true;
+    return { type: "http.request", body, more_body: false };
+  };
+}
+
+test("app(scope, receive, send) decodes a JSON body and delivers it to the invariant stage of the application pipeline", async () => {
+  const ALLOW_CANDIDATE = Object.freeze({ policyId: "allow.everything", effect: "allow", applies: true });
+  let capturedName;
+  const composition = createCustomerAsgiComposition(
+    validOptions({
+      candidatesFor: async () => [ALLOW_CANDIDATE],
+      evaluateInvariants: async (command) => {
+        capturedName = command.payload.name;
+        assert.equal(command.payload.name, "Ada Lovelace");
+        return { ok: false };
+      },
+    }),
+  );
+  try {
+    const { events, send } = collectingSend();
+    const jsonBytes = new TextEncoder().encode(JSON.stringify({ name: "Ada Lovelace" }));
+    const result = await composition.app(scopeOf("POST", "/customers"), receiveOnce(jsonBytes), send);
+
+    assert.equal(capturedName, "Ada Lovelace");
+    assert.equal(events.length, 2);
+    const [start, responseBody] = events;
+    assert.equal(start.type, "http.response.start");
+    assert.equal(start.status, 400);
+    assert.equal(responseBody.body.error.code, "INVARIANT_VIOLATION");
+    assert.deepEqual(result, events);
+  } finally {
+    await composition.close();
+  }
+});
+
+test("app treats an empty body as the accepted empty-body shape", async () => {
+  const composition = createCustomerAsgiComposition(validOptions());
+  try {
+    const { events, send } = collectingSend();
+    await composition.app(scopeOf("POST", "/customers"), receiveOnce(new Uint8Array()), send);
+    assert.equal(events[0].status, 403);
+    assert.equal(events[0].type, "http.response.start");
+  } finally {
+    await composition.close();
+  }
+});
+
+test("app returns the deterministic 400 profile response for invalid JSON without calling the pipeline", async () => {
+  const composition = createCustomerAsgiComposition(
+    validOptions({
+      current: async () => {
+        throw new Error("the application pipeline must not be reached for invalid JSON");
+      },
+    }),
+  );
+  try {
+    const { events, send } = collectingSend();
+    const badBytes = new TextEncoder().encode("{not json");
+    const result = await composition.app(scopeOf("POST", "/customers"), receiveOnce(badBytes), send);
+
+    assert.equal(events.length, 2);
+    assert.equal(events[0].type, "http.response.start");
+    assert.equal(events[0].status, 400);
+    assert.equal(events[1].body.error.code, "PROFILE_SCOPE_INVALID");
+    assert.deepEqual(result, events);
   } finally {
     await composition.close();
   }
