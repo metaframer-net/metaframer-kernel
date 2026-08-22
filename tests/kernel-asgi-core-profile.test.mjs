@@ -232,6 +232,168 @@ test("call propagates a rejecting send and stops without sending further events"
   assert.equal(sent.length, 1);
 });
 
+test("callFromReceive rejects non-function receive/send without invoking receive or router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const goodReceive = async () => ({ type: "http.request", body: new Uint8Array(), more_body: false });
+  const goodSend = async () => {};
+
+  for (const [receive, send] of [
+    [undefined, goodSend],
+    [null, goodSend],
+    ["receive", goodSend],
+    [goodReceive, undefined],
+    [goodReceive, null],
+    [goodReceive, "send"],
+  ]) {
+    await assert.rejects(() => adapter.callFromReceive({ scope, receive, send }), TypeError);
+  }
+  assert.equal(called, false);
+});
+
+test("callFromReceive rejects a non-function decodeBody without invoking router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => ({ type: "http.request", body: new Uint8Array(), more_body: false });
+  const send = async () => {};
+
+  await assert.rejects(() => adapter.callFromReceive({ scope, receive, send, decodeBody: "not-a-fn" }), TypeError);
+  assert.equal(called, false);
+});
+
+test("callFromReceive collects multi-chunk http.request body in order before dispatching", async () => {
+  let received;
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(async (message) => {
+      received = message;
+      return Object.freeze({ status: 201, headers: Object.freeze({}), body: Object.freeze({ ok: true }) });
+    }),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const events = [
+    { type: "http.request", body: new TextEncoder().encode("ab"), more_body: true },
+    { type: "http.request", body: new TextEncoder().encode("cd"), more_body: true },
+    { type: "http.request", body: new TextEncoder().encode("ef"), more_body: false },
+  ];
+  let i = 0;
+  const receive = async () => events[i++];
+  const sent = [];
+  const send = async (event) => { sent.push(event); };
+
+  const result = await adapter.callFromReceive({ scope, receive, send });
+
+  assert.equal(i, 3);
+  assert.ok(received.body instanceof Uint8Array);
+  assert.equal(new TextDecoder().decode(received.body), "abcdef");
+  assert.equal(sent.length, 2);
+  assert.deepEqual(result, sent);
+});
+
+test("callFromReceive short-circuits to a 400 profile response on a malformed receive event without calling router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200 }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const badEvents = [
+    undefined,
+    null,
+    "event",
+    { type: "http.disconnect" },
+    { type: "http.request", body: "not-bytes", more_body: false },
+    { type: "http.request", body: 123, more_body: false },
+  ];
+
+  for (const badEvent of badEvents) {
+    const sent = [];
+    const receive = async () => badEvent;
+    const send = async (event) => { sent.push(event); };
+    const events = await adapter.callFromReceive({ scope, receive, send });
+    assert.equal(events.length, 2);
+    assert.equal(events[0].status, 400);
+    assert.deepEqual(sent, events);
+  }
+  assert.equal(called, false);
+});
+
+test("callFromReceive short-circuits to a 400 profile response on invalid scope without ever calling receive", async () => {
+  let receiveCalled = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => Object.freeze({ status: 200 })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const receive = async () => { receiveCalled = true; return { type: "http.request", body: new Uint8Array(), more_body: false }; };
+  const sent = [];
+  const send = async (event) => { sent.push(event); };
+
+  const events = await adapter.callFromReceive({ scope: { type: "websocket" }, receive, send });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].status, 400);
+  assert.equal(receiveCalled, false);
+  assert.deepEqual(sent, events);
+});
+
+test("callFromReceive propagates a rejecting receive", async () => {
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => { throw new Error("receive failed"); };
+  const send = async () => {};
+
+  await assert.rejects(() => adapter.callFromReceive({ scope, receive, send }), /receive failed/);
+});
+
+test("callFromReceive with decodeBody applies it to the merged bytes and short-circuits on decode failure", async () => {
+  let received;
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(async (message) => {
+      received = message;
+      return Object.freeze({ status: 201, headers: Object.freeze({}), body: Object.freeze({ ok: true }) });
+    }),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const jsonBytes = new TextEncoder().encode(JSON.stringify({ name: "acme" }));
+  const goodReceive = async () => ({ type: "http.request", body: jsonBytes, more_body: false });
+  const decodeBody = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
+
+  await adapter.callFromReceive({ scope, receive: goodReceive, send: async () => {}, decodeBody });
+  assert.deepEqual(received.body, { name: "acme" });
+
+  const badBytes = new TextEncoder().encode("not-json{");
+  const badReceive = async () => ({ type: "http.request", body: badBytes, more_body: false });
+  const sent = [];
+  const events = await adapter.callFromReceive({ scope, receive: badReceive, send: async (e) => sent.push(e), decodeBody });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].status, 400);
+  assert.deepEqual(sent, events);
+});
+
+test("callFromReceive does not change existing call/handle behavior", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const handleEvents = await adapter.handle({ scope, body: undefined });
+  const callSent = [];
+  const callEvents = await adapter.call({ scope, body: undefined, send: async (e) => callSent.push(e) });
+  assert.deepEqual(handleEvents, callEvents);
+  assert.deepEqual(callSent, callEvents);
+});
+
 test("source imports no server/framework/runtime-nondeterminism surface", async () => {
   const source = await readFile(path.join(root, profilePath), "utf8");
   const forbiddenTokens = [
