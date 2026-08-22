@@ -16,6 +16,39 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `db/metaframer_kernel_db/alembic/versions/0002_customer_records.py`, a second Alembic revision
+  (`down_revision = "0001_runtime_substrate"`) adding `customer_records`, the S1 substrate's first
+  tenant-owned domain table — `id`, `tenant_id`, `name`, `payload`, `created_at`, `recorded_at` —
+  under `ENABLE`/`FORCE ROW LEVEL SECURITY` with a `tenant_id = mfk_current_tenant()` policy reusing
+  0001's attestation function, and a runtime-role grant limited to `SELECT, INSERT, UPDATE, DELETE`
+  with no DDL or control-plane access. `downgrade()` drops only `customer_records`, leaving
+  `transactional_outbox`, `audit_log` and every object 0001 owns untouched.
+  `db/metaframer_kernel_db/schema.py` gained `CUSTOMER_TABLE` and a `customer_table` contract key;
+  `db/metaframer_kernel_db/migrations.py`'s `HEAD_REVISION` now points at `0002_customer_records`.
+  `db/tests/test_customer_records.py` proves, against a real disposable Docker-backed PostgreSQL 16
+  instance, that migrating to head creates the table under forced RLS, a tenant reads only its own
+  rows, a missing tenant context denies both reads and writes, and downgrading to 0001 removes only
+  `customer_records`. `planning/gj01-v12b2a-i-customer-migration.json` records scope, RED/GREEN
+  evidence and rollback. This package deliberately leaves `db/kernel-runtime-substrate-s1.json`,
+  its checker and its test, `src/adapters/postgres-commit-adapter.mjs` and `CommitReceipt` untouched
+  — that JS-oracle drift is a declared follow-up, V12B2A-ii. `flags.kernelReady`,
+  `oneGoldenSliceReady`, `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`,
+  `productionAllowed` and `gapClosed` all stay `false`, and `runnableProduct` is `false`.
+- Closed the V12B2A-i JS-oracle drift. `db/kernel-runtime-substrate-s1.json`,
+  `tools/check-kernel-runtime-substrate-s1.mjs` and `tests/kernel-runtime-substrate-s1.test.mjs`
+  now acknowledge Alembic head `0002_customer_records`, chained onto the baseline
+  `0001_runtime_substrate` via `down_revision`. The checker gains `BASE_REVISION` (the baseline,
+  still required to carry no predecessor) alongside `HEAD_REVISION` (now the head), and a new
+  `CUSTOMER_DOMAIN_TABLES` constant (`["customer_records"]`) checked against the 0002 revision's
+  source and kept structurally separate from `PHYSICAL_RUNTIME_TABLES`/`RUNTIME_TABLES`, which
+  stays exactly `[transactional_outbox, audit_log]`; the S1 substrate's own two-table shape is
+  unchanged. `productionSurface.revisionCount` moves from `1` to `2` and `productionSurface.modules`
+  gains the 0002 revision file. `planning/gj01-v12b2a-ii-customer-oracle.json` records RED (21
+  failing assertions against the working tree V12B2A-i already shipped), scope, non-goals and
+  rollback. This package touches no Python module, migration or table, no
+  `src/adapters/postgres-commit-adapter.mjs`, and mints no `CommitReceipt`. `flags.kernelReady`,
+  `oneGoldenSliceReady`, `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`,
+  `productionAllowed` and `gapClosed` all stay `false`, and `runnableProduct` is `false`.
 - `src/adapters/postgres-commit-adapter.mjs`, materializing the `src/adapters` boundary opened by
   `planning/gj01-v12-src-adapters-delivery-boundary-authority.json` with `PostgresCommitAdapter`: a
   JS application-owned persistence port that commits a `CreateCustomerPipeline` `ALLOW_COMMIT`

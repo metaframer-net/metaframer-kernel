@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v12b2a-ii-customer-oracle-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "js-oracle-contract-drift-closure-shard",
+  "packageState": "js-oracle-acknowledges-0002-GREEN",
+  "baseCommit": "2b028db06d945f68b1f36d2594fc93746eadfda7",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v12b2a-i-customer-migration.json",
+    "field": "nextPackage.followUps[0]",
+    "note": "V12B2A-i added the second Alembic revision (0002_customer_records) and its tenant-owned table entirely inside db/, and explicitly declared that the JS oracle/contract/checker still described only the S1 runtime substrate and knew nothing about 0002 or customer_records. This is V12B2A-ii: it closes that declared drift in the JS substrate layer only."
+  },
+
+  "goal": "Update db/kernel-runtime-substrate-s1.json, tools/check-kernel-runtime-substrate-s1.mjs and tests/kernel-runtime-substrate-s1.test.mjs so the JS oracle understands Alembic head=0002_customer_records (chained onto baseline 0001_runtime_substrate) and the customer_records table, while keeping the S1 RUNTIME_TABLES list exactly [transactional_outbox, audit_log] and treating customer_records as a separate, explicitly named domain table rather than folding it into the runtime-substrate concept.",
+
+  "allowedFiles": [
+    "db/kernel-runtime-substrate-s1.json",
+    "tools/check-kernel-runtime-substrate-s1.mjs",
+    "tests/kernel-runtime-substrate-s1.test.mjs",
+    "planning/gj01-v12b2a-ii-customer-oracle.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no db/schema.py, migrations.py or Alembic revision change (owned by V12B2A-i, already GREEN)",
+    "no db/tests/test_customer_records.py change",
+    "no src/adapters/postgres-commit-adapter.mjs change",
+    "no CommitReceipt",
+    "no FastAPI, Django, ASGI, Uvicorn or Hypercorn delivery code",
+    "no readiness, release, deploy or product-ready claim",
+    "no broad rewrite of the S1 oracle beyond what acknowledging 0002 and customer_records requires",
+    "RUNTIME_TABLES stays exactly [transactional_outbox, audit_log]; customer_records is never added to it"
+  ],
+
+  "scopeResolution": {
+    "note": "The oracle's PRODUCTION_MODULES, HEAD_REVISION and productionSurface.revisionCount hard-coded a single-revision world (0001 only). This package introduces BASE_REVISION (0001, still the baseline with no predecessor) alongside HEAD_REVISION (now 0002, chained onto the baseline via down_revision), moves revisionCount from 1 to 2, and adds a new CUSTOMER_DOMAIN_TABLES constant (['customer_records']) that is checked against the 0002 revision file's source, kept structurally distinct from PHYSICAL_RUNTIME_TABLES so the S1 substrate's own two-table shape is never diluted by a business table.",
+    "modelChoice": "customer_records is represented as a sibling domain-table concept, not folded into RUNTIME_TABLES, because the S1 contract's nonGoals and scope.runtimeTablesNote already state the substrate owns no business or domain table; silently adding customer_records to RUNTIME_TABLES would make that historical claim false. Declaring it separately is the least misleading model."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-runtime-substrate-s1.test.mjs"],
+    "note": "Before this package: 21 assertion failures, all stemming from the oracle still declaring headRevision=0001_runtime_substrate, revisionCount=1 and a single-file PRODUCTION_MODULES/REVISIONS_DIR listing, while the working tree (from V12B2A-i, base commit 2b028db) already carries two revision files and HEAD_REVISION=0002_customer_records in migrations.py. Representative findings: production-surface-drift:headRevision, production-surface-drift:revisionCount, production-surface-drift:modules, revision-count:2:0001_runtime_substrate.py,0002_customer_records.py, and a CLI run failing closed with the same three production-surface-drift findings."
+  },
+  "green": {
+    "commands": ["node --test tests/kernel-runtime-substrate-s1.test.mjs", "npm run check"],
+    "results": "kernel-runtime-substrate-s1.test.mjs: all tests pass; npm run check: exits zero"
+  },
+
+  "acceptance": {
+    "twoRevisionsAcknowledged": "HEAD_REVISION='0002_customer_records', BASE_REVISION='0001_runtime_substrate', productionSurface.revisionCount=2, PRODUCTION_MODULES lists both revision files",
+    "chainVerified": "checkSourceCrossBinding confirms 0001 still has down_revision=None (baseline) and 0002's down_revision=0001_runtime_substrate (head chains directly onto the baseline)",
+    "runtimeTablesUnchanged": "RUNTIME_TABLES / PHYSICAL_RUNTIME_TABLES stays exactly [transactional_outbox, audit_log]; the S1 contract's runtimeTablesNote and nonGoals are untouched",
+    "customerTableDeclaredSeparately": "new CUSTOMER_DOMAIN_TABLES=['customer_records'] constant, checked against 0002's source, never merged into RUNTIME_TABLES/PHYSICAL_RUNTIME_TABLES",
+    "forbiddenPromisesStillEnforced": "the exactly-once promise ban and the generic domain/business-table ban in the behavioural contract are unchanged and still fire on an invented table; customer_records is explicitly named as the exception the contract itself now declares, not a silent hole in the ban",
+    "contractModulesUpdated": "db/kernel-runtime-substrate-s1.json productionSurface.modules gains the 0002 revision file entry; headRevision and revisionCount match the checker's constants"
+  },
+
+  "rollback": {
+    "trigger": "the oracle's revision count, head revision, or customer-table declaration drifts from the actual db/ source, or the S1 RUNTIME_TABLES list is found to have been diluted",
+    "action": "revert db/kernel-runtime-substrate-s1.json, tools/check-kernel-runtime-substrate-s1.mjs and tests/kernel-runtime-substrate-s1.test.mjs, and this planning file and the CHANGELOG.md entry, as one shard; this is a JS-only revert and touches nothing under db/metaframer_kernel_db",
+    "blastRadius": "JS oracle/contract/checker/test layer only; no production Python module, migration or table is touched",
+    "runtimeDataImpact": "none: this package changes no schema and runs no migration"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+  "capabilityDelta": "the JS-side governance checker now agrees with the PostgreSQL schema V12B2A-i already shipped; no new runtime capability is added and no adapter yet writes to customer_records",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "Veritabanı tarafında (Python/Alembic) müşteri tablosu zaten vardı, ama depoyu denetleyen JS oracle/kontrol dosyası hâlâ eski dünyayı biliyordu: tek Alembic revizyonu, müşteri tablosundan haberi yok. `node --test` ve `npm run check` bu tutarsızlık yüzünden kırmızıydı.",
+    "after": "JS oracle artık iki Alembic revizyonunu (0001 taban, 0002 müşteri tablosu) ve customer_records tablosunun varlığını doğru şekilde biliyor ve doğruluyor. S1 çalışma zamanı alt yapısının kendi iki tablosu (transactional_outbox, audit_log) hâlâ değişmedi; müşteri tablosu ayrı ve açıkça adlandırılmış bir kavram olarak eklendi.",
+    "kullaniciYolculugu": "Depo denetim kontrolleri (npm run check, node --test) artık gerçek veritabanı şemasıyla tutarlı; ama customer.create isteğini gerçekten veritabanına yazan JS adaptör kodu (src/adapters/postgres-commit-adapter.mjs) ve tam CommitReceipt hâlâ yok.",
+    "kalanEngel": "V12B2B (adapter + CommitReceipt) tamamlanmadan müşteri kaydı uçtan uca çalışmaz; bu paket yalnızca denetim tutarlılığını sağlar."
+  },
+
+  "nextPackage": {
+    "note": "One declared follow-up, deliberately out of this package's scope.",
+    "followUps": [
+      {
+        "id": "V12B2B",
+        "scope": "src/adapters/postgres-commit-adapter.mjs commits the customer write intent into customer_records and mints a full CommitReceipt covering all four intents"
+      }
+    ]
+  },
+
+  "versionBump": false
+}

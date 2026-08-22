@@ -125,14 +125,22 @@ export const PRODUCTION_MODULES = [
   "db/metaframer_kernel_db/outbox.py",
   "db/metaframer_kernel_db/alembic/env.py",
   "db/metaframer_kernel_db/alembic/versions/0001_runtime_substrate.py",
+  "db/metaframer_kernel_db/alembic/versions/0002_customer_records.py",
 ];
 export const REVISIONS_DIR = "db/metaframer_kernel_db/alembic/versions";
-export const HEAD_REVISION = "0001_runtime_substrate";
+// The baseline revision: the single cohesive S1 substrate. It still has no predecessor.
+export const BASE_REVISION = "0001_runtime_substrate";
+// The current head: 0002 adds GJ-01's first tenant-owned domain table on top of the S1 baseline.
+export const HEAD_REVISION = "0002_customer_records";
 // This package owns exactly these runtime tables, named as they exist in the database. There is
 // no domain here, so no business table may be invented to exercise transaction or policy
 // behaviour; the substrate's own tables are the subjects. Row-level-security obligations are
 // enumerated over this list, and the contract and the production source must both agree with it.
 export const PHYSICAL_RUNTIME_TABLES = ["transactional_outbox", "audit_log"];
+// GJ-01's first tenant-owned domain table, added by 0002_customer_records on top of S1. It is
+// deliberately not folded into PHYSICAL_RUNTIME_TABLES: the S1 substrate has no domain, and this
+// table's row-level-security obligations are enumerated separately rather than silently merged.
+export const CUSTOMER_DOMAIN_TABLES = ["customer_records"];
 
 export const REQUIRED_CAPABILITY_IDS = [
   "migration.alembic_config",
@@ -462,7 +470,7 @@ export function evaluateContract({ contract } = {}) {
   if (surface.package !== PRODUCTION_PACKAGE) push("production-surface-drift:package");
   if (surface.importRoot !== PRODUCTION_IMPORT_ROOT) push("production-surface-drift:importRoot");
   if (surface.headRevision !== HEAD_REVISION) push("production-surface-drift:headRevision");
-  if (surface.revisionCount !== 1) push("production-surface-drift:revisionCount");
+  if (surface.revisionCount !== 2) push("production-surface-drift:revisionCount");
   if (canonicalJson(surface.runtimeTables) !== canonicalJson(PHYSICAL_RUNTIME_TABLES)) {
     push("production-surface-drift:runtimeTables");
   }
@@ -1258,8 +1266,10 @@ export function checkProductionSurface(root = ROOT) {
       .filter((entry) => entry.isFile() && entry.name.endsWith(".py"))
       .map((entry) => entry.name)
       .sort();
-    if (revisions.length !== 1) errors.push(`revision-count:${revisions.length}:${revisions.join(",")}`);
-    else if (revisions[0] !== `${HEAD_REVISION}.py`) errors.push(`revision-name-drift:${revisions[0]}`);
+    if (revisions.length !== 2) errors.push(`revision-count:${revisions.length}:${revisions.join(",")}`);
+    else if (canonicalJson(revisions) !== canonicalJson([`${BASE_REVISION}.py`, `${HEAD_REVISION}.py`].sort())) {
+      errors.push(`revision-name-drift:${revisions.join(",")}`);
+    }
   }
   return errors;
 }
@@ -1283,22 +1293,40 @@ export function checkSourceCrossBinding(root = ROOT) {
     errors.push(`head-revision-not-declared-in-source:${HEAD_REVISION}`);
   }
 
+  const baseline = read(`${REVISIONS_DIR}/${BASE_REVISION}.py`);
+  if (baseline === null) errors.push(`source-unreadable:${REVISIONS_DIR}/${BASE_REVISION}.py`);
+  else {
+    if (!new RegExp(`^revision\\s*=\\s*"${BASE_REVISION}"`, "m").test(baseline)) {
+      errors.push("revision-id-mismatch");
+    }
+    // The baseline must be the first revision: a down_revision would mean it is not a baseline.
+    if (!/^down_revision\s*=\s*None/m.test(baseline)) errors.push("baseline-revision-has-a-predecessor");
+    // Both runtime tables must carry ENABLE and FORCE, and the audit trail its append-only trigger.
+    for (const fragment of ["ENABLE ROW LEVEL SECURITY", "FORCE ROW LEVEL SECURITY"]) {
+      if (!baseline.includes(fragment)) errors.push(`revision-missing:${fragment}`);
+    }
+    if (!/FOR EACH STATEMENT EXECUTE FUNCTION mfk_audit_append_only/.test(baseline)) {
+      errors.push("revision-missing:audit-append-only-statement-trigger");
+    }
+    if (!/gen_random_bytes\(32\)/.test(baseline)) errors.push("revision-missing:per-database-secret");
+  }
+
   const revision = read(`${REVISIONS_DIR}/${HEAD_REVISION}.py`);
   if (revision === null) errors.push(`source-unreadable:${REVISIONS_DIR}/${HEAD_REVISION}.py`);
   else {
     if (!new RegExp(`^revision\\s*=\\s*"${HEAD_REVISION}"`, "m").test(revision)) {
       errors.push("revision-id-mismatch");
     }
-    // The baseline must be the first revision: a down_revision would mean it is not a baseline.
-    if (!/^down_revision\s*=\s*None/m.test(revision)) errors.push("baseline-revision-has-a-predecessor");
-    // Both runtime tables must carry ENABLE and FORCE, and the audit trail its append-only trigger.
+    // The head must chain directly onto the baseline: any other predecessor is drift.
+    if (!new RegExp(`^down_revision\\s*=\\s*"${BASE_REVISION}"`, "m").test(revision)) {
+      errors.push("head-revision-does-not-chain-to-baseline");
+    }
+    for (const table of CUSTOMER_DOMAIN_TABLES) {
+      if (!revision.includes(table)) errors.push(`customer-table-not-declared-in-source:${table}`);
+    }
     for (const fragment of ["ENABLE ROW LEVEL SECURITY", "FORCE ROW LEVEL SECURITY"]) {
       if (!revision.includes(fragment)) errors.push(`revision-missing:${fragment}`);
     }
-    if (!/FOR EACH STATEMENT EXECUTE FUNCTION mfk_audit_append_only/.test(revision)) {
-      errors.push("revision-missing:audit-append-only-statement-trigger");
-    }
-    if (!/gen_random_bytes\(32\)/.test(revision)) errors.push("revision-missing:per-database-secret");
   }
 
   const schema = read("db/metaframer_kernel_db/schema.py");
@@ -1341,9 +1369,9 @@ export function checkSourceCrossBinding(root = ROOT) {
 
   // Partial-index predicates must be immutable. A predicate mentioning now() would be rejected by
   // PostgreSQL outright, and one that slipped through would silently rot as time passed.
-  if (revision !== null) {
+  if (baseline !== null) {
     // Table names are interpolated, so an index reads as `CREATE INDEX {OUTBOX_TABLE}_suffix`.
-    const predicates = [...revision.matchAll(/CREATE (?:UNIQUE )?INDEX[\s\S]{0,400}?WHERE ([^\n]+)/g)]
+    const predicates = [...baseline.matchAll(/CREATE (?:UNIQUE )?INDEX[\s\S]{0,400}?WHERE ([^\n]+)/g)]
       .map((match) => match[1]);
     for (const predicate of predicates) {
       if (/\b(now|clock_timestamp|current_timestamp|statement_timestamp)\s*\(/i.test(predicate)) {
@@ -1351,10 +1379,10 @@ export function checkSourceCrossBinding(root = ROOT) {
       }
     }
     if (predicates.length === 0) errors.push("revision-has-no-partial-index-predicates");
-    if (!/CREATE INDEX \{OUTBOX_TABLE\}_expired_claims/.test(revision)) {
+    if (!/CREATE INDEX \{OUTBOX_TABLE\}_expired_claims/.test(baseline)) {
       errors.push("revision-missing:expired-claim-index");
     }
-    if (!/CREATE INDEX \{OUTBOX_TABLE\}_unclaimed/.test(revision)) {
+    if (!/CREATE INDEX \{OUTBOX_TABLE\}_unclaimed/.test(baseline)) {
       errors.push("revision-missing:unclaimed-index");
     }
   }

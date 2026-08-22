@@ -155,46 +155,51 @@ test("ALLOW_COMMIT audit, outbox and idempotency intents are committed atomicall
 
   const connectionString = `postgresql://${RUNTIME_ROLE}:${encodeURIComponent(RUNTIME_PASSWORD)}@${host}:${port}/${DATABASE}`;
   const adapter = new PostgresCommitAdapter({ connectionString });
-  t.after(() => adapter.close());
 
-  const tenantId = crypto.randomUUID();
-  const correlationId = crypto.randomUUID();
-  const preparedChangeSet = Object.freeze({
-    persistenceState: "pending",
-    intents: Object.freeze({
-      customer: Object.freeze({ type: "customer.create", tenantId, payload: { name: "Ada" } }),
-      audit: Object.freeze({ type: "audit.append", tenantId, actorId: "actor-1", action: "customer.create", correlationId }),
-      transactionalOutbox: Object.freeze({ type: "outbox.enqueue", eventName: "customer.created", tenantId, correlationId }),
-      idempotency: Object.freeze({ type: "idempotency.record", tenantId, fingerprint: `fp-${correlationId}`, correlationId }),
-    }),
-  });
+  try {
+    const tenantId = crypto.randomUUID();
+    const correlationId = crypto.randomUUID();
+    const preparedChangeSet = Object.freeze({
+      persistenceState: "pending",
+      intents: Object.freeze({
+        customer: Object.freeze({ type: "customer.create", tenantId, payload: { name: "Ada" } }),
+        audit: Object.freeze({ type: "audit.append", tenantId, actorId: "actor-1", action: "customer.create", correlationId }),
+        transactionalOutbox: Object.freeze({ type: "outbox.enqueue", eventName: "customer.created", tenantId, correlationId }),
+        idempotency: Object.freeze({ type: "idempotency.record", tenantId, fingerprint: `fp-${correlationId}`, correlationId }),
+      }),
+    });
 
-  const receipt = await adapter.commit(preparedChangeSet, { tenantId });
-  assert.deepEqual([...receipt.committedIntents].sort(), [...COMMITTED_INTENTS].sort());
-  assert.deepEqual([...receipt.deferredIntents], [...DEFERRED_INTENTS]);
-  assert.equal(typeof receipt.auditLogId, "string");
-  assert.equal(typeof receipt.outboxId, "string");
+    const receipt = await adapter.commit(preparedChangeSet, { tenantId });
+    assert.deepEqual([...receipt.committedIntents].sort(), [...COMMITTED_INTENTS].sort());
+    assert.deepEqual([...receipt.deferredIntents], [...DEFERRED_INTENTS]);
+    assert.equal(typeof receipt.auditLogId, "string");
+    assert.equal(typeof receipt.outboxId, "string");
 
-  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
-    const audit = await client.query("SELECT tenant_id, event_type, correlation_id FROM audit_log WHERE id = $1", [receipt.auditLogId]);
-    assert.equal(audit.rows.length, 1);
-    assert.equal(audit.rows[0].tenant_id, tenantId);
-    assert.equal(audit.rows[0].event_type, "customer.create");
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const audit = await client.query("SELECT tenant_id, event_type, correlation_id FROM audit_log WHERE id = $1", [receipt.auditLogId]);
+      assert.equal(audit.rows.length, 1);
+      assert.equal(audit.rows[0].tenant_id, tenantId);
+      assert.equal(audit.rows[0].event_type, "customer.create");
 
-    const outbox = await client.query(
-      "SELECT tenant_id, event_type, dedup_key FROM transactional_outbox WHERE id = $1",
-      [receipt.outboxId],
-    );
-    assert.equal(outbox.rows.length, 1);
-    assert.equal(outbox.rows[0].tenant_id, tenantId);
-    assert.equal(outbox.rows[0].event_type, "customer.created");
-    assert.equal(outbox.rows[0].dedup_key, `fp-${correlationId}`);
-  });
+      const outbox = await client.query(
+        "SELECT tenant_id, event_type, dedup_key FROM transactional_outbox WHERE id = $1",
+        [receipt.outboxId],
+      );
+      assert.equal(outbox.rows.length, 1);
+      assert.equal(outbox.rows[0].tenant_id, tenantId);
+      assert.equal(outbox.rows[0].event_type, "customer.created");
+      assert.equal(outbox.rows[0].dedup_key, `fp-${correlationId}`);
+    });
 
-  // A second commit with the same idempotency fingerprint must not create a second outbox row.
-  await assert.rejects(() => adapter.commit(preparedChangeSet, { tenantId }));
-  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
-    const count = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
-    assert.equal(Number(count.rows[0].count), 1, "the duplicate commit must not enqueue a second outbox row");
-  });
+    // A second commit with the same idempotency fingerprint must not create a second outbox row.
+    await assert.rejects(() => adapter.commit(preparedChangeSet, { tenantId }));
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const count = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(count.rows[0].count), 1, "the duplicate commit must not enqueue a second outbox row");
+    });
+  } finally {
+    // Close the adapter's own connections before t.after() tears down the container, so the
+    // pool never observes the postmaster exit mid-shutdown.
+    await adapter.close();
+  }
 });
