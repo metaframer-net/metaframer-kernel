@@ -16,6 +16,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14O ASGI encoder return conformance (`planning/gj01-v14o-asgi-encoder-return-conformance.json`):
+  `encodeEvents()` in `src/delivery/asgi-core-profile.mjs` now requires each value returned by a
+  caller-provided `encodeResponseBody`/`encodeResponseHeader` to be a `Uint8Array`, throwing a
+  `TypeError` before the encoded event is built or `send()` is ever called. Previously a returned
+  string or object was placed directly into the outgoing `http.response.start`/`http.response.body`
+  event, letting a misbehaving encoder send a malformed host-facing event. An encoder that throws
+  still propagates its own error unchanged, and the internal unencoded profile path (no encoder
+  provided) is unchanged. Not a server/host selection.
 - GJ-01 V14N ASGI scope structural conformance (`planning/gj01-v14n-asgi-scope-conformance.json`):
   `isValidScope()` in `src/delivery/asgi-core-profile.mjs` now rejects an empty `method`, an empty
   `path`, and a `path` without a leading `/` at the profile boundary, before `StandardRouter` or
