@@ -124,7 +124,9 @@ test("app(scope, receive, send) decodes a JSON body and delivers it to the invar
     const [start, responseBody] = events;
     assert.equal(start.type, "http.response.start");
     assert.equal(start.status, 400);
-    assert.equal(responseBody.body.error.code, "INVARIANT_VIOLATION");
+    assert.ok(responseBody.body instanceof Uint8Array);
+    const decoded = JSON.parse(new TextDecoder().decode(responseBody.body));
+    assert.equal(decoded.error.code, "INVARIANT_VIOLATION");
     assert.deepEqual(result, events);
   } finally {
     await composition.close();
@@ -159,7 +161,9 @@ test("app returns the deterministic 400 profile response for invalid JSON withou
     assert.equal(events.length, 2);
     assert.equal(events[0].type, "http.response.start");
     assert.equal(events[0].status, 400);
-    assert.equal(events[1].body.error.code, "PROFILE_SCOPE_INVALID");
+    assert.ok(events[1].body instanceof Uint8Array);
+    const decoded = JSON.parse(new TextDecoder().decode(events[1].body));
+    assert.equal(decoded.error.code, "PROFILE_SCOPE_INVALID");
     assert.deepEqual(result, events);
   } finally {
     await composition.close();

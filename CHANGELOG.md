@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- Optional `encodeResponseBody` parameter on `AsgiCoreProfileAdapter#call` and `#callFromReceive`
+  in `src/delivery/asgi-core-profile.mjs`: when supplied (and validated as a function), it encodes
+  every `http.response.body` event's body before send/return, including the deterministic 400
+  profile events raised on invalid scope, a malformed receive event, or a `decodeBody` failure; an
+  encoder throw propagates rather than being caught. Omitting `encodeResponseBody` leaves existing
+  `call`/`callFromReceive`/`handle` behavior — including the internal JS-object response body
+  shape — unchanged. `createCustomerAsgiComposition.app` in
+  `src/delivery/create-customer-asgi-composition.mjs` now passes a default JSON response encoder
+  (`JSON.stringify` + UTF-8 bytes) alongside the existing JSON request decoder, so a host adapter
+  calling `app(scope, receive, send)` receives `Uint8Array` response body chunks. Neither module
+  adds a server, framework, network or Python ASGI dependency.
+  `tests/kernel-asgi-core-profile.test.mjs` and `tests/kernel-create-customer-asgi-composition.test.mjs`
+  add targeted coverage for the no-encoder default, encoder success/error-path application, and
+  encoder-throw propagation. See `planning/gj01-v14i-asgi-response-bytes.json`.
 - `app(scope, receive, send)` on the frozen object returned by `createCustomerAsgiComposition` in
   `src/delivery/create-customer-asgi-composition.mjs` — the smallest framework-neutral ASGI
   callable entrypoint, so a host adapter (Uvicorn, Hypercorn, ...) can call one async function

@@ -1,0 +1,50 @@
+{
+  "package": "gj01-v14i-asgi-response-bytes",
+  "baseCommit": "599482f65345ca39837e4a84902235cc988afe91",
+  "writer": "claude",
+  "scope": "Add the smallest framework-neutral ASGI response-body encoding boundary so the create-customer ASGI callable can send response body bytes, preserving existing internal ASGI-profile behavior. Still not a Python ASGI app and no Uvicorn/Hypercorn/FastAPI/Django selection/import.",
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "planning/gj01-v14i-asgi-response-bytes.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no HTTP server",
+    "no Python ASGI app",
+    "no Uvicorn/Hypercorn/FastAPI/Django dependency or selection",
+    "no package dependency change",
+    "no migration/DB schema change",
+    "no release/readiness/runtime-readiness claim"
+  ],
+  "change": {
+    "added": "optional encodeResponseBody parameter on AsgiCoreProfileAdapter.call and .callFromReceive, plus a default JSON response body encoder wired into createCustomerAsgiComposition.app",
+    "behavior": [
+      "call({ scope, body, send, encodeResponseBody }) and callFromReceive({ ..., encodeResponseBody }) accept an optional encoder function",
+      "when encodeResponseBody is omitted, call/callFromReceive/handle behavior and the internal profile event body shape (a JS object) are unchanged",
+      "when encodeResponseBody is supplied, it is applied to every http.response.body event's body before send/return, including the deterministic 400 profile events raised on invalid scope, malformed receive events, and decodeBody throw",
+      "encodeResponseBody is validated as a function when supplied (TypeError otherwise, no send/router invocation); an encoder throw propagates and is not caught",
+      "createCustomerAsgiComposition.app now passes both the existing JSON request decoder and a new JSON response encoder (JSON.stringify + UTF-8 bytes) to asgi.callFromReceive, so host-adapter callers receive Uint8Array response body chunks",
+      "asgi.call/asgi.router/close direct-call behavior (no encoder) is unchanged"
+    ]
+  },
+  "tests": {
+    "targeted": [
+      "call without encodeResponseBody preserves existing object response body",
+      "call with encodeResponseBody converts the success response body to Uint8Array and returns the same sent events",
+      "call with encodeResponseBody applies to invalid-scope 400 profile events",
+      "callFromReceive with encodeResponseBody applies to decode-error 400 profile events",
+      "encodeResponseBody throw propagates and is not swallowed",
+      "call rejects a non-function encodeResponseBody without invoking send",
+      "app(scope, receive, send) response body is Uint8Array decoding to the expected JSON error envelope for the invariant-violation and invalid-JSON profile cases",
+      "all existing kernel-asgi-core-profile and kernel-create-customer-asgi-composition tests remain green"
+    ]
+  },
+  "evidence": {
+    "targetedNodeTests": "node --test tests/kernel-asgi-core-profile.test.mjs tests/kernel-create-customer-asgi-composition.test.mjs -> 35 pass, 0 fail",
+    "npmRunCheck": "GREEN, exit 0"
+  },
+  "marker": "V14I_WRITER_GREEN"
+}

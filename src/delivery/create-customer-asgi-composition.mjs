@@ -26,6 +26,7 @@ const isOrdinaryObject = (value) =>
   && Object.getPrototypeOf(value) === Object.prototype;
 
 const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
+const utf8Encoder = new TextEncoder();
 
 // Default JSON body decoder for the ASGI callable entrypoint: empty bytes decode to an empty
 // ordinary object (the http message adapter's accepted empty-body shape); non-empty bytes must
@@ -40,6 +41,13 @@ function decodeJsonBody(bytes) {
     throw new TypeError("decoded JSON body must be an ordinary object");
   }
   return parsed;
+}
+
+// Default JSON response body encoder for the ASGI callable entrypoint: an ordinary JS response
+// body is JSON-stringified and encoded as UTF-8 bytes, so a host adapter (Uvicorn, Hypercorn,
+// ...) receives the Uint8Array chunk an ASGI `http.response.body` event carries.
+function encodeJsonBody(body) {
+  return utf8Encoder.encode(JSON.stringify(body));
 }
 
 const OPTIONS_KEYS = ["connectionString", "current", "candidatesFor", "evaluateInvariants"];
@@ -86,7 +94,7 @@ export function createCustomerAsgiComposition(options) {
   const asgi = new AsgiCoreProfileAdapter({ router });
 
   const app = async (scope, receive, send) =>
-    asgi.callFromReceive({ scope, receive, send, decodeBody: decodeJsonBody });
+    asgi.callFromReceive({ scope, receive, send, decodeBody: decodeJsonBody, encodeResponseBody: encodeJsonBody });
 
   return Object.freeze({
     asgi,
