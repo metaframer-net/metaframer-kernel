@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `tools/generate-create-customer-sdk.mjs`, a deterministic generator exporting a pure
+  `renderCreateCustomerSdk(protocol)` function that renders `src/sdk/create-customer.mjs`
+  byte-identically from the frozen protocol contract in
+  `planning/gj01-generated-sdk-protocol-readiness.json`. `planning/gj01-v10-deterministic-sdk-generator.json`
+  records the package's scope, non-goals and rollback. The render path performs no network,
+  environment read, clock, random value or file I/O; the CLI entry point may read the protocol
+  file and print or check output but never writes to the repository, and the committed artifact
+  stays byte-identical to its prior content throughout. This introduces no HTTP/ASGI delivery
+  surface, no persistence and no runtime; every stronger-stage readiness flag stays false.
 - The first generated-SDK artifact, `src/sdk/create-customer.mjs`, materializing the `src/sdk`
   boundary opened by `planning/gj01-src-sdk-boundary-authority.json` with a framework-neutral,
   capability-free module for CreateCustomer@1, byte-derived from the frozen protocol contract in
