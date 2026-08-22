@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14o-asgi-encoder-return-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "ceebdfbeffc33cbe7e9b428826933feb623f34e3",
+
+  "goal": "Make encodeEvents in src/delivery/asgi-core-profile.mjs reject a non-Uint8Array return from a caller-provided encodeResponseBody or encodeResponseHeader, before any host-facing http.response.start/http.response.body event is sent. Before this package, encodeEvents trusted whatever encodeResponseBody/encodeResponseHeader returned and placed it directly into the outgoing event, so a caller-provided encoder returning a string or object could send a malformed body/header event to send(). This package makes provided encoders accountable for returning bytes, while leaving the internal unencoded profile path (no encoder provided) unchanged.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14o-asgi-encoder-return-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to unencoded (encoder-absent) event shapes, router response mapping, or query_string handling",
+    "no attempt to coerce or repair a non-Uint8Array encoder return; it is rejected, not fixed up"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: encodeEvents now runs every encodeResponseBody/encodeResponseHeader return through a checkEncodedBytes(value, label) guard that throws TypeError when the value is not a Uint8Array instance, before the encoded event is constructed or sent. No router, receive, or unencoded-profile logic touched."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added four tests: call() and callFromReceive() each with encodeResponseBody returning a plain string/object, and call() and callFromReceive() each with encodeResponseHeader returning a plain (non-encoded) string. Against the pre-fix source these all passed with a malformed body/header event silently reaching send(), instead of rejecting with TypeError before send() was ever called."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 40 tests pass, including the four new non-Uint8Array-return rejection assertions and every pre-existing encoder-throw-propagates and unencoded-profile-unchanged assertion. npm run check exits GREEN with no new failures."
+  },
+
+  "acceptance": {
+    "callRejectsNonBytesBody": "call() with encodeResponseBody returning a non-Uint8Array value rejects with TypeError before send() is invoked",
+    "callFromReceiveRejectsNonBytesBody": "callFromReceive() with encodeResponseBody returning a non-Uint8Array value rejects with TypeError before send() is invoked",
+    "callRejectsNonBytesHeader": "call() with encodeResponseHeader returning a non-Uint8Array value rejects with TypeError before send() is invoked",
+    "callFromReceiveRejectsNonBytesHeader": "callFromReceive() with encodeResponseHeader returning a non-Uint8Array value rejects with TypeError before send() is invoked",
+    "encoderThrowStillPropagates": "an encoder that throws still propagates its own error unchanged, as before this package",
+    "unencodedProfileUnchanged": "call()/callFromReceive() without encodeResponseBody/encodeResponseHeader are byte-identical to before this package"
+  },
+
+  "rollback": {
+    "trigger": "the added Uint8Array checks are found to reject a legitimate encoder return shape, or any existing test regresses",
+    "action": "revert checkEncodedBytes and its two call sites inside encodeEvents in src/delivery/asgi-core-profile.mjs, the added tests, this planning file and the CHANGELOG entry as one shard",
+    "blastRadius": "one function (encodeEvents) inside src/delivery/asgi-core-profile.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_ENCODER_RETURN_CONFORMANCE: when a caller provides encodeResponseBody or encodeResponseHeader, the profile boundary now rejects a non-Uint8Array return with TypeError before any host-facing event is sent, instead of forwarding a malformed body/header event to send().",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, encodeEvents caller sağladığı encodeResponseBody/encodeResponseHeader'ın döndürdüğü değeri hiç kontrol etmeden doğrudan giden http.response.start/http.response.body olayına koyuyordu; encoder bir string veya obje döndürürse bu bozuk olay send()'e ulaşabiliyordu.",
+    "simdi": "encodeEvents artık her encodeResponseBody/encodeResponseHeader dönüşünün Uint8Array olmasını şart koşuyor; değilse send() hiç çağrılmadan TypeError fırlatıyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde tek fonksiyonda (encodeEvents) bir doğrulama yardımcı fonksiyonu ve iki kullanım noktası eklendi. Kodlayıcı sağlanmadığında (internal profil modu) davranış hiç değişmedi.",
+    "kullaniciYolculugu": "Bir host adaptörü encodeResponseBody veya encodeResponseHeader sağlar ve bu fonksiyon yanlışlıkla bytes yerine string/obje döndürürse, artık bozuk bir olay host'a gönderilmeden önce TypeError ile durur. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun kodlayıcı dönüş tipini denetliyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

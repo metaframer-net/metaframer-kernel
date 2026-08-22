@@ -542,6 +542,41 @@ test("encodeResponseBody throw propagates and is not swallowed", async () => {
   );
 });
 
+test("call rejects a non-Uint8Array encodeResponseBody return with TypeError before sending", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({ ok: true }) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const encodeResponseBody = () => "not-bytes";
+  const sent = [];
+  await assert.rejects(
+    () => adapter.call({ scope, body: undefined, send: async (e) => sent.push(e), encodeResponseBody }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
+test("callFromReceive rejects a non-Uint8Array encodeResponseBody return with TypeError before sending", async () => {
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({ ok: true }) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => ({ type: "http.request", body: new Uint8Array(), more_body: false });
+  const encodeResponseBody = () => ({ not: "bytes" });
+  const sent = [];
+  await assert.rejects(
+    () => adapter.callFromReceive({ scope, receive, send: async (e) => sent.push(e), encodeResponseBody }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
 test("call rejects a non-function encodeResponseBody without invoking send", async () => {
   const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) })) }]);
   const adapter = new AsgiCoreProfileAdapter({ router });
@@ -664,6 +699,41 @@ test("callFromReceive rejects a non-function encodeResponseHeader before invokin
   assert.equal(receiveCalled, false);
   assert.equal(sendCalled, false);
   assert.equal(called, false);
+});
+
+test("call rejects a non-Uint8Array encodeResponseHeader return with TypeError before sending", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({ "x-a": "1" }), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const encodeResponseHeader = (part) => part;
+  const sent = [];
+  await assert.rejects(
+    () => adapter.call({ scope, body: undefined, send: async (e) => sent.push(e), encodeResponseHeader }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
+test("callFromReceive rejects a non-Uint8Array encodeResponseHeader return with TypeError before sending", async () => {
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(() => Object.freeze({ status: 200, headers: Object.freeze({ "x-a": "1" }), body: Object.freeze({}) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => ({ type: "http.request", body: new Uint8Array(), more_body: false });
+  const encodeResponseHeader = (part) => part;
+  const sent = [];
+  await assert.rejects(
+    () => adapter.callFromReceive({ scope, receive, send: async (e) => sent.push(e), encodeResponseHeader }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
 });
 
 test("call rejects a non-function encodeResponseHeader without invoking send", async () => {

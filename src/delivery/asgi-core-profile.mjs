@@ -111,17 +111,25 @@ function toResponseEvents(response) {
   return Object.freeze([start, body]);
 }
 
+function checkEncodedBytes(value, label) {
+  if (!(value instanceof Uint8Array)) {
+    throw new TypeError(`AsgiCoreProfileAdapter ${label} must return a Uint8Array`);
+  }
+  return value;
+}
+
 function encodeEvents(events, encodeResponseBody, encodeResponseHeader) {
   return Object.freeze(events.map((event) => {
     if (event.type === "http.response.body") {
       if (encodeResponseBody === undefined) return event;
-      return Object.freeze({ type: event.type, body: encodeResponseBody(event.body), more_body: event.more_body });
+      const body = checkEncodedBytes(encodeResponseBody(event.body), "encodeResponseBody");
+      return Object.freeze({ type: event.type, body, more_body: event.more_body });
     }
     if (event.type === "http.response.start") {
       if (encodeResponseHeader === undefined) return event;
       const headers = event.headers.map(([name, value]) => Object.freeze([
-        encodeResponseHeader(name),
-        encodeResponseHeader(value),
+        checkEncodedBytes(encodeResponseHeader(name), "encodeResponseHeader"),
+        checkEncodedBytes(encodeResponseHeader(value), "encodeResponseHeader"),
       ]));
       return Object.freeze({ type: event.type, status: event.status, headers: Object.freeze(headers) });
     }
