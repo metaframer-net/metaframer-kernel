@@ -534,10 +534,21 @@ test("the checker imports only node: builtins and adds no dependency to the repo
         "would be the obvious shortcut and the largest new attack surface in this repository",
     );
   }
+  // The versioning/changelog checker itself still imports node: builtins only. The single
+  // exception below is `pg`, the real PostgreSQL driver planning/gj01-v12b1-postgres-adapter.json
+  // authorizes for src/adapters/postgres-commit-adapter.mjs — never a dependency of this checker.
   assert.ok(
-    !Object.hasOwn(packageJson, "dependencies") && !Object.hasOwn(packageJson, "devDependencies"),
-    "no dependency key may be introduced for this package",
+    !Object.hasOwn(packageJson, "devDependencies"),
+    "no devDependencies key may be introduced for this package",
   );
+  if (Object.hasOwn(packageJson, "dependencies")) {
+    assert.deepEqual(
+      Object.keys(packageJson.dependencies),
+      ["pg"],
+      "the only dependency this repository may carry is pg, authorized by " +
+        "planning/gj01-v12b1-postgres-adapter.json for the PostgreSQL commit adapter",
+    );
+  }
 });
 
 test("every evaluator fails closed on undefined, null and malformed facts rather than answering", () => {
@@ -1627,10 +1638,17 @@ test("every unreleased provenance path resolves in this tree", async () => {
 // suite that reported 149 red rows would be claiming they were owed, and they are not.
 // =====================================================================================
 
-test("package.json declares no dependencies key", () => {
-  assert.ok(
-    !Object.hasOwn(packageJson, "dependencies"),
-    "this package adds zero dependencies; a semver library would be the largest new attack surface here",
+test("package.json declares no dependency beyond the authorized pg driver", () => {
+  // The versioning/changelog surface itself adds zero dependencies; a semver library would be
+  // the largest new attack surface here. The one authorized exception is `pg`, the real
+  // PostgreSQL driver planning/gj01-v12b1-postgres-adapter.json scopes to
+  // src/adapters/postgres-commit-adapter.mjs.
+  if (!Object.hasOwn(packageJson, "dependencies")) return;
+  assert.deepEqual(
+    Object.keys(packageJson.dependencies),
+    ["pg"],
+    "the only dependency this repository may carry is pg, authorized by " +
+      "planning/gj01-v12b1-postgres-adapter.json for the PostgreSQL commit adapter",
   );
 });
 

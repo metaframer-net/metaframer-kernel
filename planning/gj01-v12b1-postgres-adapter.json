@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v12b1-postgres-adapter-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "adapter-port-preparation",
+  "packageState": "commit-adapter-partial-GREEN-customer-intent-deferred",
+  "baseCommit": "8868577f906d12dfaf35bf57ecfb47dd9b2a7e83",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v12-src-adapters-delivery-boundary-authority.json",
+    "field": "nextPackage",
+    "note": "This is the future, separately scoped one-golden-slice-shaped package that planning/gj01-v12-src-adapters-delivery-boundary-authority.json anticipated targeting src/adapters, scoped narrowly to a persistence port/adapter only — not the full one-golden-slice/walking-skeleton and not delivery."
+  },
+
+  "goal": "Give CreateCustomerPipeline's ALLOW_COMMIT preparedChangeSet a real, application-owned JS persistence port that commits against the PostgreSQL S1 substrate inside one attested tenant transaction, using a real Docker-backed PostgreSQL 16 instance in tests, never a mock.",
+
+  "allowedFiles": [
+    "package.json",
+    "package-lock.json",
+    "src/adapters/postgres-commit-adapter.mjs",
+    "tests/postgres-commit-adapter.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "tests/kernel-runtime-substrate-s1.test.mjs",
+    "tests/kernel-one-golden-slice-boundary-authority.test.mjs",
+    "tests/kernel-versioning-changelog.test.mjs",
+    ".github/workflows/ci.yml",
+    "planning/gj01-v12b1-postgres-adapter.json",
+    "CHANGELOG.md"
+  ],
+  "allowedFilesNote": "The two kernel-*.test.mjs files were added mid-package by explicit MASTER decision (option a) after RED surfaced two locked, unrelated invariants — 'package.json carries no dependency key' and 'this package does not materialize src/adapters' — that directly conflicted with the authorized pg driver and the boundary this package walks through. `.github/workflows/ci.yml` was added by a second explicit, narrowly-scoped MASTER follow-up (V12B1 CI FIX) after PR #29 CI run 32560419660 showed the node-checks job had no dependency-install step, so `npm test` failed importing `pg` in CI even though it passed locally.",
+
+  "scopeResolution": {
+    "note": "The S1 substrate (db/metaframer_kernel_db) owns exactly two runtime tables — transactional_outbox and audit_log — and no customer-owning table. Materializing a customer table is a separate, out-of-scope decision (forbidden by this package's non-goals, and by the substrate's own contract, which names no domain record table). The adapter therefore commits three of the pipeline's four ALLOW_COMMIT write intents for real inside one attested tenant transaction, and defers the fourth honestly rather than inventing a table to close it.",
+    "committedIntents": ["audit", "transactionalOutbox", "idempotency"],
+    "committedMechanism": {
+      "audit": "one row inserted into audit_log",
+      "transactionalOutbox": "one row inserted into transactional_outbox",
+      "idempotency": "realized as that outbox row's dedup_key, enforced by the substrate's own per-tenant unique index — a repeated commit with the same fingerprint is refused by the database itself, proven in tests/postgres-commit-adapter.test.mjs"
+    },
+    "deferredIntents": ["customer"],
+    "deferredReason": "no customer-owning runtime table exists in the S1 substrate; materializing one is a separate, out-of-scope decision for a future package",
+    "commitReceiptMinted": false,
+    "commitReceiptNote": "The adapter mints no CommitReceipt claiming the customer intent was persisted. It returns a narrower, honest commit contract naming exactly which intents committed and which stayed deferred. A future package may close the customer gap once a customer-owning table (or an explicit decision not to have one) is separately authorized."
+  },
+
+  "nonGoals": [
+    "no src/delivery directory or file is created",
+    "no HTTP, ASGI, Uvicorn, Hypercorn, FastAPI or Django delivery surface",
+    "no change to db/metaframer_kernel_db or its Alembic revisions",
+    "no change to src/application or src/domain behaviour",
+    "no customer-owning table added anywhere",
+    "no CommitReceipt minted for the customer intent",
+    "no mock or in-memory substrate used to satisfy GREEN",
+    "no app, module or release/deploy/publish path",
+    "no private-repo change",
+    "no CI or config change beyond the single narrow install-step fix recorded in ciFixFollowUp",
+    "no version bump, no README change",
+    "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/postgres-commit-adapter.test.mjs"],
+    "note": "Before src/adapters/postgres-commit-adapter.mjs existed, every test importing it failed with ERR_MODULE_NOT_FOUND — a real capability gap, not an environment failure."
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/postgres-commit-adapter.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "ciFixFollowUp": {
+    "trigger": "PR #29, CI run 32560419660: the node-checks job failed npm test with ERR_MODULE_NOT_FOUND for pg, because that job never installed the repository's npm dependencies before running npm run check and npm test. substrate-static, substrate-pytest and governance-security stayed GREEN.",
+    "rootCause": "no npm ci / npm install step existed in the node-checks job of .github/workflows/ci.yml before this fix; the job ran directly against a node_modules-less checkout.",
+    "fix": "one added step, 'Install locked npm dependencies: run: npm ci', placed after 'Set up Node.js' and before every step that runs npm run check or npm test in the node-checks job. No other job, action version, or trigger changed.",
+    "whyGovernanceSecurityNeededNoChange": "governance-security's own node --test tests/kernel-runtime-substrate-s1.test.mjs step does not import src/adapters/postgres-commit-adapter.mjs or the pg module, so it never depended on node_modules and stayed GREEN both before and after this fix.",
+    "localVerification": {
+      "targeted": "node --test tests/kernel-runtime-substrate-s1.test.mjs tests/postgres-commit-adapter.test.mjs",
+      "check": "npm run check",
+      "fullNpmTestReran": false,
+      "note": "The existing CI-workflow-shape assertion in tests/kernel-runtime-substrate-s1.test.mjs (around 'the CI workflow is fork-safe, pins every action to a full commit SHA, and wires the required jobs') already covers this file's shape and needed no edit: the added step introduces no new uses: action, so it cannot violate the pinned-SHA or required-job checks."
+    }
+  },
+
+  "rollback": {
+    "trigger": "the adapter's committed/deferred intent split, or the src/adapters ring materialization it proves, drifts from this record; or the CI install step misbehaves",
+    "action": "revert src/adapters/postgres-commit-adapter.mjs, tests/postgres-commit-adapter.test.mjs, the repository-boundary/substrate/versioning/boundary-authority test updates, package.json's pg dependency and package-lock.json, .github/workflows/ci.yml's added npm ci step, and this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "adapter-and-tests-and-one-CI-step-only; no db/ or delivery surface touched, no other job or action version changed",
+    "runtimeDataImpact": "none: the adapter writes only to the disposable Docker container the test itself creates and removes"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "CreateCustomerPipeline üretebiliyordu ama ürettiği ALLOW_COMMIT taslağını hiçbir yer PostgreSQL'e yazamıyordu; audit ve outbox niyetleri kağıt üzerinde kalıyordu.",
+    "after": "Artık gerçek bir PostgreSQL 16 bağlantısı üzerinden, tek bir kiracı işleminde audit ve outbox kaydı gerçekten yazılabiliyor ve aynı fingerprint ile ikinci kez gönderilen bir istek veritabanının kendisi tarafından reddediliyor. Müşteri (customer) kaydı için henüz bir tablo yok, o yüzden bu paket müşteriyi kalıcı hale getirmiyor — sadece denetim izini ve outbox mesajını.",
+    "note": "Hâlâ hiçbir HTTP sunucu veya form gönderimi çalışmıyor; bu B1 sadece uygulama katmanının veritabanına yazabildiğini kanıtlıyor."
+  },
+
+  "nextPackage": {
+    "note": "B2 (customer persistence + full CommitReceipt) requires a separately authorized decision on whether/how a customer-owning table is materialized in the S1 substrate, and is out of this package's scope.",
+    "preconditions": [
+      "this package's targeted GREEN, npm test and npm run check all pass",
+      "a separate Codex MASTER-approved package scopes the customer-owning table or an alternative persistence decision"
+    ]
+  },
+
+  "versionBump": false
+}
