@@ -610,10 +610,10 @@ const MOVED_CHILDREN = ["adapters", "delivery"];
  * `application` once the separately authorized generated-SDK generation package
  * (`planning/gj01-generated-sdk-generation.json`) writes its first artifact. `adapters` joins them
  * once the separately authorized `planning/gj01-v12b1-postgres-adapter.json` package writes its
- * first artifact. `delivery` remains an opened boundary, not a materialized ring — no package has
- * walked through it yet.
+ * first artifact. `delivery` joins them once the separately authorized
+ * `planning/gj01-v13b-framework-neutral-delivery-handler.json` package writes its first artifact.
  */
-const MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters"];
+const MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters", "delivery"];
 /**
  * The closed per-ring module manifest: which flat modules each materialized ring may hold.
  *
@@ -632,6 +632,7 @@ const RING_MODULE_MANIFEST = [
   ["application", ["action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
   ["sdk", ["create-customer.mjs"]],
   ["adapters", ["postgres-commit-adapter.mjs"]],
+  ["delivery", ["create-customer-request-handler.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();
 const refuseRoot = (name) => [`forbidden-root-path-present:${name}`];
@@ -777,7 +778,7 @@ test("the narrowed root topology is decided from injected facts", () => {
   for (const [label, given, expected] of TOPOLOGY_ROWS) assertRow(rootTopologyViolations(given), expected, label);
 });
 
-test("a real tree reaches the same verdict, and this checkout materializes domain, application and sdk", (t) => {
+test("a real tree reaches the same verdict, and this checkout materializes domain, application, sdk, adapters and delivery", (t) => {
   assert.equal(typeof checkRootTopology, "function", `${checkerRelative} must export checkRootTopology(rootDirectory) — nothing reads a real tree into the narrowed root first-child facts yet`);
   for (const [label, layout, expected] of READER_ROWS) assertRow(checkRootTopology(scratchTree(t, layout)), expected, `scratch: ${label}`);
   // The narrowing permitted a root src; P-M1-01 created `domain`, P-M1-02 created `application`,
@@ -785,7 +786,7 @@ test("a real tree reaches the same verdict, and this checkout materializes domai
   // first artifact — the boundary this package opened is walked through, not merely kept open.
   const src = path.join(root, "src");
   assert.ok(existsSync(src) && statSync(src).isDirectory(), "this checkout must carry a real root src directory");
-  assert.deepEqual(readdirSync(src).sort(), sortedNames(MATERIALIZED_RINGS), "domain, application, sdk and adapters must be the only first children materialized in root src");
+  assert.deepEqual(readdirSync(src).sort(), sortedNames(MATERIALIZED_RINGS), "domain, application, sdk, adapters and delivery must be the only first children materialized in root src");
   for (const [ring, manifest] of RING_MODULE_MANIFEST) {
     const dir = path.join(src, ring);
     assert.ok(existsSync(dir) && statSync(dir).isDirectory(), `src/${ring} must exist as a real directory`);

@@ -76,13 +76,17 @@ test("the checker now permits src/adapters and src/delivery and forbids nothing 
 // This package (gj01-v12) itself opened the boundary only and walked through none of it — that
 // remains true of its own commit and is unchanged history. `src/adapters` is materialized by the
 // later, separately authorized `planning/gj01-v12b1-postgres-adapter.json` package; `src/delivery`
-// remains an opened boundary that no package has walked through yet.
-test("src/delivery stays an opened boundary that no package has walked through", () => {
-  assert.equal(
+// is materialized by the later, separately authorized
+// `planning/gj01-v13b-framework-neutral-delivery-handler.json` package.
+test("src/delivery is materialized by the later, separately authorized delivery-handler package", async () => {
+  assert.ok(
     existsSync(path.join(root, "src", "delivery")),
-    false,
-    "src/delivery must not exist — no package has walked through this boundary yet",
+    "src/delivery must exist once planning/gj01-v13b-framework-neutral-delivery-handler.json walks through the boundary this package opened",
   );
+  const deliveryPlanning = JSON.parse(
+    await readFile(path.join(root, "planning/gj01-v13b-framework-neutral-delivery-handler.json"), "utf8"),
+  );
+  assert.equal(deliveryPlanning.sequenceReference.source, planningPath);
 });
 
 test("src/adapters is materialized by the later, separately authorized postgres-adapter package", async () => {
