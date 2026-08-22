@@ -23,10 +23,11 @@
     "tests/kernel-runtime-substrate-s1.test.mjs",
     "tests/kernel-one-golden-slice-boundary-authority.test.mjs",
     "tests/kernel-versioning-changelog.test.mjs",
+    ".github/workflows/ci.yml",
     "planning/gj01-v12b1-postgres-adapter.json",
     "CHANGELOG.md"
   ],
-  "allowedFilesNote": "The last two test files were added mid-package by explicit MASTER decision (option a) after RED surfaced two locked, unrelated invariants — 'package.json carries no dependency key' and 'this package does not materialize src/adapters' — that directly conflicted with the authorized pg driver and the boundary this package walks through.",
+  "allowedFilesNote": "The two kernel-*.test.mjs files were added mid-package by explicit MASTER decision (option a) after RED surfaced two locked, unrelated invariants — 'package.json carries no dependency key' and 'this package does not materialize src/adapters' — that directly conflicted with the authorized pg driver and the boundary this package walks through. `.github/workflows/ci.yml` was added by a second explicit, narrowly-scoped MASTER follow-up (V12B1 CI FIX) after PR #29 CI run 32560419660 showed the node-checks job had no dependency-install step, so `npm test` failed importing `pg` in CI even though it passed locally.",
 
   "scopeResolution": {
     "note": "The S1 substrate (db/metaframer_kernel_db) owns exactly two runtime tables — transactional_outbox and audit_log — and no customer-owning table. Materializing a customer table is a separate, out-of-scope decision (forbidden by this package's non-goals, and by the substrate's own contract, which names no domain record table). The adapter therefore commits three of the pipeline's four ALLOW_COMMIT write intents for real inside one attested tenant transaction, and defers the fourth honestly rather than inventing a table to close it.",
@@ -52,7 +53,7 @@
     "no mock or in-memory substrate used to satisfy GREEN",
     "no app, module or release/deploy/publish path",
     "no private-repo change",
-    "no CI or config change",
+    "no CI or config change beyond the single narrow install-step fix recorded in ciFixFollowUp",
     "no version bump, no README change",
     "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package"
   ],
@@ -69,10 +70,23 @@
     ]
   },
 
+  "ciFixFollowUp": {
+    "trigger": "PR #29, CI run 32560419660: the node-checks job failed npm test with ERR_MODULE_NOT_FOUND for pg, because that job never installed the repository's npm dependencies before running npm run check and npm test. substrate-static, substrate-pytest and governance-security stayed GREEN.",
+    "rootCause": "no npm ci / npm install step existed in the node-checks job of .github/workflows/ci.yml before this fix; the job ran directly against a node_modules-less checkout.",
+    "fix": "one added step, 'Install locked npm dependencies: run: npm ci', placed after 'Set up Node.js' and before every step that runs npm run check or npm test in the node-checks job. No other job, action version, or trigger changed.",
+    "whyGovernanceSecurityNeededNoChange": "governance-security's own node --test tests/kernel-runtime-substrate-s1.test.mjs step does not import src/adapters/postgres-commit-adapter.mjs or the pg module, so it never depended on node_modules and stayed GREEN both before and after this fix.",
+    "localVerification": {
+      "targeted": "node --test tests/kernel-runtime-substrate-s1.test.mjs tests/postgres-commit-adapter.test.mjs",
+      "check": "npm run check",
+      "fullNpmTestReran": false,
+      "note": "The existing CI-workflow-shape assertion in tests/kernel-runtime-substrate-s1.test.mjs (around 'the CI workflow is fork-safe, pins every action to a full commit SHA, and wires the required jobs') already covers this file's shape and needed no edit: the added step introduces no new uses: action, so it cannot violate the pinned-SHA or required-job checks."
+    }
+  },
+
   "rollback": {
-    "trigger": "the adapter's committed/deferred intent split, or the src/adapters ring materialization it proves, drifts from this record",
-    "action": "revert src/adapters/postgres-commit-adapter.mjs, tests/postgres-commit-adapter.test.mjs, the repository-boundary/substrate test updates, package.json's pg dependency and package-lock.json, and this planning file and the CHANGELOG.md entry as one shard",
-    "blastRadius": "adapter-and-tests-only; no db/ or delivery surface touched",
+    "trigger": "the adapter's committed/deferred intent split, or the src/adapters ring materialization it proves, drifts from this record; or the CI install step misbehaves",
+    "action": "revert src/adapters/postgres-commit-adapter.mjs, tests/postgres-commit-adapter.test.mjs, the repository-boundary/substrate/versioning/boundary-authority test updates, package.json's pg dependency and package-lock.json, .github/workflows/ci.yml's added npm ci step, and this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "adapter-and-tests-and-one-CI-step-only; no db/ or delivery surface touched, no other job or action version changed",
     "runtimeDataImpact": "none: the adapter writes only to the disposable Docker container the test itself creates and removes"
   },
 

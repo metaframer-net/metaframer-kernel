@@ -29,7 +29,9 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   `CommitReceipt`. `tests/postgres-commit-adapter.test.mjs` proves this against a real, disposable
   Docker-backed PostgreSQL 16 instance, never a mock. `flags.kernelReady`, `oneGoldenSliceReady`,
   `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed` and
-  `gapClosed` all stay `false`, `capabilityDelta` is `NONE` and `runnableProduct` is `false`. This
+  `gapClosed` all stay `false`, `capabilityDelta` is `NONE` and `runnableProduct` is `false`. A
+  narrow follow-up added an `npm ci` step to the `node-checks` CI job, which had no dependency-install
+  step and so failed importing `pg`; no other job or action changed. This
   introduces no HTTP/ASGI/Uvicorn/Hypercorn/FastAPI/Django delivery surface, no `src/delivery`
   content and no change to `db/metaframer_kernel_db`.
 - `planning/gj01-v12-src-adapters-delivery-boundary-authority.json`, a repository-boundary-authority
