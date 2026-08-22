@@ -56,6 +56,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 - This versioning and changelog governance: the canonical `versioning-policy.json`, its verifier
   `tools/check-versioning-changelog.mjs`, the human projection in `docs/versioning-policy.md`, and
   this document.
+- The `CreateCustomer@1` Application pipeline in `src/application/create-customer-pipeline.mjs`:
+  `CreateCustomerPipeline`, a deterministic, framework-free stage sequence from raw `ActionSpec`
+  fields to one closed outcome — `ALLOW_COMMIT`, `DENY`, `INVALID` or `CROSS_TENANT_DENY` — built
+  entirely from the existing `Identity`, `PolicyDecisionPoint`, `Command`, `PolicyRequest` and
+  `KernelError` surfaces plus one injected pure `evaluateInvariants` collaborator.
+  `ALLOW_COMMIT` means allowed-to-commit only: it returns a frozen `PreparedChangeSet` with
+  `persistenceState: "pending"` and exactly four write intents, and mints no `CommitReceipt`.
 
 ### Changed
 - The repository root source-topology fence was narrowed: a root `src` is permitted and may hold
