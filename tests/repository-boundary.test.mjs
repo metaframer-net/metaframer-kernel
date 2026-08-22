@@ -623,11 +623,13 @@ const MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters"];
  * owns this" stops being answerable from the tree the moment a ring can grow without saying so.
  * P-M1-01 entered `identity-primitives.mjs`, P-M1-02 entered `action-primitives.mjs`, and P-M1-03
  * enters `use-case.mjs` beside it. The generated-SDK generation package enters
- * `create-customer.mjs` as the first `src/sdk` module.
+ * `create-customer.mjs` as the first `src/sdk` module. The V13A application commit service
+ * package (`planning/gj01-v13a-application-commit-service.json`) enters
+ * `create-customer-commit-service.mjs` beside `create-customer-pipeline.mjs`.
  */
 const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
-  ["application", ["action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
+  ["application", ["action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
   ["sdk", ["create-customer.mjs"]],
   ["adapters", ["postgres-commit-adapter.mjs"]],
 ];
