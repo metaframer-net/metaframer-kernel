@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v12b2a-i-customer-migration-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "postgres-migration-shard",
+  "packageState": "customer-table-migration-and-python-evidence-GREEN",
+  "baseCommit": "5586bc98cb8039319792312da77b7d819c401e5d",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v12b1-postgres-adapter.json",
+    "field": "nextPackage",
+    "note": "V12B1 deferred the customer write intent because the S1 substrate owned no customer table. This is V12B2A-i: the smallest PostgreSQL migration shard that materializes a tenant-owned customer table. It is scoped to db/ only; the JS adapter, contract oracle and CommitReceipt are explicitly out of scope and left as follow-ups."
+  },
+
+  "goal": "Add the second Alembic revision, 0002_customer_records, creating a tenant-owned customer_records table under FORCE row-level security keyed off the same mfk_current_tenant() attestation 0001 established, plus Python DB tests proving migration, tenant isolation and downgrade. No JS oracle, adapter, or CommitReceipt change in this package.",
+
+  "allowedFiles": [
+    "db/metaframer_kernel_db/alembic/versions/0002_customer_records.py",
+    "db/metaframer_kernel_db/migrations.py",
+    "db/metaframer_kernel_db/schema.py",
+    "db/tests/test_customer_records.py",
+    "planning/gj01-v12b2a-i-customer-migration.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no FastAPI, Django, ASGI, Uvicorn, Hypercorn or HTTP delivery code",
+    "no src/adapters/postgres-commit-adapter.mjs change",
+    "no CommitReceipt",
+    "no db/kernel-runtime-substrate-s1.json, tools/check-kernel-runtime-substrate-s1.mjs or tests/kernel-runtime-substrate-s1.test.mjs change",
+    "no readiness, release, deploy or product-ready claim",
+    "no unrelated cleanup"
+  ],
+
+  "scopeResolution": {
+    "note": "kernel-runtime-substrate-s1.json declares the JS-side runtime-substrate contract (transactional_outbox, audit_log only) and is deliberately left untouched by this package. customer_records is a second, independent revision on top of 0001 — it does not rename, alter or narrow the S1 contract's two runtime tables, so 0001's declared shape and existing JS oracle assertions remain true. The JS oracle simply does not yet know customer_records exists.",
+    "knownDrift": "the JS contract/oracle (db/kernel-runtime-substrate-s1.json and tools/check-kernel-runtime-substrate-s1.mjs) still describes only the S1 runtime substrate and says nothing about customer_records or Alembic head 0002_customer_records. That drift is declared here, not hidden.",
+    "followUp": "V12B2A-ii: update the JS oracle/contract/checker to acknowledge 0002_customer_records and the customer_records table, so the JS-side verifier and the Python-side schema stop disagreeing about what the database actually contains."
+  },
+
+  "red": {
+    "commands": ["uv run pytest tests/test_customer_records.py -x -q"],
+    "note": "Run with metaframer_kernel_db/alembic/versions/0002_customer_records.py temporarily removed and HEAD_REVISION pointed at it (so alembic 'head' resolved back to 0001, since the file did not exist): test_migration_creates_a_tenant_owned_customer_table_under_forced_rls failed with AssertionError — dbfacts.table_exists(substrate, 'customer_records') was False after migrating to head. A real capability gap against a live PostgreSQL 16 instance, not an environment failure."
+  },
+  "green": {
+    "commands": ["uv run pytest tests/test_customer_records.py -q", "uv run pytest tests/ -q", "uv run ruff check ."],
+    "results": "4 passed (test_customer_records.py); 53 passed (full db/tests suite, no regression); ruff: all checks passed"
+  },
+
+  "acceptance": {
+    "secondRevisionDependsOnFirst": "0002_customer_records.down_revision == '0001_runtime_substrate'",
+    "tenantOwnedTable": "customer_records: id (uuid pk), tenant_id (uuid not null), name (text, non-blank check), payload (jsonb, object-shaped check), created_at, recorded_at",
+    "rowLevelSecurity": "ENABLE + FORCE ROW LEVEL SECURITY with a USING/WITH CHECK policy on tenant_id = mfk_current_tenant(), the same attestation function 0001 defined",
+    "runtimeGrants": "GRANT SELECT, INSERT, UPDATE, DELETE ON customer_records TO the runtime role only; no DDL, no control-plane object access",
+    "downgradeScope": "downgrade() drops only customer_records; it does not touch transactional_outbox, audit_log, mfk_context_key or any function 0001 owns",
+    "pythonUpdates": "schema.py gained CUSTOMER_TABLE and a customer_table contract key; migrations.py HEAD_REVISION now points at 0002_customer_records",
+    "tests": "db/tests/test_customer_records.py: migration creates the table under forced RLS, a tenant reads only its own rows, a missing tenant context denies both reads and writes, and downgrading to 0001 removes only customer_records while leaving 0001's tables intact"
+  },
+
+  "rollback": {
+    "trigger": "the customer table shape, its RLS policy, or the runtime grant drifts from this record, or the downgrade is found to remove more than customer_records",
+    "action": "revert db/metaframer_kernel_db/alembic/versions/0002_customer_records.py, the HEAD_REVISION/schema.py edits in migrations.py and schema.py, db/tests/test_customer_records.py, and this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "db/ only; no src/adapters, src/application, src/domain, or JS oracle/contract file touched",
+    "runtimeDataImpact": "none in test: the migration runs only against the disposable Docker container db/tests/_harness/docker_postgres.py creates and removes per session"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+  "capabilityDelta": "the PostgreSQL substrate now has a tenant-owned customer table a future adapter package can write to; the JS adapter and CommitReceipt still do not use it",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "PostgreSQL S1 alt yapısında yalnızca transactional_outbox ve audit_log tabloları vardı; bir CRM/HRMS müşteri kaydı (customer.create) veritabanında kalıcı olarak saklanacak hiçbir tablo yoktu.",
+    "after": "Artık customer_records adında, her kiracının yalnızca kendi satırlarını görebildiği (FORCE row-level security ile) bir müşteri tablosu var. Bir kiracı başka bir kiracının müşteri kaydını ne okuyabiliyor ne de yazabiliyor; bağlamı olmayan bir bağlantı hiçbir satır göremiyor ve yazamıyor. Bu, gerçek bir PostgreSQL 16 sunucusuna karşı Python testleriyle kanıtlandı.",
+    "kullaniciYolculugu": "customer.create isteğinin veritabanı tarafı artık hazır; ama JS tarafındaki adapter (src/adapters/postgres-commit-adapter.mjs) hâlâ bu tabloya yazmıyor ve hiçbir HTTP formu bu akışı tetiklemiyor.",
+    "kalanEngel": "V12B2A-ii (JS oracle/contract güncellemesi) ve V12B2B (adapter + CommitReceipt) tamamlanmadan müşteri kaydı uçtan uca çalışmaz."
+  },
+
+  "nextPackage": {
+    "note": "Two declared follow-ups, deliberately out of this package's scope.",
+    "followUps": [
+      {
+        "id": "V12B2A-ii",
+        "scope": "update db/kernel-runtime-substrate-s1.json, tools/check-kernel-runtime-substrate-s1.mjs and tests/kernel-runtime-substrate-s1.test.mjs to acknowledge 0002_customer_records and customer_records, closing the declared JS-oracle drift"
+      },
+      {
+        "id": "V12B2B",
+        "scope": "src/adapters/postgres-commit-adapter.mjs commits the customer write intent into customer_records and mints a full CommitReceipt covering all four intents"
+      }
+    ]
+  },
+
+  "versionBump": false
+}
