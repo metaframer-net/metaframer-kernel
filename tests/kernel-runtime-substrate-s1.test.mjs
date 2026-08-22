@@ -1298,15 +1298,17 @@ test("on a constructed exact-main checkout, npm run check ends with exactly one 
 
 const S1_ABSENT_ROOTS = ["migrations", "apps", "packages", "deploy"];
 /**
- * Onion order, innermost first, plus the sdk boundary — the same set the boundary checker owns.
- * `domain` and `application` are materialized rings; `sdk` is a permitted boundary opened by
- * `planning/gj01-src-sdk-boundary-authority.json` for a future, separately authorized
- * generated-SDK package, and is not materialized by this substrate package.
+ * Onion order, innermost first, plus the three boundary slots — the same set the boundary checker
+ * owns. `domain` and `application` are materialized rings; `sdk`, `adapters` and `delivery` are
+ * permitted boundaries opened by `planning/gj01-src-sdk-boundary-authority.json` and
+ * `planning/gj01-v12-src-adapters-delivery-boundary-authority.json` respectively, for future,
+ * separately authorized packages, and none of the three is materialized by this substrate package.
  */
-const S1_SRC_PERMITTED = ["domain", "application", "sdk"];
-const S1_SRC_FORBIDDEN = ["adapters", "delivery"];
-/** The one name the boundary-authority package moves across the line, named once so both attacks can cite it. */
+const S1_SRC_PERMITTED = ["domain", "application", "sdk", "adapters", "delivery"];
+const S1_SRC_FORBIDDEN = [];
+/** The names the boundary-authority packages moved across the line, named once so the attacks can cite them. */
 const S1_MOVED_CHILD = "sdk";
+const S1_MOVED_CHILDREN = ["adapters", "delivery"];
 /**
  * Rings actually materialized as real directories in this checkout. `sdk` joins `domain` and
  * `application` once the separately authorized generated-SDK generation package writes its first
@@ -1329,8 +1331,11 @@ const SURFACE_ROWS = [
   ["a root src holding only sdk", { "src/sdk": "dir" }, []],
   ["src/sdk beside domain", { "src/domain": "dir", "src/sdk": "dir" }, []],
   ["src/sdk beside both materialized rings", { "src/domain": "dir", "src/application": "dir", "src/sdk": "dir" }, []],
-  ...S1_SRC_FORBIDDEN.map((c) => [`src/${c} beside domain`, { "src/domain": "dir", [`src/${c}`]: "dir" }, [`forbidden-root-src-child:${c}`]]),
-  ...S1_SRC_FORBIDDEN.map((c) => [`src/${c} beside both rings`, { "src/domain": "dir", "src/application": "dir", [`src/${c}`]: "dir" }, [`forbidden-root-src-child:${c}`]]),
+  // `adapters` and `delivery` are permitted boundaries opened by
+  // planning/gj01-v12-src-adapters-delivery-boundary-authority.json, not materialized rings — an
+  // empty scratch src/adapters or src/delivery is clean, exactly like an empty src/sdk.
+  ...S1_MOVED_CHILDREN.map((c) => [`src/${c} beside domain`, { "src/domain": "dir", [`src/${c}`]: "dir" }, []]),
+  ...S1_MOVED_CHILDREN.map((c) => [`src/${c} beside both rings`, { "src/domain": "dir", "src/application": "dir", [`src/${c}`]: "dir" }, []]),
   ["an unknown first child", { "src/domain": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
   ["an unknown child beside application", { "src/application": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
   ...S1_ABSENT_ROOTS.map((p) => [`root ${p}`, { "src/domain": "dir", [p]: "dir" }, [`fenced-root-path-present:${p}`]]),
@@ -1348,31 +1353,33 @@ const SURFACE_ROWS = [
 /** [label, patch applied to rootSourceTopology (`null` deletes the clause), expected finding]. */
 const CLAUSE_ATTACKS = [
   ["no root topology clause at all", null, "root-source-topology-missing"],
-  ["a widened permit", { permittedFirstChildren: ["domain", "application", "sdk", "adapters"] }, "root-source-topology-drift:permittedFirstChildren"],
+  ["a widened permit", { permittedFirstChildren: [...S1_SRC_PERMITTED, "infra"] }, "root-source-topology-drift:permittedFirstChildren"],
   ["an unclassified first child admitted", { unknownFirstChildRefused: false }, "root-source-topology-admits-unknown-first-child"],
   ["nested ring content claimed as classified", { nestedContentClassified: true }, "root-source-topology-overreaches-into-nested-content"],
-  // The two attacks on the boundary-authority package's one move. A contract that quietly
-  // reverts to the pre-boundary two-ring shape is the failure this package is most likely to
-  // suffer later, because it is what every pre-existing copy of the clause already said — so it
-  // is refused explicitly, from both sides.
-  [
-    `${S1_MOVED_CHILD} dropped from the permitted rings`,
-    { permittedFirstChildren: ["domain", "application"] },
-    "root-source-topology-drift:permittedFirstChildren",
-  ],
-  [
-    `${S1_MOVED_CHILD} re-added to the forbidden rings`,
-    { forbiddenFirstChildren: [S1_MOVED_CHILD, ...S1_SRC_FORBIDDEN] },
-    "root-source-topology-drift:forbiddenFirstChildren",
-  ],
-  // Permitting it and forbidding it at once is not a half-measure the clause may express: a
-  // reader that consults the forbidden list first would refuse the ring, so the pair must be
-  // rejected outright rather than resolved by whichever list happens to be consulted first.
-  [
-    `${S1_MOVED_CHILD} both permitted and forbidden`,
-    { forbiddenFirstChildren: [S1_MOVED_CHILD, ...S1_SRC_FORBIDDEN], permittedFirstChildren: S1_SRC_PERMITTED },
-    "root-source-topology-drift:forbiddenFirstChildren",
-  ],
+  // The attacks on the boundary-authority packages' moves. A contract that quietly reverts to an
+  // earlier, narrower shape is the failure this package is most likely to suffer later, because it
+  // is what every pre-existing copy of the clause already said — so each moved name is refused
+  // explicitly, from both sides.
+  ...[S1_MOVED_CHILD, ...S1_MOVED_CHILDREN].flatMap((moved) => [
+    [
+      `${moved} dropped from the permitted rings`,
+      { permittedFirstChildren: S1_SRC_PERMITTED.filter((c) => c !== moved) },
+      "root-source-topology-drift:permittedFirstChildren",
+    ],
+    [
+      `${moved} re-added to the forbidden rings`,
+      { forbiddenFirstChildren: [moved] },
+      "root-source-topology-drift:forbiddenFirstChildren",
+    ],
+    // Permitting it and forbidding it at once is not a half-measure the clause may express: a
+    // reader that consults the forbidden list first would refuse the ring, so the pair must be
+    // rejected outright rather than resolved by whichever list happens to be consulted first.
+    [
+      `${moved} both permitted and forbidden`,
+      { forbiddenFirstChildren: [moved], permittedFirstChildren: S1_SRC_PERMITTED },
+      "root-source-topology-drift:forbiddenFirstChildren",
+    ],
+  ]),
 ];
 
 test("the root topology is one rule, shared with the boundary checker", () => {
@@ -1380,14 +1387,16 @@ test("the root topology is one rule, shared with the boundary checker", () => {
   assert.ok(!FORBIDDEN_ROOT_PATHS.includes("src"), "root src is no longer forbidden outright: its permitted first child governs it instead");
   assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(S1_SRC_PERMITTED), `${verifierPath} must export ROOT_SRC_PERMITTED_CHILDREN naming exactly the two inner rings, domain and application`);
   assert.deepEqual(sortedNames(ROOT_SRC_FORBIDDEN_CHILDREN), sortedNames(S1_SRC_FORBIDDEN), `${verifierPath} must export ROOT_SRC_FORBIDDEN_CHILDREN naming each refused outer ring`);
-  assert.ok(
-    (ROOT_SRC_PERMITTED_CHILDREN ?? []).includes(S1_MOVED_CHILD),
-    `${S1_MOVED_CHILD} was dropped from ROOT_SRC_PERMITTED_CHILDREN as this package re-exports it`,
-  );
-  assert.ok(
-    !(ROOT_SRC_FORBIDDEN_CHILDREN ?? []).includes(S1_MOVED_CHILD),
-    `${S1_MOVED_CHILD} was re-added to ROOT_SRC_FORBIDDEN_CHILDREN as this package re-exports it`,
-  );
+  for (const moved of [S1_MOVED_CHILD, ...S1_MOVED_CHILDREN]) {
+    assert.ok(
+      (ROOT_SRC_PERMITTED_CHILDREN ?? []).includes(moved),
+      `${moved} was dropped from ROOT_SRC_PERMITTED_CHILDREN as this package re-exports it`,
+    );
+    assert.ok(
+      !(ROOT_SRC_FORBIDDEN_CHILDREN ?? []).includes(moved),
+      `${moved} was re-added to ROOT_SRC_FORBIDDEN_CHILDREN as this package re-exports it`,
+    );
+  }
   // Two lists that merely happen to agree today are a drift waiting to happen.
   for (const [what, mine, theirs] of [
     ["which root paths stay absent", FORBIDDEN_ROOT_PATHS, boundary.ROOT_ABSENT_PATHS],
@@ -1435,6 +1444,8 @@ test("the contract carries a closed rootSourceTopology clause, and Phase A keeps
   assert.match(String(topology.note ?? ""), /domain/, "the clause needs a note saying what narrowed and what did not");
   assert.match(String(topology.note ?? ""), /application/, "the note still describes a single permitted ring; it must say that application is permitted too");
   assert.match(String(topology.note ?? ""), /sdk/, "the note must say sdk is a permitted boundary");
+  assert.match(String(topology.note ?? ""), /adapters/, "the note must say adapters is a permitted boundary");
+  assert.match(String(topology.note ?? ""), /delivery/, "the note must say delivery is a permitted boundary");
   assert.deepEqual(contract.forbiddenAlways, FORBIDDEN_ROOT_PATHS);
   assert.ok(!contract.forbiddenAlways.includes("src"), "forbiddenAlways must no longer list bare src");
   // History is not rewritten to match the narrowing: src was on the Phase A list, and stays on it.

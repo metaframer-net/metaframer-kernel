@@ -16,6 +16,21 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `planning/gj01-v12-src-adapters-delivery-boundary-authority.json`, a repository-boundary-authority
+  package moving `src/adapters` and `src/delivery` from the repository root's forbidden
+  first-children-of-`src` set to its permitted set, the way `src/sdk` was opened by
+  `planning/gj01-src-sdk-boundary-authority.json`. `tools/check-repository-boundary.mjs` now
+  exports `ROOT_SRC_PERMITTED_CHILDREN` as `["domain", "application", "sdk", "adapters",
+  "delivery"]` with an empty `ROOT_SRC_FORBIDDEN_CHILDREN`; `db/kernel-runtime-substrate-s1.json`'s
+  `rootSourceTopology` clause re-exports the same widened boundary. No `src/adapters` or
+  `src/delivery` directory or file is created. `flags.kernelReady`, `oneGoldenSliceReady`,
+  `walkingSkeletonReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`
+  and `gapClosed` all stay `false`, `capabilityDelta` is `NONE` and `runnableProduct` is `false`.
+  This does not narrow, close or execute step 4 (one-golden-slice / walking-skeleton) of the
+  pinned runtime-start sequence, and implements no HTTP, ASGI, Uvicorn, Hypercorn, FastAPI or
+  Django delivery surface, no persistence or DB runtime change, and no CommitReceipt or
+  outbox/audit runtime behaviour. A future, separately scoped Package B may target `src/adapters`
+  and `src/delivery` once this package is GREEN and separately approved.
 - `planning/gj01-v11-generated-sdk-step-closure.json`, a package-local closure record proving
   step 3 (`generated-sdk`) of the pinned runtime-start sequence is closed for CreateCustomer@1 by
   composing four already-GREEN evidence records: the `src/sdk` boundary opened by

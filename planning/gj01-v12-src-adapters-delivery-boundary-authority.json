@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v12-src-adapters-delivery-boundary-authority-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "repository-boundary-authority",
+  "packageState": "boundary-opened-one-golden-slice-not-started",
+  "baseCommit": "a995c3e0c48ddadc34ed454d608781451a87a048",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 4,
+    "id": "one-golden-slice",
+    "note": "This package opens only the repository first-child boundary that a future, separately scoped one-golden-slice / walking-skeleton package would need. It does not narrow, close or execute step 4 of the pinned sequence, and it materializes no adapter, no delivery surface and no golden-slice code of any kind."
+  },
+
+  "implementsOneGoldenSlice": false,
+
+  "goal": "Move `adapters` and `delivery` from the repository root's forbidden first-children-of-src set to its permitted set, so a future, separately authorized one-golden-slice/walking-skeleton package has a boundary to write into, the same way `sdk` was opened by planning/gj01-src-sdk-boundary-authority.json. Introduces no adapter code, no delivery surface, no populated src/adapters or src/delivery tree, no HTTP/ASGI/Uvicorn/Hypercorn/FastAPI/Django server, no persistence or DB runtime change, no CommitReceipt or outbox/audit runtime, no app, release, deploy or private-repo change.",
+
+  "allowedFiles": [
+    "planning/gj01-v12-src-adapters-delivery-boundary-authority.json",
+    "tests/kernel-one-golden-slice-boundary-authority.test.mjs",
+    "tools/check-repository-boundary.mjs",
+    "tests/repository-boundary.test.mjs",
+    "db/kernel-runtime-substrate-s1.json",
+    "tests/kernel-runtime-substrate-s1.test.mjs",
+    "CHANGELOG.md"
+  ],
+
+  "boundaryChange": {
+    "before": {
+      "rootSrcPermittedChildren": ["domain", "application", "sdk"],
+      "rootSrcForbiddenChildren": ["adapters", "delivery"]
+    },
+    "after": {
+      "rootSrcPermittedChildren": ["domain", "application", "sdk", "adapters", "delivery"],
+      "rootSrcForbiddenChildren": []
+    },
+    "note": "This package moves exactly two names across the line, the way src/sdk moved for the generated-SDK boundary package. No first child remains forbidden by name after this package; an unclassified first child still fails closed as unknown."
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "Kullanıcı bir CRM/HRMS formunu göndermek istese bile, gönderilen bilgiyi karşılayacak hiçbir teslimat (delivery) veya bağlayıcı (adapter) kodu yok; depoda src/adapters ve src/delivery klasörü açmak bile yasaktı.",
+    "after": "Hâlâ hiçbir form gönderilemiyor, hiçbir sunucu çalışmıyor. Tek değişen şey: gelecekte ayrı bir paket olarak onaylanacak 'bir altın dilim' (one golden slice) çalışması için depo kapısı açıldı — src/adapters ve src/delivery artık isim olarak yasak değil, ama bu paket o klasörleri hâlâ oluşturmuyor, boş bırakıyor.",
+    "note": "Kapıyı açmak, kapıdan geçmek değildir. Bu paket sadece kapıyı açar."
+  },
+
+  "nextPackage": {
+    "note": "A future, separately scoped, single-writer one-golden-slice/walking-skeleton package may target src/adapters and src/delivery once this package is GREEN and separately approved by Codex MASTER. That package defines its own allowed files, non-goals, RED/GREEN and rollback, and this package takes no position on its shape (HTTP framework, persistence, CommitReceipt or otherwise).",
+    "preconditions": [
+      "this package's RED-to-GREEN checks pass",
+      "npm test and npm run check are GREEN on this package",
+      "separate Codex MASTER approval is recorded",
+      "the one-golden-slice package is scoped test-first with its own allowedFiles, non-goals, RED/GREEN and rollback"
+    ]
+  },
+
+  "nonGoals": [
+    "no src/adapters or src/delivery directory or file is created in this package",
+    "no HTTP, ASGI, Uvicorn, Hypercorn, FastAPI or Django delivery surface",
+    "no persistence or DB runtime change beyond the shared root-source-topology mirror",
+    "no CommitReceipt, outbox or audit runtime behaviour",
+    "no golden-slice or walking-skeleton implementation of any kind",
+    "no change to src/domain, src/application or src/sdk source",
+    "no app, module or release/deploy/publish path",
+    "no private-repo change",
+    "no CI or config change",
+    "no version bump, no README change",
+    "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-one-golden-slice-boundary-authority.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs"],
+    "note": "Before the checker, existing repository-boundary tests and the substrate mirror are updated, the new boundary-authority test and the still-unmodified existing suites expect adapters and delivery permitted while the checker (and its mirrors) still forbid them by name, so the targeted run fails on the boundary-authority rows."
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-one-golden-slice-boundary-authority.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs tests/kernel-generated-sdk-step-closure.test.mjs",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the boundary change, the flags block or the non-goals set drifts from this record",
+    "action": "revert planning/gj01-v12-src-adapters-delivery-boundary-authority.json, tests/kernel-one-golden-slice-boundary-authority.test.mjs, tools/check-repository-boundary.mjs, tests/repository-boundary.test.mjs, db/kernel-runtime-substrate-s1.json, tests/kernel-runtime-substrate-s1.test.mjs and the CHANGELOG.md entry as one seven-file shard.",
+    "blastRadius": "planning-and-fence-and-tests-only",
+    "runtimeDataImpact": "none"
+  },
+
+  "versionBump": false
+}

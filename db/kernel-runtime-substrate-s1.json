@@ -654,16 +654,15 @@
     "permittedFirstChildren": [
       "domain",
       "application",
-      "sdk"
-    ],
-    "forbiddenFirstChildren": [
+      "sdk",
       "adapters",
       "delivery"
     ],
+    "forbiddenFirstChildren": [],
     "unknownFirstChildRefused": true,
     "nestedContentClassified": false,
     "owner": "tools/check-repository-boundary.mjs",
-    "note": "Root src is no longer forbidden outright; it is constrained to the three onion-adjacent rings, src/domain, src/application and src/sdk. src/sdk was opened as a permitted-but-empty boundary by planning/gj01-src-sdk-boundary-authority.json and is now materialized by the separately authorized generated-SDK generation package (planning/gj01-generated-sdk-generation.json), which wrote src/sdk/create-customer.mjs. This substrate package neither owns src/sdk nor writes to it; it only re-exports the shared root-source-topology fence. An absent root src stays fully compliant, and this checkout materializes src/domain for P-M1-01, src/application for P-M1-02 and src/sdk for the generated-SDK generation package. The outer rings adapters and delivery remain refused by name and any unclassified first child fails closed. Nothing beneath src/domain, src/application or src/sdk is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
+    "note": "Root src is no longer forbidden outright; it is constrained to five onion-adjacent names, src/domain, src/application, src/sdk, src/adapters and src/delivery. src/sdk was opened as a permitted-but-empty boundary by planning/gj01-src-sdk-boundary-authority.json and is now materialized by the separately authorized generated-SDK generation package (planning/gj01-generated-sdk-generation.json), which wrote src/sdk/create-customer.mjs. src/adapters and src/delivery were opened as permitted-but-empty boundaries by planning/gj01-v12-src-adapters-delivery-boundary-authority.json for a future, separately authorized one-golden-slice/walking-skeleton package, and neither carries a directory in this checkout. This substrate package neither owns any of the three boundaries nor writes to them; it only re-exports the shared root-source-topology fence. An absent root src stays fully compliant, and this checkout materializes src/domain for P-M1-01, src/application for P-M1-02 and src/sdk for the generated-SDK generation package. No first child remains forbidden by name, and any unclassified first child still fails closed. Nothing beneath src/domain, src/application, src/sdk, src/adapters or src/delivery is classified by this clause, and the narrowing moves no authority, readiness or activation value. The rule is stated once in tools/check-repository-boundary.mjs and read from there by this package."
   },
   "staticAnalysis": {
     "script": "check:substrate-s1:static",

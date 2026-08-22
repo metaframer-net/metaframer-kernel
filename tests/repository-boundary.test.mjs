@@ -566,9 +566,10 @@ test("the checker CLI still runs its assertions and reports the historical snaps
 //
 // The old fence was one flat list — apps, src, packages, deploy, migrations, absent always. Four
 // of those five are unchanged. `src` is not: a root `src` may exist, and it may hold exactly the
-// two inner onion rings, `domain` and `application`, in that order. `adapters`, `delivery` and
-// `sdk` stay refused by name — they are the outer rings, and opening them is a separate decision
-// no package has taken. An absent root `src` stays fully compliant — opening a door is not walking
+// two inner onion rings, `domain` and `application`, in that order, plus three permitted-but-not-
+// materialized boundaries opened by separate boundary-authority packages: `sdk`, `adapters` and
+// `delivery`. No first child remains refused by name; an unclassified first child still fails
+// closed as unknown. An absent root `src` stays fully compliant — opening a door is not walking
 // through it — and the kernel now walks through it exactly twice: P-M1-01 materialized `src/domain`
 // and P-M1-02 materializes `src/application`. What each ring may hold is a closed manifest named
 // below, so a ring grows only by a package that says which module it added and why.
@@ -592,21 +593,24 @@ const {
 
 const ABSENT_ROOTS = ["apps", "packages", "deploy", "migrations"];
 /**
- * Onion order, innermost first, plus the boundary-only `sdk` slot. `domain` and `application`
- * are materialized rings; `sdk` is a permitted-but-not-yet-materialized boundary opened by
- * `planning/gj01-src-sdk-boundary-authority.json` for a future, separately authorized generation
- * package. None of the three is required to exist.
+ * Onion order, innermost first, plus the three boundary-only slots. `domain` and `application`
+ * are materialized rings; `sdk`, `adapters` and `delivery` are permitted-but-not-yet-materialized
+ * boundaries opened by `planning/gj01-src-sdk-boundary-authority.json` and
+ * `planning/gj01-v12-src-adapters-delivery-boundary-authority.json` respectively, for future,
+ * separately authorized packages. None of the five is required to exist.
  */
-const SRC_PERMITTED = ["domain", "application", "sdk"];
-/** The two rings this package does not open. Opening either is a separate decision. */
-const SRC_FORBIDDEN = ["adapters", "delivery"];
-/** The one name this package moves across the line, named once so both attacks can cite it. */
+const SRC_PERMITTED = ["domain", "application", "sdk", "adapters", "delivery"];
+/** No first child remains refused by name; opening one is still a separate decision per name. */
+const SRC_FORBIDDEN = [];
+/** The names this package and its predecessor moved across the line, named once for the attacks. */
 const MOVED_CHILD = "sdk";
+const MOVED_CHILDREN = ["adapters", "delivery"];
 /**
  * Rings actually materialized as real directories in this checkout. `sdk` joins `domain` and
  * `application` once the separately authorized generated-SDK generation package
- * (`planning/gj01-generated-sdk-generation.json`) writes its first artifact — the boundary this
- * package opened is walked through, not merely kept open.
+ * (`planning/gj01-generated-sdk-generation.json`) writes its first artifact. `adapters` and
+ * `delivery` are opened boundaries, not materialized rings — the boundary-authority package that
+ * opens them does not walk through them.
  */
 const MATERIALIZED_RINGS = ["domain", "application", "sdk"];
 /**
@@ -626,7 +630,6 @@ const RING_MODULE_MANIFEST = [
   ["sdk", ["create-customer.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();
-const refuseChild = (child) => [`forbidden-root-src-child:${child}`];
 const refuseRoot = (name) => [`forbidden-root-path-present:${name}`];
 
 // A protected root spelled with a different case is the same directory. On the case-insensitive
@@ -659,14 +662,13 @@ const TOPOLOGY_ROWS = [
   // first-child rule to answer. `sdk` is a boundary opened by this package, not a materialized
   // ring — it is permitted exactly like domain and application, and never required to exist.
   ["root src holding only sdk", facts([MOVED_CHILD]), []],
-  ["root src holding all three permitted children in onion order", facts(SRC_PERMITTED), []],
-  ["root src holding all three permitted children in listing order", facts(sortedNames(SRC_PERMITTED)), []],
-  ...SRC_FORBIDDEN.map((c) => [`src/${c} beside domain`, facts(["domain", c]), refuseChild(c)]),
-  ...SRC_FORBIDDEN.map((c) => [`src/${c} beside sdk`, facts([MOVED_CHILD, c]), refuseChild(c)]),
-  ["every forbidden sibling at once", facts(SRC_FORBIDDEN), SRC_FORBIDDEN.flatMap(refuseChild)],
+  ...MOVED_CHILDREN.map((c) => [`root src holding only ${c}`, facts([c]), []]),
+  ["root src holding all five permitted children in onion order", facts(SRC_PERMITTED), []],
+  ["root src holding all five permitted children in listing order", facts(sortedNames(SRC_PERMITTED)), []],
   ["an unknown first child", facts(["infra"]), ["unknown-root-src-child:infra"]],
   ["domain beside an unknown child", facts(["domain", "infra"]), ["unknown-root-src-child:infra"]],
   ["sdk beside an unknown child", facts([MOVED_CHILD, "infra"]), ["unknown-root-src-child:infra"]],
+  ["adapters and delivery beside an unknown child", facts([...MOVED_CHILDREN, "infra"]), ["unknown-root-src-child:infra"]],
   // Case is not folded for src children, so a differently-spelled ring stays unclassified rather
   // than quietly admitted. That is the same answer the narrowing gave before application moved.
   ["a cased application is unclassified", facts(["Application"]), ["unknown-root-src-child:Application"]],
@@ -693,8 +695,12 @@ const READER_ROWS = [
   // scratch `src/sdk` is clean, exactly like an empty `src/domain` or `src/application` would be.
   ["src/sdk beside domain", { "src/domain": "dir", "src/sdk": "dir" }, []],
   ["src/sdk beside both materialized rings", { "src/domain": "dir", "src/application": "dir", "src/sdk": "dir" }, []],
-  ["src/adapters beside both rings", { "src/domain": "dir", "src/application": "dir", "src/adapters": "dir" }, refuseChild("adapters")],
-  ["src/delivery beside both rings", { "src/domain": "dir", "src/application": "dir", "src/delivery": "dir" }, refuseChild("delivery")],
+  // `adapters` and `delivery` are permitted boundaries opened by
+  // planning/gj01-v12-src-adapters-delivery-boundary-authority.json, not materialized rings — an
+  // empty scratch src/adapters or src/delivery is clean, exactly like an empty src/sdk.
+  ["src/adapters beside both rings", { "src/domain": "dir", "src/application": "dir", "src/adapters": "dir" }, []],
+  ["src/delivery beside both rings", { "src/domain": "dir", "src/application": "dir", "src/delivery": "dir" }, []],
+  ["src/adapters and src/delivery beside both rings", { "src/domain": "dir", "src/application": "dir", "src/adapters": "dir", "src/delivery": "dir" }, []],
   ["an unknown first child", { "src/domain": "dir", "src/infra": "dir" }, ["unknown-root-src-child:infra"]],
   ["root apps", { apps: "dir" }, refuseRoot("apps")],
   ["root migrations", { migrations: "dir" }, refuseRoot("migrations")],
@@ -733,26 +739,33 @@ function assertRow(found, expected, label) {
 test("the checker names the boundary-opened root topology, and drops the flat five-path fence", async () => {
   assert.deepEqual(sortedNames(ROOT_ABSENT_PATHS), sortedNames(ABSENT_ROOTS), `${checkerRelative} must export ROOT_ABSENT_PATHS holding the four paths whose absence is unchanged`);
   assert.ok(!(ROOT_ABSENT_PATHS ?? []).includes("src"), "root src is no longer absent-by-fence: its permitted first child governs it instead");
-  assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(SRC_PERMITTED), `${checkerRelative} must export ROOT_SRC_PERMITTED_CHILDREN naming exactly domain, application and the sdk boundary`);
-  assert.deepEqual(sortedNames(ROOT_SRC_FORBIDDEN_CHILDREN), sortedNames(SRC_FORBIDDEN), `${checkerRelative} must export ROOT_SRC_FORBIDDEN_CHILDREN naming each still-refused outer ring`);
-  // The two attacks on this package's one move, stated separately from the list comparison above
-  // so a failure says which direction the fence drifted rather than only that it drifted.
-  assert.ok(
-    (ROOT_SRC_PERMITTED_CHILDREN ?? []).includes(MOVED_CHILD),
-    `${MOVED_CHILD} was dropped from ROOT_SRC_PERMITTED_CHILDREN: the sdk boundary is permitted, and a fence that forgets it refuses the boundary this package exists to open`,
-  );
-  assert.ok(
-    !(ROOT_SRC_FORBIDDEN_CHILDREN ?? []).includes(MOVED_CHILD),
-    `${MOVED_CHILD} was re-added to ROOT_SRC_FORBIDDEN_CHILDREN: it may not be permitted and refused at once, and the refusal is the half that wins`,
-  );
-  // Stated order: the two materialized rings first, innermost first, then the sdk boundary this
-  // package opens. It is not decorative: the list is the one place the dependency direction and
-  // the boundary-vs-materialized distinction are written down as data rather than as prose.
-  assert.deepEqual([...(ROOT_SRC_PERMITTED_CHILDREN ?? [])], SRC_PERMITTED, "ROOT_SRC_PERMITTED_CHILDREN must be stated as domain, application, sdk in that order");
+  assert.deepEqual(sortedNames(ROOT_SRC_PERMITTED_CHILDREN), sortedNames(SRC_PERMITTED), `${checkerRelative} must export ROOT_SRC_PERMITTED_CHILDREN naming exactly domain, application and the sdk/adapters/delivery boundaries`);
+  assert.deepEqual(ROOT_SRC_FORBIDDEN_CHILDREN ?? [], SRC_FORBIDDEN, `${checkerRelative} must export an empty ROOT_SRC_FORBIDDEN_CHILDREN now that adapters and delivery are opened`);
+  // The attacks on this package's and its predecessor's moves, stated separately from the list
+  // comparison above so a failure says which direction the fence drifted rather than only that it
+  // drifted.
+  for (const moved of [MOVED_CHILD, ...MOVED_CHILDREN]) {
+    assert.ok(
+      (ROOT_SRC_PERMITTED_CHILDREN ?? []).includes(moved),
+      `${moved} was dropped from ROOT_SRC_PERMITTED_CHILDREN: its boundary is permitted, and a fence that forgets it refuses the boundary that package exists to open`,
+    );
+    assert.ok(
+      !(ROOT_SRC_FORBIDDEN_CHILDREN ?? []).includes(moved),
+      `${moved} was re-added to ROOT_SRC_FORBIDDEN_CHILDREN: it may not be permitted and refused at once, and the refusal is the half that wins`,
+    );
+  }
+  // Stated order: the two materialized rings first, innermost first, then the three boundaries in
+  // the order their packages opened them. It is not decorative: the list is the one place the
+  // dependency direction and the boundary-vs-materialized distinction are written down as data
+  // rather than as prose.
+  assert.deepEqual([...(ROOT_SRC_PERMITTED_CHILDREN ?? [])], SRC_PERMITTED, "ROOT_SRC_PERMITTED_CHILDREN must be stated as domain, application, sdk, adapters, delivery in that order");
   const source = await readFile(path.join(root, checkerRelative), "utf8");
   assert.ok(!source.includes('["apps", "src", "packages", "deploy", "migrations"]'), "the CLI still carries the pre-narrowing five-path literal, so it and the constants would disagree about whether a root src is permitted");
   assert.ok(!source.includes('["domain", "application"]'), "the checker still carries the pre-boundary-authority permitted-children literal, so it would refuse src/sdk by name");
+  assert.ok(!source.includes('["domain", "application", "sdk"]'), "the checker still carries the pre-adapters/delivery-boundary permitted-children literal, so it would refuse src/adapters and src/delivery by name");
   assert.match(source, /src\/sdk/, "the checker must name src/sdk as a permitted (boundary, not materialized) first child, beside src/domain and src/application");
+  assert.match(source, /src\/adapters/, "the checker must name src/adapters as a permitted (boundary, not materialized) first child");
+  assert.match(source, /src\/delivery/, "the checker must name src/delivery as a permitted (boundary, not materialized) first child");
 });
 
 test("the narrowed root topology is decided from injected facts", () => {

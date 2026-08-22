@@ -11,11 +11,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 //
 // The fence used to be one flat list: apps, src, packages, deploy, migrations, absent always.
 // Four of those five are unchanged. `src` is not. A root `src` may exist, and it may hold the
-// two inner onion rings — `src/domain` and `src/application` — plus `src/sdk`, a boundary opened
-// by `planning/gj01-src-sdk-boundary-authority.json` for a future, separately authorized
-// generated-SDK package: permitted to exist, never required to, and not materialized by this
-// package. `src/adapters` and `src/delivery` remain refused by name, because opening either is a
-// separate decision no package has taken. Any first child nobody has classified is refused too.
+// two inner onion rings — `src/domain` and `src/application` — plus three permitted-but-not-
+// required boundaries: `src/sdk`, opened by `planning/gj01-src-sdk-boundary-authority.json` for
+// the generated-SDK package, and `src/adapters` / `src/delivery`, opened by
+// `planning/gj01-v12-src-adapters-delivery-boundary-authority.json` for a future, separately
+// authorized one-golden-slice/walking-skeleton package. None of the three is materialized by the
+// package that opened it. Any first child nobody has classified is refused too.
 //
 // Why `application` is permitted rather than merely unclassified: the onion says Application is
 // a ring, so it is a name this fence has classified. Leaving it unknown would refuse it for the
@@ -41,12 +42,13 @@ export const ROOT_ABSENT_PATHS = ["apps", "packages", "deploy", "migrations"];
 export const ROOT_SRC_DIRECTORY = "src";
 /**
  * The first children a root `src` may hold: the two materialized onion rings, innermost first,
- * then `sdk` — a permitted boundary, not a materialized ring, opened for a future generated-SDK
- * package and carrying no directory of its own in this package.
+ * then three permitted boundaries — `sdk`, opened for a future generated-SDK package, and
+ * `adapters` / `delivery`, opened for a future one-golden-slice/walking-skeleton package. None of
+ * the three carries a directory of its own in this package.
  */
-export const ROOT_SRC_PERMITTED_CHILDREN = ["domain", "application", "sdk"];
-/** First children refused by name, so a finding says which one was added. */
-export const ROOT_SRC_FORBIDDEN_CHILDREN = ["adapters", "delivery"];
+export const ROOT_SRC_PERMITTED_CHILDREN = ["domain", "application", "sdk", "adapters", "delivery"];
+/** First children refused by name, so a finding says which one was added. Empty: none remain. */
+export const ROOT_SRC_FORBIDDEN_CHILDREN = [];
 
 /**
  * Fold A–Z to a–z and touch nothing else.
