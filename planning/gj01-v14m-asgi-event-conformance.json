@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14m-asgi-event-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "conformance-hardening-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "72032770958dca7be92b6114f475822cd905b670",
+
+  "goal": "Make the 400 PROFILE_SCOPE_INVALID profile-error response events in src/delivery/asgi-core-profile.mjs as deeply immutable as success-path response events. Before this package, profileErrorEvents() froze the events array, each event object, and the headers array, but not the inner header pair tuple [\"content-type\", \"application/json\"] itself, so a host adapter could still mutate that one array in place even though every other layer of the event tree was frozen. Success-path response events already froze each header pair individually (toResponseEvents). This package closes that one gap so host adapters receive a consistently, fully immutable event tree on both the success path and the profile-error path.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14m-asgi-event-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to response status codes, error codes, header names/values, or event shapes",
+    "no change to the success-path header-pair freezing behavior, which was already correct"
+  ],
+
+  "scopeResolution": {
+    "note": "One-line production fix: wrap the inner profile-error header pair in Object.freeze(...) inside profileErrorEvents(), matching the per-pair freezing toResponseEvents() already does for success responses. No other line changed."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added assertions to the existing malformed-scope test and a new callFromReceive malformed-receive-event test proving each header pair in the 400 profile-error events[0].headers is frozen. Both failed against the pre-fix source with 'The expression evaluated to a falsy value: assert.ok(Object.isFrozen(pair))', proving the inner header pair tuple was mutable before this package."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 35 tests pass, including the new frozen-header-pair assertions for the malformed-scope path and the callFromReceive malformed-receive-event path. npm run check exits with its existing GREEN/historical-snapshot verdicts unchanged; no new failures introduced."
+  },
+
+  "acceptance": {
+    "profileErrorHeaderPairFrozen": "profileErrorEvents()'s events[0].headers[0] tuple is frozen (Object.isFrozen === true), for both the malformed-scope and malformed-receive-event 400 paths",
+    "successHeaderPairsStillFrozen": "success-path response header pairs remain frozen exactly as before (already covered by prior tests)",
+    "noBehaviorChange": "status codes, error codes, header names/values and event counts are byte-identical to before this package"
+  },
+
+  "rollback": {
+    "trigger": "the added Object.freeze on the inner header pair is found to break any host adapter expecting a mutable pair, or any existing test regresses",
+    "action": "revert the single Object.freeze wrap in profileErrorEvents(), the two added test assertions/test, this planning file and the CHANGELOG entry as one shard",
+    "blastRadius": "one array literal inside profileErrorEvents(); no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_PROFILE_ERROR_EVENT_TREE_FULLY_IMMUTABLE: the 400 PROFILE_SCOPE_INVALID profile-error response now has its inner header pair tuple frozen, matching the depth of immutability already present on the success-response path. Host adapters now receive a consistently fully-frozen event tree regardless of which path (success or profile-error) produced it.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, 400 PROFILE_SCOPE_INVALID hata yanıtı üretirken olay dizisini, olay nesnelerini ve başlık dizisini donduruyordu, ama başlık çiftinin kendisini (['content-type', 'application/json']) dondurmuyordu. Başarılı yanıt yolunda ise her başlık çifti ayrı ayrı donduruluyordu.",
+    "simdi": "profileErrorEvents() artık içteki başlık çiftini de Object.freeze ile donduruyor; böylece 400 hata yanıtı da başarılı yanıt kadar derinlemesine değişmez (immutable) hale geldi.",
+    "fark": "Tek satırlık bir üretim kodu değişikliği: profileErrorEvents() içindeki başlık çifti artık donduruluyor. Durum kodları, hata kodları ve başlık isim/değerleri hiç değişmedi.",
+    "kullaniciYolculugu": "Bir host adaptörü (örn. bir ASGI sunucusu) geçersiz bir scope veya bozuk bir receive olayı aldığında 400 PROFILE_SCOPE_INVALID yanıtını alır; artık bu yanıtın başlık çifti de dahil olmak üzere tüm olay ağacı donmuş durumda, tıpkı başarılı yanıtlarda olduğu gibi. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun değişmezlik tutarlılığını sağlıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

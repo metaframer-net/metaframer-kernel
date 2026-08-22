@@ -61,7 +61,7 @@ function profileErrorEvents() {
   const start = Object.freeze({
     type: "http.response.start",
     status: 400,
-    headers: Object.freeze([["content-type", "application/json"]]),
+    headers: Object.freeze([Object.freeze(["content-type", "application/json"])]),
   });
   const body = Object.freeze({
     type: "http.response.body",

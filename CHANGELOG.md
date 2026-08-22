@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14M ASGI event conformance hardening (`planning/gj01-v14m-asgi-event-conformance.json`):
+  `profileErrorEvents()` in `src/delivery/asgi-core-profile.mjs` now freezes its inner
+  `["content-type", "application/json"]` header pair tuple, matching the per-pair freezing the
+  success response path already applied. The 400 `PROFILE_SCOPE_INVALID` profile-error event tree
+  is now as deeply immutable as a success event tree across all layers (events array, event
+  objects, headers array, and each header pair). No status code, error code, header value or event
+  shape changed. Not a server/host selection.
 - GJ-01 V14L idempotency-conflict delivery mapping (`planning/gj01-v14l-idempotency-retry-envelope.json`):
   `PostgresCommitAdapter.commit` now catches the one known duplicate tenant-scoped idempotency
   conflict — a PostgreSQL `23505` unique violation on `transactional_outbox_tenant_dedup_key` —
