@@ -16,6 +16,26 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `app(scope, receive, send)` on the frozen object returned by `createCustomerAsgiComposition` in
+  `src/delivery/create-customer-asgi-composition.mjs` — the smallest framework-neutral ASGI
+  callable entrypoint, so a host adapter (Uvicorn, Hypercorn, ...) can call one async function
+  with `(scope, receive, send)` without this module selecting or importing any server/framework.
+  `app` delegates to `asgi.callFromReceive({ scope, receive, send, decodeBody })` with a default
+  JSON body decoder: empty bytes decode to `{}` (the existing accepted empty-body shape used by
+  `CreateCustomerHttpMessageAdapter`); non-empty bytes decode as UTF-8 JSON to an ordinary object,
+  and invalid JSON (or a non-ordinary-object result) throws inside `decodeBody`, which
+  `callFromReceive` turns into the existing deterministic 400 profile response without ever
+  calling the router or application pipeline. The returned object is now frozen
+  `{ asgi, router, app, close }`; `asgi`, `router` and `close` behavior are unchanged. It is not a
+  Python ASGI app and adds no Uvicorn, Hypercorn, FastAPI or Django dependency.
+  `tests/kernel-create-customer-asgi-composition.test.mjs` adds targeted coverage for the
+  frozen `{ asgi, router, app, close }` shape; `app` delivering a decoded JSON body all the way to
+  the application pipeline's invariant stage (an allow policy decision, `evaluateInvariants`
+  asserting `command.payload.name`, and an `ok: false` answer closing the outcome as
+  `INVALID`/400 `INVARIANT_VIOLATION` before the Postgres commit path, proving the decoded body
+  reaches the pipeline rather than stopping at a policy deny); the empty-body case; and invalid
+  JSON short-circuiting to the 400 profile response without touching the pipeline. See
+  `planning/gj01-v14h-asgi-callable-composition.json`.
 - `AsgiCoreProfileAdapter#callFromReceive({ scope, receive, send, decodeBody })` in
   `src/delivery/asgi-core-profile.mjs`, a framework-neutral receive-driven ASGI profile method
   that lets a host supply `receive()`/`send()` functions: it validates both are functions before

@@ -1,0 +1,49 @@
+{
+  "package": "gj01-v14h-asgi-callable-composition",
+  "baseCommit": "b1ae797f8ed5b4af1f767966e5c32e25a5c37633",
+  "writer": "claude",
+  "scope": "Add the smallest framework-neutral ASGI callable entrypoint to createCustomerAsgiComposition so a host adapter (Uvicorn, Hypercorn, ...) can call one async (scope, receive, send) function, without importing or selecting any server/framework.",
+  "allowedFiles": [
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "planning/gj01-v14h-asgi-callable-composition.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no HTTP server",
+    "no Python ASGI app",
+    "no Uvicorn/Hypercorn/FastAPI/Django dependency or selection",
+    "no package dependency change",
+    "no migration/DB schema change",
+    "no release/readiness/runtime-readiness claim"
+  ],
+  "change": {
+    "added": "app property on the frozen object returned by createCustomerAsgiComposition, plus a default JSON body decoder",
+    "behavior": [
+      "createCustomerAsgiComposition now returns a frozen { asgi, router, app, close } object",
+      "app is an async (scope, receive, send) function that delegates to asgi.callFromReceive({ scope, receive, send, decodeBody })",
+      "decodeBody: empty bytes decode to {} (the http message adapter's accepted empty-body shape); non-empty bytes decode as UTF-8 JSON and must be an ordinary object, else decodeBody throws",
+      "a decodeBody throw is caught by callFromReceive's existing decode-failure path and yields the existing deterministic 400 profile events without ever calling the router/application pipeline",
+      "asgi, router and close behavior are unchanged"
+    ]
+  },
+  "tests": {
+    "targeted": [
+      "the factory refuses anything but exactly the four-key options object",
+      "the result is frozen and carries exactly { asgi, router, app, close }",
+      "app(scope, receive, send) decodes a JSON body and delivers it to the invariant stage of the application pipeline (allow-decision, evaluateInvariants asserts command.payload.name, INVALID/400 INVARIANT_VIOLATION on ok:false)",
+      "app treats an empty body as the accepted empty-body shape",
+      "app returns the deterministic 400 profile response for invalid JSON without calling the pipeline",
+      "a DENY outcome traverses POST /customers through asgi.call without touching the database",
+      "a wrong method or path short-circuits before the handler ever runs",
+      "close delegates to the composed PostgresCommitAdapter close",
+      "the ASGI composition module imports no ambient capability and no framework/server/runtime dependency"
+    ],
+    "unchanged": "repository-boundary.test.mjs manifest already lists create-customer-asgi-composition.mjs; no export/file addition required, not touched"
+  },
+  "evidence": {
+    "targetedNodeTests": "node --test tests/kernel-create-customer-asgi-composition.test.mjs -> 9 pass, 0 fail",
+    "npmRunCheck": "GREEN, exit 0"
+  },
+  "marker": "V14H_WRITER_GREEN"
+}
