@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v10-deterministic-sdk-generator-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "deterministic-sdk-generator",
+  "packageState": "implementation-complete-external-evidence-pending",
+  "baseCommit": "bc3b17d261ad0adcc83a1b6cd2072a45ae60983c",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 3,
+    "id": "generated-sdk",
+    "note": "This package supplies the generation-determinism half of step 3's GREEN criterion, deferred as an explicit nonGoal by planning/gj01-generated-sdk-generation.json (\"no code generator or generation tooling of any kind\"). It narrows step 3 further to the generator only; it does not close step 3 and does not open the walking-skeleton step."
+  },
+
+  "implementsSdkGeneration": true,
+
+  "goal": "Add the smallest deterministic generator, tools/generate-create-customer-sdk.mjs, exporting a pure renderCreateCustomerSdk(protocol) function that renders src/sdk/create-customer.mjs byte-identically from the frozen protocol contract in planning/gj01-generated-sdk-protocol-readiness.json. Introduces no HTTP/ASGI/framework delivery surface, no persistence and no runtime.",
+
+  "authority": {
+    "approvedBy": "Codex Desktop MASTER",
+    "writer": "Claude implementation writer (single writer)",
+    "note": "V10 implementation approved with a fixed four-file allowedFiles set and an explicit must-not-touch list, per the approving instruction."
+  },
+
+  "allowedFiles": [
+    "tools/generate-create-customer-sdk.mjs",
+    "tests/kernel-generated-sdk-generation-determinism.test.mjs",
+    "planning/gj01-v10-deterministic-sdk-generator.json",
+    "CHANGELOG.md"
+  ],
+
+  "mustNotTouch": [
+    "src/sdk/create-customer.mjs",
+    "src/application/**",
+    "src/domain/**",
+    "planning/gj01-generated-sdk-protocol-readiness.json",
+    "planning/gj01-generated-sdk-generation.json",
+    "planning/kernel-runtime-pilot-consumer-sync.json",
+    "db/**",
+    "src/adapters",
+    "src/delivery",
+    "package.json",
+    "README.md",
+    "CI/config"
+  ],
+
+  "generator": {
+    "path": "tools/generate-create-customer-sdk.mjs",
+    "exports": ["renderCreateCustomerSdk"],
+    "renderPathConstraints": [
+      "pure function of its protocol argument only",
+      "no network, environment read, clock, random value or file I/O",
+      "no ASGI, Uvicorn, Hypercorn, FastAPI or Django reference",
+      "no DB, persistence, CommitReceipt, audit or outbox runtime implementation",
+      "no dependency or package.json change"
+    ],
+    "cliConstraints": [
+      "may read planning/gj01-generated-sdk-protocol-readiness.json and src/sdk/create-customer.mjs",
+      "may print rendered output to stdout or report a --check parity result",
+      "must never write any repository file"
+    ]
+  },
+
+  "v9ArtifactPreservation": {
+    "note": "src/sdk/create-customer.mjs, materialized by planning/gj01-generated-sdk-generation.json, is not edited by this package. renderCreateCustomerSdk(protocol) reproduces its exact source text from the pinned protocol contract; the determinism test compares the generator's in-memory output against the file on disk and never overwrites it.",
+    "byteIdentical": true
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "generatedSdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false
+  },
+
+  "capabilityDelta": "SDK_GENERATOR_ONLY",
+  "capabilityDeltaExplanation": "A deterministic generator now exists that can render the CreateCustomer@1 SDK artifact from its pinned protocol contract and verify parity against the committed artifact. Nothing runs the pipeline, nothing talks to a network, a database or a framework, no repository file is written by the render or CLI path, and no product or runtime capability exists as a result of this package.",
+  "runnableProduct": false,
+
+  "nonGoals": [
+    "no HTTP, ASGI, Uvicorn, Hypercorn, FastAPI or Django delivery surface",
+    "no database, persistence, CommitReceipt, audit or outbox runtime implementation",
+    "no change to src/application or src/domain source",
+    "no change to the committed src/sdk/create-customer.mjs artifact",
+    "no change to the frozen protocol contract or the runtime pilot consumer sync record",
+    "no package metadata, README or CI/config change",
+    "no readiness, MVP, buildable, releasable, deployable or production claim anywhere in this package",
+    "generatedSdkReady, sdkReady, kernelReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed and gapClosed all stay false"
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-generated-sdk-generation-determinism.test.mjs"],
+    "observedFailure": "ERR_MODULE_NOT_FOUND: tools/generate-create-customer-sdk.mjs did not exist before this package"
+  },
+  "green": {
+    "requirements": [
+      "Targeted GREEN: node --test tests/kernel-generated-sdk-generation-determinism.test.mjs tests/kernel-generated-sdk-generation.test.mjs",
+      "src/sdk/create-customer.mjs has no diff vs HEAD",
+      "npm test must be GREEN",
+      "npm run check must be GREEN"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the generator's exported surface, its capability-free render-path constraints, the flags/non-goals block, or the V9 artifact byte-identity guarantee drifts from this record",
+    "action": "revert tools/generate-create-customer-sdk.mjs, tests/kernel-generated-sdk-generation-determinism.test.mjs, planning/gj01-v10-deterministic-sdk-generator.json and the CHANGELOG.md entry as one four-file shard.",
+    "blastRadius": "generator-tool-and-its-test-only",
+    "runtimeDataImpact": "none"
+  },
+
+  "versionBump": false
+}
