@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14c-asgi-core-profile-2026-08-22",
+  "generatedAt": "2026-08-22",
+  "packageKind": "delivery-boundary-materialization",
+  "packageState": "asgi-core-profile-GREEN-no-server",
+  "baseCommit": "cc0f51f94079f391452eed9fb73b80e8b497543e",
+
+  "sequenceReference": {
+    "source": "planning/gj01-v14b-standard-router.json",
+    "field": "nextPackage",
+    "note": "The separately scoped host-profile package StandardRouter's predecessor anticipated: wraps StandardRouter in the smallest framework-neutral ASGI Core Profile boundary. Not a Python ASGI app, not a server, does not select Uvicorn/Hypercorn/FastAPI."
+  },
+
+  "goal": "Add AsgiCoreProfileAdapter: a deterministic kernel-side ASGI-shaped profile adapter around one injected StandardRouter instance. Accepts ordinary { scope, body }, validates+decodes ASGI-style headers (extra scope keys ignored), calls router.handle exactly once, converts the response into two frozen ASGI-profile events. No server, no network listener, no host selection.",
+
+  "allowedFiles": ["src/delivery/asgi-core-profile.mjs", "tests/kernel-asgi-core-profile.test.mjs", "tests/repository-boundary.test.mjs", "planning/gj01-v14c-asgi-core-profile.json", "CHANGELOG.md"],
+
+  "nonGoals": ["no HTTP server of any kind", "no Python ASGI app", "no Uvicorn", "no Hypercorn", "no FastAPI", "no Django", "no Express or Koa", "no network listener or socket", "no host selection of any kind", "no Postgres, db or schema change", "no Python change", "no CI, package.json or dependency change", "no release, deploy, readiness or product-runnable claim", "no change to src/adapters, src/application or src/sdk"],
+
+  "standardRefs": [
+    { "standardId": "SR-01", "applies": true, "reason": "Router/profile matrix obligation: this package is the ASGI Core Profile boundary around StandardRouter.", "canonicalSource": "src/delivery/asgi-core-profile.mjs", "consumer": "future Uvicorn/Hypercorn-compatible host", "test": "tests/kernel-asgi-core-profile.test.mjs", "evidence": "node --test GREEN (6 tests)", "waiver": "none" },
+    { "standardId": "SR-03", "applies": true, "reason": "ASGI Core Profile boundary itself; negative half of the FastAPI-family drift standard — no ASGI/Uvicorn/Hypercorn/FastAPI/Django/Express/Koa coupling. Host conformance and any FastAPI adapter stay a future, separate decision.", "canonicalSource": "src/delivery/asgi-core-profile.mjs", "consumer": "future host conformance package (not built here)", "test": "tests/kernel-asgi-core-profile.test.mjs", "evidence": "forbidden-token source scan GREEN", "waiver": "none" },
+    { "standardId": "SR-05", "applies": false, "reason": "Mutation chain ActionSpec->PDP->ChangeSet->UoW->CommitReceipt untouched: adapter only decodes headers and reshapes the router response; no mutation code.", "canonicalSource": "n/a", "consumer": "n/a", "test": "n/a", "evidence": "no ActionSpec/PDP/ChangeSet/UoW/CommitReceipt reference", "waiver": "not applicable" },
+    { "standardId": "SR-06", "applies": false, "reason": "Tenant isolation not inspected/enforced: headers pass through unchanged, no tenantId read.", "canonicalSource": "n/a", "consumer": "n/a", "test": "n/a", "evidence": "handle() reads only type/method/path/headers/body", "waiver": "not applicable" },
+    { "standardId": "SR-07", "applies": false, "reason": "No PDP/PEP decision: router.handle is called unconditionally once the scope is well-formed.", "canonicalSource": "n/a", "consumer": "n/a", "test": "n/a", "evidence": "no PDP/PEP call in source", "waiver": "not applicable" }
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Before src/delivery/asgi-core-profile.mjs existed, this failed with ERR_MODULE_NOT_FOUND."
+  },
+  "green": {
+    "requirements": ["node --test tests/kernel-asgi-core-profile.test.mjs tests/repository-boundary.test.mjs tests/kernel-runtime-substrate-s1.test.mjs", "npm run check must be GREEN"]
+  },
+
+  "rollback": {
+    "trigger": "constructor exactness, header decoding, response event shape, or freeze discipline drifts from this record",
+    "action": "revert the 5 files in allowedFiles as one shard",
+    "blastRadius": "asgi-core-profile-and-tests-only; no adapters/application/domain/db/CI touched",
+    "runtimeDataImpact": "none: pure request-events-in/response-events-out, no I/O, no listener"
+  },
+
+  "flags": { "kernelReady": false, "oneGoldenSliceReady": false, "walkingSkeletonReady": false, "appBuildable": false, "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false, "gapClosed": false },
+  "capabilityDelta": "NONE",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "StandardRouter yolları ve metodları eşleştirip tek bir handler'a yönlendiriyordu, ama bir HTTP sunucusunun (ör. Uvicorn/Hypercorn uyumlu bir host) çağırabileceği, ASGI-şekilli bir sınır yoktu.",
+    "after": "AsgiCoreProfileAdapter sıradan { scope, body } isteğini kabul edip başlıkları çözüyor, StandardRouter'ı tam bir kez çağırıyor ve yanıtı iki donmuş ASGI-profil olayına (http.response.start, http.response.body) çeviriyor. Hâlâ hiçbir sunucu çalışmıyor, hiçbir ağ dinleyicisi açılmıyor — bu paket yalnızca gelecekteki bir host'un çağırabileceği şekli kanıtlıyor.",
+    "note": "Bu paketle hiçbir sunucu, ASGI runtime veya framework çalışır hale gelmiyor."
+  },
+
+  "kalanEngel": "hiçbir gerçek Uvicorn/Hypercorn host bu adaptörü henüz çağırmıyor; sunucu bağlama ayrı, kapsamı belirlenecek bir paket.",
+
+  "nextPackage": {
+    "note": "A future, separately scoped package may wire a real Uvicorn/Hypercorn-compatible host process around this profile adapter.",
+    "preconditions": ["this package's targeted GREEN and npm run check both pass", "a separate approved package scopes the host process decision"]
+  },
+
+  "versionBump": false
+}
