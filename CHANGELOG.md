@@ -16,6 +16,23 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- `src/application/create-customer-commit-service.mjs`, `CreateCustomerCommitService`, a small
+  framework-neutral Application-ring service composing one exact `CreateCustomerPipeline`
+  instance with one injected `commit` port function. `handle(actionSpec)` runs
+  `pipeline.run(actionSpec)`; a non-`ALLOW_COMMIT` outcome is returned frozen with its
+  `outcome`/`requestId`/`error` preserved and `commitReceipt: null`, and the injected `commit`
+  port is never called. An `ALLOW_COMMIT` outcome calls `commit(preparedChangeSet, { tenantId })`
+  exactly once, awaits the frozen `CommitReceipt` the injected port returns, and answers a frozen
+  result with `outcome: "COMMITTED"`, `requestId`, `error: null`, `preparedChangeSet: null` and
+  `commitReceipt`. The constructor accepts exactly `{ pipeline, commit }`, requires an exact
+  `CreateCustomerPipeline` instance and a function, and freezes the instance. No HTTP/ASGI/
+  delivery import, no Postgres adapter import, no clock/random/env/socket/file access.
+  `tests/kernel-create-customer-commit-service.test.mjs` proves the module/service existed only
+  after this change, that a non-allow outcome never calls `commit`, that `ALLOW_COMMIT` calls
+  `commit` exactly once with the `preparedChangeSet` and `{ tenantId }`, and that the constructor
+  rejects a wrong-shaped `pipeline` or `commit`. `planning/gj01-v13a-application-commit-service.json`
+  records scope, RED/GREEN evidence and rollback. `flags.runnableProduct` stays `false` — no
+  delivery/HTTP layer wires this service to anything yet.
 - `src/adapters/postgres-commit-adapter.mjs` now commits the `customer` write intent into
   `customer_records` (added by `0002_customer_records.py`) inside the same attested tenant
   transaction as `audit` and `transactionalOutbox`, and mints a full `CommitReceipt` — all four
