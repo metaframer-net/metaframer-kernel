@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -256,4 +258,203 @@ test("the ASGI composition module imports no ambient capability and no framework
     [],
     `${compositionPath} must import only relative modules and node: builtins`,
   );
+});
+
+// =====================================================================================
+// GJ-01 V14K — real PostgreSQL slice through the ASGI callable.
+//
+// Proves createCustomerAsgiComposition.app(scope, receive, send) carries an ALLOW_CANDIDATE +
+// invariants-ok POST /customers request all the way to a real PostgreSQL 16 container: 201,
+// a frozen CommitReceipt with all four intents committed, and rows actually persisted in
+// customer_records, audit_log and transactional_outbox for the same tenant. Reuses the
+// Docker/Postgres/migration helper shape from tests/postgres-commit-adapter.test.mjs. No
+// server, no HTTP framework — only the existing framework-neutral ASGI callable.
+// =====================================================================================
+
+const IMAGE = "postgres:16-alpine";
+const SUPERUSER_PASSWORD = crypto.randomUUID();
+const MIGRATION_PASSWORD = crypto.randomUUID();
+const RUNTIME_PASSWORD = crypto.randomUUID();
+const MIGRATION_ROLE = "mfk_migration";
+const RUNTIME_ROLE = "mfk_runtime";
+const DATABASE = "mfk_v14k_asgi_slice";
+
+function dockerAvailable() {
+  const result = spawnSync("docker", ["version", "--format", "{{.Server.Version}}"], { encoding: "utf8" });
+  return result.status === 0;
+}
+
+function startContainer() {
+  const name = `mfk-v14k-asgi-slice-${crypto.randomBytes(6).toString("hex")}`;
+  execFileSync("docker", [
+    "run", "-d", "--rm",
+    "--name", name,
+    "-e", `POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}`,
+    "-p", "127.0.0.1::5432",
+    IMAGE,
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  return name;
+}
+
+function publishedPort(name) {
+  const mapping = execFileSync("docker", ["port", name, "5432/tcp"], { encoding: "utf8" }).trim();
+  const line = mapping.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("["));
+  return Number(line.split(":").at(-1));
+}
+
+function waitReady(name, deadlineMs) {
+  const deadline = Date.now() + deadlineMs;
+  while (Date.now() < deadline) {
+    const result = spawnSync("docker", [
+      "exec", name, "pg_isready", "--quiet", "--host", "127.0.0.1", "--port", "5432", "--username", "postgres",
+    ], { timeout: 5000 });
+    if (result.status === 0) return;
+  }
+  throw new Error(`${name} did not become ready in time`);
+}
+
+function stopContainer(name) {
+  spawnSync("docker", ["rm", "--force", "--volumes", name], { stdio: "ignore" });
+}
+
+async function withPg(host, port, user, password, database, fn) {
+  const pgModule = await import("pg");
+  const { Client } = pgModule.default ?? pgModule;
+  const client = new Client({ host, port, user, password, database, ssl: false });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.end();
+  }
+}
+
+function runMigration(host, port) {
+  const url = `postgresql+psycopg://${MIGRATION_ROLE}:${MIGRATION_PASSWORD}@${host}:${port}/${DATABASE}`;
+  const code = [
+    "from metaframer_kernel_db.migrations import alembic_config",
+    "from alembic import command",
+    `command.upgrade(alembic_config(${JSON.stringify(url)}, runtime_role=${JSON.stringify(RUNTIME_ROLE)}), 'head')`,
+  ].join("\n");
+  const result = spawnSync("uv", ["run", "--frozen", "python", "-c", code], {
+    cwd: path.join(root, "db"),
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`alembic upgrade failed:\n${result.stdout}\n${result.stderr}`);
+  }
+}
+
+test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /customers request to a real PostgreSQL 16 commit", async (t) => {
+  if (!dockerAvailable()) {
+    throw new Error(
+      "docker is not available in this environment: this is an environment failure, not an " +
+        "ASGI composition capability gap, and must be reported separately",
+    );
+  }
+
+  const container = startContainer();
+  t.after(() => stopContainer(container));
+  waitReady(container, 60000);
+  const port = publishedPort(container);
+  const host = "127.0.0.1";
+
+  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, "postgres", async (client) => {
+    await client.query(
+      `CREATE ROLE ${MIGRATION_ROLE} WITH NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION INHERIT LOGIN PASSWORD '${MIGRATION_PASSWORD}'`,
+    );
+    await client.query(
+      `CREATE ROLE ${RUNTIME_ROLE} WITH NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT LOGIN PASSWORD '${RUNTIME_PASSWORD}'`,
+    );
+    await client.query(`CREATE DATABASE ${DATABASE} OWNER ${MIGRATION_ROLE}`);
+    await client.query(`REVOKE ALL ON DATABASE ${DATABASE} FROM PUBLIC`);
+    await client.query(`GRANT CONNECT ON DATABASE ${DATABASE} TO ${RUNTIME_ROLE}`);
+  });
+  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+    await client.query(`ALTER SCHEMA public OWNER TO ${MIGRATION_ROLE}`);
+    await client.query("REVOKE ALL ON SCHEMA public FROM PUBLIC");
+    await client.query(`GRANT USAGE ON SCHEMA public TO ${RUNTIME_ROLE}`);
+    await client.query(`REVOKE CREATE ON SCHEMA public FROM ${RUNTIME_ROLE}`);
+  });
+
+  runMigration(host, port);
+
+  const connectionString = `postgresql://${RUNTIME_ROLE}:${encodeURIComponent(RUNTIME_PASSWORD)}@${host}:${port}/${DATABASE}`;
+  const ALLOW_CANDIDATE = Object.freeze({ policyId: "allow.everything", effect: "allow", applies: true });
+  const tenantId = crypto.randomUUID();
+  const actorId = "actor-real-pg";
+  const requestId = crypto.randomUUID();
+
+  const composition = createCustomerAsgiComposition({
+    connectionString,
+    current: async () => principalOf(tenantId, actorId),
+    candidatesFor: async () => [ALLOW_CANDIDATE],
+    evaluateInvariants: async () => ({ ok: true }),
+  });
+
+  try {
+    const { events, send } = collectingSend();
+    const scope = {
+      type: "http",
+      method: "POST",
+      path: "/customers",
+      headers: [
+        ["content-type", "application/json"],
+        ["x-request-id", requestId],
+        ["x-actor-id", actorId],
+        ["x-tenant-id", tenantId],
+        ["idempotency-key", `idem-${requestId}`],
+      ],
+    };
+    const jsonBytes = new TextEncoder().encode(JSON.stringify({ name: "Ada Lovelace" }));
+    const result = await composition.app(scope, receiveOnce(jsonBytes), send);
+
+    assert.equal(events.length, 2);
+    const [start, responseBody] = events;
+    assert.equal(start.type, "http.response.start");
+    assert.equal(start.status, 201);
+    for (const [name, value] of start.headers) {
+      assert.ok(name instanceof Uint8Array);
+      assert.ok(value instanceof Uint8Array);
+    }
+    assert.ok(responseBody.body instanceof Uint8Array);
+
+    const decoded = JSON.parse(new TextDecoder().decode(responseBody.body));
+    const receipt = decoded.commitReceipt;
+    assert.equal(receipt.receiptType, "CommitReceipt");
+    assert.deepEqual([...receipt.committedIntents].sort(), ["audit", "customer", "idempotency", "transactionalOutbox"]);
+    assert.deepEqual(receipt.deferredIntents, []);
+    assert.equal(typeof receipt.customerRecordId, "string");
+    assert.equal(typeof receipt.auditLogId, "string");
+    assert.equal(typeof receipt.outboxId, "string");
+    assert.deepEqual(result, events);
+
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const customer = await client.query(
+        "SELECT tenant_id, name FROM customer_records WHERE id = $1",
+        [receipt.customerRecordId],
+      );
+      assert.equal(customer.rows.length, 1);
+      assert.equal(customer.rows[0].tenant_id, tenantId);
+      assert.equal(customer.rows[0].name, "Ada Lovelace");
+
+      const audit = await client.query(
+        "SELECT tenant_id, event_type FROM audit_log WHERE id = $1",
+        [receipt.auditLogId],
+      );
+      assert.equal(audit.rows.length, 1);
+      assert.equal(audit.rows[0].tenant_id, tenantId);
+      assert.equal(audit.rows[0].event_type, "customer.create");
+
+      const outbox = await client.query(
+        "SELECT tenant_id, event_type FROM transactional_outbox WHERE id = $1",
+        [receipt.outboxId],
+      );
+      assert.equal(outbox.rows.length, 1);
+      assert.equal(outbox.rows[0].tenant_id, tenantId);
+      assert.equal(outbox.rows[0].event_type, "customer.created");
+    });
+  } finally {
+    await composition.close();
+  }
 });

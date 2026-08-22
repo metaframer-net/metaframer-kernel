@@ -150,6 +150,65 @@ test("the adapter refuses a customer intent whose tenantId mismatches options.te
   );
 });
 
+test("the adapter accepts a null-prototype customer.payload with a non-empty name, past shape checks and before any DB work", async () => {
+  // GJ-01 V14K: the real ASGI -> pipeline path decodes a JSON body into a null-prototype safe
+  // record, not an Object.prototype ordinary object. A reachable-but-refusing port (127.0.0.1:1)
+  // fails fast at pool.connect() rather than hanging on DNS, so a rejection here is provably a
+  // connection failure, not the payload-shape TypeError this package fixed.
+  const { PostgresCommitAdapter } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+  const adapter = new PostgresCommitAdapter({ connectionString: "postgresql://user:pass@127.0.0.1:1/does-not-matter" });
+  const tenantId = crypto.randomUUID();
+  const intents = validIntentsForTenant(tenantId);
+  intents.customer.payload = Object.assign(Object.create(null), { name: "Ada" });
+  try {
+    await adapter.commit({ persistenceState: "pending", intents }, { tenantId });
+    assert.fail("expected the commit to reject on connection, not on payload shape");
+  } catch (error) {
+    assert.ok(
+      !(error instanceof TypeError) || !/payload\.name/.test(error.message),
+      `expected a connection failure, not the payload-shape TypeError; got: ${error.message}`,
+    );
+  }
+});
+
+test("the adapter still refuses a customer.payload with no name, whether ordinary or null-prototype", async () => {
+  const { PostgresCommitAdapter } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+  const adapter = new PostgresCommitAdapter({ connectionString: "postgresql://example/does-not-matter" });
+  const tenantId = crypto.randomUUID();
+
+  const ordinaryIntents = validIntentsForTenant(tenantId);
+  ordinaryIntents.customer.payload = {};
+  await assert.rejects(
+    () => adapter.commit({ persistenceState: "pending", intents: ordinaryIntents }, { tenantId }),
+    TypeError,
+  );
+
+  const nullProtoIntents = validIntentsForTenant(tenantId);
+  nullProtoIntents.customer.payload = Object.create(null);
+  await assert.rejects(
+    () => adapter.commit({ persistenceState: "pending", intents: nullProtoIntents }, { tenantId }),
+    TypeError,
+  );
+});
+
+test("the adapter still refuses a customer.payload that is an array, a class instance or a function", async () => {
+  const { PostgresCommitAdapter } = await import(pathToFileURL(path.join(root, adapterPath)).href);
+  const adapter = new PostgresCommitAdapter({ connectionString: "postgresql://example/does-not-matter" });
+  const tenantId = crypto.randomUUID();
+
+  class Payload { constructor() { this.name = "Ada"; } }
+
+  for (const badPayload of [["Ada"], new Payload(), function namedFn() { return "Ada"; }]) {
+    const intents = validIntentsForTenant(tenantId);
+    intents.customer.payload = badPayload;
+    await assert.rejects(
+      () => adapter.commit({ persistenceState: "pending", intents }, { tenantId }),
+      TypeError,
+      `expected a refusal for payload ${String(badPayload)}`,
+    );
+  }
+});
+
 // The real, Docker-backed proof. Skipped with a loud, separately-reported failure if Docker is
 // unavailable — never silently skipped, and never satisfied against a mock substrate.
 test("all four ALLOW_COMMIT intents, including customer, are committed atomically against a real PostgreSQL 16 instance", async (t) => {

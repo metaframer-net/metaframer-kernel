@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14k-asgi-postgres-slice-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "evidence-slice-with-tiny-adapter-compatibility-fix",
+  "packageState": "GREEN",
+  "baseCommit": "a7d4911c4f13006cd45cbf679269ec1b7348c513",
+
+  "goal": "Prove, without adding any server/framework/dependency, that the existing framework-neutral createCustomerAsgiComposition.app(scope, receive, send) callable carries an ALLOW_CANDIDATE + invariants-ok POST /customers request to a real PostgreSQL 16 commit: 201, a frozen CommitReceipt with all four intents committed, and rows actually persisted in customer_records, audit_log and transactional_outbox for the same tenant. RED against the real ASGI->pipeline path exposed a genuine product gap: PostgresCommitAdapter.checkPreparedChangeSet only accepted an Object.prototype customer.payload, but the real pipeline delivers a null-prototype safe record, so the real ALLOW commit was refused with `intents.customer.payload.name must be a non-empty string`. This package's scope was narrowly widened to fix exactly that adapter compatibility gap.",
+
+  "allowedFiles": [
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "tests/postgres-commit-adapter.test.mjs",
+    "src/adapters/postgres-commit-adapter.mjs",
+    "planning/gj01-v14k-asgi-postgres-slice.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no src/ product code change beyond src/adapters/postgres-commit-adapter.mjs",
+    "no db migration/schema change",
+    "no package dependency change",
+    "no HTTP server, listener, Uvicorn/Hypercorn/FastAPI/Django/Node HTTP choice",
+    "no release/deploy/production/kernelReady claim",
+    "no widening of any strictness check other than the customer.payload prototype acceptance"
+  ],
+
+  "scopeResolution": {
+    "note": "Reuses the Docker/Postgres/Alembic-migration helper shape already proven in tests/postgres-commit-adapter.test.mjs, scoped to its own database name (mfk_v14k_asgi_slice) and container, so the two test files never share state. The only product code change is a new isSafePlainRecord helper in src/adapters/postgres-commit-adapter.mjs, used only for customer.payload: it accepts an Object.prototype record or a null-prototype safe record, and still rejects arrays, class instances, functions and other exotic objects. The customer.payload.name non-empty-string check, and every other intent/option strictness check (audit.action, transactionalOutbox.eventName, idempotency.fingerprint, tenantId matching), is unchanged. JSON.stringify(payload) still writes the DB payload column."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-create-customer-asgi-composition.test.mjs"],
+    "note": "Before this package the test file only proved DENY/invalid/wrong-route paths and unit-level composition shape; it never exercised app(scope, receive, send) against a real PostgreSQL substrate through an ALLOW+invariants-ok path. The first real attempt exposed a genuine product gap: the real ASGI->pipeline path decodes a JSON body into a null-prototype safe record, and PostgresCommitAdapter.checkPreparedChangeSet rejected that shape with `intents.customer.payload.name must be a non-empty string` before ever reaching the database, so no test asserted a 201 CommitReceipt or persisted rows."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-create-customer-asgi-composition.test.mjs tests/postgres-commit-adapter.test.mjs",
+      "npm run check --silent"
+    ],
+    "results": "All prior composition and adapter tests still pass unchanged. Three new adapter-level tests (DB-connectionless) prove: a null-prototype customer.payload with a non-empty name passes shape checks (a reachable-but-refusing 127.0.0.1:1 connection string proves the rejection that follows is a connection failure, not the payload-shape TypeError); a customer.payload with no name is still refused whether ordinary or null-prototype; a customer.payload that is an array, a class instance or a function is still refused. The Docker-backed real-PostgreSQL test in kernel-create-customer-asgi-composition.test.mjs proves app() returns exactly 2 events, http.response.start status 201 with Uint8Array header pairs, a Uint8Array body decoding to a CommitReceipt (all four intents committed, no deferred intents, string customerRecordId/auditLogId/outboxId), and that customer_records, audit_log and transactional_outbox each carry exactly one row for the same tenant. npm run check exits zero."
+  },
+
+  "acceptance": {
+    "endToEndAsgiPostgresProof": "composition.app(scopeOf(\"POST\",\"/customers\"), receiveOnce(jsonBytes), send) against a real PostgreSQL 16 container returns http.response.start status 201 and a body decoding to a CommitReceipt with all four intents committed",
+    "rowsPersisted": "customer_records, audit_log and transactional_outbox each have exactly one row for the test tenant, matching the CommitReceipt's customerRecordId/auditLogId/outboxId",
+    "nullPrototypePayloadAccepted": "PostgresCommitAdapter.commit accepts a customer.payload that is either an Object.prototype record or a null-prototype safe record, as long as payload.name is a non-empty string",
+    "unsafePayloadStillRefused": "an array, class instance or function customer.payload is still refused with a TypeError, before any DB work",
+    "noFrameworkAdded": "the composition module import-shape test from before this package still passes unchanged: no fs/net/http, no framework/server bare specifier",
+    "cleanTeardown": "composition.close() and the Docker container are both torn down safely via t.after and the existing finally-block pattern"
+  },
+
+  "rollback": {
+    "trigger": "the new test is found to depend on a mock/in-memory substrate instead of a real PostgreSQL container, to leak container/adapter resources, to assert claims beyond what composition.app actually returns, or the adapter payload-shape widening is found to accept an unsafe object shape",
+    "action": "revert tests/kernel-create-customer-asgi-composition.test.mjs, tests/postgres-commit-adapter.test.mjs, src/adapters/postgres-commit-adapter.mjs, this planning file and the CHANGELOG.md entry as one shard",
+    "blastRadius": "adapter payload-shape check and its tests only; no schema, migration, delivery or dependency code is touched",
+    "runtimeDataImpact": "none beyond the ephemeral Docker container this test starts and removes itself"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_CALLABLE_REAL_POSTGRES_SLICE_EVIDENCED: the existing framework-neutral createCustomerAsgiComposition.app callable is now proven, against a real PostgreSQL 16 container, to carry an ALLOW+invariants-ok POST /customers request to a 201 CommitReceipt with all four intents actually persisted. This required a genuine, narrowly-scoped product fix: PostgresCommitAdapter now accepts a null-prototype safe record for customer.payload (in addition to the previously-accepted Object.prototype record), matching the shape the real ASGI->pipeline path actually produces, while still refusing arrays, class instances and functions.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "before": "createCustomerAsgiComposition.app zinciri sadece DENY, geçersiz JSON ve yanlış route senaryolarında test edilmişti; ALLOW ve invariant OK durumunda gerçek bir PostgreSQL üzerinden 201 ve tam CommitReceipt döndüğü hiç kanıtlanmamıştı. Bu kanıtı üretmeye çalışırken gerçek bir ürün boşluğu ortaya çıktı: gerçek ASGI->pipeline akışı null-prototype güvenli bir payload üretiyordu, ama PostgresCommitAdapter sadece sıradan Object.prototype payload'ı kabul ediyordu; sonuç olarak gerçek ALLOW commit'i, veritabanına hiç ulaşmadan, payload şekli yüzünden reddediliyordu.",
+    "after": "PostgresCommitAdapter artık customer.payload için hem sıradan hem de null-prototype güvenli kayıtları kabul ediyor; name alanı yine boş olmayan bir string olmak zorunda, ve array/class/function gibi güvensiz şekiller yine reddediliyor. Bu düzeltmeyle birlikte aynı ASGI callable artık gerçek bir PostgreSQL 16 konteynerine karşı uçtan uca test edildi: 201 durumu, dört niyetin tamamının commit edildiğini gösteren CommitReceipt, ve customer_records/audit_log/transactional_outbox tablolarında gerçekten oluşan satırlar kanıtlandı.",
+    "kullaniciYolculugu": "Bir host adaptörü (örn. bir ASGI sunucusu) bu app(scope, receive, send) fonksiyonunu çağırdığında, artık gerçek bir Postgres arkasında müşteri kaydının, denetim kaydının ve outbox olayının atomik şekilde oluştuğu kanıtlanmış durumda. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun kanıtını genişletiyor ve bu kanıtı üretmek için gerekli olan dar kapsamlı adaptör uyumluluk düzeltmesini yapıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü (Uvicorn, Hypercorn vb.) bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
