@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15g-python-host-app-factory-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "python-host-app-factory",
+  "type": "python-host-app-factory",
+  "packageState": "GREEN",
+  "baseCommit": "e335a35",
+
+  "goal": "Add the smallest standard-library-only Python host app factory surface (host/python_asgi/create_customer_app.py) so Uvicorn/Hypercorn can later import or programmatically receive an ASGI callable, without making either server the development base. The factory validates an explicit non-empty command sequence and returns a StdioJsAsgiBridge instance, unchanged, as an ASGI-callable app.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15f-python-bridge-real-pg-allow.json",
+    "id": "gj01-v15f-python-bridge-real-pg-allow-2026-08-23",
+    "note": "V15F proved the existing Python StdioJsAsgiBridge primitive can drive the real JS Kernel boundary through both a DENY path and a real PostgreSQL ALLOW commit. This V15G package adds no new bridge behavior; it only adds a factory function that validates constructor inputs and returns a StdioJsAsgiBridge instance, so a future host server package can import a single well-named callable instead of constructing the bridge class directly."
+  },
+
+  "bridgeInThisPackage": false,
+  "factoryInThisPackage": true,
+  "hostSelected": false,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "factory": {
+    "module": "host/python_asgi/create_customer_app.py",
+    "export": "create_customer_app(command, max_body_bytes=None)",
+    "validation": "command must be an explicit non-empty sequence of strings (not a bare string/bytes, not None, not empty); every element must be a str; max_body_bytes must be None or a non-negative int",
+    "returns": "StdioJsAsgiBridge(command, max_body_bytes=max_body_bytes), an ASGI-callable (scope, receive, send) object, unchanged from V15D"
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no JS runner change",
+    "no Python bridge behavior change and no __init__.py export change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no network listener, socket server, HTTP server, Docker config, FastAPI or Django import",
+    "no Uvicorn or Hypercorn import or hard selection",
+    "no env read or secrets",
+    "no production or runnable product claim",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "PYTHON_HOST_APP_FACTORY: this package adds host/python_asgi/create_customer_app.py, a standard-library-only factory validating an explicit non-empty command sequence and an optional max_body_bytes, returning a StdioJsAsgiBridge instance as an ASGI-callable app. No host server (Uvicorn/Hypercorn) is imported or selected; this is a naming/construction convenience over the existing V15D bridge primitive, not new bridge behavior.",
+
+  "userJourney": {
+    "once": "V15F, Python köprüsünün gerçek PostgreSQL'e kadar uçtan uca çalıştığını kanıtladı, ama köprüyü kullanmak isteyen biri her zaman StdioJsAsgiBridge sınıfını doğrudan, elle doğrulama yapmadan çağırmak zorundaydı.",
+    "simdi": "Bu paket create_customer_app(command, max_body_bytes=None) adlı küçük bir fabrika fonksiyonu ekliyor. Bu fonksiyon komut listesinin boş olmadığını ve geçerli olduğunu kontrol ediyor, sonra aynı köprüyü (StdioJsAsgiBridge) döndürüyor. Böylece ileride bir host sunucusu (Uvicorn/Hypercorn) bu tek fonksiyonu çağırarak köprüyü alabilir.",
+    "fark": "host/python_asgi/create_customer_app.py eklendi; çağıranlar yeni fonksiyonu doğrudan host/python_asgi/create_customer_app.py modülünden import ediyor (host/python_asgi/__init__.py değişmedi); tests/kernel-python-host-app-factory.test.mjs eklendi; planning/gj01-v15g-python-host-app-factory.json ve CHANGELOG.md güncellendi. src/**, JS runner, Python köprüsünün davranışı, package.json, CI/config veya bağımlılık dosyalarında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz ve hiçbir host seçmez; sadece köprüyü doğru şekilde kurmak için tek, doğrulamalı bir giriş noktası bırakır.",
+    "kalanEngel": "Bir host sunucusu (Uvicorn/Hypercorn) seçimi hâlâ yapılmadı, hiçbir ağ dinleyicisi veya HTTP çerçevesi eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may evaluate Uvicorn and/or Hypercorn smoke compatibility for a selected host server, wiring create_customer_app behind an actual network listener. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
