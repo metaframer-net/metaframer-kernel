@@ -770,6 +770,18 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   at 0.1.0-alpha.1. This is a train entry, not a release.
 
 ### Fixed
+- GJ-01 V15N CLI argv=None separator fix (`host/python_asgi/create_customer_host_cli.py`,
+  `tests/kernel-python-host-runner-cli.test.mjs`): fixes `parse_create_customer_host_args(argv)`
+  to normalize `argv` to a single list once — `sys.argv[1:]` when `argv is None`, otherwise
+  `list(argv)` — and to use that same normalized list for both `parser.parse_args` and the `--`
+  separator/empty-command validation. Previously, when `argv` was `None`, `parser.parse_args(None)`
+  correctly parsed the real `sys.argv`, but the separator check inspected the raw `argv` parameter
+  (`None`), so it always failed closed and falsely rejected a valid `python -m ... -- ...`
+  invocation. `main(argv=None)` called with an explicit argv list is unaffected. Tests prove
+  `main(None)` against a monkeypatched `sys.argv` containing `--runner ... -- command` now
+  dispatches correctly, and `main(None)` against a `sys.argv` missing `--` still fails closed
+  before dispatch; all prior V15M CLI tests continue to pass unchanged. See
+  `planning/gj01-v15n-cli-argv-none-separator-fix.json`.
 - GJ-01 V15B ASGI host boundary claim correction (`planning/gj01-v15b-asgi-host-boundary-truth.json`):
   corrected comment wording in `src/delivery/create-customer-asgi-composition.mjs` that could be
   read as claiming Uvicorn or Hypercorn (Python ASGI servers) can call the returned `app` callable

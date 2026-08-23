@@ -17,6 +17,7 @@ framework base, and makes no production, deploy, or release claim.
 """
 
 import argparse
+import sys
 
 from .create_customer_host_runner import run_create_customer_host
 
@@ -50,9 +51,11 @@ def parse_create_customer_host_args(argv):
         ),
     )
 
-    args = parser.parse_args(argv)
+    normalized_argv = sys.argv[1:] if argv is None else list(argv)
 
-    if "--" not in (argv or []):
+    args = parser.parse_args(normalized_argv)
+
+    if "--" not in normalized_argv:
         parser.error("a -- separator followed by the command is required")
 
     if not args.command:

@@ -271,6 +271,56 @@ mod.main(["--runner", "uvicorn", "--"])
   assert.match(error.stderr, /command/);
 });
 
+test("main(None) with a real sys.argv separator normalizes argv once and dispatches correctly", async () => {
+  const script = `${sysPathPrelude()}
+import sys
+${blockHostPackages()}
+from python_asgi import create_customer_host_cli as mod
+
+captured = {}
+
+def fake_run_create_customer_host(command, **kwargs):
+    captured["command"] = command
+    captured["kwargs"] = kwargs
+
+mod.run_create_customer_host = fake_run_create_customer_host
+
+sys.argv = [
+    "create_customer_host_cli",
+    "--runner", "uvicorn",
+    "--port", "8412",
+    "--",
+    "node", ${JSON.stringify(RUNNER_PATH)},
+]
+rc = mod.main(None)
+assert rc == 0, rc
+assert captured["command"] == ["node", ${JSON.stringify(RUNNER_PATH)}], captured["command"]
+assert captured["kwargs"]["runner"] == "uvicorn", captured["kwargs"]
+assert captured["kwargs"]["port"] == 8412, captured["kwargs"]
+print("ARGV_NONE_WITH_SEPARATOR_DISPATCH_OK")
+`;
+  const { stdout } = await runPython(script);
+  assert.match(stdout, /ARGV_NONE_WITH_SEPARATOR_DISPATCH_OK/);
+});
+
+test("main(None) with a real sys.argv missing the -- separator fails closed before dispatch", async () => {
+  const script = `${sysPathPrelude()}
+import sys
+${blockHostPackages()}
+from python_asgi import create_customer_host_cli as mod
+
+def fail_dispatch(command, **kwargs):
+    raise AssertionError("must not dispatch without a -- separator in sys.argv")
+
+mod.run_create_customer_host = fail_dispatch
+
+sys.argv = ["create_customer_host_cli", "--runner", "uvicorn", "node", "x"]
+mod.main(None)
+`;
+  const error = await runPythonExpectFailure(script);
+  assert.match(error.stderr, /--/);
+});
+
 test("this package changes no forbidden files relative to HEAD", async () => {
   const { stdout } = await execFileAsync("git", ["diff", "--name-only", "HEAD"], { cwd: REPO_ROOT });
   const { stdout: stagedStdout } = await execFileAsync("git", ["diff", "--name-only", "--cached", "HEAD"], { cwd: REPO_ROOT });
