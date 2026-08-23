@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15h-uvicorn-programmatic-smoke-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "uvicorn-programmatic-smoke",
+  "type": "uvicorn-programmatic-smoke",
+  "packageState": "GREEN",
+  "baseCommit": "ac3d7fe",
+
+  "goal": "Prove, as evidence only, that the existing V15G host/python_asgi/create_customer_app.py ASGI callable can be accepted by Uvicorn programmatically (uvicorn.Config/uvicorn.Server bound to the app, no listener opened) when Uvicorn happens to be present in the running environment, without adding any server to product code and without selecting Uvicorn as the development base.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15g-python-host-app-factory.json",
+    "id": "gj01-v15g-python-host-app-factory-2026-08-23",
+    "note": "V15G added host/python_asgi/create_customer_app.py, a standard-library-only factory returning an unchanged StdioJsAsgiBridge ASGI callable, with no host server imported or selected. This V15H package adds no new factory or bridge behavior; it only adds a bounded, non-listening evidence script proving the same unchanged callable can be handed to Uvicorn's own Config/Server construction path when Uvicorn is present."
+  },
+
+  "hostSelected": false,
+  "uvicornSelectedAsDevelopmentBase": false,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "python3 -c 'import uvicorn' executed fresh at test time in whichever environment runs the suite; this is not a durable, checked-in fact about any specific machine (local or CI) and must never be hard-coded to a single outcome",
+    "allowedOutcomes": ["uvicorn-available", "uvicorn-unavailable"],
+    "note": "When uvicorn imports successfully, the test runs the bounded programmatic-acceptance script: uvicorn.Config(app=create_customer_app(...), host=<loopback address>, port=0, lifespan=\"off\", log_level=\"critical\") and uvicorn.Server(config) accept the unchanged V15G callable, and a direct ASGI call through the real JS runner returns a 403 DENY response; no uvicorn.Server.serve() is called and no real listener is opened. When uvicorn is absent, the test asserts this planning record explicitly permits the uvicorn-unavailable outcome and makes no runnable-product claim either way. Hypercorn remains untested and unselected in all cases: it is imported nowhere in this package."
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no host/python_asgi or host/js_asgi code change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no listener or product server script",
+    "no FastAPI or Django import",
+    "no Hypercorn import",
+    "no Uvicorn hard-selection as the development base",
+    "no env read or secrets",
+    "no production or runnable product claim",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "UVICORN_PROGRAMMATIC_SMOKE: this package adds a bounded evidence test proving the existing, unchanged V15G host/python_asgi/create_customer_app.py ASGI callable can be constructed into a uvicorn.Config/uvicorn.Server pair without opening a real listener, when Uvicorn happens to be present. No server is added to product code, no host server is imported by src/** or host/**, and Uvicorn is not selected as the development base. If Uvicorn is absent, the test asserts the planning-recorded unavailability instead of any runnable claim.",
+
+  "userJourney": {
+    "once": "V15G, çağıranların StdioJsAsgiBridge köprüsünü tek, doğrulamalı bir fabrika fonksiyonuyla (create_customer_app) alabilmesini sağladı, ama bu fonksiyonun gerçekten bir ASGI sunucusu tarafından (örneğin Uvicorn) programatik olarak kabul edilip edilemeyeceği hiç kanıtlanmamıştı.",
+    "simdi": "Bu paket, ortamda Uvicorn bulunduğunda, create_customer_app'in döndürdüğü uygulamanın uvicorn.Config ve uvicorn.Server tarafından değişiklik yapılmadan kabul edildiğini kanıtlayan sınırlı bir test ekliyor; gerçek bir ağ dinleyicisi hiç açılmıyor (port=0, lifespan=off, serve() çağrılmıyor). Aynı test, gerçek JS runner üzerinden doğrudan bir DENY isteğinin 403 döndürdüğünü de doğruluyor.",
+    "fark": "tests/kernel-python-host-uvicorn-programmatic-smoke.test.mjs eklendi; planning/gj01-v15h-uvicorn-programmatic-smoke.json ve CHANGELOG.md güncellendi. src/**, host/python_asgi, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz, hiçbir dinleyici açmaz ve Uvicorn'u geliştirme tabanı olarak seçmez; sadece mevcut ASGI çağrılabilirinin bir host sunucusu tarafından kabul edilebilir olduğuna dair kanıt bırakır.",
+    "kalanEngel": "Uvicorn (veya Hypercorn) hâlâ geliştirme tabanı olarak seçilmedi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may formally select a host server (Uvicorn and/or Hypercorn) and wire create_customer_app behind a real network listener as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
