@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15H Uvicorn programmatic smoke (`tests/kernel-python-host-uvicorn-programmatic-smoke.test.mjs`):
+  a bounded evidence test proving the existing, unchanged V15G `host/python_asgi/create_customer_app.py`
+  ASGI callable can be accepted by Uvicorn programmatically when Uvicorn is present in the running
+  environment: `uvicorn.Config(app=create_customer_app(...), host=<loopback address>, port=0, lifespan="off",
+  log_level="critical")` and `uvicorn.Server(config)` accept the callable unchanged, and a direct ASGI
+  call through the real JS runner still returns a `403` DENY response. No `uvicorn.Server.serve()` is
+  called and no real listener is opened. If Uvicorn is unavailable in the environment, the test asserts
+  the planning-recorded `"uvicorn-unavailable"` evidence instead of any runnable claim. Adds no server to
+  product code, touches no `src/**`, `host/python_asgi`, or `host/js_asgi` file, imports no Hypercorn/
+  FastAPI/Django, reads no env, and does not select Uvicorn as the development base; keeps every
+  stronger readiness flag (including `runnableProduct`) `false`. References
+  `planning/gj01-v15g-python-host-app-factory.json` as its prerequisite. See
+  `planning/gj01-v15h-uvicorn-programmatic-smoke.json` and
+  `tests/kernel-python-host-uvicorn-programmatic-smoke.test.mjs`.
 - GJ-01 V15G Python host app factory (`host/python_asgi/create_customer_app.py`): a
   standard-library-only `create_customer_app(command, max_body_bytes=None)` factory that
   validates `command` is an explicit non-empty sequence of strings (rejects `None`, a bare
