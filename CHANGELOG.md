@@ -16,6 +16,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14P ASGI HTTP method token conformance (`planning/gj01-v14p-asgi-method-token-conformance.json`):
+  `isValidScope()` in `src/delivery/asgi-core-profile.mjs` now rejects a `method` that is not a
+  well-formed upper-case HTTP token, throwing the profile boundary's existing frozen 400
+  `PROFILE_SCOPE_INVALID` response before `StandardRouter` or `receive()` ever run. Previously a
+  lower-case (`post`), whitespace-bearing (`GE T`), or control-character-bearing (`GET\n`) method
+  passed the non-empty-string check and reached `StandardRouter`, returning as an ordinary
+  404/405 router response instead of the profile boundary's 400. Valid upper-case methods such as
+  `GET`/`POST`/`OPTIONS` are unaffected. Not a server/host selection.
 - GJ-01 V14O ASGI encoder return conformance (`planning/gj01-v14o-asgi-encoder-return-conformance.json`):
   `encodeEvents()` in `src/delivery/asgi-core-profile.mjs` now requires each value returned by a
   caller-provided `encodeResponseBody`/`encodeResponseHeader` to be a `Uint8Array`, throwing a

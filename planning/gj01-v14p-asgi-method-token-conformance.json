@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14p-asgi-method-token-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "1644b8ea65d2f3ec65fa2117b6513d947c3fd435",
+
+  "goal": "Make isValidScope in src/delivery/asgi-core-profile.mjs reject a malformed HTTP method token (lower-case, whitespace-bearing, or control-character-bearing) at the profile boundary, before the message ever reaches StandardRouter or receive(). V14N already made an empty method invalid, but a non-empty method string that is not a valid uppercase HTTP token (e.g. 'post', 'GE T', 'GET\\n') still passed isValidScope, reached StandardRouter, and came back as an ordinary 404/405 router response instead of the profile boundary's frozen 400 PROFILE_SCOPE_INVALID error.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14p-asgi-method-token-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no restriction of valid existing methods such as GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS",
+    "no change to path, headers, or router-response handling"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: isValidScope now checks scope.method with isValidHttpMethod(method), which requires a non-empty string matching the RFC 7230 HTTP token character class restricted to upper-case letters, digits and the standard token separators (!#$%&'*+-.^_`|~), via HTTP_TOKEN_PATTERN = /^[A-Z0-9!#$%&'*+\\-.^_`|~]+$/. Lower-case letters, spaces, and control characters (including line breaks) are outside this class and fail the check, so the profile boundary returns its existing frozen 400 PROFILE_SCOPE_INVALID events before StandardRouter or receive() is invoked. No router, receive, or valid-method logic touched."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added three malformed-method scopes ('post', 'GE T', 'GET\\n') to the existing malformed-scope 400-short-circuit test, plus a dedicated callFromReceive test asserting a malformed method token ('post') short-circuits to 400 without ever calling receive(). Against the pre-fix source, these all failed: the malformed-scope test observed a router-produced 404 instead of the profile boundary's 400, and the callFromReceive test observed a router-produced 405 instead of 400."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 41 tests pass, including the new malformed-method-token assertions and every pre-existing scope/response/encoder assertion. npm run check exits GREEN with no new failures."
+  },
+
+  "acceptance": {
+    "lowerCaseMethodRejected": "scope.method 'post' short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "whitespaceMethodRejected": "scope.method 'GE T' short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "controlCharMethodRejected": "scope.method 'GET\\n' short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "callFromReceiveDoesNotCallReceive": "callFromReceive with a malformed method token short-circuits to 400 without ever calling receive()",
+    "validMethodsUnaffected": "GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS and other valid upper-case HTTP tokens continue to dispatch to router.handle exactly as before"
+  },
+
+  "rollback": {
+    "trigger": "the added method-token check is found to reject a legitimate method token shape, or any existing test regresses",
+    "action": "revert isValidHttpMethod/HTTP_TOKEN_PATTERN and its call site inside isValidScope in src/delivery/asgi-core-profile.mjs, the added tests, this planning file and the CHANGELOG entry as one shard",
+    "blastRadius": "one function (isValidScope) inside src/delivery/asgi-core-profile.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_METHOD_TOKEN_CONFORMANCE: a scope.method that is not a well-formed upper-case HTTP token (lower-case, whitespace-bearing, or control-character-bearing) is now rejected at the profile boundary with the frozen 400 PROFILE_SCOPE_INVALID response, before StandardRouter or receive() is ever reached, instead of leaking through as an ordinary router 404/405 response.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, isValidScope sadece scope.method'un boş olmayan bir string olup olmadığına bakıyordu; 'post' gibi küçük harfli, 'GE T' gibi boşluklu veya 'GET\\n' gibi kontrol karakteri taşıyan bir method değeri profil sınırını geçip StandardRouter'a ulaşıyor ve sıradan bir 404/405 yanıtı olarak geri dönüyordu.",
+    "simdi": "isValidScope artık scope.method'un geçerli bir büyük harfli HTTP token'ı olmasını şart koşuyor; küçük harf, boşluk veya kontrol karakteri taşıyan bir method profil sınırında donmuş 400 PROFILE_SCOPE_INVALID yanıtıyla hemen reddediliyor, router veya receive() hiç çağrılmıyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde tek fonksiyonda (isValidScope) bir method-token doğrulama yardımcı fonksiyonu eklendi. GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS gibi geçerli method'ların davranışı hiç değişmedi.",
+    "kullaniciYolculugu": "Bir host adaptörü ASGI scope'unda bozuk biçimli bir method (örn. küçük harf ya da satır sonu taşıyan) gönderirse, artık bu istek router'a hiç ulaşmadan profil sınırında 400 ile reddediliyor. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun scope doğrulamasını sıkılaştırıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
