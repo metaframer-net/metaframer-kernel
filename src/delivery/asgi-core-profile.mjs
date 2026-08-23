@@ -86,6 +86,12 @@ function profileErrorEvents() {
   return Object.freeze([start, body]);
 }
 
+const HEADER_VALUE_PATTERN = /^[\x20-\x7E]*$/;
+
+function isValidHeaderValue(value) {
+  return typeof value === "string" && HEADER_VALUE_PATTERN.test(value);
+}
+
 function checkRouterResponse(response) {
   if (!isOrdinaryObject(response)) {
     throw new TypeError("AsgiCoreProfileAdapter router response must be an ordinary response object");
@@ -105,6 +111,9 @@ function checkRouterResponse(response) {
     if (typeof name !== "string" || !HEADER_NAME_TOKEN_PATTERN.test(name)) {
       throw new TypeError("AsgiCoreProfileAdapter router response header names must be valid lower-case HTTP tokens");
     }
+    if (!isValidHeaderValue(response.headers[name])) {
+      throw new TypeError("AsgiCoreProfileAdapter router response header values must be safe printable ASCII strings");
+    }
   }
   return response;
 }
@@ -113,7 +122,7 @@ function toResponseEvents(response) {
   const checked = checkRouterResponse(response);
   const headerPairs = Reflect.ownKeys(checked.headers)
     .filter((key) => typeof key === "string")
-    .map((name) => [name.toLowerCase(), String(checked.headers[name])])
+    .map((name) => [name.toLowerCase(), checked.headers[name]])
     .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 
   const start = Object.freeze({

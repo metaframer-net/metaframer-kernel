@@ -320,6 +320,103 @@ test("handle rejects malformed router response header names with TypeError", asy
   }
 });
 
+test("handle rejects malformed router response header values with TypeError", async () => {
+  const badHeaderValues = [
+    "v\r",
+    "v\n",
+    "v\r\n",
+    "v\nSet-Cookie: evil=1",
+    "v\t\x00",
+    "\x00",
+    "v\x7f",
+    1,
+    null,
+    undefined,
+    true,
+    {},
+    [],
+    new Uint8Array([1, 2]),
+  ];
+
+  for (const badValue of badHeaderValues) {
+    const router = routerWith([{
+      method: "GET",
+      path: "/x",
+      handler: stubHandler(() => Object.freeze({
+        status: 200,
+        headers: Object.freeze({ "x-bad": badValue }),
+        body: Object.freeze({}),
+      })),
+    }]);
+    const adapter = new AsgiCoreProfileAdapter({ router });
+    await assert.rejects(
+      () => adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined }),
+      TypeError,
+    );
+  }
+});
+
+test("call rejects malformed router response header values with TypeError before invoking send", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({
+      status: 200,
+      headers: Object.freeze({ "x-bad": "v\r\nSet-Cookie: evil=1" }),
+      body: Object.freeze({}),
+    })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const sent = [];
+  await assert.rejects(
+    () => adapter.call({ scope, body: undefined, send: async (e) => sent.push(e) }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
+test("callFromReceive rejects malformed router response header values with TypeError before invoking send", async () => {
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(() => Object.freeze({
+      status: 200,
+      headers: Object.freeze({ "x-bad": "v\n" }),
+      body: Object.freeze({}),
+    })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+  const receive = async () => ({ type: "http.request", body: new Uint8Array(), more_body: false });
+  const sent = [];
+  await assert.rejects(
+    () => adapter.callFromReceive({ scope, receive, send: async (e) => sent.push(e) }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
+test("handle accepts router response header values with printable ASCII including empty string and boundary chars", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({
+      status: 200,
+      headers: Object.freeze({ "x-empty": "", "x-space": " ", "x-tilde": "~", "x-normal": "application/json; charset=utf-8" }),
+      body: Object.freeze({}),
+    })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const events = await adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined });
+  assert.deepEqual(events[0].headers, [
+    ["x-empty", ""],
+    ["x-normal", "application/json; charset=utf-8"],
+    ["x-space", " "],
+    ["x-tilde", "~"],
+  ]);
+});
+
 test("call rejects malformed router response header names with TypeError before invoking send", async () => {
   const router = routerWith([{
     method: "GET",

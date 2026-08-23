@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14t-asgi-response-header-value-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "0d9841c534f0ae74cbdc5073b8e1818207feffc4",
+
+  "goal": "Make checkRouterResponse in src/delivery/asgi-core-profile.mjs reject a router response header value that is not a safe printable-ASCII string, throwing the existing TypeError before toResponseEvents ever builds outgoing ASGI response events or call/callFromReceive ever invoke send(). The prior code validated header names but coerced every header value with String(...) inside toResponseEvents, so a CR, LF, CRLF, other control character, or any non-string value (number, null, undefined, boolean, object, array, Uint8Array) was silently stringified and placed onto the outgoing http.response.start event's headers.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14t-asgi-response-header-value-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to request method, header, path, or body handling",
+    "no change to response status or response body handling",
+    "no change to response header name validation, sorting, or encoder behavior"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: checkRouterResponse now validates each response.headers[name] value against isValidHeaderValue (typeof string and matches /^[\\x20-\\x7E]*$/, i.e. safe printable ASCII with no CR/LF/control characters), alongside the existing header-name check, inside the same Reflect.ownKeys(response.headers) loop. A value that is not a string, or a string containing a control character (including CR, LF, CRLF, tab, NUL, DEL), fails the check and checkRouterResponse throws the same TypeError it already throws for other malformed router-response shapes, before toResponseEvents builds any event and before call/callFromReceive ever call send(). toResponseEvents no longer needs String(...) coercion since checked.headers[name] is now guaranteed a safe string; the redundant coercion was removed. No router, request-header, status, or body logic touched."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added a dedicated handle test asserting a battery of malformed router response header values (CR, LF, CRLF, CRLF header-injection shape, tab+NUL, bare NUL, DEL, and non-string values: number, null, undefined, boolean, object, array, Uint8Array) each throw TypeError from handle; a companion call test asserting a CRLF header-injection value throws TypeError before send is ever invoked; a companion callFromReceive test asserting the same before send is ever invoked; and a valid-value boundary test asserting empty string, single space, tilde, and a normal content-type-shaped value keep their existing behavior and deterministic sorted output. Against the pre-fix source, every malformed-value case is accepted unchecked: checkRouterResponse never inspected header values, and toResponseEvents' String(...) coercion silently stringified any value (including turning CR/LF-bearing strings and non-string values into whatever String() produces) onto the outgoing http.response.start event."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 53 tests pass, including the new response-header-value assertions and every pre-existing scope/method/header-name/status/response/encoder assertion. npm run check exits GREEN with no new failures."
+  },
+
+  "acceptance": {
+    "nonStringValueRejected": "a router response header value that is not typeof string (e.g. a number, null, undefined, boolean, object, array, or Uint8Array) throws TypeError from handle/call before any event is built or sent",
+    "controlCharacterValueRejected": "a router response header value containing CR, LF, CRLF, tab, NUL, or DEL throws TypeError from handle/call before any event is built or sent, closing the header-injection path that String(...) coercion previously allowed through unchecked",
+    "validValuesUnaffected": "router response header values that are printable ASCII strings, including the empty string and boundary characters space and tilde, continue to pass through unchanged onto the outgoing http.response.start event with deterministic sorted output exactly as before"
+  },
+
+  "rollback": {
+    "trigger": "the added response-header-value check is found to reject a legitimate value, or any existing test regresses",
+    "action": "revert the isValidHeaderValue check added to checkRouterResponse and the restored String(...) coercion in toResponseEvents in src/delivery/asgi-core-profile.mjs, and the added tests, this planning file and the CHANGELOG entry, as one shard",
+    "blastRadius": "two functions (checkRouterResponse, toResponseEvents) inside src/delivery/asgi-core-profile.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_RESPONSE_HEADER_VALUE_CONFORMANCE: a router response header value that is not a safe printable-ASCII string (including any value carrying CR/LF/control characters or a non-string value) now throws TypeError from checkRouterResponse before an outgoing ASGI response event is built or sent, instead of being silently coerced with String(...) and emitted onto the wire-facing http.response.start event.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, checkRouterResponse response header adlarını doğruluyordu ama değerlerini hiç doğrulamıyordu; toResponseEvents her değeri String(...) ile zorla metne çeviriyordu, bu yüzden router'ın döndürdüğü CR/LF içeren veya string olmayan bir header değeri hiç engellenmeden giden http.response.start olayına ekleniyordu.",
+    "simdi": "checkRouterResponse artık her header değerinin güvenli, yazdırılabilir ASCII bir string olmasını şart koşuyor; CR, LF, CRLF, sekme, NUL gibi kontrol karakteri taşıyan veya string olmayan bir değer, olay hiç oluşturulmadan veya send() hiç çağrılmadan TypeError ile reddediliyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde checkRouterResponse'a header değeri kontrolü eklendi; toResponseEvents'teki gereksiz String(...) zorlaması kaldırıldı. Geçerli header değerlerinin (boş string, boşluk, tilde, normal content-type değerleri dahil) davranışı ve sıralı çıktı hiç değişmedi.",
+    "kullaniciYolculugu": "Router çağıran koddaki bir hata veya kötü niyetli bir üretici, header enjeksiyonuna açık bir değer (örn. CRLF ile ikinci bir header satırı ekleyen bir değer) üretirse, artık bu bozuk değer host adaptörüne hiç ulaşmadan, giden olay hiç kurulmadan TypeError ile durduruluyor. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun giden header değeri doğrulamasını sıkılaştırıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
