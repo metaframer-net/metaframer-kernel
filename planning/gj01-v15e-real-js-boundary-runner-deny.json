@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15e-real-js-boundary-runner-deny-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "python-bridge-real-js-runner-deny-smoke",
+  "type": "python-bridge-real-js-runner-deny-smoke",
+  "packageState": "GREEN",
+  "baseCommit": "4c365cfbcaaee91e4dbc1cd1d7cb6f18cd8fc518",
+
+  "goal": "Add the smallest JS boundary runner command that lets the existing Python StdioJsAsgiBridge (V15D) delegate to the real JavaScript createCustomerAsgiComposition.app boundary for a deterministic DENY-path smoke, without a server, network listener, host selection, dependencies, or real PostgreSQL. This narrows the gap from 'Python bridge can talk to a JS fixture' to 'Python bridge can talk to the real JS Kernel ASGI composition boundary on a non-DB DENY path.'",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15d-python-host-bridge-envelope.json",
+    "id": "gj01-v15d-python-host-bridge-envelope-2026-08-23",
+    "note": "V15D implemented the generic, standard-library-only StdioJsAsgiBridge primitive proving the subprocess-stdio-envelope interop mechanism against a temporary JS fixture command, with no real JS Kernel runner wired and no host selected. This V15E package supplies the real JS Kernel runner command that primitive can point its subprocess at, still without selecting a host server."
+  },
+
+  "bridgeInThisPackage": true,
+  "realJsBoundaryRunner": true,
+  "hostSelected": false,
+  "interopMechanism": "subprocess-stdio-envelope",
+  "smokePath": "DENY_NO_DB",
+
+  "runner": {
+    "module": "host/js_asgi/create_customer_asgi_runner.mjs",
+    "input": "one JSON envelope { scope, bodyBase64 } read from stdin, the same shape V15D's StdioJsAsgiBridge writes",
+    "boundary": "constructs a real createCustomerAsgiComposition and delegates to its real app(scope, receive, send) ASGI-shaped callable",
+    "denyOnly": "always injects a deterministic DENY policy candidate, so no database connection is ever touched; connectionString is a never-connected placeholder string, safe only because the DENY outcome short-circuits before any commit",
+    "output": "a JSON list of ASGI response events written to stdout, with bodyBase64/headersBase64 fields the Python bridge decodes back into bytes",
+    "malformedInput": "a malformed envelope or non-base64 body exits non-zero with a deterministic stderr message before constructing the composition, so the Python bridge maps it to its existing deterministic subprocess_failed (502) ASGI error"
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no Python host bridge code change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no network listener, socket server, HTTP server, Docker, FastAPI, Django, Uvicorn or Hypercorn import or selection",
+    "no ALLOW or real PostgreSQL commit in this package",
+    "no production or runnable product claim",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "PYTHON_BRIDGE_REAL_JS_BOUNDARY_DENY_SMOKE: this package adds host/js_asgi/create_customer_asgi_runner.mjs, a Node standard-library-only command that reads V15D's { scope, bodyBase64 } envelope from stdin, delegates to the real JS Kernel createCustomerAsgiComposition.app boundary with a deterministic DENY policy candidate (no database ever touched), and writes the resulting ASGI response events back to stdout. This proves the existing Python StdioJsAsgiBridge primitive can drive the real JS Kernel boundary end-to-end on a non-DB DENY path. It is a boundary smoke, not product readiness: no host server is selected, no ALLOW/real PostgreSQL path is exercised, and runnableProduct stays false.",
+
+  "userJourney": {
+    "once": "V15D, Python tarafında istek gövdesini toplayıp JSON zarfına çeviren, bunu bir alt işlem (subprocess) olarak çağrılan JS komutuna gönderip yanıtı geri okuyan genel StdioJsAsgiBridge yapı taşını yazmıştı; ama bu alt işlem hâlâ geçici bir test JS komutuna (fixture) işaret ediyordu, gerçek JS Kernel sınırına değil.",
+    "simdi": "Bu paket, o alt işlemin işaret edebileceği gerçek bir JS komutu ekliyor: host/js_asgi/create_customer_asgi_runner.mjs. Bu komut V15D'nin gönderdiği zarfı okuyor, gerçek createCustomerAsgiComposition.app sınırını çağırıyor, ama politika sonucunu her zaman DENY (ret) olacak şekilde kuruyor; böylece hiçbir gerçek veritabanı bağlantısı açılmadan, Python köprüsünün gerçek JS Kernel sınırına ulaşıp deterministik bir 403/POLICY_DENY yanıtı aldığı kanıtlanıyor.",
+    "fark": "host/js_asgi/create_customer_asgi_runner.mjs ve tests/kernel-python-host-bridge-real-js-runner.test.mjs eklendi; planning/gj01-v15e-real-js-boundary-runner-deny.json ve CHANGELOG.md güncellendi. src/**, Python köprü kodu, package.json, CI/config veya bağımlılık dosyalarında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir gerçek isteği veritabanına ulaştırmaz ve hiçbir sunucu seçmez; sadece Python köprüsünün artık geçici bir test komutu yerine gerçek JS Kernel sınırını, ret (DENY) yolunda ve veritabanına dokunmadan, uçtan uca çağırabildiğini kanıtlayan en küçük yapı taşını bırakır.",
+    "kalanEngel": "Gerçek PostgreSQL üzerinden ALLOW (kabul) yolunun uçtan uca kanıtı ve bir host sunucusu (Uvicorn/Hypercorn) seçimi hâlâ yapılmadı; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may prove the real PostgreSQL ALLOW path through the same runner, then evaluate Uvicorn and/or Hypercorn smoke compatibility for a selected host. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
