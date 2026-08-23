@@ -16,6 +16,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15E real JS boundary runner DENY smoke (`host/js_asgi/create_customer_asgi_runner.mjs`):
+  the smallest Node standard-library-only command that lets V15D's `StdioJsAsgiBridge` delegate
+  to the real JS Kernel `createCustomerAsgiComposition.app` boundary. It reads one `{ scope,
+  bodyBase64 }` JSON envelope from stdin, replays it through the real composition's
+  `app(scope, receive, send)`, and writes the resulting ASGI response events back to stdout as
+  `bodyBase64`/`headersBase64` fields V15D's bridge decodes. It always injects a deterministic
+  DENY policy candidate, so no database connection is ever touched (`connectionString` is a
+  never-connected placeholder, safe only because DENY short-circuits before any commit). A
+  malformed envelope or non-base64 body exits non-zero with deterministic stderr before the
+  composition is constructed, which V15D's bridge maps to its existing `502 subprocess_failed`
+  error. Sets `realJsBoundaryRunner: true`, `hostSelected: false`, `smokePath: "DENY_NO_DB"`,
+  references `planning/gj01-v15d-python-host-bridge-envelope.json` as its prerequisite, touches no
+  `src/**`, no Python bridge code, no dependency/lockfile/CI/config/pyproject/uv.lock file, and
+  keeps every stronger readiness flag (including `runnableProduct`) `false`. See
+  `planning/gj01-v15e-real-js-boundary-runner-deny.json` and
+  `tests/kernel-python-host-bridge-real-js-runner.test.mjs`.
 - GJ-01 V15D Python host bridge envelope primitive
   (`host/python_asgi/metaframer_kernel_host_bridge.py`, `host/python_asgi/__init__.py`): the
   smallest standard-library-only implementation of the interop mechanism V15C left unselected.
