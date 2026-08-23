@@ -111,6 +111,8 @@ export function createCustomerAsgiComposition(options) {
       encodeResponseHeader: encodeUtf8HeaderPart,
     });
 
+  Object.freeze(app);
+
   return Object.freeze({
     asgi,
     router,

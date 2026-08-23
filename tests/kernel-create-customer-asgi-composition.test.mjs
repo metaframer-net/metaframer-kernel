@@ -94,6 +94,28 @@ test("the result is frozen and carries exactly { asgi, router, app, close }", as
   }
 });
 
+test("composition.app is itself frozen and carries no own enumerable mutation surface", async () => {
+  const composition = createCustomerAsgiComposition(validOptions());
+  try {
+    assert.ok(Object.isFrozen(composition.app), "composition.app must be frozen");
+    assert.throws(() => {
+      "use strict";
+      composition.app.mutated = true;
+    }, TypeError);
+    assert.equal(composition.app.mutated, undefined);
+    assert.deepEqual(
+      Object.keys(composition.app),
+      [],
+      "composition.app must carry no own enumerable keys",
+    );
+    assert.throws(() => Object.defineProperty(composition.app, "extra", { value: 1 }), TypeError);
+    assert.throws(() => Object.setPrototypeOf(composition.app, null), TypeError);
+    assert.equal(Reflect.deleteProperty(composition.app, "length"), false);
+  } finally {
+    await composition.close();
+  }
+});
+
 function receiveOnce(body) {
   let called = false;
   return async () => {
