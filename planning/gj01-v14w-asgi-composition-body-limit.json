@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14w-asgi-composition-body-limit-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "61b859c0eb7f64b8694177c0177f88bf562b7ca2",
+
+  "goal": "Wire the optional framework-neutral ASGI receive body byte limit from createCustomerAsgiComposition(options) into its returned app callable in src/delivery/create-customer-asgi-composition.mjs, consuming the V14V AsgiCoreProfileAdapter.callFromReceive maxBodyBytes option without selecting or importing any host/server/framework. Default behavior is unchanged when maxBodyBytes is omitted.",
+
+  "allowedFiles": [
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "planning/gj01-v14w-asgi-composition-body-limit.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django)",
+    "no Python ASGI app, no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no package.json, CI/config, DB/schema, or application/domain/SDK change",
+    "no production/deploy/release claim",
+    "no default max body value; maxBodyBytes stays optional and unset by default"
+  ],
+
+  "scopeResolution": {
+    "note": "createCustomerAsgiComposition(options) gained one new optional option key, maxBodyBytes, alongside the four existing required keys (connectionString, current, candidatesFor, evaluateInvariants). checkOptions() now allows options carrying only known keys (the four required plus the one optional), still requires all four required keys, and when maxBodyBytes is present validates it as a non-negative safe integer, throwing TypeError before base composition, adapter, router, or app construction otherwise -- mirroring the existing per-field validation style. The four required fields are passed to createCustomerComposition() unchanged (that inner factory's own four-key options contract is untouched); maxBodyBytes is not forwarded there. Instead, the returned app callable passes maxBodyBytes straight through as an added property of the object literal handed to asgi.callFromReceive, alongside the existing decodeBody/encodeResponseBody/encodeResponseHeader fields. When maxBodyBytes is omitted from options, checked.maxBodyBytes is undefined and asgi.callFromReceive receives maxBodyBytes: undefined, which is byte-identical to it being absent (V14V already treats undefined as unlimited). Object freezing of the returned composition object and the app callable itself (V14U) is untouched."
+  },
+
+  "red": {
+    "commands": ["node --test --test-name-pattern 'maxBodyBytes|composition.app is itself frozen|app treats an empty body|over-limit|exact-boundary' tests/kernel-create-customer-asgi-composition.test.mjs"],
+    "note": "Before the fix, createCustomerAsgiComposition's checkOptions() rejected any options object carrying a fifth key, and app's call to asgi.callFromReceive never passed maxBodyBytes. So: (1) the new maxBodyBytes validation test failed because createCustomerAsgiComposition(validOptions({ maxBodyBytes: bad })) threw for the wrong reason (unexpected key) rather than exercising numeric validation, and a valid maxBodyBytes value would also have been rejected as an unexpected key; (2) the new over-limit test failed because app had no way to enforce any limit -- the oversized body always reached the commit-path-adjacent invariants stage; (3) the new exact-boundary test's premise (a limit is actually being applied) did not hold. The pre-existing composition.app-is-frozen and empty-body tests continued to pass throughout, since they never set maxBodyBytes."
+  },
+  "green": {
+    "commands": [
+      "node --test --test-name-pattern 'maxBodyBytes|composition.app is itself frozen|app treats an empty body|over-limit|exact-boundary' tests/kernel-create-customer-asgi-composition.test.mjs",
+      "npm run check"
+    ],
+    "results": "Targeted evidence: 5/5 GREEN (invalid maxBodyBytes values rejected with TypeError at composition creation; app is still frozen with no own enumerable mutation surface; empty body still treated as the accepted empty-body shape; an over-limit body returns the existing deterministic 400 profile response and never reaches evaluateInvariants/the commit path; an exact-boundary body still reaches the normal route path and its invariant stage). Full suite: node --test tests/kernel-create-customer-asgi-composition.test.mjs is 14/15 GREEN with the sole failure being the pre-existing 'createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /customers request to a real PostgreSQL 16 commit' test, which fails with 'docker is not available in this environment' -- an environment blocker unrelated to this change, present identically before and after this package on this worktree. npm run check is GREEN end to end (repository boundary, control-plane bootstrap, kernel-ai-development-readiness, kernel-runtime-substrate-s1, token-economy, P01 architecture fitness, kernel-cem01-repo-handshake, versioning-changelog, kernel-runtime-pilot-consumer-sync all pass their respective checks)."
+  },
+
+  "acceptance": {
+    "optionAccepted": "createCustomerAsgiComposition(options) accepts an optional maxBodyBytes option in addition to the four existing required options, without changing the required-option contract otherwise",
+    "invalidRejected": "a maxBodyBytes value that is present and is not a non-negative safe integer throws TypeError during composition creation, before base composition, http message adapter, router, asgi adapter, or app are ever constructed",
+    "passthroughWired": "the returned app callable passes maxBodyBytes straight through to asgi.callFromReceive on every invocation",
+    "overLimitShortCircuits": "when maxBodyBytes is set and a request's cumulative received bytes exceed it, app returns the existing encoded 400 profile response events via asgi.callFromReceive's deterministic short-circuit, and evaluateInvariants/the commit path is never reached",
+    "boundaryDispatches": "a body whose cumulative bytes exactly equal maxBodyBytes is dispatched through the normal route path exactly as before",
+    "defaultUnchanged": "when maxBodyBytes is omitted, createCustomerAsgiComposition and app behavior, including unlimited body collection, is unchanged from before this package",
+    "frozenPreserved": "the returned composition object and the app callable remain frozen exactly as established by V14U"
+  },
+
+  "rollback": {
+    "trigger": "the added maxBodyBytes validation or passthrough is found to reject a legitimate options object, break an existing composition call, or any existing test regresses",
+    "action": "revert the maxBodyBytes option key, its validation in checkOptions(), and its passthrough to asgi.callFromReceive in src/delivery/create-customer-asgi-composition.mjs, and the three added tests, this planning file, and the CHANGELOG entry, as one shard",
+    "blastRadius": "one factory function (createCustomerAsgiComposition) and its returned app callable inside src/delivery/create-customer-asgi-composition.mjs; no other file, no base createCustomerComposition contract, and no default value touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_COMPOSITION_BODY_LIMIT: createCustomerAsgiComposition now accepts an optional, framework-neutral maxBodyBytes limit that its returned app callable forwards to AsgiCoreProfileAdapter.callFromReceive, so an over-large request body short-circuits to the existing deterministic 400 profile response before the create-customer commit path is ever reached, with no host/server/framework selected or imported.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "createCustomerAsgiComposition ile kurulan app, V14V'de AsgiCoreProfileAdapter.callFromReceive'e eklenen maxBodyBytes seçeneğini hiçbir zaman kullanmıyordu; bu yüzden bu composition'dan üretilen bir app her zaman sınırsız büyüklükte bir istek gövdesini kabul ediyordu.",
+    "simdi": "createCustomerAsgiComposition(options) artık isteğe bağlı bir maxBodyBytes alanı kabul ediyor. Geçersiz bir değer verilirse composition hiç kurulmadan TypeError ile reddediliyor. Geçerli bir sınır verildiğinde, döndürülen app her çağrıda bu sınırı callFromReceive'e iletiyor: sınırı aşan bir istek, mevcut deterministik 400 yanıtıyla, create-customer commit yoluna hiç ulaşmadan reddediliyor; sınıra tam eşit bir gövde ise normal rota yoluna ulaşmaya devam ediyor. maxBodyBytes verilmediğinde davranış birebir aynı kalıyor.",
+    "fark": "src/delivery/create-customer-asgi-composition.mjs içinde options anahtar kümesine maxBodyBytes eklendi, checkOptions() içine doğrulama eklendi ve app'in asgi.callFromReceive çağrısına maxBodyBytes iletildi. Başka hiçbir dosya veya varsayılan değer değişmedi.",
+    "kullaniciYolculugu": "Bu composition'ı bir host/sunucu adaptörüyle saran gelecekteki bir entegrasyon, artık createCustomerAsgiComposition çağrısında bir bayt sınırı belirterek her isteği bu sınırla kurabilir; bu paket kendisi hiçbir host/sunucu/çerçeve seçmiyor veya içe aktarmıyor, sadece V14V'de eklenen alt seviye kancayı composition seviyesine taşıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu composition'ı sarmalamıyor ve maxBodyBytes'ı hiçbir yerden gerçek bir istekle geçmiyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
