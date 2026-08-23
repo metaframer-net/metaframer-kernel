@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15m-host-runner-cli-boundary-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "host-runner-cli-boundary",
+  "type": "host-runner-cli-boundary",
+  "packageState": "GREEN",
+  "baseCommit": "e727dc5",
+
+  "goal": "Add the smallest explicit Python CLI/argv boundary over the existing host/python_asgi/create_customer_host_runner.py selector: a new host/python_asgi/create_customer_host_cli.py module exposing parse_create_customer_host_args(argv) and main(argv=None), which requires an explicit --runner uvicorn|hypercorn choice and an explicit -- command separator, and dispatches to run_create_customer_host, without making Uvicorn, Hypercorn, FastAPI, or Django the development base.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15l-explicit-host-runner-selector.json",
+    "id": "gj01-v15l-explicit-host-runner-selector-2026-08-23",
+    "note": "V15L added run_create_customer_host(command, runner, **kwargs) as a programmatic Python selector between the Uvicorn and Hypercorn runners, but gave no application-side shell command a way to invoke that selection. This V15M package adds that missing CLI/argv boundary without changing the selector or either sibling runner."
+  },
+
+  "hostSelected": "explicit-cli-boundary",
+  "hypercornSelectedAsDevelopmentBase": false,
+  "uvicornSelectedAsDevelopmentBase": false,
+  "uvicornRemainsCompatibleCandidate": true,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "The test imports host/python_asgi/create_customer_host_cli.py without uvicorn or hypercorn installed to prove import has no host-package requirement, then monkeypatches the sibling run_create_customer_host reference to capture dispatch (command, runner, and safe options) without opening a real listener, for both --runner uvicorn and --runner hypercorn, and asserts that a missing --runner, an unknown --runner value, a missing -- separator, and an empty command after -- all fail closed before any dispatch.",
+    "allowedOutcomes": ["uvicorn-cli-dispatch-captured", "hypercorn-cli-dispatch-captured", "missing-runner-fails-closed", "unknown-runner-fails-closed", "missing-separator-fails-closed", "empty-command-fails-closed"],
+    "note": "No real network listener is ever opened by this test. The CLI module imports only the sibling run_create_customer_host selector; neither uvicorn, hypercorn, FastAPI, nor Django is imported directly by the CLI module or its test."
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no host/js_asgi change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no FastAPI or Django import",
+    "no direct uvicorn or hypercorn import in the CLI module",
+    "no default framework base selected",
+    "no default runner silently chosen by the CLI",
+    "no production, deploy, or release claim",
+    "no DB or schema change",
+    "no real network listener opened by tests",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "HOST_RUNNER_CLI_BOUNDARY: this package adds host/python_asgi/create_customer_host_cli.py, exposing parse_create_customer_host_args(argv) and main(argv=None), which requires an explicit --runner uvicorn|hypercorn choice and an explicit -- command separator, then dispatches command and safe options (--host, --port, --max-body-bytes, --log-level) to the existing run_create_customer_host selector without importing uvicorn, hypercorn, FastAPI, or Django directly. Missing --runner, an unknown --runner value, a missing -- separator, or an empty command after -- all fail closed before dispatch via argparse/SystemExit. This adds an explicit CLI launch boundary only, not app or production readiness; no default framework base or default runner is introduced.",
+
+  "userJourney": {
+    "once": "V15L, Uvicorn ve Hypercorn arasında programatik olarak seçim yapan run_create_customer_host fonksiyonunu ekledi, ama bir uygulama tarafındaki kabuk komutunun bu seçimi doğrudan çağırabileceği bir komut satırı yoktu.",
+    "simdi": "Bu paket, create_customer_host_cli.py içinde parse_create_customer_host_args ve main adlı küçük fonksiyonlar ekliyor: çağıran --runner uvicorn veya --runner hypercorn değerini ve komuttan önce açık bir -- ayırıcısını vermek zorunda; main bu ayrıştırılmış değerleri var olan run_create_customer_host fonksiyonuna iletiyor. Modül hiçbir zaman uvicorn, hypercorn, FastAPI veya Django paketini doğrudan import etmiyor; eksik --runner, bilinmeyen bir --runner değeri, eksik -- ayırıcısı veya -- sonrasında boş komut, hiçbir seçime gitmeden önce açıkça başarısız oluyor.",
+    "fark": "host/python_asgi/create_customer_host_cli.py eklendi; tests/kernel-python-host-runner-cli.test.mjs, planning/gj01-v15m-host-runner-cli-boundary.json ve CHANGELOG.md güncellendi. src/**, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok; gerçek ağ dinleyicisi hiç açılmadı.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz; sadece, biri açıkça isterse bir kabuk komutuyla Uvicorn veya Hypercorn'dan birini seçebileceği küçük, isteğe bağlı bir komut satırı seçim noktası bırakır. Kernel hâlâ çerçeveden bağımsızdır ve hiçbir varsayılan geliştirme tabanı veya varsayılan runner seçilmedi.",
+    "kalanEngel": "Ne Uvicorn ne Hypercorn zorunlu geliştirme tabanı olarak seçildi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi production için eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future package may formally wire this CLI boundary into a real application entrypoint or packaging surface as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
