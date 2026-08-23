@@ -64,6 +64,12 @@ Brand tokens must not rename semantic/security types; they create no callable al
 
 ## Current status
 
+For the fixed-denominator (25 atomic packages across 8 delivery phases/families) roadmap, the
+approved dependency DAG, the execution model and the sole machine-readable current-truth
+source, see [ROADMAP.md](ROADMAP.md) and
+[`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json). Neither
+document moves any flag below; they only project the state already recorded here.
+
 Current effective authority: `GO-KERNEL-DEVELOPMENT-ONLY`, chain head seq 4
 (`AUTHORITY-SUPERSESSION-04`), read from `karacaismail/actionplan` at commit
 `811505b0229705cf39edbf0d6b60248c46a72091`.
@@ -129,11 +135,12 @@ criterion.
 
 Every module is framework-free and depends inward or not at all: `src/domain` imports only
 `node:crypto`, `src/application` imports the domain ring, its own ring, or nothing, and no
-module imports outward. The root source tree holds exactly those two inner rings —
-`src/adapters`, `src/delivery` and `src/sdk` are refused by name in
-[`tools/check-repository-boundary.mjs`](tools/check-repository-boundary.mjs) — so no adapter,
-delivery or SDK ring exists. `src/application` is the permitted Application ring of the onion,
-not an end-user app and not a delivery surface.
+module imports outward. `src/adapters`, `src/delivery` and `src/sdk` exist as separately
+authorized, permitted-but-not-required boundaries under
+[`tools/check-repository-boundary.mjs`](tools/check-repository-boundary.mjs); each currently
+holds only the CreateCustomer-specific golden-slice pieces (a Postgres commit adapter, ASGI
+host-boundary composition, and a generated client), not a generic ring. `src/application` is
+the permitted Application ring of the onion, not an end-user app and not a delivery surface.
 
 **M1-01 — identity primitives.**
 [`src/domain/identity-primitives.mjs`](src/domain/identity-primitives.mjs) ·
