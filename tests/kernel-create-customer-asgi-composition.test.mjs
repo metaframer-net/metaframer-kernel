@@ -58,7 +58,7 @@ function collectingSend() {
   return { events, send };
 }
 
-test("the factory refuses anything but exactly the four-key options object", () => {
+test("the factory refuses anything but the four required options keys plus the known optional maxBodyBytes key", () => {
   for (const bad of [
     undefined,
     null,
@@ -76,6 +76,27 @@ test("the factory refuses anything but exactly the four-key options object", () 
       () => createCustomerAsgiComposition(bad),
       TypeError,
       `expected a refusal for ${JSON.stringify(bad)}`,
+    );
+  }
+});
+
+test("the factory accepts the four required keys plus a valid maxBodyBytes of 0", async () => {
+  const composition = createCustomerAsgiComposition(validOptions({ maxBodyBytes: 0 }));
+  try {
+    assert.ok(Object.isFrozen(composition));
+    assert.equal(typeof composition.app, "function");
+    assert.equal(typeof composition.close, "function");
+  } finally {
+    await assert.doesNotReject(() => composition.close());
+  }
+});
+
+test("the factory refuses an invalid maxBodyBytes at composition creation", () => {
+  for (const bad of [-1, 1.5, "10", NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, null, {}]) {
+    assert.throws(
+      () => createCustomerAsgiComposition(validOptions({ maxBodyBytes: bad })),
+      TypeError,
+      `expected a refusal for maxBodyBytes ${JSON.stringify(bad)}`,
     );
   }
 });
@@ -164,6 +185,59 @@ test("app treats an empty body as the accepted empty-body shape", async () => {
     await composition.app(scopeOf("POST", "/customers"), receiveOnce(new Uint8Array()), send);
     assert.equal(events[0].status, 403);
     assert.equal(events[0].type, "http.response.start");
+  } finally {
+    await composition.close();
+  }
+});
+
+test("app rejects an over-limit body with the existing deterministic 400 profile response and never reaches the commit path", async () => {
+  const composition = createCustomerAsgiComposition(
+    validOptions({
+      maxBodyBytes: 5,
+      current: async () => {
+        throw new Error("the application pipeline must not be reached for an over-limit body");
+      },
+    }),
+  );
+  try {
+    const { events, send } = collectingSend();
+    const overLimitBytes = new TextEncoder().encode(JSON.stringify({ name: "Ada Lovelace" }));
+    assert.ok(overLimitBytes.length > 5, "fixture body must exceed the 5-byte limit");
+    const result = await composition.app(scopeOf("POST", "/customers"), receiveOnce(overLimitBytes), send);
+
+    assert.equal(events.length, 2);
+    assert.equal(events[0].type, "http.response.start");
+    assert.equal(events[0].status, 400);
+    const decoded = JSON.parse(new TextDecoder().decode(events[1].body));
+    assert.equal(decoded.error.code, "PROFILE_SCOPE_INVALID");
+    assert.deepEqual(result, events);
+  } finally {
+    await composition.close();
+  }
+});
+
+test("app still routes an exact-boundary body through the normal route path", async () => {
+  const ALLOW_CANDIDATE = Object.freeze({ policyId: "allow.everything", effect: "allow", applies: true });
+  let capturedName;
+  const boundaryBytes = new TextEncoder().encode(JSON.stringify({ name: "Ada" }));
+  const composition = createCustomerAsgiComposition(
+    validOptions({
+      maxBodyBytes: boundaryBytes.length,
+      candidatesFor: async () => [ALLOW_CANDIDATE],
+      evaluateInvariants: async (command) => {
+        capturedName = command.payload.name;
+        return { ok: false };
+      },
+    }),
+  );
+  try {
+    const { events, send } = collectingSend();
+    await composition.app(scopeOf("POST", "/customers"), receiveOnce(boundaryBytes), send);
+
+    assert.equal(capturedName, "Ada");
+    assert.equal(events[0].status, 400);
+    const decoded = JSON.parse(new TextDecoder().decode(events[1].body));
+    assert.equal(decoded.error.code, "INVARIANT_VIOLATION");
   } finally {
     await composition.close();
   }

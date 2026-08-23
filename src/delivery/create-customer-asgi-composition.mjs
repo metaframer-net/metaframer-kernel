@@ -58,17 +58,21 @@ function encodeUtf8HeaderPart(part) {
   return utf8Encoder.encode(part);
 }
 
-const OPTIONS_KEYS = ["connectionString", "current", "candidatesFor", "evaluateInvariants"];
+const REQUIRED_OPTIONS_KEYS = ["connectionString", "current", "candidatesFor", "evaluateInvariants"];
+const OPTIONAL_OPTIONS_KEYS = ["maxBodyBytes"];
+const OPTIONS_KEYS = [...REQUIRED_OPTIONS_KEYS, ...OPTIONAL_OPTIONS_KEYS];
 
 function checkOptions(options) {
   if (!isOrdinaryObject(options)) {
     throw new TypeError("createCustomerAsgiComposition needs exactly one ordinary options object");
   }
   const keys = Reflect.ownKeys(options);
-  if (keys.length !== OPTIONS_KEYS.length || OPTIONS_KEYS.some((key) => !keys.includes(key))) {
-    throw new TypeError(`createCustomerAsgiComposition options must carry exactly these keys: ${OPTIONS_KEYS.join(", ")}`);
+  const hasOnlyKnownKeys = keys.every((key) => OPTIONS_KEYS.includes(key));
+  const hasAllRequiredKeys = REQUIRED_OPTIONS_KEYS.every((key) => keys.includes(key));
+  if (!hasOnlyKnownKeys || !hasAllRequiredKeys) {
+    throw new TypeError(`createCustomerAsgiComposition options must carry these required keys: ${REQUIRED_OPTIONS_KEYS.join(", ")}, and may optionally carry: ${OPTIONAL_OPTIONS_KEYS.join(", ")}`);
   }
-  const { connectionString, current, candidatesFor, evaluateInvariants } = options;
+  const { connectionString, current, candidatesFor, evaluateInvariants, maxBodyBytes } = options;
   if (typeof connectionString !== "string" || !connectionString) {
     throw new TypeError("createCustomerAsgiComposition connectionString must be a non-empty string");
   }
@@ -81,7 +85,14 @@ function checkOptions(options) {
   if (typeof evaluateInvariants !== "function") {
     throw new TypeError("createCustomerAsgiComposition evaluateInvariants must be a function");
   }
-  return { connectionString, current, candidatesFor, evaluateInvariants };
+  if (keys.includes("maxBodyBytes")
+    && (typeof maxBodyBytes !== "number" || !Number.isSafeInteger(maxBodyBytes) || maxBodyBytes < 0)) {
+    throw new TypeError("createCustomerAsgiComposition maxBodyBytes must be a non-negative safe integer when provided");
+  }
+  return {
+    connectionString, current, candidatesFor, evaluateInvariants,
+    maxBodyBytes: keys.includes("maxBodyBytes") ? maxBodyBytes : undefined,
+  };
 }
 
 /**
@@ -92,9 +103,9 @@ function checkOptions(options) {
  * entrypoint, and `close` closes the composed PostgresCommitAdapter.
  */
 export function createCustomerAsgiComposition(options) {
-  const checked = checkOptions(options);
+  const { connectionString, current, candidatesFor, evaluateInvariants, maxBodyBytes } = checkOptions(options);
 
-  const base = createCustomerComposition(checked);
+  const base = createCustomerComposition({ connectionString, current, candidatesFor, evaluateInvariants });
   const httpMessageAdapter = new CreateCustomerHttpMessageAdapter({ handler: base.handler });
   const router = new StandardRouter({
     routes: [{ method: "POST", path: "/customers", handler: httpMessageAdapter }],
@@ -109,6 +120,7 @@ export function createCustomerAsgiComposition(options) {
       decodeBody: decodeJsonBody,
       encodeResponseBody: encodeJsonBody,
       encodeResponseHeader: encodeUtf8HeaderPart,
+      maxBodyBytes,
     });
 
   Object.freeze(app);

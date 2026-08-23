@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14W ASGI composition body limit (`planning/gj01-v14w-asgi-composition-body-limit.json`):
+  `createCustomerAsgiComposition` in `src/delivery/create-customer-asgi-composition.mjs` now
+  accepts an optional `maxBodyBytes` option alongside its existing four required options. When
+  provided, it must be a non-negative safe integer, otherwise the composition factory throws
+  `TypeError` before `app`/`asgi`/`router`/`close` are ever constructed. When provided, `app`
+  passes `maxBodyBytes` through to the underlying `AsgiCoreProfileAdapter.callFromReceive`
+  (GJ-01 V14V): an over-limit request now returns the existing deterministic 400 profile response
+  without reaching the `createCustomerComposition` commit path, and an exact-boundary body still
+  dispatches through the normal route path unchanged. When `maxBodyBytes` is omitted, `app`'s
+  behavior is unchanged. This is a framework-neutral option only: no server/host/framework is
+  selected or imported.
 - GJ-01 V14V ASGI receive body byte limit (`planning/gj01-v14v-asgi-receive-body-limit.json`):
   `AsgiCoreProfileAdapter.callFromReceive` in `src/delivery/asgi-core-profile.mjs` now accepts an
   optional `maxBodyBytes` option. When provided, it must be a non-negative safe integer, otherwise
