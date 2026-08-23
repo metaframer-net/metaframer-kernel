@@ -16,6 +16,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14T ASGI response header value conformance (`planning/gj01-v14t-asgi-response-header-value-conformance.json`):
+  `checkRouterResponse()` in `src/delivery/asgi-core-profile.mjs` now rejects a `StandardRouter`
+  response header value that is not a printable-ASCII string, throwing a `TypeError` before
+  `toResponseEvents()` builds any outgoing ASGI response event, so a malformed value (CR, LF,
+  CRLF, other control characters, or a non-string such as a number, `null`, or a `Uint8Array`) is
+  never sent from `handle()` or `call()`/`callFromReceive()`. Previously `toResponseEvents()`
+  coerced every header value with `String(...)`, so an unsafe value such as
+  `"v\r\nSet-Cookie: evil=1"` was silently emitted onto the `http.response.start` event. Valid
+  printable ASCII string values, including the empty string and the boundary characters space and
+  `~`, keep their existing behavior and deterministic sorted output. Not a server/host selection.
 - GJ-01 V14S ASGI response status conformance (`planning/gj01-v14s-asgi-response-status-conformance.json`):
   `checkRouterResponse()` in `src/delivery/asgi-core-profile.mjs` now rejects a `StandardRouter`
   response status that is not an integer in the inclusive ASGI/HTTP range 100..599, throwing a
