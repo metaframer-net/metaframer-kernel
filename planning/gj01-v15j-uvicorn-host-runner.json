@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15j-uvicorn-host-runner-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "uvicorn-host-runner",
+  "type": "uvicorn-host-runner",
+  "packageState": "GREEN",
+  "baseCommit": "6e9c6f7",
+
+  "goal": "Add the smallest optional Uvicorn host-runner boundary around the existing, unchanged host/python_asgi/create_customer_app.py factory: a new host/python_asgi/create_customer_uvicorn_runner.py module exposing run_create_customer_uvicorn, which builds the app via create_customer_app and hands it to uvicorn.run only when explicitly invoked, without adding any server to product code or selecting Uvicorn as the mandatory development base.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15g-python-host-app-factory.json",
+    "id": "gj01-v15g-python-host-app-factory-2026-08-23",
+    "note": "V15G added host/python_asgi/create_customer_app.py, a standard-library-only factory returning an unchanged StdioJsAsgiBridge ASGI callable, with no host server imported or selected. V15H and V15I proved, as bounded non-listening evidence, that Uvicorn and Hypercorn can each programmatically accept that callable when present. This V15J package is the first package to add an actual optional runner boundary (not just evidence): a small module that, only when its function is explicitly called, constructs the app and starts Uvicorn."
+  },
+
+  "hostSelected": "uvicorn-optional-first-runner",
+  "uvicornSelectedAsDevelopmentBase": false,
+  "hypercornRemainsCompatibleCandidate": true,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "The test imports host/python_asgi/create_customer_uvicorn_runner.py without uvicorn installed to prove import has no uvicorn requirement, then injects a fake uvicorn module via sys.modules to assert run_create_customer_uvicorn calls uvicorn.run with the create_customer_app result and explicit host/port/log_level/lifespan options, and separately asserts a real absent-uvicorn ImportError path raises a wrapped RuntimeError.",
+    "allowedOutcomes": ["fake-uvicorn-injected", "uvicorn-absent-fails-closed"],
+    "note": "No real network listener is ever opened by this test. uvicorn.run is never actually called; it is replaced by a fake/injected uvicorn module whose run() records its call arguments. Command/max_body_bytes validation is proved to still originate from create_customer_app, not from the runner. Hypercorn is imported nowhere in this package."
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no host/js_asgi change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no FastAPI or Django import",
+    "no Hypercorn import",
+    "no production, deploy, or release claim",
+    "no DB or schema change",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "UVICORN_HOST_RUNNER: this package adds host/python_asgi/create_customer_uvicorn_runner.py, exposing run_create_customer_uvicorn(command, host, port, max_body_bytes, log_level, lifespan), which builds the ASGI app via the unchanged create_customer_app and calls uvicorn.run only when explicitly invoked. Uvicorn is imported lazily inside the function only, so importing the module has no uvicorn dependency and no side effect. If uvicorn is absent, the function fails closed with a wrapped RuntimeError and performs no fallback host. This adds an optional launch boundary only, not app or production readiness.",
+
+  "userJourney": {
+    "once": "V15G bir fabrika fonksiyonu (create_customer_app) verdi ama bunu gerçekten bir ASGI sunucusuyla nasıl çalıştıracağına dair hiçbir sarmalayıcı yoktu; V15H/V15I sadece Uvicorn/Hypercorn'un bu uygulamayı kabul edebildiğini kanıtladı, hiçbir şeyi çalıştırmadı.",
+    "simdi": "Bu paket, create_customer_uvicorn_runner.py içinde run_create_customer_uvicorn adlı küçük bir fonksiyon ekliyor: fonksiyon çağrıldığında create_customer_app ile uygulamayı kurup uvicorn.run'a host/port/log seviyesi gibi açık seçeneklerle veriyor. Modülü import etmek uvicorn kurulu olmasını gerektirmiyor; uvicorn yoksa fonksiyon çağrıldığında açık bir RuntimeError ile başarısız oluyor, sessizce başka bir sunucuya düşmüyor.",
+    "fark": "host/python_asgi/create_customer_uvicorn_runner.py eklendi; tests/kernel-python-host-uvicorn-runner.test.mjs, planning/gj01-v15j-uvicorn-host-runner.json ve CHANGELOG.md güncellendi. src/**, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok; gerçek ağ dinleyicisi hiç açılmadı.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz ve hiçbir dinleyici açmaz; sadece, biri açıkça isterse Uvicorn'u başlatabilecek küçük, isteğe bağlı bir fonksiyon bırakır. Kernel hâlâ çerçeveden bağımsızdır.",
+    "kalanEngel": "Uvicorn hâlâ zorunlu geliştirme tabanı olarak seçilmedi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi production için eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future package may formally select and wire a real listener behind create_customer_uvicorn_runner as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
