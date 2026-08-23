@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15c-python-host-bridge-contract-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "python-host-bridge-contract",
+  "type": "python-host-bridge-contract",
+  "packageState": "GREEN",
+  "baseCommit": "20b4888730f4e02c36d6cc064d41f8a0b8f5f7e7",
+
+  "goal": "Define, as a contract-only planning package, the future Python host bridge/shim boundary that a later implementation package must satisfy before Uvicorn or Hypercorn can actually serve the JavaScript Kernel ASGI-shaped callable. This package pins interface expectations, non-goals, risks, and a finite acceptance list; it does not implement the bridge, does not choose Uvicorn vs Hypercorn, and does not add any runtime behavior.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15b-asgi-host-boundary-truth.json",
+    "id": "gj01-v15b-asgi-host-boundary-truth-2026-08-23",
+    "note": "V15B established, as source-of-truth wording in src/delivery/create-customer-asgi-composition.mjs, that the returned JavaScript app callable is ASGI-shaped and host-adapter-ready at the protocol boundary, but that direct Uvicorn/Hypercorn hosting requires a separate Python host bridge/shim outside the Kernel package, which V15B explicitly did not implement. This V15C package is the contract for that still-unimplemented Python host bridge/shim."
+  },
+
+  "bridgeInThisPackage": false,
+  "hostSelected": false,
+
+  "futureBridgeContract": {
+    "ownership": "The future Python host bridge/shim is an application-owned delivery adapter, not part of the Kernel domain or application core. It lives outside the Kernel's src/** boundary, the same way the current JavaScript ASGI composition in src/delivery/create-customer-asgi-composition.mjs is a delivery-layer composition and not domain logic.",
+    "pythonCallableShape": "The future bridge must expose a Python ASGI callable with the standard ASGI application call signature `(scope, receive, send)`, matching the shape Uvicorn and Hypercorn already know how to invoke, so it can be handed to either server without a custom protocol.",
+    "delegationToKernel": "The Python callable must delegate the actual request handling to the existing JS Kernel ASGI boundary (src/delivery/create-customer-asgi-composition.mjs's `app`) through a small, explicit, reversible interop mechanism. This package does not choose that interop mechanism (e.g. subprocess + stdio, an embedded JS runtime, an HTTP-local loopback, or another approach); the later implementation package selects and justifies it.",
+    "observableBehaviorPreserved": "The future bridge must preserve tenant resolution, PDP authorization, invariant checks, idempotency behavior, and CommitReceipt shape as externally observable response evidence identical to what the current JS Kernel ASGI composition already produces. It may not bypass, shortcut, or reimplement the current Kernel ASGI composition's request handling."
+  },
+
+  "nonGoals": [
+    "no src/** change in this package",
+    "no Python bridge/shim implementation in this package",
+    "no dependency, package/version, CI, or config change",
+    "no server, listener, or network binding of any kind",
+    "no Uvicorn/Hypercorn/FastAPI/Django import, selection, or preference",
+    "no Docker requirement introduced by this package's test",
+    "kernelReady, sdkReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed, runnableProduct all stay false"
+  ],
+
+  "risks": [
+    "Choosing an interop mechanism that silently drops or reorders ASGI events (scope/receive/send) between the Python callable and the JS Kernel boundary would break request/response correctness without being visible until integration testing.",
+    "Bridging through a mechanism that spawns a long-lived JS process per request (rather than a shared, reused process) could reintroduce the kind of per-request overhead this contract does not evaluate or bound.",
+    "A bridge that maps malformed or partial ASGI events non-deterministically (rather than rejecting them the same way the current JS composition does) would weaken the bounded-body and malformed-event guarantees already proven in the JS Kernel boundary.",
+    "Selecting Uvicorn or Hypercorn as the development base prematurely, before both are proven smoke-compatible, could bake in server-specific assumptions the other server does not share."
+  ],
+
+  "acceptance": {
+    "pythonCallableShape": "the future bridge exposes a Python callable with the ASGI `(scope, receive, send)` signature",
+    "noFrameworkBase": "the future bridge does not use FastAPI or Django as its implementation base",
+    "serverSmokeCompatibilityLater": "Uvicorn and Hypercorn smoke compatibility can be tested later as two independent checks, without either one being made the development base",
+    "boundedBodyPreserved": "bounded request/response body behavior already proven in the JS Kernel ASGI composition is preserved end to end through the bridge",
+    "malformedEventsRejectedDeterministically": "malformed `receive` or `send`/server events are rejected or mapped to a deterministic error response, matching the JS Kernel composition's existing malformed-event handling",
+    "realPostgresCommitProofRemains": "the real PostgreSQL CommitReceipt commit test remains the kernel proof of correctness; the bridge does not introduce or require any alternate proof"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "PYTHON_HOST_BRIDGE_CONTRACT_ONLY: this package adds no runtime capability. It records the finite interface, ownership, and acceptance contract a future Python host bridge/shim implementation package must satisfy so that Uvicorn or Hypercorn can eventually serve the existing JS Kernel ASGI-shaped callable. No bridge exists yet; no host is selected; runnableProduct stays false.",
+
+  "userJourney": {
+    "once": "V15B, src/delivery/create-customer-asgi-composition.mjs'in yorumlarını düzeltti: app fonksiyonu ASGI protokolüne uygun ve host-adaptörüne-hazır, ama Uvicorn veya Hypercorn'un onu gerçekten çalıştırabilmesi için ayrı bir Python host köprüsü/shim gerekiyor -- ki o hâlâ yazılmadı ve bu iş için hiçbir sözleşme (contract) yoktu.",
+    "simdi": "Bu paket, o Python host köprüsünün henüz yazılmamış olsa da uyması gereken kuralları bir sözleşme olarak kayda geçiriyor: köprü uygulama katmanına ait olacak (Kernel'in çekirdeği değil), Uvicorn/Hypercorn'un çağırabileceği standart Python ASGI (scope, receive, send) fonksiyonu şeklinde olacak, ve gerçek işi mevcut JS Kernel sınırına devredecek -- hangi devretme yöntemiyle (interop) olacağına şimdi karar verilmiyor, o sonraki uygulama paketinde seçilecek.",
+    "fark": "planning/gj01-v15c-python-host-bridge-contract.json ve tests/kernel-python-host-bridge-contract.test.mjs eklendi; CHANGELOG.md'ye bir madde eklendi. src/** içinde, package.json'da, CI/config dosyalarında veya herhangi bir Python dosyasında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir isteği gerçek bir Uvicorn/Hypercorn sunucusu üzerinden karşılamaz; sadece bir sonraki ekibin/paketinin Python köprüsünü doğru sınırlarla yazabilmesi için net bir sözleşme bırakır.",
+    "kalanEngel": "Python host köprüsü/shim hâlâ yazılmadı, hangi interop mekanizmasının (subprocess/gömülü çalışma zamanı/loopback vb.) kullanılacağına hâlâ karar verilmedi, ve Uvicorn ile Hypercorn arasında hâlâ bir sunucu seçimi yapılmadı; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may select an interop mechanism and write the Python host bridge/shim against this contract, then prove Uvicorn and/or Hypercorn smoke compatibility. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

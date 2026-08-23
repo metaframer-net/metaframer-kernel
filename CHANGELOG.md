@@ -16,6 +16,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15C Python host bridge contract (`planning/gj01-v15c-python-host-bridge-contract.json`):
+  a contract-only planning package that pins the interface, ownership, non-goals, risks, and a
+  finite acceptance list for a future Python host bridge/shim, without implementing it. It
+  requires the future bridge to be an application-owned delivery adapter (not Kernel domain or
+  application core) that exposes a Python ASGI `(scope, receive, send)` callable to Uvicorn or
+  Hypercorn while delegating to the existing JS Kernel ASGI boundary
+  (`src/delivery/create-customer-asgi-composition.mjs`) through a small, explicit, reversible
+  interop mechanism selected in a later implementation package, preserving tenant/PDP/invariant/
+  idempotency/CommitReceipt behavior as externally observable response evidence. It explicitly
+  references `planning/gj01-v15b-asgi-host-boundary-truth.json` as its prerequisite, since V15B
+  established that direct Uvicorn/Hypercorn hosting needs this still-unimplemented bridge. This
+  package sets `bridgeInThisPackage: false` and `hostSelected: false`, touches no `src/**`, no
+  Python file, no dependency, and no CI/config, and every stronger readiness flag
+  (`kernelReady`, `sdkReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`,
+  `productionAllowed`, `runnableProduct`) stays `false`. See
+  `tests/kernel-python-host-bridge-contract.test.mjs`.
 - GJ-01 V15A one-golden-slice step closure (`planning/gj01-v15a-one-golden-slice-step-closure.json`):
   a package-local, evidence-only closure record proving step 4 (`one-golden-slice`) of the pinned
   runtime-start sequence in `planning/kernel-runtime-pilot-consumer-sync.json` is closed for
