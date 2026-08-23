@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15d-python-host-bridge-envelope-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "python-host-bridge-envelope-primitive",
+  "type": "python-host-bridge-envelope-primitive",
+  "packageState": "GREEN",
+  "baseCommit": "54d760cd9df92b5d9a48d83022e37716af05ea9d",
+
+  "goal": "Implement the smallest standard-library-only Python ASGI host bridge envelope primitive that proves a Python ASGI callable with signature (scope, receive, send) can collect an HTTP request body, serialize it to a JSON stdin envelope, invoke an injected JS boundary command via subprocess, decode JSON stdout response events, and send ASGI response events back. This is the first reversible interop primitive toward the V15C contract. It does not select Uvicorn or Hypercorn and does not implement a real product server.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15c-python-host-bridge-contract.json",
+    "id": "gj01-v15c-python-host-bridge-contract-2026-08-23",
+    "note": "V15C pinned the contract that a future Python host bridge/shim must expose a Python ASGI (scope, receive, send) callable that delegates to the JS Kernel boundary through a small, explicit, reversible interop mechanism selected by a later implementation package. This V15D package selects subprocess-stdio-envelope as that interop mechanism and implements the smallest generic primitive proving it, without choosing a host server or wiring the real JS Kernel runner."
+  },
+
+  "bridgeInThisPackage": true,
+  "hostSelected": false,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "primitive": {
+    "module": "host/python_asgi/metaframer_kernel_host_bridge.py",
+    "publicSurface": "StdioJsAsgiBridge(command, max_body_bytes=None), async-callable via __call__(scope, receive, send)",
+    "bodyCollection": "collects http.request body chunks from receive() until more_body is false or missing; a present non-bool more_body value is rejected as a deterministic error before any subprocess invocation",
+    "boundedBody": "when max_body_bytes is set, an over-limit request body is rejected deterministically before subprocess invocation",
+    "envelope": "explicit JSON envelope written to the subprocess's stdin: {scope: JSON-safe scope (bytes fields base64-wrapped), bodyBase64: base64-encoded request body}",
+    "response": "subprocess stdout is decoded as a JSON list of ASGI response events; bodyBase64/headersBase64 fields are base64-decoded back to bytes before being sent via send()",
+    "errorShape": "deterministic http.response.start/http.response.body pair with a JSON body {error, message}; used for malformed more_body (500), body_too_large (413), and subprocess_failed (502, covering non-zero exit and malformed stdout JSON)",
+    "genericity": "the subprocess command is injected by the caller; no hardcoded node path and no environment read are required, so a future package can point command at the real JS Kernel runner while this package tests against a temporary JS fixture command"
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no network listener, socket server, HTTP server, Docker, FastAPI, Django, Uvicorn or Hypercorn import or selection",
+    "no real PostgreSQL test in this package",
+    "no production or runnable product claim",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "PYTHON_ASGI_SUBPROCESS_ENVELOPE_PRIMITIVE: this package adds a generic, standard-library-only Python ASGI callable (StdioJsAsgiBridge) that collects an HTTP request body, serializes it with the request scope into a JSON envelope, invokes an injected subprocess command over stdio, and decodes/replays the JSON ASGI response events it returns. This is an interop primitive proof only, not product readiness: no host server is selected, no real JS Kernel runner is wired, and runnableProduct stays false.",
+
+  "userJourney": {
+    "once": "V15C, Python host köprüsünün henüz yazılmadığını ama uyması gereken kuralları (Kernel'e ait olmayan uygulama katmanı adaptörü, standart ASGI (scope, receive, send) fonksiyonu, mevcut JS Kernel sınırına devretme) bir sözleşme olarak kayda geçirmişti; hangi devretme yönteminin (interop) kullanılacağına o pakette karar verilmemişti.",
+    "simdi": "Bu paket, o sözleşmenin gerektirdiği devretme yöntemini seçiyor: subprocess-stdio-envelope. Python tarafında istek gövdesini toplayan, JSON zarfına (envelope) çeviren, bu zarfı bir alt işlem (subprocess) olarak çağrılan JS komutuna stdin üzerinden gönderen, JS'in stdout'a yazdığı JSON yanıt olaylarını geri okuyup ASGI send() ile ileten en küçük, genel, sadece Python standart kütüphanesini kullanan bir sınıf (StdioJsAsgiBridge) yazıldı.",
+    "fark": "host/python_asgi/__init__.py, host/python_asgi/metaframer_kernel_host_bridge.py ve tests/kernel-python-host-bridge-envelope.test.mjs eklendi; planning/gj01-v15d-python-host-bridge-envelope.json ve CHANGELOG.md güncellendi. src/** içinde, package.json'da, CI/config veya bağımlılık dosyalarında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir gerçek isteği gerçek JS Kernel'e ulaştırmaz; sadece geçici bir test JS komutuyla, zarfın doğru toplandığını, doğru gönderildiğini ve yanıtın doğru geri geldiğini kanıtlayan genel bir yapı taşı bırakır. Bir sonraki paket bu yapı taşının command parametresini gerçek JS Kernel runner'ına yönlendirebilir.",
+    "kalanEngel": "Gerçek JS Kernel runner'ına bağlanma, bir host sunucusu (Uvicorn/Hypercorn) seçimi ve gerçek PostgreSQL üzerinden uçtan uca kanıt hâlâ yapılmadı; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may point StdioJsAsgiBridge's command at the real JS Kernel runner (src/delivery/create-customer-asgi-composition.mjs's app), then evaluate Uvicorn and/or Hypercorn smoke compatibility. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
