@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14X evidence parity correction (`planning/gj01-v14w-asgi-composition-body-limit.json`):
+  updated V14W's planning record so its red/green targeted-evidence commands and results match
+  the final merged test names and count -- the four-required-plus-known-optional-key test, the
+  valid `maxBodyBytes: 0` acceptance test, the invalid-`maxBodyBytes`-rejection test, the frozen
+  `app` test, the empty-body test, the over-limit test, and the exact-boundary test -- 7/7 GREEN,
+  replacing the earlier 5/5 targeted-evidence text written before that final naming/wording
+  correction. No source or test changed; this is a planning-record-only correction.
 - GJ-01 V14W ASGI composition body limit (`planning/gj01-v14w-asgi-composition-body-limit.json`):
   `createCustomerAsgiComposition` in `src/delivery/create-customer-asgi-composition.mjs` now
   accepts an optional `maxBodyBytes` option alongside its existing four required options. When
