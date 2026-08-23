@@ -16,6 +16,24 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15J Uvicorn host-runner boundary (`host/python_asgi/create_customer_uvicorn_runner.py`,
+  `tests/kernel-python-host-uvicorn-runner.test.mjs`): adds the smallest optional Uvicorn
+  host-runner boundary around the existing, unchanged `host/python_asgi/create_customer_app.py`
+  factory. The new module exposes `run_create_customer_uvicorn(command, host, port,
+  max_body_bytes, log_level, lifespan)`, which builds the ASGI app via `create_customer_app` and
+  calls `uvicorn.run` only when the function is explicitly invoked. Uvicorn is imported lazily
+  inside the function only, so importing the module has no Uvicorn dependency and no side effect;
+  if Uvicorn is absent, the function fails closed with a wrapped `RuntimeError` and performs no
+  fallback host. Tests prove the no-import-side-effect and fail-closed behavior, capture
+  `uvicorn.run` arguments via a fake injected `uvicorn` module (no real listener is ever opened),
+  and confirm command/`max_body_bytes` validation still originates from `create_customer_app`.
+  This adds an optional launch boundary only, not app or production readiness: Uvicorn is
+  selected here only as the first optional ASGI host runner, the Kernel remains
+  framework-independent, and Hypercorn remains a separate, compatible candidate — imported
+  nowhere in this package. Adds no server to product code, touches no `src/**` or `host/js_asgi`
+  file, imports no FastAPI/Django/Hypercorn, reads no env, and keeps every stronger readiness
+  flag (including `runnableProduct`) `false`. See `planning/gj01-v15j-uvicorn-host-runner.json`
+  and prerequisite `planning/gj01-v15g-python-host-app-factory.json`.
 - GJ-01 V15I Hypercorn availability smoke (`tests/kernel-python-host-hypercorn-availability-smoke.test.mjs`):
   a bounded evidence test proving the existing, unchanged V15G `host/python_asgi/create_customer_app.py`
   ASGI callable can be bound into Hypercorn's own programmatic `Config` object (`config.app = app`) when
