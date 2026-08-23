@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14y-asgi-receive-more-body-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "c1fa3d911558333d6a580ae090b3568191c01f24",
+
+  "goal": "Tighten ASGI receive event conformance for http.request.more_body in AsgiCoreProfileAdapter.callFromReceive (src/delivery/asgi-core-profile.mjs) so a malformed present more_body value (anything other than boolean true/false) short-circuits to the existing deterministic 400 profile response without ever calling the router, while omitted more_body still means final chunk and true still continues multi-chunk collection unchanged.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14y-asgi-receive-more-body-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django)",
+    "no Python ASGI app, no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no package.json, CI/config, DB/schema, or application/domain/SDK change",
+    "no production/deploy/release claim",
+    "no change to maxBodyBytes semantics except that malformed more_body cannot bypass normal receive-event validation"
+  ],
+
+  "scopeResolution": {
+    "note": "Before this package, the receive loop in callFromReceive only tested `event.more_body !== true` to decide whether to stop collecting chunks -- any value other than the literal true (a string, a number, null, an object, an array) was silently treated as the final chunk, meaning a malformed more_body could reach the router unnoticed instead of being rejected. The fix adds one guard immediately before that decision: if the event carries an own more_body property (Object.hasOwn(event, \"more_body\")) and its value is neither true nor false, callFromReceive returns sendErrorEvents() -- the same deterministic 400 profile response used for every other malformed-event case in this method -- without pushing the chunk, without calling receive again, and without ever calling router.handle. When more_body is omitted entirely, the guard does not fire and the pre-existing behavior (treat as final chunk) is unchanged. When more_body is exactly false, the guard does not fire and the loop breaks (final chunk) exactly as before. When more_body is exactly true, the guard does not fire and the loop continues to the next receive() exactly as before. No other branch in callFromReceive (malformed scope, malformed event shape, non-Uint8Array body, maxBodyBytes overflow, decodeBody throw) is touched."
+  },
+
+  "red": {
+    "commands": ["node --test --test-name-pattern \"more_body|collects multi-chunk|maxBodyBytes\" tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Before the fix, the new 'callFromReceive rejects a present non-boolean more_body with a 400 profile response without calling router' test failed: for each malformed more_body value (\"true\", 1, 0, null, {}, [], \"yes\"), the loop's `event.more_body !== true` check treated the malformed value as non-true and broke immediately, dispatching the single received chunk straight to router.handle -- so `called` was observed true and the returned events carried the router's 200 response instead of a 400 profile response, failing both the router-not-called and status-400 assertions. The other new test ('callFromReceive treats an omitted more_body as the final chunk') and the pre-existing multi-chunk/maxBodyBytes tests already passed before the fix, since they exercise only omitted, true, and false values, none of which the new guard changes."
+  },
+  "green": {
+    "commands": [
+      "node --test --test-name-pattern \"more_body|collects multi-chunk|maxBodyBytes\" tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "Targeted evidence: 6/6 GREEN -- 'callFromReceive collects multi-chunk http.request body in order before dispatching' (multi-chunk true/true/false collection unchanged); 'callFromReceive rejects a present non-boolean more_body with a 400 profile response without calling router' (each of \"true\", 1, 0, null, {}, [], \"yes\" short-circuits to the existing 400 profile response, receive is called exactly once, router is never called); 'callFromReceive treats an omitted more_body as the final chunk' (an event with no more_body key still dispatches to the router as the final chunk); 'callFromReceive rejects invalid maxBodyBytes with TypeError before invoking receive or router' (unchanged); 'callFromReceive short-circuits to a 400 profile response when cumulative body bytes exceed maxBodyBytes, without calling router' (unchanged); 'callFromReceive dispatches to router when cumulative body bytes exactly equal maxBodyBytes' (unchanged). Full suite: node --test tests/kernel-asgi-core-profile.test.mjs is 58/58 GREEN, including the 'source imports no server/framework/runtime-nondeterminism surface' guard test. npm run check is GREEN end to end (repository boundary, control-plane bootstrap, kernel-ai-development-readiness, kernel-runtime-substrate-s1, token-economy, P01 architecture fitness, kernel-cem01-repo-handshake, versioning-changelog, kernel-runtime-pilot-consumer-sync all pass their respective checks)."
+  },
+
+  "acceptance": {
+    "malformedMoreBodyRejected": "an http.request event whose more_body property is present and is not boolean true or false short-circuits callFromReceive to the existing deterministic 400 profile response via sendErrorEvents, without calling router.handle and without collecting the chunk",
+    "omittedMoreBodyUnchanged": "an http.request event with no more_body property is still treated as the final chunk exactly as before this package",
+    "falseMoreBodyUnchanged": "an http.request event with more_body: false is still treated as the final chunk exactly as before this package",
+    "trueMoreBodyUnchanged": "an http.request event with more_body: true still causes the loop to continue collecting chunks exactly as before this package",
+    "otherValidationUnaffected": "malformed scope, malformed event shape, non-Uint8Array body, maxBodyBytes overflow, and decodeBody-throw short-circuits are all unchanged"
+  },
+
+  "rollback": {
+    "trigger": "the added more_body guard is found to reject a legitimate receive event, change behavior for omitted/true/false more_body, or any existing test regresses",
+    "action": "revert the added Object.hasOwn(event, \"more_body\") guard block in callFromReceive in src/delivery/asgi-core-profile.mjs, and the two added tests, this planning file, and the CHANGELOG entry, as one shard",
+    "blastRadius": "one receive loop inside AsgiCoreProfileAdapter.callFromReceive in src/delivery/asgi-core-profile.mjs; no other method, no maxBodyBytes semantics, and no default value touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_RECEIVE_MORE_BODY_CONFORMANCE: AsgiCoreProfileAdapter.callFromReceive now rejects a present, non-boolean http.request.more_body value with the existing deterministic 400 profile response instead of silently treating it as a final chunk, closing a conformance gap where malformed more_body values (e.g. \"yes\", 1, null, {}, []) could reach the router unnoticed.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "callFromReceive yalnızca more_body degerinin tam olarak true olup olmadigina bakiyordu; true disindaki her deger (yanlislikla gonderilen bir \"yes\" metni, 1 sayisi, null, bos obje veya dizi gibi) sessizce 'son parca' olarak kabul ediliyor ve istek router'a kadar ulasabiliyordu.",
+    "simdi": "Artik more_body alani mevcutsa yalnizca true veya false degerleri kabul ediliyor. Baska herhangi bir deger gelirse, callFromReceive istegi router'a hic gondermeden mevcut deterministik 400 yanitiyla reddediyor. more_body hic gonderilmemisse (eski davranis) son parca olarak kabul edilmeye devam ediyor; false son parca, true ise coklu parca toplamaya devam anlamina geliyor -- hicbiri degismedi.",
+    "fark": "src/delivery/asgi-core-profile.mjs icindeki callFromReceive donguye, mevcut ama true/false disi bir more_body degerini yakalayip mevcut sendErrorEvents() 400 yanitina yonlendiren tek bir kontrol eklendi. Baska hicbir dosya veya varsayilan deger degismedi.",
+    "kullaniciYolculugu": "Bu adaptoru bir host/sunucu ile saran gelecekteki bir entegrasyon, ASGI sunucusundan (veya hatali bir istemciden) gelen bozuk bir more_body degerinin artik create-customer commit yoluna hic ulasamayacagindan emin olabilir; bu paket kendisi hicbir host/sunucu/cerceve secmiyor veya ice aktarmiyor.",
+    "kalanEngel": "Hala gercek bir HTTP sunucusu/host adaptoru bu adaptoru sarmalamiyor; bu yuzden runnableProduct hala false."
+  }
+}
