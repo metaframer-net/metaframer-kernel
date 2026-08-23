@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15i-hypercorn-availability-smoke-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "hypercorn-availability-smoke",
+  "type": "hypercorn-availability-smoke",
+  "packageState": "GREEN",
+  "baseCommit": "709fac6",
+
+  "goal": "Prove, as evidence only, that the existing V15G host/python_asgi/create_customer_app.py ASGI callable can be handed to Hypercorn's own bounded programmatic config/serving object (no listener opened, no serve() call) when Hypercorn happens to be present in the running environment, complementary to the V15H Uvicorn programmatic smoke. Hypercorn is NOT selected as the development base by this package.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15g-python-host-app-factory.json",
+    "id": "gj01-v15g-python-host-app-factory-2026-08-23",
+    "note": "V15G added host/python_asgi/create_customer_app.py, a standard-library-only factory returning an unchanged StdioJsAsgiBridge ASGI callable, with no host server imported or selected. This V15I package adds no new factory or bridge behavior; it only adds a bounded, non-listening evidence script proving the same unchanged callable can be handed to Hypercorn's own Config construction path when Hypercorn is present."
+  },
+
+  "relatedPackage": {
+    "path": "planning/gj01-v15h-uvicorn-programmatic-smoke.json",
+    "id": "gj01-v15h-uvicorn-programmatic-smoke-2026-08-23",
+    "note": "V15H proved the same unchanged callable is accepted by Uvicorn's programmatic Config/Server path. This V15I package is the complementary Hypercorn availability smoke; it makes no host selection between the two and does not compare or rank them."
+  },
+
+  "hostSelected": false,
+  "hypercornSelectedAsDevelopmentBase": false,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "python3 -c 'import hypercorn' executed fresh at test time in whichever environment runs the suite; this is not a durable, checked-in fact about any specific machine (local or CI) and must never be hard-coded to a single outcome",
+    "allowedOutcomes": ["hypercorn-available", "hypercorn-unavailable"],
+    "note": "When hypercorn imports successfully, the test runs a bounded programmatic-acceptance script: hypercorn.config.Config() is constructed and bound to the unchanged V15G callable (config.bind = [\"127.0.0.1:0\"] is only assigned as attribute data, never used to open a socket), and a direct ASGI call through the real JS runner returns a 403 DENY response; hypercorn.asyncio.serve() (or any other serve entrypoint) is never called and no real listener is opened. When hypercorn is absent, the test asserts this planning record explicitly permits the hypercorn-unavailable outcome and makes no runnable-product claim either way. Uvicorn remains untested and unselected in this package: it is imported nowhere here."
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no host/python_asgi or host/js_asgi code change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no listener or product server script",
+    "no FastAPI or Django import",
+    "no Uvicorn import",
+    "no Hypercorn hard-selection as the development base",
+    "no env read or secrets",
+    "no production or runnable product claim",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "HYPERCORN_AVAILABILITY_SMOKE: this package adds a bounded evidence test proving the existing, unchanged V15G host/python_asgi/create_customer_app.py ASGI callable can be bound into a Hypercorn programmatic Config object without opening a real listener or calling serve(), when Hypercorn happens to be present. No server is added to product code, no host server is imported by src/** or host/**, and Hypercorn is not selected as the development base. If Hypercorn is absent, the test asserts the planning-recorded unavailability instead of any runnable claim.",
+
+  "userJourney": {
+    "once": "V15H, Uvicorn ortamda bulunduğunda create_customer_app'in Uvicorn tarafından programatik olarak kabul edildiğini kanıtladı, ama aynı geliştirme tabanı adayı olan Hypercorn için hiçbir kanıt yoktu; Hypercorn'un yerelde veya CI'da bulunup bulunmadığı da bilinmiyordu.",
+    "simdi": "Bu paket, ortamda Hypercorn bulunduğunda, create_customer_app'in döndürdüğü uygulamanın Hypercorn'un kendi Config nesnesine değişiklik yapılmadan bağlanabildiğini kanıtlayan sınırlı bir test ekliyor; gerçek bir ağ dinleyicisi hiç açılmıyor ve serve() hiç çağrılmıyor. Aynı test, gerçek JS runner üzerinden doğrudan bir DENY isteğinin 403 döndürdüğünü de doğruluyor. Hypercorn ortamda yoksa test bunu açıkça izin verilen bir sonuç olarak kabul eder ve hiçbir çalışabilir ürün iddiasında bulunmaz.",
+    "fark": "tests/kernel-python-host-hypercorn-availability-smoke.test.mjs eklendi; planning/gj01-v15i-hypercorn-availability-smoke.json ve CHANGELOG.md güncellendi. src/**, host/python_asgi, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz, hiçbir dinleyici açmaz ve Hypercorn'u geliştirme tabanı olarak seçmez; sadece mevcut ASGI çağrılabilirinin Hypercorn tarafından da kabul edilebilir olduğuna (bulunduğunda) dair kanıt bırakır.",
+    "kalanEngel": "Uvicorn veya Hypercorn hâlâ geliştirme tabanı olarak seçilmedi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may formally select a host server (Uvicorn and/or Hypercorn) and wire create_customer_app behind a real network listener as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
