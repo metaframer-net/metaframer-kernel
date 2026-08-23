@@ -16,6 +16,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14V ASGI receive body byte limit (`planning/gj01-v14v-asgi-receive-body-limit.json`):
+  `AsgiCoreProfileAdapter.callFromReceive` in `src/delivery/asgi-core-profile.mjs` now accepts an
+  optional `maxBodyBytes` option. When provided, it must be a non-negative safe integer, otherwise
+  `callFromReceive` throws `TypeError` before `receive` or the router are ever invoked. While
+  collecting `http.request` chunks, a running cumulative-byte count is checked after each chunk;
+  once it exceeds `maxBodyBytes`, `callFromReceive` returns the existing deterministic 400 profile
+  response via `sendErrorEvents` without calling the router. A body whose cumulative bytes exactly
+  equal `maxBodyBytes` still dispatches normally. When `maxBodyBytes` is omitted, behavior is
+  unchanged. This is a framework-neutral option only: no server/host/framework is selected or
+  imported, and `createCustomerAsgiComposition`'s default body-limit behavior is unchanged.
 - GJ-01 V14U ASGI callable immutability (`planning/gj01-v14u-asgi-callable-immutability.json`):
   `createCustomerAsgiComposition` in `src/delivery/create-customer-asgi-composition.mjs` now
   freezes the `app` ASGI callable function itself, immediately before constructing the frozen

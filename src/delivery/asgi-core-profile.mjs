@@ -210,7 +210,9 @@ export class AsgiCoreProfileAdapter {
     return events;
   }
 
-  async callFromReceive({ scope, receive, send, decodeBody, encodeResponseBody, encodeResponseHeader } = {}) {
+  async callFromReceive({
+    scope, receive, send, decodeBody, encodeResponseBody, encodeResponseHeader, maxBodyBytes,
+  } = {}) {
     if (typeof receive !== "function" || typeof send !== "function") {
       throw new TypeError("AsgiCoreProfileAdapter callFromReceive needs receive and send functions");
     }
@@ -222,6 +224,10 @@ export class AsgiCoreProfileAdapter {
     }
     if (encodeResponseHeader !== undefined && typeof encodeResponseHeader !== "function") {
       throw new TypeError("AsgiCoreProfileAdapter callFromReceive encodeResponseHeader must be a function when provided");
+    }
+    if (maxBodyBytes !== undefined
+      && (typeof maxBodyBytes !== "number" || !Number.isSafeInteger(maxBodyBytes) || maxBodyBytes < 0)) {
+      throw new TypeError("AsgiCoreProfileAdapter callFromReceive maxBodyBytes must be a non-negative safe integer when provided");
     }
 
     const sendErrorEvents = async () => {
@@ -237,6 +243,7 @@ export class AsgiCoreProfileAdapter {
     }
 
     const chunks = [];
+    let receivedBytes = 0;
     for (;;) {
       const event = await receive();
       if (!isOrdinaryObject(event) || event.type !== "http.request") {
@@ -244,6 +251,10 @@ export class AsgiCoreProfileAdapter {
       }
       const chunk = event.body === undefined ? new Uint8Array() : event.body;
       if (!(chunk instanceof Uint8Array)) {
+        return sendErrorEvents();
+      }
+      receivedBytes += chunk.length;
+      if (maxBodyBytes !== undefined && receivedBytes > maxBodyBytes) {
         return sendErrorEvents();
       }
       chunks.push(chunk);

@@ -585,6 +585,77 @@ test("callFromReceive collects multi-chunk http.request body in order before dis
   assert.deepEqual(result, sent);
 });
 
+test("callFromReceive rejects invalid maxBodyBytes with TypeError before invoking receive or router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  let receiveCalled = false;
+  const receive = async () => { receiveCalled = true; return { type: "http.request", body: new Uint8Array(), more_body: false }; };
+  const send = async () => {};
+
+  for (const maxBodyBytes of [-1, 1.5, "10", NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, null, {}, []]) {
+    await assert.rejects(() => adapter.callFromReceive({ scope, receive, send, maxBodyBytes }), TypeError);
+  }
+  assert.equal(receiveCalled, false);
+  assert.equal(called, false);
+});
+
+test("callFromReceive short-circuits to a 400 profile response when cumulative body bytes exceed maxBodyBytes, without calling router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const events = [
+    { type: "http.request", body: new TextEncoder().encode("abcd"), more_body: true },
+    { type: "http.request", body: new TextEncoder().encode("ef"), more_body: true },
+  ];
+  let i = 0;
+  let calls = 0;
+  const receive = async () => { calls += 1; return events[i++]; };
+  const sent = [];
+  const send = async (event) => { sent.push(event); };
+
+  const result = await adapter.callFromReceive({ scope, receive, send, maxBodyBytes: 5 });
+
+  assert.equal(calls, 2);
+  assert.equal(result.length, 2);
+  assert.equal(result[0].status, 400);
+  assert.deepEqual(sent, result);
+  assert.equal(called, false);
+});
+
+test("callFromReceive dispatches to router when cumulative body bytes exactly equal maxBodyBytes", async () => {
+  let received;
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(async (message) => {
+      received = message;
+      return Object.freeze({ status: 201, headers: Object.freeze({}), body: Object.freeze({ ok: true }) });
+    }),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  const events = [
+    { type: "http.request", body: new TextEncoder().encode("ab"), more_body: true },
+    { type: "http.request", body: new TextEncoder().encode("cd"), more_body: false },
+  ];
+  let i = 0;
+  const receive = async () => events[i++];
+  const sent = [];
+  const send = async (event) => { sent.push(event); };
+
+  const result = await adapter.callFromReceive({ scope, receive, send, maxBodyBytes: 4 });
+
+  assert.equal(new TextDecoder().decode(received.body), "abcd");
+  assert.equal(result[0].status, 201);
+  assert.deepEqual(sent, result);
+});
+
 test("callFromReceive short-circuits to a 400 profile response on a malformed receive event without calling router", async () => {
   let called = false;
   const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200 }); }) }]);
