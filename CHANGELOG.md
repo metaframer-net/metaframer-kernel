@@ -16,6 +16,26 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15D Python host bridge envelope primitive
+  (`host/python_asgi/metaframer_kernel_host_bridge.py`, `host/python_asgi/__init__.py`): the
+  smallest standard-library-only implementation of the interop mechanism V15C left unselected.
+  `StdioJsAsgiBridge(command, max_body_bytes=None)` is an ASGI-callable `(scope, receive, send)`
+  object that collects `http.request` body chunks until `more_body` is false or missing
+  (rejecting a present non-bool `more_body` deterministically before any subprocess call),
+  optionally rejects an over-limit body against `max_body_bytes` before subprocess invocation,
+  serializes scope and base64-encoded body into a JSON envelope written to an injected
+  subprocess command's stdin, decodes the JSON list of ASGI response events the command writes
+  to stdout (base64 body/header fields converted back to bytes), and replays them through
+  `send`. Subprocess non-zero exit and malformed stdout JSON both map to a deterministic
+  `502 subprocess_failed` error response. The command is caller-injected (no hardcoded node
+  path, no environment read), so a later package can point it at the real JS Kernel runner; this
+  package tests only against a temporary JS fixture command. It selects
+  `interopMechanism: "subprocess-stdio-envelope"`, sets `bridgeInThisPackage: true` and
+  `hostSelected: false`, references `planning/gj01-v15c-python-host-bridge-contract.json` as its
+  prerequisite, touches no `src/**`, no dependency/lockfile/CI/config/pyproject/uv.lock file, and
+  keeps every stronger readiness flag (including `runnableProduct`) `false`. See
+  `planning/gj01-v15d-python-host-bridge-envelope.json` and
+  `tests/kernel-python-host-bridge-envelope.test.mjs`.
 - GJ-01 V15C Python host bridge contract (`planning/gj01-v15c-python-host-bridge-contract.json`):
   a contract-only planning package that pins the interface, ownership, non-goals, risks, and a
   finite acceptance list for a future Python host bridge/shim, without implementing it. It
