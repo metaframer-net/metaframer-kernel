@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14U ASGI callable immutability (`planning/gj01-v14u-asgi-callable-immutability.json`):
+  `createCustomerAsgiComposition` in `src/delivery/create-customer-asgi-composition.mjs` now
+  freezes the `app` ASGI callable function itself, immediately before constructing the frozen
+  `{ asgi, router, app, close }` object it returns. Previously the outer composition object and
+  the `asgi`/`router` instances were frozen, but `app` was an ordinary mutable function: a caller
+  could assign own properties onto it, redefine its properties, or change its prototype.
+  `composition.app` is now itself frozen, carries no own enumerable keys, and rejects an
+  own-property assignment, `Object.defineProperty`, or `Object.setPrototypeOf` with `TypeError`.
+  Callable behavior is unchanged. Not a server/host selection.
 - GJ-01 V14T ASGI response header value conformance (`planning/gj01-v14t-asgi-response-header-value-conformance.json`):
   `checkRouterResponse()` in `src/delivery/asgi-core-profile.mjs` now rejects a `StandardRouter`
   response header value that is not a printable-ASCII string, throwing a `TypeError` before

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14u-asgi-callable-immutability-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "11c6f86ee4f3c1b582f09508083f06abca99373d",
+
+  "goal": "Make the framework-neutral ASGI callable app returned by createCustomerAsgiComposition in src/delivery/create-customer-asgi-composition.mjs immutable, as part of the delivered host boundary surface. The returned composition object was already frozen, and asgi/router were already frozen instances, but composition.app was a plain, mutable async function object: a caller could assign own properties onto it, redefine properties, change its prototype, or delete its own configurable properties, none of which the frozen outer composition object prevented.",
+
+  "allowedFiles": [
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "planning/gj01-v14u-asgi-callable-immutability.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to request/response decoding, encoding, or routing behavior",
+    "no change to the returned composition object's shape ({ asgi, router, app, close })",
+    "no package.json or DB schema change"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: added Object.freeze(app) immediately after app is defined and before the frozen { asgi, router, app, close } object is constructed and returned in createCustomerAsgiComposition. app remains the same async (scope, receive, send) function value and callable behavior is unchanged; only its own extensibility, its own property configurability, and its prototype are now locked, matching the immutability already applied to the outer composition object and to the asgi/router instances."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-create-customer-asgi-composition.test.mjs"],
+    "note": "Added a dedicated test asserting composition.app is frozen (Object.isFrozen), carries no own enumerable keys, refuses an own-property assignment and an Object.defineProperty call (both throwing TypeError under ESM strict mode), refuses Object.setPrototypeOf (throwing TypeError), and refuses Reflect.deleteProperty of its own non-configurable length property (returning false). Against the pre-fix source, composition.app was an ordinary mutable function: Object.isFrozen(composition.app) was false and an own-property assignment such as composition.app.mutated = true silently succeeded."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-create-customer-asgi-composition.test.mjs"
+    ],
+    "results": "Targeted evidence for this package: the new composition.app immutability test and the existing empty-body pattern test are 2/2 GREEN. npm run check is GREEN. The full tests/kernel-create-customer-asgi-composition.test.mjs suite is 11/12 locally, solely because the pre-existing, environment-gated real-PostgreSQL slice test fails when Docker is unavailable in this sandbox; that failure is an environment condition unrelated to this change, not a regression caused by the freeze."
+  },
+
+  "acceptance": {
+    "appIsFrozen": "Object.isFrozen(composition.app) is true immediately after createCustomerAsgiComposition returns",
+    "noMutationSurface": "composition.app carries no own enumerable keys, and an own-property assignment, Object.defineProperty, or Object.setPrototypeOf against composition.app throws TypeError; Reflect.deleteProperty against an existing own non-configurable property returns false",
+    "callableBehaviorUnchanged": "composition.app(scope, receive, send) still decodes a JSON or empty body and delegates to asgi.callFromReceive exactly as before, producing the same deterministic response events for the invalid-JSON and empty-body paths"
+  },
+
+  "rollback": {
+    "trigger": "the added Object.freeze(app) is found to break a legitimate host-adapter use of composition.app, or any existing test regresses",
+    "action": "revert the Object.freeze(app) call in src/delivery/create-customer-asgi-composition.mjs, and the added test, this planning file and the CHANGELOG entry, as one shard",
+    "blastRadius": "one function (createCustomerAsgiComposition) inside src/delivery/create-customer-asgi-composition.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_CALLABLE_IMMUTABILITY: the app ASGI callable returned inside createCustomerAsgiComposition's frozen { asgi, router, app, close } object is now itself frozen, closing the last mutable surface on the delivered host boundary object.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "createCustomerAsgiComposition, döndürdüğü { asgi, router, app, close } nesnesini ve içindeki asgi/router örneklerini donduruyordu, ama app alanındaki gerçek ASGI çağrılabilir fonksiyonu dondurmuyordu; bu yüzden bu fonksiyona sonradan özellik eklemek veya prototipini değiştirmek mümkündü.",
+    "simdi": "app fonksiyonu artık döndürülmeden hemen önce donduruluyor; composition.app üzerine özellik eklemek, mevcut özellikleri yeniden tanımlamak veya prototipini değiştirmek artık TypeError ile reddediliyor.",
+    "fark": "src/delivery/create-customer-asgi-composition.mjs içinde app tanımlandıktan hemen sonra, döndürülen nesne kurulmadan önce Object.freeze(app) eklendi. app'in çağrılabilir davranışı ve döndürülen nesnenin şekli hiç değişmedi.",
+    "kullaniciYolculugu": "Bu callable'ı bir host adaptörüne (Uvicorn, Hypercorn, ...) veren kod, artık app fonksiyonunun kendisine yanlışlıkla veya kötü niyetle özellik ekleyemez ya da prototipini değiştiremez; teslim edilen host sınırı yüzeyi artık uçtan uca değişmez. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun değişmezliğini tamamlıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
