@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15I Hypercorn availability smoke (`tests/kernel-python-host-hypercorn-availability-smoke.test.mjs`):
+  a bounded evidence test proving the existing, unchanged V15G `host/python_asgi/create_customer_app.py`
+  ASGI callable can be bound into Hypercorn's own programmatic `Config` object (`config.app = app`) when
+  Hypercorn is present in the running environment, and a direct ASGI call through the real JS runner still
+  returns a `403` DENY response. No Hypercorn serve entrypoint is ever called and no real listener is
+  opened. If Hypercorn is unavailable in the environment, the test asserts the planning-recorded
+  `"hypercorn-unavailable"` evidence instead of any runnable claim. Adds no server to product code, touches
+  no `src/**`, `host/python_asgi`, or `host/js_asgi` file, imports no Uvicorn/FastAPI/Django, reads no env,
+  and does not select Hypercorn as the development base; keeps every stronger readiness flag (including
+  `runnableProduct`) `false`. Complementary to `planning/gj01-v15h-uvicorn-programmatic-smoke.json`;
+  references `planning/gj01-v15g-python-host-app-factory.json` as its prerequisite. See
+  `planning/gj01-v15i-hypercorn-availability-smoke.json` and
+  `tests/kernel-python-host-hypercorn-availability-smoke.test.mjs`.
 - GJ-01 V15H Uvicorn programmatic smoke (`tests/kernel-python-host-uvicorn-programmatic-smoke.test.mjs`):
   a bounded evidence test proving the existing, unchanged V15G `host/python_asgi/create_customer_app.py`
   ASGI callable can be accepted by Uvicorn programmatically when Uvicorn is present in the running
