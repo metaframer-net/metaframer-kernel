@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14S ASGI response status conformance (`planning/gj01-v14s-asgi-response-status-conformance.json`):
+  `checkRouterResponse()` in `src/delivery/asgi-core-profile.mjs` now rejects a `StandardRouter`
+  response status that is not an integer in the inclusive ASGI/HTTP range 100..599, throwing a
+  `TypeError` before `toResponseEvents()` builds any outgoing ASGI response event, so a malformed
+  status is never sent from `handle()` or `call()`/`callFromReceive()`. Previously any status that
+  passed `typeof status === "number"` was accepted, so a non-integer such as `200.5`, `NaN`, or
+  `Infinity`, or an out-of-range integer such as `99`, `0`, `-1`, or `600`, was silently emitted
+  onto the `http.response.start` event. Valid statuses, including the boundaries `100`, `204`, and
+  `599`, keep their existing behavior. Not a server/host selection.
 - GJ-01 V14R ASGI response header name conformance (`planning/gj01-v14r-asgi-response-header-name-conformance.json`):
   `checkRouterResponse()` in `src/delivery/asgi-core-profile.mjs` now rejects a `StandardRouter`
   response header name that is empty, upper-case, whitespace-bearing, colon-bearing, or

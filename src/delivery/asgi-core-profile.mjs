@@ -94,8 +94,9 @@ function checkRouterResponse(response) {
   if (keys.length !== 3 || !["status", "headers", "body"].every((key) => keys.includes(key))) {
     throw new TypeError("AsgiCoreProfileAdapter router response must carry exactly status, headers and body");
   }
-  if (typeof response.status !== "number") {
-    throw new TypeError("AsgiCoreProfileAdapter router response status must be a number");
+  if (typeof response.status !== "number" || !Number.isInteger(response.status)
+    || response.status < 100 || response.status > 599) {
+    throw new TypeError("AsgiCoreProfileAdapter router response status must be an integer in range 100..599");
   }
   if (!isOrdinaryObject(response.headers)) {
     throw new TypeError("AsgiCoreProfileAdapter router response headers must be an ordinary object");

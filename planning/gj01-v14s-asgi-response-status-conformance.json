@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14s-asgi-response-status-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "6e92d3e37ea84bbbd512ec1acc4332d66a4680d9",
+
+  "goal": "Make checkRouterResponse in src/delivery/asgi-core-profile.mjs reject a router response status that is not a valid ASGI/HTTP status integer in the inclusive range 100..599, throwing the existing TypeError before toResponseEvents ever builds outgoing ASGI response events or call/callFromReceive ever invoke send(). The prior check only required typeof status === \"number\", so a string, NaN, Infinity, a non-integer such as 200.5, or an out-of-range integer such as 99, 0, -1, or 600 was silently accepted and placed onto the outgoing http.response.start event's status field.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14s-asgi-response-status-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to request method, header, path, or body handling",
+    "no change to response header or response body handling"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: checkRouterResponse now checks response.status with Number.isInteger(response.status) and a range test (100 <= status <= 599), replacing the previous typeof-only check. A status that is not a number, not an integer, or outside 100..599 fails the check and checkRouterResponse throws the same TypeError it already throws for other malformed router-response shapes, before toResponseEvents builds any event and before call/callFromReceive ever call send(). No router, request-header, response-header, or body logic touched."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added a dedicated handle test asserting a battery of malformed router response statuses (string '200', NaN, Infinity, -Infinity, 99, 600, 200.5, 0, -1) each throw TypeError from handle; and a companion test asserting valid boundary statuses (100, 204, 599) still dispatch and appear correctly on the outgoing http.response.start event. Against the pre-fix source, the malformed-status cases (other than the pre-existing string '200' case, already covered) all failed to throw: checkRouterResponse only tested typeof response.status === \"number\", so NaN, Infinity, 200.5, 99, 600, 0 and -1 were accepted unchecked and toResponseEvents silently emitted them."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 49 tests pass, including the new response-status-range assertions and every pre-existing scope/method/header/response/encoder assertion. npm run check exits GREEN with no new failures."
+  },
+
+  "acceptance": {
+    "nonNumberStatusRejected": "a router response status that is not typeof number (e.g. the string '200') throws TypeError from handle/call before any event is built or sent",
+    "nonIntegerStatusRejected": "a router response status such as NaN, Infinity, -Infinity, or 200.5 throws TypeError from handle/call before any event is built or sent",
+    "outOfRangeStatusRejected": "a router response status below 100 (e.g. 99, 0, -1) or above 599 (e.g. 600) throws TypeError from handle/call before any event is built or sent",
+    "validBoundaryStatusesUnaffected": "router response statuses 100, 204, and 599 continue to pass through unchanged onto the outgoing http.response.start event exactly as before"
+  },
+
+  "rollback": {
+    "trigger": "the added response-status-range check is found to reject a legitimate status value, or any existing test regresses",
+    "action": "revert the Number.isInteger/range check added to checkRouterResponse in src/delivery/asgi-core-profile.mjs, and the added tests, this planning file and the CHANGELOG entry, as one shard",
+    "blastRadius": "one function (checkRouterResponse) inside src/delivery/asgi-core-profile.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_RESPONSE_STATUS_CONFORMANCE: a router response status that is not an integer in the inclusive range 100..599 now throws TypeError from checkRouterResponse before an outgoing ASGI response event is built or sent, instead of being silently accepted and emitted onto the wire-facing http.response.start event.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, checkRouterResponse sadece response.status'ün typeof number olup olmadığına bakıyordu; router'ın döndürdüğü NaN, Infinity, 200.5 gibi tam sayı olmayan veya 99, 0, -1, 600 gibi geçerli HTTP aralığı dışındaki bir status değeri hiç doğrulanmadan giden http.response.start olayına ekleniyordu.",
+    "simdi": "checkRouterResponse artık router yanıtındaki status değerinin 100..599 aralığında bir tam sayı olmasını şart koşuyor; sayı olmayan, tam sayı olmayan veya aralık dışındaki bir status, olay hiç oluşturulmadan veya send() hiç çağrılmadan TypeError ile reddediliyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde checkRouterResponse'daki typeof kontrolü, Number.isInteger ve 100..599 aralık kontrolüyle genişletildi. Geçerli status değerlerinin (100, 204, 599 dahil) davranışı hiç değişmedi.",
+    "kullaniciYolculugu": "Router çağıran koddaki bir hata nedeniyle bozuk bir status değeri (örn. ondalıklı, NaN, Infinity veya aralık dışı bir sayı) üretirse, artık bu bozuk değer host adaptörüne hiç ulaşmadan, giden olay hiç kurulmadan TypeError ile durduruluyor. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun giden status doğrulamasını sıkılaştırıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
