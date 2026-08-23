@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15f-python-bridge-real-pg-allow-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "python-bridge-real-pg-allow-smoke",
+  "type": "python-bridge-real-pg-allow-smoke",
+  "packageState": "GREEN",
+  "baseCommit": "854157678c0e6483939fef00f3b4c9d992e21a46",
+
+  "goal": "Extend the existing V15E JS boundary runner with an explicit --policy allow|deny CLI switch so the existing Python StdioJsAsgiBridge can prove an ALLOW+invariants-ok POST /customers request reaches the real JS Kernel createCustomerAsgiComposition.app boundary and commits to a real PostgreSQL 16 substrate, returning a CommitReceipt back through the Python bridge. This narrows the gap from 'Python bridge can drive the real JS boundary on a non-DB DENY path' to 'Python bridge can drive the real JS boundary through a real PostgreSQL ALLOW commit', while still selecting no host server.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15e-real-js-boundary-runner-deny.json",
+    "id": "gj01-v15e-real-js-boundary-runner-deny-2026-08-23",
+    "note": "V15E added host/js_asgi/create_customer_asgi_runner.mjs as a DENY-only, never-connected-DB smoke runner for the Python StdioJsAsgiBridge primitive from V15D. This V15F package extends that same runner module with an explicit CLI-args policy switch (deny remains the default, unchanged behavior) so the identical Python bridge can also drive a real PostgreSQL ALLOW commit through the runner, without changing the Python bridge itself."
+  },
+
+  "bridgeInThisPackage": true,
+  "realJsBoundaryRunner": true,
+  "realPostgresThroughPythonBridge": true,
+  "hostSelected": false,
+  "interopMechanism": "subprocess-stdio-envelope",
+  "smokePath": "ALLOW_REAL_POSTGRES",
+
+  "runner": {
+    "module": "host/js_asgi/create_customer_asgi_runner.mjs",
+    "input": "one JSON envelope { scope, bodyBase64 } read from stdin, the same shape V15D's StdioJsAsgiBridge writes",
+    "boundary": "constructs a real createCustomerAsgiComposition and delegates to its real app(scope, receive, send) ASGI-shaped callable",
+    "cliArgs": "explicit --policy deny|allow (default deny, unchanged V15E behavior) and --connection-string <postgres-url>; no env read anywhere. --policy allow requires --connection-string and selects a deterministic ALLOW policy candidate, connecting the composition to the real PostgreSQL database at the given connection string; --policy deny (or no CLI args at all) keeps the V15E never-connected placeholder connection string and deterministic DENY candidate.",
+    "output": "a JSON list of ASGI response events written to stdout, with bodyBase64/headersBase64 fields the Python bridge decodes back into bytes",
+    "malformedInput": "a malformed envelope, non-base64 body, unrecognized CLI flag, missing flag value, or --policy allow without --connection-string all exit non-zero with a deterministic stderr message before constructing the composition, so the Python bridge maps a subprocess failure to its existing deterministic subprocess_failed (502) ASGI error"
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no Python host bridge code change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no network listener, socket server, HTTP server, Docker config, FastAPI, Django, Uvicorn or Hypercorn import or selection",
+    "no release, deploy, production, or runnable product claim",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "idempotencyRetryProof": {
+    "provedInThisPackage": true,
+    "note": "The test reuses the same connection, the same Python StdioJsAsgiBridge instance, and the same underlying JS runner subprocess-per-call pattern to send an identical duplicate POST /customers request (same tenant, same idempotency fingerprint) a second time through the bridge. The runner is stateless per invocation, but idempotency is enforced by the real PostgreSQL substrate itself (the same commit path V14L already proves at the composition layer), so a second bridge call deterministically returns 409 IDEMPOTENCY_CONFLICT and inserts no second row."
+  },
+
+  "capabilityDelta": "PYTHON_BRIDGE_REAL_JS_BOUNDARY_REAL_POSTGRES_ALLOW_SMOKE: this package extends host/js_asgi/create_customer_asgi_runner.mjs with an explicit --policy deny|allow CLI switch (default deny, preserving V15E's exact never-connected DENY behavior) and a --connection-string CLI arg required only for --policy allow. It proves the existing Python StdioJsAsgiBridge primitive, unchanged, can drive the real JS Kernel createCustomerAsgiComposition.app boundary through a deterministic ALLOW policy candidate and invariants-ok POST /customers request all the way to a real PostgreSQL 16 commit, returning a CommitReceipt with all four committed intents (audit, customer, idempotency, transactionalOutbox) back through the bridge as a 201 JSON response, with rows verified directly in customer_records, audit_log, and transactional_outbox, and a duplicate request deterministically returning 409 IDEMPOTENCY_CONFLICT with no second row. This is a boundary-and-substrate smoke, not product readiness: no host server is selected, no server framework is imported, and runnableProduct stays false.",
+
+  "userJourney": {
+    "once": "V15E, gerçek JS Kernel sınırına giden Python köprüsü çalışma komutunu ekledi, ama bu komut her zaman ret (DENY) sonucu üretecek şekilde sabitliydi ve hiçbir veritabanına asla bağlanmıyordu; kabul (ALLOW) yolunun gerçek bir PostgreSQL üzerinden uçtan uca kanıtı hâlâ yoktu.",
+    "simdi": "Bu paket aynı çalışma komutuna (host/js_asgi/create_customer_asgi_runner.mjs) açık komut satırı seçenekleri (--policy allow --connection-string <adres>) ekliyor. Böylece Python köprüsü, hiç değişmeden, aynı komutu kabul modunda çağırabiliyor: istek gerçek JS Kernel sınırından geçiyor, gerçek bir PostgreSQL 16 veritabanına commit ediliyor, ve sonuç bir CommitReceipt (taahhüt makbuzu) olarak Python tarafına 201 yanıtıyla geri dönüyor. Aynı isteğin tekrarı ise deterministik biçimde 409 çakışma hatası veriyor, ikinci bir kayıt oluşturmuyor.",
+    "fark": "host/js_asgi/create_customer_asgi_runner.mjs genişletildi (yeni --policy/--connection-string seçenekleri, varsayılan davranış V15E ile birebir aynı); tests/kernel-python-host-bridge-real-pg-allow.test.mjs eklendi; planning/gj01-v15f-python-bridge-real-pg-allow.json ve CHANGELOG.md güncellendi. src/**, Python köprü kodu, package.json, CI/config veya bağımlılık dosyalarında hiçbir değişiklik yok.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz ve hiçbir host seçmez; sadece Python köprüsünün artık gerçek JS Kernel sınırını, hem ret hem kabul yollarında, kabul durumunda gerçek bir PostgreSQL'e commit ederek, uçtan uca çağırabildiğini kanıtlayan en küçük yapı taşını bırakır.",
+    "kalanEngel": "Bir host sunucusu (Uvicorn/Hypercorn) seçimi hâlâ yapılmadı, hiçbir ağ dinleyicisi veya HTTP çerçevesi eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future implementation package may evaluate Uvicorn and/or Hypercorn smoke compatibility for a selected host server, wiring the Python bridge behind an actual network listener. This package makes no commitment to that timeline and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

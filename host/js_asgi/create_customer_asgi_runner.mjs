@@ -12,22 +12,31 @@ import { ActorId, Principal, TenantId } from "../../src/domain/identity-primitiv
 // events, and writes them back to stdout as a JSON list with bodyBase64/headersBase64 fields —
 // the shape V15D's bridge expects to decode.
 //
-// This runner always constructs the composition with a deterministic DENY policy candidate, so
-// no database connection is ever touched: connectionString is a never-connected placeholder
-// string, safe only because the DENY outcome short-circuits before any commit. This is a smoke
-// runner for the DENY path only, not a general-purpose host bridge target.
+// V15E added a deterministic DENY-only mode (no CLI args, hardcoded deny candidate, a
+// never-connected placeholder connection string). V15F extends this with an explicit CLI-args
+// policy switch:
+//   --policy deny                  (default): identical to V15E's always-DENY, never-connected
+//                                   behavior; no CLI args at all also selects this default.
+//   --policy allow --connection-string <postgres-url>: candidatesFor returns a deterministic
+//                                   ALLOW candidate and the composition connects to the real
+//                                   PostgreSQL database at the given connection string. allow
+//                                   requires --connection-string; omitting it is a malformed-args
+//                                   failure.
 //
-// No env read, no network, no HTTP/ASGI server import, no host server selection.
+// No env read: the connection string comes only from the explicit --connection-string CLI arg,
+// never from process.env. No network listener, no HTTP/ASGI server import, no host server
+// selection.
 // =====================================================================================
 
 const NEVER_CONNECTED_CONNECTION_STRING = "postgres://user:pass@localhost:5432/never_connected";
 const FALLBACK_TENANT = "22222222-2222-4222-8222-222222222222";
 const FALLBACK_ACTOR = "js-boundary-runner";
 const DENY_CANDIDATE = Object.freeze({ policyId: "deny.everything", effect: "deny", applies: true });
+const ALLOW_CANDIDATE = Object.freeze({ policyId: "allow.everything", effect: "allow", applies: true });
 
 // Reads x-tenant-id/x-actor-id straight out of the scope headers (if present) so the runner's
 // deterministic principal matches the request's own ActionSpec tenant/actor, instead of forcing
-// every DENY smoke request onto one hardcoded identity.
+// every smoke request onto one hardcoded identity.
 function headerValue(headers, name) {
   if (!Array.isArray(headers)) return undefined;
   for (const pair of headers) {
@@ -41,6 +50,35 @@ function headerValue(headers, name) {
 function fail(message) {
   process.stderr.write(`create_customer_asgi_runner: ${message}\n`);
   process.exit(1);
+}
+
+function parseArgs(argv) {
+  const args = { policy: "deny", connectionString: undefined };
+  let i = 0;
+  while (i < argv.length) {
+    const flag = argv[i];
+    if (flag === "--policy") {
+      const value = argv[i + 1];
+      if (value === undefined) return { error: "--policy requires a value" };
+      if (value !== "deny" && value !== "allow") return { error: `--policy must be "deny" or "allow", got ${JSON.stringify(value)}` };
+      args.policy = value;
+      i += 2;
+      continue;
+    }
+    if (flag === "--connection-string") {
+      const value = argv[i + 1];
+      if (value === undefined) return { error: "--connection-string requires a value" };
+      if (value.length === 0) return { error: "--connection-string must not be empty" };
+      args.connectionString = value;
+      i += 2;
+      continue;
+    }
+    return { error: `unrecognized argument: ${flag}` };
+  }
+  if (args.policy === "allow" && args.connectionString === undefined) {
+    return { error: "--policy allow requires --connection-string" };
+  }
+  return { args };
 }
 
 async function readStdin() {
@@ -104,6 +142,13 @@ function encodeEventsForStdout(events) {
 }
 
 async function main() {
+  const parsed = parseArgs(process.argv.slice(2));
+  if (parsed.error !== undefined) {
+    fail(`malformed CLI args: ${parsed.error}`);
+    return;
+  }
+  const { policy, connectionString } = parsed.args;
+
   const raw = await readStdin();
 
   let envelope;
@@ -127,9 +172,9 @@ async function main() {
   const actor = headerValue(scope.headers, "x-actor-id") || FALLBACK_ACTOR;
 
   const composition = createCustomerAsgiComposition({
-    connectionString: NEVER_CONNECTED_CONNECTION_STRING,
+    connectionString: policy === "allow" ? connectionString : NEVER_CONNECTED_CONNECTION_STRING,
     current: async () => new Principal(new TenantId(tenant), new ActorId(actor)),
-    candidatesFor: async () => [DENY_CANDIDATE],
+    candidatesFor: async () => [policy === "allow" ? ALLOW_CANDIDATE : DENY_CANDIDATE],
     evaluateInvariants: async () => ({ ok: true }),
   });
 

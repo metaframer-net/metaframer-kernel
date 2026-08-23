@@ -16,6 +16,27 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15F real PostgreSQL ALLOW smoke through the Python bridge
+  (`host/js_asgi/create_customer_asgi_runner.mjs` extended): the same runner V15E added now
+  accepts explicit CLI args, `--policy deny|allow` (default `deny`, identical to V15E's
+  never-connected behavior) and `--connection-string <postgres-url>` (required only with
+  `--policy allow`, read only from the CLI arg, never from `process.env`). In `allow` mode the
+  runner injects a deterministic ALLOW policy candidate and constructs the composition with the
+  real connection string, proving V15D's unchanged `StdioJsAsgiBridge` can drive an
+  ALLOW+invariants-ok `POST /customers` request through the real JS Kernel
+  `createCustomerAsgiComposition.app` boundary to a real PostgreSQL 16 commit: a `201` response
+  carrying a `CommitReceipt` with all four committed intents (`audit`, `customer`, `idempotency`,
+  `transactionalOutbox`), rows verified directly in `customer_records`, `audit_log`, and
+  `transactional_outbox`, and a duplicate identical request returning a deterministic `409
+  IDEMPOTENCY_CONFLICT` with no second row. Malformed CLI args (unrecognized flag, missing flag
+  value, invalid `--policy` value, or `--policy allow` without `--connection-string`) exit
+  non-zero with deterministic stderr before the composition is constructed. Sets
+  `realPostgresThroughPythonBridge: true`, `hostSelected: false`, `smokePath:
+  "ALLOW_REAL_POSTGRES"`, references `planning/gj01-v15e-real-js-boundary-runner-deny.json` as its
+  prerequisite, touches no `src/**`, no Python bridge code, no dependency/lockfile/CI/config/
+  pyproject/uv.lock file, and keeps every stronger readiness flag (including `runnableProduct`)
+  `false`. See `planning/gj01-v15f-python-bridge-real-pg-allow.json` and
+  `tests/kernel-python-host-bridge-real-pg-allow.test.mjs`.
 - GJ-01 V15E real JS boundary runner DENY smoke (`host/js_asgi/create_customer_asgi_runner.mjs`):
   the smallest Node standard-library-only command that lets V15D's `StdioJsAsgiBridge` delegate
   to the real JS Kernel `createCustomerAsgiComposition.app` boundary. It reads one `{ scope,
