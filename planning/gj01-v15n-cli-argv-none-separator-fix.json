@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15n-cli-argv-none-separator-fix-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "cli-argv-none-separator-fix",
+  "type": "cli-argv-none-separator-fix",
+  "packageState": "GREEN",
+  "baseCommit": "d078ef8",
+
+  "goal": "Fix host/python_asgi/create_customer_host_cli.py so that main(argv=None) / module execution normalizes argv to sys.argv[1:] once, and uses that same normalized list for both argparse parsing and the explicit -- separator/empty-command validation, so a real `python -m ... -- ...` invocation is never falsely rejected while an explicit argv list keeps working exactly as before.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15m-host-runner-cli-boundary.json",
+    "id": "gj01-v15m-host-runner-cli-boundary-2026-08-23",
+    "note": "V15M added parse_create_customer_host_args(argv) and main(argv=None) as the explicit CLI/argv boundary. Its separator check used the raw argv parameter directly, so when argv is None, parser.parse_args(None) correctly parses sys.argv but the separator/empty-command check saw argv as None and always failed closed, incorrectly rejecting a real python -m ... -- ... invocation. This V15N package fixes only that argv=None normalization gap."
+  },
+
+  "hostSelected": "explicit-cli-boundary",
+  "hypercornSelectedAsDevelopmentBase": false,
+  "uvicornSelectedAsDevelopmentBase": false,
+  "uvicornRemainsCompatibleCandidate": true,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "The test monkeypatches sys.argv to a realistic argv[0] plus --runner/--/command sequence and calls main(None), asserting dispatch happens with the correct captured command and options; a second test monkeypatches sys.argv to a --runner value with no -- separator and calls main(None), asserting it fails closed before dispatch exactly as an explicit argv list without -- already does. All prior V15M CLI tests (explicit argv list, missing --runner, unknown --runner, missing separator, empty command) continue to pass unchanged.",
+    "allowedOutcomes": ["argv-none-with-separator-dispatch-captured", "argv-none-without-separator-fails-closed"],
+    "note": "No real network listener is ever opened by this test. sys.argv is monkeypatched only for the duration of each test script's own process and never affects the surrounding test runner."
+  },
+
+  "nonGoals": [
+    "no new CLI feature beyond argv=None correctness",
+    "no src/** change",
+    "no host/js_asgi change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no FastAPI or Django import",
+    "no direct uvicorn or hypercorn import in the CLI module",
+    "no production, deploy, or release claim",
+    "no DB or schema change",
+    "no real network listener opened by tests",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "CLI_ARGV_NONE_SEPARATOR_FIX: parse_create_customer_host_args(argv) now normalizes argv to a single list once (sys.argv[1:] when argv is None, otherwise list(argv)) and uses that same normalized list for both parser.parse_args and the -- separator/empty-command validation, so main(argv=None) run against a real sys.argv containing --runner ... -- command dispatches correctly instead of falsely failing closed on the separator check; main(argv=None) without a -- separator in sys.argv still fails closed before dispatch, matching prior explicit-argv behavior.",
+
+  "userJourney": {
+    "once": "V15M'nin CLI sınırı, açık bir argv listesi verildiğinde doğru çalışıyordu, ama gerçek bir `python -m ... -- ...` çağrısında main(argv=None) kullanıldığında argparse gerçek sys.argv'yi doğru ayrıştırıyordu, fakat -- ayırıcı kontrolü argv=None gördüğü için her zaman başarısız oluyordu; yani geçerli bir komut satırı çağrısı yanlışlıkla reddediliyordu.",
+    "simdi": "parse_create_customer_host_args artık argv'yi bir kez normalize ediyor (argv None ise sys.argv[1:], değilse verilen liste) ve hem argparse'a hem de -- ayırıcı/boş komut kontrolüne aynı normalize edilmiş listeyi veriyor; böylece main(None) gerçek sys.argv üzerinden çağrıldığında -- ayırıcısı doğru şekilde görülüyor ve seçim doğru yapılıyor.",
+    "fark": "host/python_asgi/create_customer_host_cli.py'de argv normalizasyonu düzeltildi; tests/kernel-python-host-runner-cli.test.mjs, planning/gj01-v15n-cli-argv-none-separator-fix.json ve CHANGELOG.md güncellendi. src/**, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok; gerçek ağ dinleyicisi hiç açılmadı.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz; sadece, gerçek bir `python -m ... -- ...` çağrısının artık yanlışlıkla reddedilmediğini garanti eder. Açık argv listesiyle çağrılan önceki davranış aynen korunur.",
+    "kalanEngel": "Ne Uvicorn ne Hypercorn zorunlu geliştirme tabanı olarak seçildi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi production için eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future package may formally wire this CLI boundary into a real application entrypoint or packaging surface as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
