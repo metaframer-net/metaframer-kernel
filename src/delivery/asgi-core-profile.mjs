@@ -49,11 +49,16 @@ function decodeHeaders(headers) {
   return Object.freeze(decoded);
 }
 
+const HTTP_TOKEN_PATTERN = /^[A-Z0-9!#$%&'*+\-.^_`|~]+$/;
+
+function isValidHttpMethod(method) {
+  return typeof method === "string" && HTTP_TOKEN_PATTERN.test(method);
+}
+
 function isValidScope(scope) {
   return isOrdinaryObject(scope)
     && scope.type === "http"
-    && typeof scope.method === "string"
-    && scope.method.length > 0
+    && isValidHttpMethod(scope.method)
     && typeof scope.path === "string"
     && scope.path.length > 0
     && scope.path.startsWith("/")
