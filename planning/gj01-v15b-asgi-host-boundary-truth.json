@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15b-asgi-host-boundary-truth-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "claim-boundary-hardening-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "eedfa0b355d3872930444b32b23543a05acb1aff",
+
+  "goal": "Correct comment wording in src/delivery/create-customer-asgi-composition.mjs that could be read as claiming Uvicorn/Hypercorn can call our JavaScript ASGI-shaped callable directly. Uvicorn and Hypercorn are Python ASGI servers; this package's callable is ASGI-protocol-shaped and host-adapter-ready at the boundary, but direct Uvicorn/Hypercorn hosting requires a separate Python host bridge/shim that this package does not implement. No behavior change; no host selected.",
+
+  "allowedFiles": [
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "planning/gj01-v15b-asgi-host-boundary-truth.json",
+    "tests/kernel-asgi-host-boundary-truth.test.mjs",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no behavior change except source comments/claims",
+    "no new dependency, no package/version/CI/config change",
+    "no Python bridge/shim implementation",
+    "no Uvicorn/Hypercorn/FastAPI/Django import or selection",
+    "no hosted server/listener, no HTTP runtime, no network",
+    "no readiness/release/deploy/production/app-buildable claim",
+    "kernelReady, sdkReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed, runnableProduct all stay false"
+  ],
+
+  "scopeResolution": {
+    "note": "src/delivery/create-customer-asgi-composition.mjs previously described the returned app callable as 'a function a host adapter (Uvicorn, Hypercorn, ...) can call directly', which reads as if a Python ASGI server can invoke our JavaScript function in-process. That is not true: Uvicorn and Hypercorn are Python processes that call Python ASGI callables; our `app` is a JavaScript async (scope, receive, send) function that is ASGI-protocol-shaped (its call signature and event vocabulary match the ASGI spec) and is host-adapter-ready at that protocol boundary, but wiring it to a real Uvicorn or Hypercorn process needs a separate Python host bridge/shim outside this package -- not implemented here. This package corrects the module docblock, the createCustomerAsgiComposition JSDoc, and the two encoder helper comments (encodeJsonBody, encodeUtf8HeaderPart) to state that boundary precisely, without touching any executable statement, export, or control-flow line."
+  },
+
+  "sourceLinks": {
+    "asgiSpecMain": "https://asgi.readthedocs.io/en/latest/specs/main.html",
+    "asgiSpecHttp": "https://asgi.readthedocs.io/en/latest/specs/www.html",
+    "uvicornAsgiConcept": "https://uvicorn.dev/concepts/asgi/",
+    "hypercornDocs": "https://hypercorn.readthedocs.io/"
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-host-boundary-truth.test.mjs"],
+    "note": "Before this fix, the source file still contained the wording 'a host adapter (Uvicorn, Hypercorn, ...) can call directly' immediately after describing `app` as a plain JavaScript async function, with no mention anywhere in the file of a required separate Python host bridge/shim. The new test's assertions that this old wording is gone and that the new boundary-truth wording (ASGI-shaped, host-adapter-ready at the protocol boundary, direct Uvicorn/Hypercorn hosting needs a separate Python host bridge/shim not implemented here) is present both failed against that prior wording."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-host-boundary-truth.test.mjs",
+      "npm run check"
+    ],
+    "results": "Targeted evidence: 7/7 GREEN via node --test tests/kernel-asgi-host-boundary-truth.test.mjs -- planning JSON carries the three official ASGI/Uvicorn/Hypercorn source links; planning JSON keeps all readiness and runnableProduct flags false; planning JSON non-goals refuse a Python bridge, a server/listener, and Uvicorn/Hypercorn/FastAPI/Django selection or import; the old direct-call wording is gone from the source comments; the source comments state the ASGI host boundary truth; no package.json dependency on uvicorn/hypercorn/fastapi/django; no bare import of uvicorn/hypercorn/fastapi/django in the source file. npm run check: GREEN end to end (repository boundary, control-plane bootstrap, kernel-ai-development-readiness, kernel-runtime-substrate-s1, token-economy, P01 architecture fitness, kernel-cem01-repo-handshake, versioning-changelog, kernel-runtime-pilot-consumer-sync all pass)."
+  },
+
+  "acceptance": {
+    "commentCorrected": "src/delivery/create-customer-asgi-composition.mjs no longer states or implies that Uvicorn or Hypercorn can call the returned app callable directly; it states the callable is ASGI-shaped and host-adapter-ready at the protocol boundary, and that direct Uvicorn/Hypercorn hosting requires a separate Python host bridge/shim not implemented in this package",
+    "noBehaviorChange": "every executable statement, export shape, and runtime behavior in src/delivery/create-customer-asgi-composition.mjs is unchanged; only comments were edited",
+    "noHostSelected": "no import, dependency, or reference to uvicorn/hypercorn/fastapi/django as a package dependency exists anywhere in this repository as a result of this package",
+    "readinessUnclaimed": "kernelReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed, runnableProduct all remain false"
+  },
+
+  "rollback": {
+    "trigger": "the corrected wording is found to be itself inaccurate, or any non-comment line in src/delivery/create-customer-asgi-composition.mjs is found to have changed",
+    "action": "revert the comment edits in src/delivery/create-customer-asgi-composition.mjs, and remove this planning file, the added test, and the CHANGELOG entry, as one shard",
+    "blastRadius": "comments only inside src/delivery/create-customer-asgi-composition.mjs; no other file and no executable behavior touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_HOST_BOUNDARY_TRUTH: src/delivery/create-customer-asgi-composition.mjs's comments now state precisely that the returned app callable is an ASGI-shaped, host-adapter-ready JavaScript function at the protocol boundary, and that direct Uvicorn/Hypercorn hosting requires a separate Python host bridge/shim this package does not implement -- no capability, behavior, or host selection changed.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "src/delivery/create-customer-asgi-composition.mjs, önceki yorumlarında dönen app fonksiyonunu 'bir host adaptörünün (Uvicorn, Hypercorn, ...) doğrudan çağırabileceği bir fonksiyon' olarak tanımlıyordu. Bu ifade, Python tabanlı Uvicorn/Hypercorn sunucularının bizim JavaScript fonksiyonumuzu doğrudan çağırabileceği izlenimini veriyordu; oysa bu doğru değil.",
+    "simdi": "Yorumlar artık gerçeği yansıtıyor: app, ASGI protokolüne uygun şekillendirilmiş (ASGI-shaped) bir JavaScript async (scope, receive, send) fonksiyonu ve protokol sınırında host-adaptörüne-hazır durumda, ama Uvicorn veya Hypercorn'un onu gerçekten çalıştırabilmesi için bu paketin dışında, ayrı bir Python host köprüsü/shim gerekiyor -- ki bu paket böyle bir köprü içermiyor. Hiçbir çalışan kod satırı değişmedi, sadece yorumlar düzeltildi.",
+    "fark": "src/delivery/create-customer-asgi-composition.mjs içindeki modül üstü açıklama, createCustomerAsgiComposition JSDoc'u ve iki encoder yardımcı fonksiyonunun yorumları düzeltildi. Başka hiçbir dosya veya davranış değişmedi.",
+    "kullaniciYolculugu": "Bu paketi okuyan biri artık app'i doğrudan bir Uvicorn/Hypercorn sürecine verip çalıştırabileceğini düşünmeyecek; gerçek bir Python host köprüsü/shim yazılana kadar bu composition hiçbir gerçek HTTP isteğini bir Uvicorn/Hypercorn sunucusu üzerinden karşılayamaz.",
+    "kalanEngel": "Python host köprüsü/shim hâlâ yazılmadı; bu yüzden runnableProduct hâlâ false ve bu paket onu iddia etmiyor."
+  },
+
+  "nextPackage": {
+    "note": "A future package could implement a separate Python host bridge/shim outside this package if direct Uvicorn/Hypercorn hosting is ever desired; this package makes no commitment to that and selects no host.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

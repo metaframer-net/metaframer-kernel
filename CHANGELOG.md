@@ -585,6 +585,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   at 0.1.0-alpha.1. This is a train entry, not a release.
 
 ### Fixed
+- GJ-01 V15B ASGI host boundary claim correction (`planning/gj01-v15b-asgi-host-boundary-truth.json`):
+  corrected comment wording in `src/delivery/create-customer-asgi-composition.mjs` that could be
+  read as claiming Uvicorn or Hypercorn (Python ASGI servers) can call the returned `app` callable
+  directly. The comments now state precisely that `app` is an ASGI-shaped, host-adapter-ready
+  JavaScript async `(scope, receive, send)` callable at the protocol boundary, and that direct
+  Uvicorn/Hypercorn hosting requires a separate Python host bridge/shim outside this package, which
+  is not implemented here. This is a claim-boundary correction only: no executable behavior, export
+  shape, dependency, or host selection changed, and every stronger readiness flag stays `false`. See
+  `tests/kernel-asgi-host-boundary-truth.test.mjs`.
 - `PostgresCommitAdapter.commit` in `src/adapters/postgres-commit-adapter.mjs` now accepts a
   `customer.payload` that is either an ordinary `Object.prototype` record or a null-prototype safe
   record (e.g. `Object.create(null)`), instead of only the former. RED evidence for GJ-01 V14K
