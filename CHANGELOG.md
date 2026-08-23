@@ -16,6 +16,25 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15K Hypercorn host-runner boundary (`host/python_asgi/create_customer_hypercorn_runner.py`,
+  `tests/kernel-python-host-hypercorn-runner.test.mjs`): adds the smallest optional Hypercorn
+  host-runner boundary around the existing, unchanged `host/python_asgi/create_customer_app.py`
+  factory, analogous to the existing V15J Uvicorn runner. The new module exposes
+  `run_create_customer_hypercorn(command, host, port, max_body_bytes, log_level)`, which builds
+  the ASGI app via `create_customer_app` and calls `hypercorn.asyncio.serve(app, Config())` via
+  `asyncio.run` only when the function is explicitly invoked. Hypercorn is imported lazily inside
+  the function only, so importing the module has no Hypercorn dependency and no side effect; if
+  Hypercorn is absent, the function fails closed with a wrapped `RuntimeError` and performs no
+  fallback host. Tests prove the no-import-side-effect and fail-closed behavior, capture the
+  injected `serve` call's app/bind/loglevel arguments via a fake injected `hypercorn` module (no
+  real listener is ever opened), and confirm command/`max_body_bytes` validation still originates
+  from `create_customer_app`. This adds an optional launch boundary only, not app or production
+  readiness: Hypercorn is selected here only as the second optional ASGI host runner, the Kernel
+  remains framework-independent, and Uvicorn remains a separate, compatible candidate — imported
+  nowhere in this package. Adds no server to product code, touches no `src/**` or `host/js_asgi`
+  file, imports no FastAPI/Django/Uvicorn, reads no env, and keeps every stronger readiness flag
+  (including `runnableProduct`) `false`. See `planning/gj01-v15k-hypercorn-host-runner.json` and
+  prerequisite `planning/gj01-v15j-uvicorn-host-runner.json`.
 - GJ-01 V15J Uvicorn host-runner boundary (`host/python_asgi/create_customer_uvicorn_runner.py`,
   `tests/kernel-python-host-uvicorn-runner.test.mjs`): adds the smallest optional Uvicorn
   host-runner boundary around the existing, unchanged `host/python_asgi/create_customer_app.py`

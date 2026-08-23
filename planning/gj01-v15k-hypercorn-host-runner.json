@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15k-hypercorn-host-runner-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "hypercorn-host-runner",
+  "type": "hypercorn-host-runner",
+  "packageState": "GREEN",
+  "baseCommit": "30beaa0",
+
+  "goal": "Add the smallest optional Hypercorn host-runner boundary around the existing, unchanged host/python_asgi/create_customer_app.py factory: a new host/python_asgi/create_customer_hypercorn_runner.py module exposing run_create_customer_hypercorn, which builds the app via create_customer_app and hands it to hypercorn.asyncio.serve only when explicitly invoked, without adding any server to product code or selecting Hypercorn as the mandatory development base.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15j-uvicorn-host-runner.json",
+    "id": "gj01-v15j-uvicorn-host-runner-2026-08-23",
+    "note": "V15J added the first optional ASGI host-runner boundary (Uvicorn) around the unchanged create_customer_app factory. V15I proved, as bounded non-listening evidence, that Hypercorn can programmatically accept the create_customer_app callable when present. This V15K package adds the analogous, second runner boundary for Hypercorn: a small module that, only when its function is explicitly called, constructs the app and starts Hypercorn's asyncio serve()."
+  },
+
+  "hostSelected": "hypercorn-optional-second-runner",
+  "hypercornSelectedAsDevelopmentBase": false,
+  "uvicornRemainsCompatibleCandidate": true,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "The test imports host/python_asgi/create_customer_hypercorn_runner.py without hypercorn installed to prove import has no hypercorn requirement, then injects fake hypercorn.config.Config and hypercorn.asyncio.serve modules via sys.modules to assert run_create_customer_hypercorn calls serve with the create_customer_app result and an explicit Config bind/loglevel, and separately asserts a real absent-hypercorn ImportError path raises a wrapped RuntimeError.",
+    "allowedOutcomes": ["fake-hypercorn-injected", "hypercorn-absent-fails-closed"],
+    "note": "No real network listener is ever opened by this test. The injected serve() is an async no-op that returns immediately under asyncio.run; it is never a real server. Command/max_body_bytes validation is proved to still originate from create_customer_app, not from the runner. Uvicorn is imported nowhere in this package."
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no host/js_asgi change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no FastAPI or Django import",
+    "no Uvicorn import",
+    "no production, deploy, or release claim",
+    "no DB or schema change",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "HYPERCORN_HOST_RUNNER: this package adds host/python_asgi/create_customer_hypercorn_runner.py, exposing run_create_customer_hypercorn(command, host, port, max_body_bytes, log_level), which builds the ASGI app via the unchanged create_customer_app and calls hypercorn.asyncio.serve(app, Config()) via asyncio.run only when explicitly invoked. Hypercorn is imported lazily inside the function only, so importing the module has no Hypercorn dependency and no side effect. If Hypercorn is absent, the function fails closed with a wrapped RuntimeError and performs no fallback host. This adds an optional launch boundary only, not app or production readiness.",
+
+  "userJourney": {
+    "once": "V15J, Uvicorn'u çalıştırabilecek küçük bir isteğe bağlı fonksiyon ekledi, ama Hypercorn için eşdeğer bir sarmalayıcı yoktu; V15I sadece Hypercorn'un uygulamayı kabul edebildiğini kanıtladı, hiçbir şeyi çalıştırmadı.",
+    "simdi": "Bu paket, create_customer_hypercorn_runner.py içinde run_create_customer_hypercorn adlı küçük bir fonksiyon ekliyor: fonksiyon çağrıldığında create_customer_app ile uygulamayı kurup hypercorn.asyncio.serve'i açık bir Config (bind, loglevel) ile, asyncio.run üzerinden başlatıyor. Modülü import etmek hypercorn kurulu olmasını gerektirmiyor; hypercorn yoksa fonksiyon çağrıldığında açık bir RuntimeError ile başarısız oluyor, sessizce başka bir sunucuya düşmüyor.",
+    "fark": "host/python_asgi/create_customer_hypercorn_runner.py eklendi; tests/kernel-python-host-hypercorn-runner.test.mjs, planning/gj01-v15k-hypercorn-host-runner.json ve CHANGELOG.md güncellendi. src/**, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok; gerçek ağ dinleyicisi hiç açılmadı.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz ve hiçbir dinleyici açmaz; sadece, biri açıkça isterse Hypercorn'u başlatabilecek küçük, isteğe bağlı bir fonksiyon bırakır. Kernel hâlâ çerçeveden bağımsızdır.",
+    "kalanEngel": "Hypercorn hâlâ zorunlu geliştirme tabanı olarak seçilmedi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi production için eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future package may formally select and wire a real listener behind one of the two existing runners as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
