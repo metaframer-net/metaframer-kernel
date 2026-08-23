@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14q-asgi-header-name-token-conformance-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "aa76e2cece456d02e93542eeb672c05f565bc80e",
+
+  "goal": "Make decodeHeaders in src/delivery/asgi-core-profile.mjs reject a decoded ASGI header name that is empty, upper-case, whitespace-bearing, colon-bearing, or control-character-bearing, before the message ever reaches StandardRouter or receive(). Only a valid lower-case HTTP token header name (RFC 7230 token class, restricted to lower-case) stays accepted. V14P closed the method-token gap; header names had the same unguarded shape: any decoded name, however malformed, was silently lower-cased and inserted into the header map.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14q-asgi-header-name-token-conformance.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django/Express/Koa)",
+    "no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no restriction of valid existing lower-case header names",
+    "no change to header value decoding, method, path, or router-response handling"
+  ],
+
+  "scopeResolution": {
+    "note": "Minimal production fix: decodeHeaders now checks each decoded header name with isValidHeaderName(name), which requires a non-empty string matching the RFC 7230 HTTP token character class restricted to lower-case letters, digits and the standard token separators (!#$%&'*+-.^_`|~), via HEADER_NAME_TOKEN_PATTERN = /^[a-z0-9!#$%&'*+\\-.^_`|~]+$/. Empty strings, upper-case letters, spaces, colons, and control characters (including line breaks and tabs) are outside this class and fail the check, so decodeHeaders returns undefined and the profile boundary returns its existing frozen 400 PROFILE_SCOPE_INVALID events. Because a valid name is already lower-case by construction, the accepted name is stored as-is instead of being re-lower-cased. callFromReceive now also calls decodeHeaders(scope.headers) alongside isValidScope(scope) before entering the receive() loop, so a malformed header name short-circuits to 400 before receive() is ever invoked, matching the callFromReceive-before-receive placement V14N/V14P established for scope shape and method token. No router, receive, header-value, method, or path logic touched."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Added a dedicated handle test asserting a battery of malformed header names (empty, upper-case, spaces, embedded colon, newline, tab, carriage return) each short-circuit to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle; a companion test asserting valid lower-case token header names still dispatch and are readable on the router message; and a callFromReceive test asserting a malformed header name short-circuits to 400 without ever calling receive(). Against the pre-fix source, the malformed-name cases all failed: decodeHeaders lower-cased and accepted every name, so the router was reached (or receive() was called) instead of short-circuiting to 400."
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "All 44 tests pass, including the new header-name-token assertions and every pre-existing scope/method/response/encoder assertion. npm run check exits GREEN with no new failures."
+  },
+
+  "acceptance": {
+    "emptyHeaderNameRejected": "a decoded header name of '' short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "upperCaseHeaderNameRejected": "a decoded header name such as 'X-Actor-Id' or 'CONTENT-TYPE' short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "whitespaceHeaderNameRejected": "a decoded header name containing a space, leading/trailing space, or embedded colon short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "controlCharHeaderNameRejected": "a decoded header name containing \\n, \\t, or \\r short-circuits to the frozen 400 PROFILE_SCOPE_INVALID events without calling router.handle",
+    "callFromReceiveDoesNotCallReceive": "callFromReceive with a malformed header name short-circuits to 400 without ever calling receive()",
+    "validLowerCaseTokenNamesUnaffected": "valid lower-case HTTP token header names continue to decode, dispatch to router.handle, and appear correctly on the router message exactly as before"
+  },
+
+  "rollback": {
+    "trigger": "the added header-name-token check is found to reject a legitimate header name shape, or any existing test regresses",
+    "action": "revert isValidHeaderName/HEADER_NAME_TOKEN_PATTERN and its call site inside decodeHeaders, and the decodeHeaders(scope.headers) check added in callFromReceive, in src/delivery/asgi-core-profile.mjs, plus the added tests, this planning file and the CHANGELOG entry, as one shard",
+    "blastRadius": "two functions (decodeHeaders, callFromReceive) inside src/delivery/asgi-core-profile.mjs; no other function or file touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_HEADER_NAME_TOKEN_CONFORMANCE: a decoded ASGI header name that is empty, upper-case, whitespace-bearing, colon-bearing, or control-character-bearing is now rejected at the profile boundary with the frozen 400 PROFILE_SCOPE_INVALID response, before StandardRouter or receive() is ever reached, instead of being silently lower-cased and accepted into the header map.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "asgi-core-profile.mjs, decodeHeaders sadece her header çiftinin [ad, deger] biçiminde olup olmadığına ve ikisinin de string/bytes olarak çözülüp çözülemediğine bakıyordu; 'X-Actor-Id' gibi büyük harfli, 'x actor' gibi boşluklu, 'x-actor:id' gibi iki nokta taşıyan veya satır sonu/tab taşıyan bozuk bir header adı sessizce küçük harfe çevrilip header haritasına ekleniyordu.",
+    "simdi": "decodeHeaders artık her header adının geçerli bir küçük harfli HTTP token'ı olmasını şart koşuyor; boş, büyük harfli, boşluklu, iki nokta taşıyan veya kontrol karakteri taşıyan bir ad profil sınırında donmuş 400 PROFILE_SCOPE_INVALID yanıtıyla hemen reddediliyor, router veya receive() hiç çağrılmıyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde decodeHeaders'a bir header-adı-token doğrulama yardımcı fonksiyonu eklendi; callFromReceive artık receive() döngüsüne girmeden önce header adlarını da doğruluyor. Geçerli küçük harfli header adlarının davranışı hiç değişmedi.",
+    "kullaniciYolculugu": "Bir host adaptörü ASGI scope'unda bozuk biçimli bir header adı (örn. büyük harf, boşluk, iki nokta veya kontrol karakteri taşıyan) gönderirse, artık bu istek router'a hiç ulaşmadan profil sınırında 400 ile reddediliyor. Bu paket bir sunucu/host seçmiyor; sadece mevcut çağrılabilir fonksiyonun header doğrulamasını sıkılaştırıyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}

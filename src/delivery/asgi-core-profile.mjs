@@ -36,6 +36,12 @@ function decodeHeaderPart(value) {
   return undefined;
 }
 
+const HEADER_NAME_TOKEN_PATTERN = /^[a-z0-9!#$%&'*+\-.^_`|~]+$/;
+
+function isValidHeaderName(name) {
+  return typeof name === "string" && HEADER_NAME_TOKEN_PATTERN.test(name);
+}
+
 function decodeHeaders(headers) {
   if (!Array.isArray(headers)) return undefined;
   const decoded = {};
@@ -44,7 +50,8 @@ function decodeHeaders(headers) {
     const name = decodeHeaderPart(pair[0]);
     const value = decodeHeaderPart(pair[1]);
     if (name === undefined || value === undefined) return undefined;
-    decoded[name.toLowerCase()] = value;
+    if (!isValidHeaderName(name)) return undefined;
+    decoded[name] = value;
   }
   return Object.freeze(decoded);
 }
@@ -210,7 +217,7 @@ export class AsgiCoreProfileAdapter {
       return events;
     };
 
-    if (!isValidScope(scope)) {
+    if (!isValidScope(scope) || decodeHeaders(scope.headers) === undefined) {
       return sendErrorEvents();
     }
 
