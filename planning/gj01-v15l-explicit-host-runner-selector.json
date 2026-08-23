@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15l-explicit-host-runner-selector-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "explicit-host-runner-selector",
+  "type": "explicit-host-runner-selector",
+  "packageState": "GREEN",
+  "baseCommit": "2dab54b",
+
+  "goal": "Add the smallest explicit host-runner selector boundary over the existing optional Uvicorn (V15J) and Hypercorn (V15K) runners: a new host/python_asgi/create_customer_host_runner.py module exposing run_create_customer_host(command, runner, **kwargs), which requires an explicit runner=\"uvicorn\" or runner=\"hypercorn\" choice and dispatches to the matching sibling runner, without adding a default framework base, a dependency, or a real listener at import time.",
+
+  "prerequisite": {
+    "path": "planning/gj01-v15k-hypercorn-host-runner.json",
+    "id": "gj01-v15k-hypercorn-host-runner-2026-08-23",
+    "note": "V15J and V15K each added one optional ASGI host-runner boundary (Uvicorn and Hypercorn respectively), each callable only by its own explicit function. Neither package gave a caller a single explicit way to pick between them. This V15L package adds that missing selector boundary without changing either sibling runner."
+  },
+
+  "hostSelected": "explicit-runner-selector",
+  "hypercornSelectedAsDevelopmentBase": false,
+  "uvicornSelectedAsDevelopmentBase": false,
+  "uvicornRemainsCompatibleCandidate": true,
+  "interopMechanism": "subprocess-stdio-envelope",
+
+  "evidence": {
+    "environment": "runtime-conditional",
+    "detection": "The test imports host/python_asgi/create_customer_host_runner.py without uvicorn or hypercorn installed to prove import has no host-package requirement, then monkeypatches the module's own references to run_create_customer_uvicorn/run_create_customer_hypercorn to capture dispatch (command and kwargs) without opening a real listener, for both runner=\"uvicorn\" and runner=\"hypercorn\", and asserts an unknown runner value raises ValueError listing the allowed values.",
+    "allowedOutcomes": ["uvicorn-dispatch-captured", "hypercorn-dispatch-captured", "unknown-runner-fails-closed"],
+    "note": "No real network listener is ever opened by this test. The selector module imports only its two sibling runner modules; neither uvicorn nor hypercorn is imported directly by the selector module or its test."
+  },
+
+  "nonGoals": [
+    "no src/** change",
+    "no host/js_asgi change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no FastAPI or Django import",
+    "no direct uvicorn or hypercorn import in the selector module",
+    "no default framework base selected",
+    "no production, deploy, or release claim",
+    "no DB or schema change",
+    "no commit, push, or merge performed by this package"
+  ],
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "EXPLICIT_HOST_RUNNER_SELECTOR: this package adds host/python_asgi/create_customer_host_runner.py, exposing run_create_customer_host(command, runner=\"uvicorn\", **kwargs), which requires an explicit runner selection of \"uvicorn\" or \"hypercorn\" and dispatches command/kwargs to the matching sibling runner (run_create_customer_uvicorn or run_create_customer_hypercorn) without importing uvicorn or hypercorn directly. An unknown runner value fails closed with a ValueError listing the allowed values. This adds an explicit selection boundary only, not app or production readiness; no default framework base is introduced.",
+
+  "userJourney": {
+    "once": "V15J ve V15K, Uvicorn ve Hypercorn için ayrı ayrı isteğe bağlı fonksiyonlar ekledi, ama bir çağıranın ikisi arasında tek, açık bir seçim yapabileceği bir yer yoktu.",
+    "simdi": "Bu paket, create_customer_host_runner.py içinde run_create_customer_host adlı küçük bir fonksiyon ekliyor: çağıran runner=\"uvicorn\" veya runner=\"hypercorn\" değerini açıkça vermek zorunda, fonksiyon da bu seçime göre ilgili kardeş fonksiyona yönlendiriyor. Modül hiçbir zaman uvicorn veya hypercorn paketini doğrudan import etmiyor; bilinmeyen bir runner değeri açık bir ValueError ile başarısız oluyor.",
+    "fark": "host/python_asgi/create_customer_host_runner.py eklendi; tests/kernel-python-host-runner-selector.test.mjs, planning/gj01-v15l-explicit-host-runner-selector.json ve CHANGELOG.md güncellendi. src/**, host/js_asgi, package.json, bağımlılık/lockfile/CI/config/pyproject/uv.lock dosyalarında hiçbir değişiklik yok; gerçek ağ dinleyicisi hiç açılmadı.",
+    "kullaniciYolculugu": "Bu paket tek başına hiçbir sunucu başlatmaz; sadece, biri açıkça isterse Uvicorn veya Hypercorn'dan birini seçebileceği küçük, isteğe bağlı bir seçim noktası bırakır. Kernel hâlâ çerçeveden bağımsızdır ve hiçbir varsayılan geliştirme tabanı seçilmedi.",
+    "kalanEngel": "Ne Uvicorn ne Hypercorn zorunlu geliştirme tabanı olarak seçildi, hiçbir gerçek ağ dinleyicisi veya HTTP çerçevesi production için eklenmedi; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "A future package may formally select and wire a real listener behind this selector as part of a deliberate, separately reviewed decision. This package makes no commitment to that timeline.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
