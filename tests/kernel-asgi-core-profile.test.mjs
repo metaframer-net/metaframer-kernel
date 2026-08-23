@@ -159,7 +159,7 @@ test("valid scope dispatches router.handle exactly once with frozen plain messag
   let received;
   const routerResponse = Object.freeze({
     status: 201,
-    headers: Object.freeze({ "Content-Type": "application/json", "X-Request-Id": "r1" }),
+    headers: Object.freeze({ "content-type": "application/json", "x-request-id": "r1" }),
     body: Object.freeze({ ok: true }),
   });
   const router = routerWith([{
@@ -221,7 +221,7 @@ test("response header pairs are sorted by name for determinism", async () => {
     path: "/orders",
     handler: stubHandler(() => Object.freeze({
       status: 200,
-      headers: Object.freeze({ zeta: "1", alpha: "2", Mid: "3" }),
+      headers: Object.freeze({ zeta: "1", alpha: "2", mid: "3" }),
       body: Object.freeze({}),
     })),
   }]);
@@ -246,6 +246,73 @@ test("malformed router response rejects with TypeError", async () => {
       TypeError,
     );
   }
+});
+
+test("handle rejects malformed router response header names with TypeError", async () => {
+  const badHeaderNames = [
+    "",
+    "Content-Type",
+    "CONTENT-TYPE",
+    "x actor",
+    "x-actor ",
+    " x-actor",
+    "x-actor:id",
+    "x-actor\n",
+    "x-actor\t",
+    "x-actor\r",
+  ];
+
+  for (const badName of badHeaderNames) {
+    const router = routerWith([{
+      method: "GET",
+      path: "/x",
+      handler: stubHandler(() => Object.freeze({
+        status: 200,
+        headers: Object.freeze({ [badName]: "v" }),
+        body: Object.freeze({}),
+      })),
+    }]);
+    const adapter = new AsgiCoreProfileAdapter({ router });
+    await assert.rejects(
+      () => adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined }),
+      TypeError,
+    );
+  }
+});
+
+test("call rejects malformed router response header names with TypeError before invoking send", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({
+      status: 200,
+      headers: Object.freeze({ "X-Bad": "v" }),
+      body: Object.freeze({}),
+    })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [] };
+  const sent = [];
+  await assert.rejects(
+    () => adapter.call({ scope, body: undefined, send: async (e) => sent.push(e) }),
+    TypeError,
+  );
+  assert.equal(sent.length, 0);
+});
+
+test("handle accepts valid lower-case router response header names and keeps sorted deterministic output", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler(() => Object.freeze({
+      status: 200,
+      headers: Object.freeze({ "x-b": "2", "x-a": "1", "x-c!#$%&'*+-.^_`|~9": "3" }),
+      body: Object.freeze({}),
+    })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const events = await adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined });
+  assert.deepEqual(events[0].headers, [["x-a", "1"], ["x-b", "2"], ["x-c!#$%&'*+-.^_`|~9", "3"]]);
 });
 
 test("call rejects a non-function send without invoking the router", async () => {
