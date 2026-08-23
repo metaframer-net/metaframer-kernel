@@ -100,6 +100,11 @@ function checkRouterResponse(response) {
   if (!isOrdinaryObject(response.headers)) {
     throw new TypeError("AsgiCoreProfileAdapter router response headers must be an ordinary object");
   }
+  for (const name of Reflect.ownKeys(response.headers)) {
+    if (typeof name !== "string" || !HEADER_NAME_TOKEN_PATTERN.test(name)) {
+      throw new TypeError("AsgiCoreProfileAdapter router response header names must be valid lower-case HTTP tokens");
+    }
+  }
   return response;
 }
 

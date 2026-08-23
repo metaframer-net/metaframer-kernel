@@ -16,6 +16,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14R ASGI response header name conformance (`planning/gj01-v14r-asgi-response-header-name-conformance.json`):
+  `checkRouterResponse()` in `src/delivery/asgi-core-profile.mjs` now rejects a `StandardRouter`
+  response header name that is empty, upper-case, whitespace-bearing, colon-bearing, or
+  control-character-bearing, throwing a `TypeError` before `toResponseEvents()` builds any
+  outgoing ASGI response event, so a malformed name is never sent from `handle()` or `call()`.
+  Previously any router response header key, however malformed, was silently lower-cased,
+  sorted, and placed into the `http.response.start` event. Valid lower-case HTTP token header
+  names keep their existing sorted, deterministic behavior. Not a server/host selection.
 - GJ-01 V14Q ASGI header name token conformance (`planning/gj01-v14q-asgi-header-name-token-conformance.json`):
   `decodeHeaders()` in `src/delivery/asgi-core-profile.mjs` now rejects a decoded header name that
   is empty, upper-case, whitespace-bearing, colon-bearing, or control-character-bearing, returning
