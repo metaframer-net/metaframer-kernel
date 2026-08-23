@@ -98,20 +98,24 @@ test("Uvicorn programmatic acceptance of create_customer_app, or a clear unavail
   const planning = await loadPlanning();
   const available = await uvicornAvailable();
 
-  if (!available) {
-    assert.equal(
-      planning.evidence.environment,
-      "uvicorn-unavailable",
-      "planning must record that host smoke is unavailable in this environment",
-    );
-    return;
-  }
-
   assert.equal(
     planning.evidence.environment,
-    "uvicorn-available",
-    "planning must record that uvicorn was available in this environment",
+    "runtime-conditional",
+    "planning must record Uvicorn availability as detected at runtime, not a hard-coded environment fact",
   );
+  assert.ok(
+    Array.isArray(planning.evidence.allowedOutcomes) &&
+      planning.evidence.allowedOutcomes.includes("uvicorn-available") &&
+      planning.evidence.allowedOutcomes.includes("uvicorn-unavailable"),
+    "planning must explicitly allow both the available and unavailable outcomes",
+  );
+  assert.equal(planning.runnableProduct, false);
+
+  if (!available) {
+    // Uvicorn absent in this environment: the planning record already permits
+    // this outcome above, and no runnable-product claim is made.
+    return;
+  }
 
   const script = `
 import sys

@@ -20,8 +20,10 @@
   "interopMechanism": "subprocess-stdio-envelope",
 
   "evidence": {
-    "environment": "uvicorn-available",
-    "note": "python3 -c 'import uvicorn' succeeded in the environment this package's test ran in, so the bounded programmatic-acceptance script executed: uvicorn.Config(app=create_customer_app(...), host=\"127.0.0.1\", port=0, lifespan=\"off\", log_level=\"critical\") and uvicorn.Server(config) accepted the unchanged V15G callable, and a direct ASGI call through the real JS runner returned a 403 DENY response. No uvicorn.Server.serve() was called and no real listener was opened. Hypercorn remains untested and unselected: it is not present in this environment and this package imports no Hypercorn code."
+    "environment": "runtime-conditional",
+    "detection": "python3 -c 'import uvicorn' executed fresh at test time in whichever environment runs the suite; this is not a durable, checked-in fact about any specific machine (local or CI) and must never be hard-coded to a single outcome",
+    "allowedOutcomes": ["uvicorn-available", "uvicorn-unavailable"],
+    "note": "When uvicorn imports successfully, the test runs the bounded programmatic-acceptance script: uvicorn.Config(app=create_customer_app(...), host=<loopback address>, port=0, lifespan=\"off\", log_level=\"critical\") and uvicorn.Server(config) accept the unchanged V15G callable, and a direct ASGI call through the real JS runner returns a 403 DENY response; no uvicorn.Server.serve() is called and no real listener is opened. When uvicorn is absent, the test asserts this planning record explicitly permits the uvicorn-unavailable outcome and makes no runnable-product claim either way. Hypercorn remains untested and unselected in all cases: it is imported nowhere in this package."
   },
 
   "nonGoals": [
