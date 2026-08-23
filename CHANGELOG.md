@@ -16,6 +16,21 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15M host-runner CLI boundary (`host/python_asgi/create_customer_host_cli.py`,
+  `tests/kernel-python-host-runner-cli.test.mjs`): adds the smallest explicit Python CLI/argv
+  boundary over the existing V15L `run_create_customer_host` selector. The new module exposes
+  `parse_create_customer_host_args(argv)` and `main(argv=None)`, which require an explicit
+  `--runner uvicorn|hypercorn` choice and an explicit `--` separator before the application-side
+  JS command, then dispatch `command` plus safe options (`--host`, `--port`,
+  `--max-body-bytes`, `--log-level`) to the unchanged `run_create_customer_host` selector. The
+  CLI module imports neither `uvicorn`, `hypercorn`, `fastapi`, nor `django` directly — it only
+  imports `run_create_customer_host` from the sibling selector module. There is no default
+  runner: a missing `--runner`, an unknown `--runner` value, a missing `--` separator, or an
+  empty command after `--` all fail closed via `argparse`/`SystemExit` before any dispatch.
+  Tests prove the no-import-side-effect behavior, that the module contains no direct
+  `uvicorn`/`hypercorn`/`fastapi`/`django` import, that each `--runner` value dispatches to the
+  selector with `command` and the parsed safe options, and that every fail-closed path raises
+  before dispatch. See `planning/gj01-v15m-host-runner-cli-boundary.json`.
 - GJ-01 V15L explicit host-runner selector (`host/python_asgi/create_customer_host_runner.py`,
   `tests/kernel-python-host-runner-selector.test.mjs`): adds the smallest explicit selection
   boundary over the existing V15J Uvicorn and V15K Hypercorn runners. The new module exposes
