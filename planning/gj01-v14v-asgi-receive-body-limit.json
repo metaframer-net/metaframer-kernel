@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v14v-asgi-receive-body-limit-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "profile-boundary-conformance-tiny-fix",
+  "packageState": "GREEN",
+  "baseCommit": "73a20bee6e396919d48387f1f54292b05ea8f264",
+
+  "goal": "Add the smallest framework-neutral optional request body byte limit to AsgiCoreProfileAdapter.callFromReceive in src/delivery/asgi-core-profile.mjs, so that a future Uvicorn/Hypercorn-compatible host can pass maxBodyBytes without this file choosing, importing, or depending on any host/server/framework. Default behavior (maxBodyBytes omitted) is unchanged.",
+
+  "allowedFiles": [
+    "src/delivery/asgi-core-profile.mjs",
+    "tests/kernel-asgi-core-profile.test.mjs",
+    "planning/gj01-v14v-asgi-receive-body-limit.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no server/host/framework selection or addition (not Uvicorn/Hypercorn/FastAPI/Django)",
+    "no Python ASGI app, no new dependency, listener, HTTP/net/fs capability, environment read, clock or randomness use",
+    "no change to createCustomerAsgiComposition or any default body-limit value there",
+    "no change to callFromReceive behavior when maxBodyBytes is omitted",
+    "no package.json, CI/config, DB/schema, or application/domain/SDK change",
+    "no production/deploy/release claim"
+  ],
+
+  "scopeResolution": {
+    "note": "callFromReceive({ ..., maxBodyBytes }) gained one new optional option. It is validated up front (non-negative safe integer, or undefined) with a TypeError thrown before receive or router are ever invoked, mirroring the existing decodeBody/encodeResponseBody/encodeResponseHeader validation style. While collecting http.request chunks, a running receivedBytes counter is compared against maxBodyBytes after each chunk; once it is exceeded the loop returns the existing deterministic sendErrorEvents() 400 profile response immediately, without calling receive again or ever calling this.#router / this.call. The boundary case (receivedBytes === maxBodyBytes) does not trip the limit and dispatches normally, matching an inclusive maxBodyBytes semantic. No other method, no default parameter value, and no host/server code was touched."
+  },
+
+  "red": {
+    "commands": ["node --test --test-name-pattern 'maxBodyBytes|collects multi-chunk' tests/kernel-asgi-core-profile.test.mjs"],
+    "note": "Before the fix, callFromReceive had no maxBodyBytes option: passing any value for it was silently ignored (no TypeError on invalid values, no enforcement on oversized bodies), so a body of unbounded size would always reach the router. The three new maxBodyBytes tests fail without the change: invalid maxBodyBytes values do not throw TypeError, an oversized cumulative body is not short-circuited to a 400 response and router.handle is still invoked, and the exact-boundary case has nothing to distinguish it. The pre-existing 'collects multi-chunk' test continues to pass throughout, since it never sets maxBodyBytes."
+  },
+  "green": {
+    "commands": [
+      "node --test --test-name-pattern 'maxBodyBytes|collects multi-chunk' tests/kernel-asgi-core-profile.test.mjs",
+      "npm run check"
+    ],
+    "results": "Targeted evidence: 4/4 GREEN (rejects invalid maxBodyBytes with TypeError before receive/router; short-circuits to 400 and skips router when cumulative bytes exceed the limit; dispatches to router when cumulative bytes exactly equal the limit; existing multi-chunk collection unchanged). Full suite: node --test tests/kernel-asgi-core-profile.test.mjs is 56/56 GREEN, including every pre-existing callFromReceive/call/handle test. npm run check is GREEN end to end (repository boundary, control-plane bootstrap, kernel-ai-development-readiness, kernel-runtime-substrate-s1, token-economy, P01 architecture fitness, kernel-cem01-repo-handshake, versioning-changelog, kernel-runtime-pilot-consumer-sync all pass their respective checks; no Docker/PostgreSQL slice was exercised by this package)."
+  },
+
+  "acceptance": {
+    "optionAccepted": "callFromReceive({ ..., maxBodyBytes }) accepts an optional maxBodyBytes option without changing its existing option surface otherwise",
+    "invalidRejected": "a maxBodyBytes value that is not undefined and not a non-negative safe integer (negative, fractional, NaN, Infinity, out-of-safe-integer-range, or a non-number) throws TypeError before receive or router.handle is ever called",
+    "overLimitShortCircuits": "once cumulative received chunk bytes exceed maxBodyBytes, callFromReceive returns the same deterministic 400 profile response produced by sendErrorEvents(), sends it via send, and never calls router.handle",
+    "boundaryDispatches": "a body whose cumulative bytes exactly equal maxBodyBytes is not treated as over the limit and is dispatched to router.handle exactly as before",
+    "defaultUnchanged": "when maxBodyBytes is omitted, callFromReceive behavior, including unlimited chunk collection, is byte-identical to before this change"
+  },
+
+  "rollback": {
+    "trigger": "the added maxBodyBytes validation or enforcement is found to reject a legitimate call, or any existing test regresses",
+    "action": "revert the maxBodyBytes parameter, validation, and receivedBytes enforcement in src/delivery/asgi-core-profile.mjs, and the three added tests, this planning file and the CHANGELOG entry, as one shard",
+    "blastRadius": "one method (callFromReceive) inside src/delivery/asgi-core-profile.mjs; no other method, file, or default value touched",
+    "runtimeDataImpact": "none; no runtime, DB, or I/O surface involved"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": true
+  },
+  "capabilityDelta": "ASGI_RECEIVE_BODY_LIMIT: AsgiCoreProfileAdapter.callFromReceive now accepts an optional, framework-neutral maxBodyBytes limit that short-circuits an over-large request body to the existing deterministic 400 profile response before the router is ever invoked, with no host/server/framework selected or imported.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "callFromReceive, gelen http.request parçalarını hiçbir üst sınır olmadan topluyordu; bir istemci istediği kadar büyük bir gövde gönderebilirdi ve bu gövde her zaman router'a ulaşırdı.",
+    "simdi": "callFromReceive artık isteğe bağlı bir maxBodyBytes parametresi kabul ediyor. Geçersiz bir değer (negatif, tam sayı olmayan, güvenli tam sayı aralığının dışında) receive veya router hiç çağrılmadan TypeError ile reddediliyor. Geçerli bir sınır verildiğinde, biriken baytlar bu sınırı aştığı anda router hiç çağrılmadan mevcut deterministik 400 yanıtı gönderiliyor; sınıra tam eşit gövdeler ise değişmeden işleniyor. maxBodyBytes verilmediğinde davranış birebir aynı kalıyor.",
+    "fark": "src/delivery/asgi-core-profile.mjs içinde callFromReceive imzasına maxBodyBytes eklendi, başında bir doğrulama ve gövde toplama döngüsünde bir biriken bayt sayacı ve karşılaştırma eklendi. Başka hiçbir dosya veya varsayılan değer değişmedi.",
+    "kullaniciYolculugu": "Gelecekte bu adaptörü saran bir host (Uvicorn/Hypercorn uyumlu) artık istekleri router'a ulaşmadan önce bayt cinsinden sınırlayabilir; bu paket kendisi hiçbir host/sunucu/çerçeve seçmiyor veya içe aktarmıyor, sadece bu sınırı geçmek için gereken en küçük çerçeveden bağımsız kancayı ekliyor.",
+    "kalanEngel": "Hâlâ gerçek bir HTTP sunucusu/host adaptörü bu callable'ı sarmalamıyor ve maxBodyBytes'ı hiçbir yerden geçmiyor; bu yüzden runnableProduct hâlâ false."
+  },
+
+  "nextPackage": {
+    "note": "No further follow-up declared by this package.",
+    "followUps": []
+  },
+
+  "versionBump": false
+}
