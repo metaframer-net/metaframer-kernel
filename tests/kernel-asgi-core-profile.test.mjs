@@ -248,6 +248,46 @@ test("malformed router response rejects with TypeError", async () => {
   }
 });
 
+test("handle rejects router response status outside valid ASGI/HTTP range with TypeError", async () => {
+  const badStatuses = [
+    "200",
+    NaN,
+    Infinity,
+    -Infinity,
+    99,
+    600,
+    200.5,
+    0,
+    -1,
+  ];
+
+  for (const badStatus of badStatuses) {
+    const router = routerWith([{
+      method: "GET",
+      path: "/x",
+      handler: stubHandler(() => Object.freeze({ status: badStatus, headers: Object.freeze({}), body: Object.freeze({}) })),
+    }]);
+    const adapter = new AsgiCoreProfileAdapter({ router });
+    await assert.rejects(
+      () => adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined }),
+      TypeError,
+    );
+  }
+});
+
+test("handle accepts router response status at valid ASGI/HTTP range boundaries", async () => {
+  for (const okStatus of [100, 204, 599]) {
+    const router = routerWith([{
+      method: "GET",
+      path: "/x",
+      handler: stubHandler(() => Object.freeze({ status: okStatus, headers: Object.freeze({}), body: Object.freeze({}) })),
+    }]);
+    const adapter = new AsgiCoreProfileAdapter({ router });
+    const events = await adapter.handle({ scope: { type: "http", method: "GET", path: "/x", headers: [] }, body: undefined });
+    assert.equal(events[0].status, okStatus);
+  }
+});
+
 test("handle rejects malformed router response header names with TypeError", async () => {
   const badHeaderNames = [
     "",
