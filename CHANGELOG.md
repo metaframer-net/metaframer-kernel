@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15A one-golden-slice step closure (`planning/gj01-v15a-one-golden-slice-step-closure.json`):
+  a package-local, evidence-only closure record proving step 4 (`one-golden-slice`) of the pinned
+  runtime-start sequence in `planning/kernel-runtime-pilot-consumer-sync.json` is closed for
+  CreateCustomer@1, by composing five already-GREEN upstream evidence records (the generated-sdk
+  step closure, the atomic four-intent customer commit receipt, the framework-neutral composition
+  root, the ASGI composition body-limit conformance package, and the ASGI receive `more_body`
+  conformance package) together with the Docker-backed real PostgreSQL 16 test
+  `createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /customers request to a
+  real PostgreSQL 16 commit` in `tests/kernel-create-customer-asgi-composition.test.mjs`. This
+  package writes no production code, edits none of the composed evidence, and every stronger
+  readiness flag (`kernelReady`, `sdkReady`, `appBuildable`, `releaseAllowed`, `deployAllowed`,
+  `productionAllowed`, `oneGoldenSliceReady`, `runnableProduct`) stays `false`. See
+  `tests/kernel-one-golden-slice-step-closure.test.mjs`.
 - GJ-01 V14Y ASGI receive `more_body` conformance (`planning/gj01-v14y-asgi-receive-more-body-conformance.json`):
   `AsgiCoreProfileAdapter.callFromReceive` in `src/delivery/asgi-core-profile.mjs` now validates
   the `more_body` property on each `http.request` receive event: if present, it must be the

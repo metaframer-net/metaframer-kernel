@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "gj01-v15a-one-golden-slice-step-closure-2026-08-23",
+  "generatedAt": "2026-08-23",
+  "packageKind": "one-golden-slice-step-closure",
+  "packageState": "step-closed-by-composition-no-new-artifact",
+  "baseCommit": "ddaeed8e238ae1fb988419c806885ba9bae04e5c",
+
+  "sequenceReference": {
+    "source": "planning/kernel-runtime-pilot-consumer-sync.json",
+    "field": "nextRuntimeStartPackage.sequence",
+    "order": 4,
+    "id": "one-golden-slice",
+    "note": "This package closes step 4 (one-golden-slice) of the pinned runtime-start sequence for CreateCustomer@1 by composing five already-GREEN upstream evidence records into one package-local closure claim. It writes no new production code and edits none of the composed evidence. It does not open a hosted HTTP server, host/runtime selection, or any release/deploy/production step of that sequence."
+  },
+
+  "goal": "Add the smallest closure record proving the one-golden-slice step is closed for CreateCustomer@1 by composing existing generated-sdk, adapter commit-receipt, framework-neutral composition, and ASGI boundary conformance evidence, without editing any of the composed evidence and without adding a server/host/framework.",
+
+  "allowedFiles": [
+    "planning/gj01-v15a-one-golden-slice-step-closure.json",
+    "tests/kernel-one-golden-slice-step-closure.test.mjs",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no src/** change",
+    "no db/** change",
+    "no tools/** change",
+    "no HTTP server, no ASGI host/runtime, no Uvicorn/Hypercorn/FastAPI/Django selection or import",
+    "no generated SDK artifact/generator change",
+    "no DB migration/schema/adapter/application/domain change",
+    "no CI/config/package/version change",
+    "no release/deploy/production/app-buildable/kernel-ready claim"
+  ],
+
+  "composedEvidence": {
+    "generatedSdkStepClosure": {
+      "path": "planning/gj01-v11-generated-sdk-step-closure.json",
+      "id": "gj01-v11-generated-sdk-step-closure-2026-08-22",
+      "contributes": "proves the generated-sdk step (step 3 of the pinned sequence) is closed for CreateCustomer@1 by composing the src/sdk boundary, the pinned protocol contract, the materialized artifact, and the deterministic generator"
+    },
+    "customerCommitReceipt": {
+      "path": "planning/gj01-v12b2b-customer-commit-receipt.json",
+      "id": "gj01-v12b2b-customer-commit-receipt-2026-08-22",
+      "contributes": "proves customer_records, audit, transactional outbox, and idempotency all commit atomically in one attested tenant transaction, returning a full frozen CommitReceipt with no deferred intents"
+    },
+    "frameworkNeutralComposition": {
+      "path": "planning/gj01-v13c-framework-neutral-composition.json",
+      "id": "gj01-v13c-framework-neutral-composition-2026-08-22",
+      "contributes": "proves a framework-neutral composition root wires CreateCustomerRequestHandler, CreateCustomerCommitService, and PostgresCommitAdapter together with no HTTP server, ASGI runtime, or framework selected"
+    },
+    "asgiCompositionBodyLimit": {
+      "path": "planning/gj01-v14w-asgi-composition-body-limit.json",
+      "id": "gj01-v14w-asgi-composition-body-limit-2026-08-23",
+      "contributes": "proves the ASGI composition callable enforces an optional, framework-neutral request body byte limit, short-circuiting an over-limit request before the commit path, with no host/server/framework selected"
+    },
+    "asgiReceiveMoreBodyConformance": {
+      "path": "planning/gj01-v14y-asgi-receive-more-body-conformance.json",
+      "id": "gj01-v14y-asgi-receive-more-body-conformance-2026-08-23",
+      "contributes": "proves the ASGI receive loop rejects a malformed present http.request.more_body value with the existing deterministic 400 profile response, closing an ASGI receive-event conformance gap, before the current package started"
+    },
+    "asgiCompositionDockerCommitTest": {
+      "path": "tests/kernel-create-customer-asgi-composition.test.mjs",
+      "testName": "createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /customers request to a real PostgreSQL 16 commit",
+      "contributes": "a Docker-backed real PostgreSQL 16 test asserting the current ASGI composition callable, as bounded and conformant by the two composed ASGI evidence records above, carries an ALLOW+invariants-ok POST /customers request through to a real commit"
+    }
+  },
+
+  "closureClaim": {
+    "note": "Composing the five records and the named Docker-backed test above shows the Kernel-side customer.create path is provably wired end to end: typed action/generated SDK contract -> framework-neutral composition root -> ASGI-bounded, receive-conformant callable -> atomic four-intent PostgreSQL commit with a full CommitReceipt. This is a package-local step closure only. It does not claim a hosted HTTP server exists, that any host/server/framework has been selected, or that the Kernel, an SDK, an app, a release, a deploy, or production is ready."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-one-golden-slice-step-closure.test.mjs"],
+    "observedFailure": "ENOENT: planning/gj01-v15a-one-golden-slice-step-closure.json did not exist before this package"
+  },
+  "green": {
+    "commands": [
+      "node --test tests/kernel-one-golden-slice-step-closure.test.mjs",
+      "npm run check"
+    ]
+  },
+
+  "rollback": {
+    "trigger": "the composed-evidence references, the flags/non-goals block, or the package-local closure claim drifts from this record",
+    "action": "revert planning/gj01-v15a-one-golden-slice-step-closure.json, tests/kernel-one-golden-slice-step-closure.test.mjs, and the CHANGELOG.md entry as one three-file shard; none of the five composed evidence records or the Docker-backed test are touched by this rollback because this package never writes to them.",
+    "blastRadius": "planning-and-tests-only",
+    "runtimeDataImpact": "none"
+  },
+
+  "flags": {
+    "oneGoldenSliceStepClosed": true,
+    "generatedSdkStepClosed": true,
+    "gapClosed": true,
+    "oneGoldenSliceReady": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false
+  },
+  "flagsNote": "oneGoldenSliceStepClosed/generatedSdkStepClosed/gapClosed are package-local step-closure claims for this GJ-01 slice only: they say the composed evidence chain above already proves the pinned sequence's one-golden-slice step. oneGoldenSliceReady is deliberately kept false because a step being provably closed by composed evidence is not the same as a global readiness claim; there is still no hosted HTTP server, host/runtime selection, or app around this composed path.",
+  "capabilityDelta": "NONE: this package writes no production code and adds no new runtime behavior. It only records, in one place, that the existing GREEN evidence chain already proves the one-golden-slice step for CreateCustomer@1.",
+  "runnableProduct": false,
+
+  "userJourney": {
+    "once": "CreateCustomer@1 için kanıt çok sayıda ayrı parçaya (SDK üretim paketi, adaptör commit paketi, kompozisyon paketi, ASGI sınır paketleri, Docker'lı gerçek PostgreSQL testi) dağılmış durumdaydı; kimse tek bir kayda bakıp 'bu adım kapandı mı' diyemiyordu.",
+    "simdi": "Artık tek bir kapanış kaydı, bu beş kanıtı ve Docker'lı gerçek PostgreSQL commit testini isim ve dosya yoluyla birbirine bağlıyor: typed action/SDK sözleşmesinden ASGI çağrılabilirine, oradan gerçek PostgreSQL commit'ine kadar customer.create yolunun kanıtlanabilir olduğunu tek bir yerden okuyabilirsiniz.",
+    "fark": "Sadece yeni bir planning JSON kaydı ve onu doğrulayan bir test eklendi; hiçbir üretim kodu, veritabanı şeması veya araç değişmedi.",
+    "kullaniciYolculugu": "Bir tenant customer.create isteği gönderdiğinde, Kernel tarafındaki yol (SDK sözleşmesi -> kompozisyon -> ASGI callable -> PostgreSQL commit) artık uçtan uca kanıtlanmış durumda. Ama hâlâ bu callable'ı dinleyen gerçek bir HTTP sunucusu veya kullanıcı ekranı yok; bu paket sadece Kernel tarafının kanıt zincirini birleştiriyor.",
+    "kalanEngel": "Hosted bir HTTP sunucusu/host adaptörü hâlâ yok; bu yüzden runnableProduct ve appBuildable hâlâ false. Bu paket bir sunucu/framework seçimi yapmıyor ve production/release/deploy iddiası taşımıyor."
+  },
+
+  "versionBump": false
+}
