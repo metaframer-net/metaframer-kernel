@@ -81,6 +81,64 @@ test("malformed scope short-circuits to a frozen 400 profile response without ca
   assert.equal(called, false);
 });
 
+test("handle rejects malformed ASGI header names with a frozen 400 profile response without calling router", async () => {
+  let called = false;
+  const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200 }); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+
+  const badHeaderNames = [
+    "",
+    "X-Actor-Id",
+    "CONTENT-TYPE",
+    "x actor",
+    "x-actor ",
+    " x-actor",
+    "x-actor:id",
+    "x-actor\n",
+    "x-actor\t",
+    "x-actor\r",
+    "x-act or",
+  ];
+
+  for (const badName of badHeaderNames) {
+    const scope = { type: "http", method: "GET", path: "/x", headers: [[badName, "v"]] };
+    const events = await adapter.handle({ scope, body: undefined });
+    assert.equal(events.length, 2);
+    assert.equal(events[0].status, 400);
+    assert.deepEqual(JSON.parse(JSON.stringify(events[1].body)).error.code, "PROFILE_SCOPE_INVALID");
+    assert.ok(Object.isFrozen(events));
+  }
+  assert.equal(called, false);
+});
+
+test("handle accepts valid lower-case HTTP token header names", async () => {
+  const router = routerWith([{
+    method: "GET",
+    path: "/x",
+    handler: stubHandler((message) => Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({ seen: message.headers["x-actor-id"] }) })),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [["x-actor-id", "a1"]] };
+  const events = await adapter.handle({ scope, body: undefined });
+  assert.equal(events[1].body.seen, "a1");
+});
+
+test("callFromReceive rejects malformed ASGI header names before ever calling receive", async () => {
+  let receiveCalled = false;
+  const router = routerWith([{ method: "GET", path: "/x", handler: stubHandler(() => { throw new Error("router must not be called"); }) }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "GET", path: "/x", headers: [["X-Bad", "v"]] };
+  const receive = async () => { receiveCalled = true; return { type: "http.request", body: new Uint8Array(), more_body: false }; };
+  const sent = [];
+  const send = async (event) => { sent.push(event); };
+
+  const events = await adapter.callFromReceive({ scope, receive, send });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].status, 400);
+  assert.equal(receiveCalled, false);
+  assert.deepEqual(sent, events);
+});
+
 test("callFromReceive malformed receive-event 400 profile response has frozen header pairs", async () => {
   const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => Object.freeze({ status: 200 })) }]);
   const adapter = new AsgiCoreProfileAdapter({ router });
@@ -122,7 +180,7 @@ test("valid scope dispatches router.handle exactly once with frozen plain messag
     headers: [
       ["x-actor-id", "a1"],
       [new TextEncoder().encode("x-tenant-id"), new TextEncoder().encode("t1")],
-      ["X-Actor-Id", "a2"],
+      ["x-actor-id", "a2"],
     ],
     asgi: { version: "3.0" },
     http_version: "1.1",

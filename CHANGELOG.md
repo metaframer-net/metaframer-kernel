@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14Q ASGI header name token conformance (`planning/gj01-v14q-asgi-header-name-token-conformance.json`):
+  `decodeHeaders()` in `src/delivery/asgi-core-profile.mjs` now rejects a decoded header name that
+  is empty, upper-case, whitespace-bearing, colon-bearing, or control-character-bearing, returning
+  the profile boundary's existing frozen 400 `PROFILE_SCOPE_INVALID` response before
+  `StandardRouter` or `receive()` ever run; `callFromReceive()` checks header names before entering
+  its `receive()` loop, matching the existing before-`receive()` placement for scope shape and
+  method token. Previously any decoded header name, however malformed, was silently lower-cased
+  and inserted into the header map. Valid lower-case HTTP token header names are unaffected. Not a
+  server/host selection.
 - GJ-01 V14P ASGI HTTP method token conformance (`planning/gj01-v14p-asgi-method-token-conformance.json`):
   `isValidScope()` in `src/delivery/asgi-core-profile.mjs` now rejects a `method` that is not a
   well-formed upper-case HTTP token, throwing the profile boundary's existing frozen 400
