@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15G Python host app factory (`host/python_asgi/create_customer_app.py`): a
+  standard-library-only `create_customer_app(command, max_body_bytes=None)` factory that
+  validates `command` is an explicit non-empty sequence of strings (rejects `None`, a bare
+  string/bytes, an empty sequence, and any non-string element) and that `max_body_bytes` is
+  `None` or a non-negative int, then returns `StdioJsAsgiBridge(command, max_body_bytes=
+  max_body_bytes)` unchanged from V15D as a callable ASGI app. `host/python_asgi/__init__.py`
+  is unchanged; callers import `create_customer_app` directly from
+  `host/python_asgi/create_customer_app.py`. Selects no host server, imports no Uvicorn/Hypercorn/
+  FastAPI/Django, reads no env, touches no `src/**`, no JS runner file, and no dependency/
+  lockfile/CI/config/pyproject/uv.lock file; keeps every stronger readiness flag (including
+  `runnableProduct`) `false`. References `planning/gj01-v15f-python-bridge-real-pg-allow.json`
+  as its prerequisite. See `planning/gj01-v15g-python-host-app-factory.json` and
+  `tests/kernel-python-host-app-factory.test.mjs`.
 - GJ-01 V15F real PostgreSQL ALLOW smoke through the Python bridge
   (`host/js_asgi/create_customer_asgi_runner.mjs` extended): the same runner V15E added now
   accepts explicit CLI args, `--policy deny|allow` (default `deny`, identical to V15E's
