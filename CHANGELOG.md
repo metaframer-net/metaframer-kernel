@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V14Y ASGI receive `more_body` conformance (`planning/gj01-v14y-asgi-receive-more-body-conformance.json`):
+  `AsgiCoreProfileAdapter.callFromReceive` in `src/delivery/asgi-core-profile.mjs` now validates
+  the `more_body` property on each `http.request` receive event: if present, it must be the
+  boolean `true` or `false`; a present non-boolean value (e.g. `"yes"`, `1`, `null`, `{}`, `[]`)
+  short-circuits to the existing deterministic 400 profile response via `sendErrorEvents` without
+  calling the router. An omitted `more_body` is still treated as the final chunk, `false` is the
+  final chunk, and `true` continues to the next receive as before.
 - GJ-01 V14X evidence parity correction (`planning/gj01-v14w-asgi-composition-body-limit.json`):
   updated V14W's planning record so its red/green targeted-evidence commands and results match
   the final merged test names and count -- the four-required-plus-known-optional-key test, the

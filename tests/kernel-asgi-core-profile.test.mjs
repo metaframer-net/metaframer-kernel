@@ -585,6 +585,51 @@ test("callFromReceive collects multi-chunk http.request body in order before dis
   assert.deepEqual(result, sent);
 });
 
+test("callFromReceive rejects a present non-boolean more_body with a 400 profile response without calling router", async () => {
+  for (const badMoreBody of ["true", 1, 0, null, {}, [], "yes"]) {
+    let called = false;
+    const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200 }); }) }]);
+    const adapter = new AsgiCoreProfileAdapter({ router });
+    const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+    let receiveCalls = 0;
+    const receive = async () => { receiveCalls += 1; return { type: "http.request", body: new Uint8Array(), more_body: badMoreBody }; };
+    const sent = [];
+    const send = async (event) => { sent.push(event); };
+
+    const result = await adapter.callFromReceive({ scope, receive, send });
+
+    assert.equal(receiveCalls, 1);
+    assert.equal(called, false);
+    assert.equal(result[0].status, 400);
+    assert.deepEqual(sent, result);
+  }
+});
+
+test("callFromReceive treats an omitted more_body as the final chunk", async () => {
+  let received;
+  const router = routerWith([{
+    method: "POST",
+    path: "/customers",
+    handler: stubHandler(async (message) => {
+      received = message;
+      return Object.freeze({ status: 201, headers: Object.freeze({}), body: Object.freeze({ ok: true }) });
+    }),
+  }]);
+  const adapter = new AsgiCoreProfileAdapter({ router });
+  const scope = { type: "http", method: "POST", path: "/customers", headers: [] };
+
+  let receiveCalls = 0;
+  const receive = async () => { receiveCalls += 1; return { type: "http.request", body: new TextEncoder().encode("ab") }; };
+  const send = async () => {};
+
+  const result = await adapter.callFromReceive({ scope, receive, send });
+
+  assert.equal(receiveCalls, 1);
+  assert.equal(new TextDecoder().decode(received.body), "ab");
+  assert.equal(result[0].status, 201);
+});
+
 test("callFromReceive rejects invalid maxBodyBytes with TypeError before invoking receive or router", async () => {
   let called = false;
   const router = routerWith([{ method: "POST", path: "/customers", handler: stubHandler(() => { called = true; return Object.freeze({ status: 200, headers: Object.freeze({}), body: Object.freeze({}) }); }) }]);

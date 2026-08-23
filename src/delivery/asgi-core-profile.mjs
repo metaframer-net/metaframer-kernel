@@ -257,6 +257,11 @@ export class AsgiCoreProfileAdapter {
       if (maxBodyBytes !== undefined && receivedBytes > maxBodyBytes) {
         return sendErrorEvents();
       }
+      if (Object.hasOwn(event, "more_body")
+        && event.more_body !== true
+        && event.more_body !== false) {
+        return sendErrorEvents();
+      }
       chunks.push(chunk);
       if (event.more_body !== true) break;
     }
