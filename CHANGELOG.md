@@ -16,6 +16,26 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- GJ-01 V15L explicit host-runner selector (`host/python_asgi/create_customer_host_runner.py`,
+  `tests/kernel-python-host-runner-selector.test.mjs`): adds the smallest explicit selection
+  boundary over the existing V15J Uvicorn and V15K Hypercorn runners. The new module exposes
+  `run_create_customer_host(command, runner="uvicorn", **kwargs)`, which requires an explicit
+  `runner="uvicorn"` or `runner="hypercorn"` choice and dispatches `command`/`kwargs` to the
+  matching sibling runner (`run_create_customer_uvicorn` or `run_create_customer_hypercorn`)
+  unchanged. The selector module imports neither `uvicorn` nor `hypercorn` directly — it only
+  imports the two sibling runner functions, which keep their own lazy package imports — so
+  importing the selector has no host-package requirement and no side effect. An unknown
+  `runner` value fails closed with a `ValueError` listing the allowed values. Tests prove the
+  no-import-side-effect behavior, that the module contains no direct `uvicorn`/`hypercorn`
+  import, that each `runner` value dispatches to its matching sibling with `command` and
+  `kwargs` intact and never calls the other sibling, and that an unknown value fails closed (no
+  real listener is ever opened). This adds an explicit launch-selection boundary only, not app
+  or production readiness: no default framework base is selected and the Kernel remains
+  framework-independent. Adds no server to product code, touches no `src/**` or `host/js_asgi`
+  file, imports no FastAPI/Django/Uvicorn/Hypercorn, reads no env, and keeps every stronger
+  readiness flag (`kernelReady`, `oneGoldenSliceReady`, `walkingSkeletonReady`, `appBuildable`,
+  `releaseAllowed`, `deployAllowed`, `productionAllowed`, `runnableProduct`, `gapClosed`) false.
+
 - GJ-01 V15K Hypercorn host-runner boundary (`host/python_asgi/create_customer_hypercorn_runner.py`,
   `tests/kernel-python-host-hypercorn-runner.test.mjs`): adds the smallest optional Hypercorn
   host-runner boundary around the existing, unchanged `host/python_asgi/create_customer_app.py`
