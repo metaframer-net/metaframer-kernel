@@ -16,6 +16,25 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04a `PolicyStatement` immutable policy-as-data row (`src/application/policy-statement.mjs`,
+  `tests/kernel-policy-statement.test.mjs`): adds the first serial P04 subpackage, one inert
+  value carrying exactly the ten fields of a declarative policy row — `id`, `effect`,
+  `targetActor`, `targetAction`, `targetResourceType`, `condition`, `priority`, `layer`,
+  `version`, `enabled`. `effect` is exactly `allow`/`deny`; `layer` is exactly
+  `system`/`platform`/`tenant`; `priority` is a safe integer; `enabled` is a primitive boolean;
+  `version` is an exact SemVer 2.0.0 string retained verbatim; `id`/`targetAction`/
+  `targetResourceType` are bounded canonical lowercase scalars. `targetActor` and `condition`
+  are defensive, deterministic, deeply frozen JSON-data values that fail closed on cycles,
+  shared references, holes, accessors, symbols, hostile keys, non-finite numbers and exotic
+  prototypes. Deterministic `toJSON()`/`toString()`/`equals()`; zero imports; no clock, random,
+  environment, filesystem or network effect. It is inert: no matcher, wildcard, condition
+  evaluation, record set, candidate resolver, combining algorithm, batch, decision log,
+  persistence or RLS is added, and the existing `Policy`, `PolicyRequest`, `PolicyDecision`,
+  `AuthorizationEvaluator` and `PolicyDecisionPoint` are untouched.
+  `tests/repository-boundary.test.mjs`'s closed `src/application` module manifest is extended
+  with `policy-statement.mjs`. See `planning/kernel-policy-statement-p04a.json`.
+  `capability_delta: IMMUTABLE_POLICY_AS_DATA_REPRESENTATION_ONLY`; every stronger readiness
+  flag (including `runnableProduct`) stays `false`.
 - P06 kernel persistence-ownership admission guard (`planning/kernel-persistence-ownership.json`,
   `tools/check-kernel-persistence-ownership.mjs`, `tests/kernel-persistence-ownership.test.mjs`):
   an additive, read-only, dependency-free build-time check, composed once into `npm run check`
