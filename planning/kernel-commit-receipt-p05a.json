@@ -1,0 +1,41 @@
+{
+  "id": "kernel-commit-receipt-p05a",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "immutableBase": {
+    "commit": "084ec65ea1cc520e3bc3a1044aa21c6edb9d4c21",
+    "tree": "3079ebcf3b6c1c6a9ba97f9a641e4c0eaf5db4ae"
+  },
+  "allowedFiles": [
+    "tests/kernel-commit-receipt.test.mjs",
+    "src/application/commit-receipt.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/kernel-commit-receipt-p05a.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no WriteEnvelope", "no UoW wiring", "no adapter/persistence/outbox delivery",
+    "no ambient clock/id/random/I-O", "no version/release/readiness/deploy/production claim"
+  ],
+  "scope": "src/application/commit-receipt.mjs: the frozen CommitReceipt value class holding exactly the canonical eight fields (requestId, tenantId, resourceId, outcome, committedAt, auditId, outboxEventIds, idempotencyKey) per actionplan@c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3:reports/gj01-v2-contract-freeze-2026-08-22.json. Registers commit-receipt.mjs in the closed src/application RING_MODULE_MANIFEST.",
+  "red": {
+    "command": "node --test tests/kernel-commit-receipt.test.mjs",
+    "result": "5/5 scenarios FAIL: src/application/commit-receipt.mjs did not exist."
+  },
+  "green": {
+    "command": "node --test tests/kernel-commit-receipt.test.mjs tests/repository-boundary.test.mjs",
+    "result": "172/172 PASS."
+  },
+  "budget": { "class": "default", "grossAdditions": 399, "grossDeletions": 1, "net": 398, "changedFiles": 5, "gate": "GREEN_NET_LE_400", "targetedEvidence": "172/172 GREEN", "fullQaExecutionsPerChangePackage": 2, "validUsedAtCandidateFreeze": 0, "note": "CI QA2 remains after PR", "priorFullSuiteRun": "INVALID_ENVIRONMENT_FOR_HEAD_RELATIVE_TESTS: 11 historical package-scope tests reject any new uncommitted src/** path; not valid QA1" },
+  "rollback": "revert the eventual atomic package commit; new untracked paths cannot be rolled back by git checkout.",
+  "once": "src/application had no CommitReceipt value; a successful commit had no immutable receipt shape.",
+  "simdi": "CommitReceipt var, sadece deger tasiyan, donuk (frozen), tek basina hicbir seyi kaydetmiyor.",
+  "fark": "Bir sonraki paket (WriteEnvelope/UoW) artik bu sabit sekli kullanabilir; henuz hicbir akis bunu uretmiyor.",
+  "kullaniciYolculugu": "Hicbir kullanici yolculugu calismiyor: adapter, UoW ve delivery baglantisi yok.",
+  "kalanEngel": "WriteEnvelope, UoW komposisyonu ve gercek bir adapter/outbox teslimati yok.",
+  "capability_delta": "NONE",
+  "flags": {
+    "kernelReady": false, "sdkReady": false, "appBuildable": false,
+    "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false,
+    "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false
+  }
+}
