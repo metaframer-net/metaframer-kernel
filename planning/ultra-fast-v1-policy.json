@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "ultra-fast-v1-guardrails-policy",
+  "sourceCommit": "39eedea4ef5167f97d8cc01a48b6223b7cfc21e2",
+  "role": "additive pilot overlay for fast-development-package guardrails; does not replace Actionplan changePackageBudget",
+  "externalBudgetReference": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "fullQaBudget": 2,
+  "releaseAllowed": false,
+  "runtimeAuthorityClaimed": false,
+  "readinessClaimed": false,
+  "thresholds": {
+    "scenarioBandMin": 3,
+    "scenarioBandMax": 8,
+    "testFileCountMax": 2,
+    "checkpointMinute": 20,
+    "concurrencyStaticCeiling": 3
+  },
+  "checkpointTerminalOutcomes": ["READY_FOR_CI", "CLEAN_SPLIT_OR_ROLLBACK", "BLOCKED_WITH_ONE_EVIDENCE"],
+  "requiredPaneMode": "jit-exact-worktree",
+  "requiredGcTrigger": "event-driven",
+  "projectionFiles": [
+    ".claude/skills/ultra-fast-development/SKILL.md",
+    ".claude/agents/ultra-fast-test-writer.md",
+    ".claude/agents/ultra-fast-implementation-writer.md",
+    ".claude/agents/ultra-fast-reviewer.md",
+    "RULES.md"
+  ]
+}

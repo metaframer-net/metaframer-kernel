@@ -64,6 +64,19 @@ P20, P21, P23, P24 -> P25
 - Full per-phase Definitions of Done are in `planning/roadmap-v1-current-truth.json` under
   `roadmap.families[].dod`, referenced per phase via `dodRef`.
 
+### Operational guardrails (process overlays, not roadmap phases)
+
+These sit alongside the fixed 25-package plan; they never add, remove, or renumber a phase, and
+the denominator above stays 25.
+
+- **GC-02** — Pane panel cleanup is event-driven only (never a timer/cron/daemon/hook/background
+  loop). Canonical source: the global Pane-garbage-collector lifecycle directive and the
+  `pane-garbage-collector` skill/agent.
+- **ultra-fast-v1 pilot** — an additive packaging overlay for small, bounded change packages
+  (separate test writer, implementation writer, read-only reviewer). Canonical source:
+  `planning/ultra-fast-v1-policy.json`, projected in
+  `.claude/skills/ultra-fast-development/SKILL.md`. It claims no readiness.
+
 ## Owner-facing
 
 `capability_delta: NONE`. `calistirilabilirlik: not-runnable`. See the `ownerFacing` block of the

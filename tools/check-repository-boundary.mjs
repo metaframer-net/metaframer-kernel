@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { runUltraFastV1PolicyCheck } from "./check-ultra-fast-v1-policy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -856,6 +857,8 @@ async function main() {
       "bootstrap section, and its `## Current status` block is separately asserted to hold " +
       "GO-KERNEL-DEVELOPMENT-ONLY with every stronger flag false and no contradicting token.",
   );
+
+  runUltraFastV1PolicyCheck();
 }
 
 const invokedAsCli =
