@@ -16,6 +16,29 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P02 handler-free ActionContract IR (`src/application/action-contract.mjs`,
+  `tests/kernel-action-contract.test.mjs`): adds one immutable declarative value describing an
+  action's shape — exactly `kind` ("command" or "query"), the dotted-lowercase `name`, a safe
+  integer `version` >= 1, and three caller-ordered identifier lists (`fields`, `outcomes`,
+  `errorEnvelopeFields`). Each list admits only an ordinary dense array of unique, safe
+  `[A-Za-z][A-Za-z0-9_]*` identifiers (1-64 characters); every entry is validated, cloned and
+  deeply frozen with caller-declared order preserved rather than sorted, since order is part of
+  the contract. The top-level options argument must be an ordinary `Object.prototype` object
+  carrying exactly the six declared own enumerable data properties — a custom or null
+  prototype, a symbol-keyed or non-enumerable member, or an accessor property (checked by
+  descriptor, never invoked) is refused before any field is read. Construction refuses any
+  unknown or missing top-level option, sparse holes, extra array properties, foreign array
+  prototypes, accessor elements, symbol values, duplicate identifiers, and the unsafe
+  identifiers `__proto__`, `constructor` and `prototype` in any of the three lists. `toJSON()`/
+  `toString()` render the fixed key order deterministically;
+  `equals()` is exact-class and structural. The module is framework-free, capability-free, and
+  imports nothing — Command and Query in `src/application/action-primitives.mjs` remain the
+  sole effect boundary and are untouched. It describes an action; it renders no code and
+  executes no handler. `tests/repository-boundary.test.mjs`'s closed `src/application` module
+  manifest is extended with `action-contract.mjs`. See
+  `planning/kernel-action-contract-ir-p02.json`. `capability_delta:
+  PUBLIC_ACTION_CONTRACT_IR_ONLY`; every stronger readiness flag (including `runnableProduct`)
+  stays `false`.
 - P01 current-truth + roadmap v1 (`planning/roadmap-v1-current-truth.json`, `ROADMAP.md`,
   `tests/kernel-roadmap-v1-current-truth.test.mjs`): adds the sole machine-readable owner of
   Roadmap v1 state — source classes, current implemented/not-implemented truth with every

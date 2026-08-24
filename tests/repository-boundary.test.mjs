@@ -625,11 +625,13 @@ const MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters", "deliver
  * enters `use-case.mjs` beside it. The generated-SDK generation package enters
  * `create-customer.mjs` as the first `src/sdk` module. The V13A application commit service
  * package (`planning/gj01-v13a-application-commit-service.json`) enters
- * `create-customer-commit-service.mjs` beside `create-customer-pipeline.mjs`.
+ * `create-customer-commit-service.mjs` beside `create-customer-pipeline.mjs`. The P02 package
+ * (`planning/kernel-action-contract-ir-p02.json`) enters `action-contract.mjs` beside them, a
+ * second, handler-free declarative IR that describes an action's shape and never executes one.
  */
 const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
-  ["application", ["action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
+  ["application", ["action-contract.mjs", "action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
   ["sdk", ["create-customer.mjs"]],
   ["adapters", ["postgres-commit-adapter.mjs"]],
   ["delivery", ["asgi-core-profile.mjs", "create-customer-asgi-composition.mjs", "create-customer-composition.mjs", "create-customer-http-message-adapter.mjs", "create-customer-request-handler.mjs", "standard-router.mjs"]],
