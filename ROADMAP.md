@@ -29,6 +29,16 @@ record this projects from.
 Progress is reported `completed/25` against this fixed 25-package denominator; the denominator
 never moves without a newly named plan version.
 
+## Progress
+
+`5/25 tamamlandı, P05/25 aktif` (`roadmap.progress` in
+[`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
+packages: P01, P02, P03, P04, P06. P04 (policy-as-data, batch and decision-log adapter) is
+closed — its candidate resolution, sequential batch evaluation and PostgreSQL-backed
+decision-log adapter are composed end to end and test-verified against PostgreSQL 16. P05 (UoW,
+CommitReceipt and write envelope) is the active package and the next explicit gap; none of this
+moves any readiness flag under [README.md](README.md) `## Current status`.
+
 ## Approved dependency DAG
 
 ```

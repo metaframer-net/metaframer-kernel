@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04h roadmap current-truth sync (`planning/roadmap-v1-current-truth.json`,
+  `tests/kernel-roadmap-v1-current-truth.test.mjs`, this file, `ROADMAP.md`, `README.md`): adds
+  `roadmap.progress` (`completed=5`, `total=25`, `completedPackages=[P01,P02,P03,P04,P06]`,
+  `activePackage=P05`, `statusLine="5/25 tamamlandı, P05/25 aktif"`), moves P04 (policy-as-data,
+  batch and decision-log adapter, composed end to end against a real PostgreSQL decision-log)
+  from `notImplementedPieces` to `implementedPieces`, and adds P05 (UoW, CommitReceipt, write
+  envelope) as the explicit next-missing piece. Every readiness/product flag
+  (`kernelReady`/`sdkReady`/`appBuildable`/`releaseAllowed`/`deployAllowed`/`productionAllowed`/
+  `gapClosed`/`oneGoldenSliceReady`/`runnableProduct`) stays `false` and `capability_delta`
+  stays `NONE`/`calistirilabilirlik` stays `not-runnable`; this package makes no readiness or
+  runnable-product claim and adds no runtime capability.
 - P04g `PostgresDecisionLogAdapter#chainHead(tenantId)` and `policyDecisionLogComposition`
   (`src/adapters/postgres-decision-log-adapter.mjs`,
   `src/delivery/policy-decision-log-composition.mjs`,
