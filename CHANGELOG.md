@@ -16,6 +16,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04c `PolicyBatchEvaluator` (`src/application/policy-batch-evaluator.mjs`,
+  `tests/kernel-policy-batch-evaluator.test.mjs`): adds a sequential batch orchestrator whose
+  constructor delegates exact `{candidatesFor}` validation to one internal `PolicyDecisionPoint`.
+  `decideAll(requests)` preflights an ordinary dense array of exact genuine `PolicyRequest`
+  values before any collaborator call, admits an empty array without ever calling the
+  collaborator, then sequentially awaits one PDP decision per request in exact input order,
+  stopping and rejecting with the first collaborator failure with no partial result, and answers
+  with a new ordinary frozen decision array. No candidate/combining logic is duplicated; no
+  decision log, persistence, PEP, SDK, UI, config, release or deploy surface is introduced. See
+  `planning/kernel-policy-batch-evaluator-p04c.json`.
 - P04b2 `PolicyCandidateResolver` (`src/application/policy-candidate-resolver.mjs`,
   `tests/kernel-policy-candidate-resolver.test.mjs`): adds a pure, synchronous resolver that
   turns a frozen array of genuine `PolicyStatement` rows into the exact ordinary v2 candidate

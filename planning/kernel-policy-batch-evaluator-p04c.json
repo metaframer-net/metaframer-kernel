@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-policy-batch-evaluator-p04c-2026-08-24",
+  "packageKind": "policy-decision-batch-orchestration",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "baseCommit": "089a01ba469b02aba613525af4254860ad728a7e",
+
+  "role": "P04c ultra-fast implementation writer, direct work only, no Agent/child/background worker.",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p04c-ultra-fast-20260824",
+  "immutableBase": "089a01ba469b02aba613525af4254860ad728a7e",
+  "goal": "Add PolicyBatchEvaluator, a frozen sequential batch orchestrator whose constructor delegates exact {candidatesFor} validation to one internal PolicyDecisionPoint and whose decideAll(requests) preflights a full ordinary dense array of exact genuine PolicyRequest values before any collaborator call, then evaluates one PDP decision per request in exact input order, stopping on the first failure with no partial result.",
+
+  "blindScopeHashes": {
+    "master": "9d76282e2a5dfdcd4d6a3d482077fde68db12c8fa87dbc325bc46d0a7b636ac4",
+    "claude": "e4362b3d4def9fd8bce7dbc3dc09513d7b87e548e2cbd2d2751be064b3ddb45e",
+    "synthesis": "52d5f7c7387123d470d6e89abdf05efd389cba0f870ba565ec165befd47e9125"
+  },
+
+  "frozenTest": {
+    "path": "tests/kernel-policy-batch-evaluator.test.mjs",
+    "readOnly": true,
+    "originalHashSha256": "d74944ae65a40f888341ef4d90b589ccfcc0c9d60e3d020c0caab03498cae53a",
+    "originalLines": 276,
+    "originalRedResult": "0/3 PASS, 3/3 FAIL: src/application/policy-batch-evaluator.mjs did not yet exist, independently confirmed before implementation began.",
+    "correctionWaves": 1,
+    "correctionWave1": {
+      "changedBy": "separate test writer, not this implementation writer",
+      "correctedHashSha256": "c80f258736b419deb19088bbf164193818dd6b1295772def8d5a71c543b49c45",
+      "correctedLines": 326,
+      "scenarioCount": 3,
+      "why": "MASTER independently confirmed 1/3 PASS at the original hash against this writer's then-current implementation: (1) an accessor own property at an array index (not an own data property) was silently invoked and its resolved value admitted into decideAll's evaluation instead of being refused before any getter ran, and (2) a collaborator-driven mutation of the caller-owned array at a later index, performed after preflight validation, replaced what decideAll evaluated at that index instead of the original validated request identity. The test writer's replan added, to the existing preflight scenario, an accessor-array-element assertion and an extra-own-property assertion, and added, to the existing sequencing scenario, a snapshot-integrity assertion. Both defects required a source-side fix in the allowed src/application/policy-batch-evaluator.mjs, not a further test correction.",
+      "redAtWave1": "1/3 PASS against this writer's pre-fix implementation, independently confirmed by MASTER before this writer's second pass: the integration scenario remained GREEN; the preflight scenario failed at the new accessor-array-element assertion (the accessor's getter ran and its value was silently accepted); the sequencing scenario failed at the new snapshot-integrity assertion (the mid-batch mutation replaced the evaluated request at index 2).",
+      "greenAtWave1": "3/3 PASS after this writer replaced the index-membership admission check in checkRequests with a descriptor-level check: exact Array.prototype, own-key parity (no key beyond the dense indices plus length), and, for every index, an own enumerable data property (never an accessor) whose descriptor value passes the exact genuine PolicyRequest brand check, all evaluated before any collaborator call; decideAll now builds and evaluates from a new internal snapshot array captured at preflight time, so a caller/collaborator mutation of the original array after preflight can no longer change what a later index evaluates. All other semantics (empty-array admission without a collaborator call, sequential one-call-per-request ordering, first-failure-stops-and-rejects with no partial result, deterministic non-mutating output) are unchanged."
+    },
+    "verifiedAgainstPresentSource": "170/170 GREEN (3/3 in this file plus 167/167 unaffected in tests/repository-boundary.test.mjs) against this writer's current src/application/policy-batch-evaluator.mjs, at the corrected hash c80f258736b419deb19088bbf164193818dd6b1295772def8d5a71c543b49c45."
+  },
+
+  "falseReadinessFlagsEncountered": {
+    "note": "None raised by this writer's own implementation. Both defects found at correction wave 1 (accessor-element admission, post-preflight mutation of a later index) were genuine gaps in this writer's first-pass checkRequests, not defects in the frozen test file; both are fixed in the current src/application/policy-batch-evaluator.mjs.",
+    "productionReady": false,
+    "released": false,
+    "deployed": false,
+    "enforcementPointIntroduced": false
+  },
+
+  "allowedFilesThisWave": [
+    "src/application/policy-batch-evaluator.mjs",
+    "planning/kernel-policy-batch-evaluator-p04c.json"
+  ],
+
+  "nonGoals": [
+    "No candidate derivation or combining logic is introduced; PolicyBatchEvaluator delegates exact evaluation to one internal PolicyDecisionPoint.",
+    "No decision log, persistence, PEP, SDK, UI, config, release or deploy surface is introduced.",
+    "No change to the frozen tests/kernel-policy-batch-evaluator.test.mjs.",
+    "No readiness or release claim is made anywhere in this package."
+  ],
+
+  "red": {
+    "commands": ["node --test tests/kernel-policy-batch-evaluator.test.mjs"],
+    "hashAtRed": "c80f258736b419deb19088bbf164193818dd6b1295772def8d5a71c543b49c45",
+    "result": "1/3 PASS against this writer's pre-fix implementation, independently confirmed by MASTER: the accessor-array-element assertion and the post-preflight mutation/snapshot-integrity assertion both failed.",
+    "priorRedHashSha256": "d74944ae65a40f888341ef4d90b589ccfcc0c9d60e3d020c0caab03498cae53a",
+    "priorRedResult": "0/3 PASS, 3/3 FAIL: module did not yet exist (retained as history; superseded by the corrected hash above)."
+  },
+
+  "green": {
+    "commands": [
+      "node --test tests/kernel-policy-batch-evaluator.test.mjs tests/repository-boundary.test.mjs",
+      "git diff --check"
+    ],
+    "hashAtGreen": "c80f258736b419deb19088bbf164193818dd6b1295772def8d5a71c543b49c45",
+    "result": "170/170 PASS: 3/3 in tests/kernel-policy-batch-evaluator.test.mjs (integration, preflight including the new accessor-element and extra-own-property assertions, sequencing including the new snapshot-integrity assertion) plus 167/167 unaffected in tests/repository-boundary.test.mjs. git diff --check reported no whitespace errors."
+  },
+
+  "qa": {
+    "note": "Full local QA (npm test, npm run check) is a writer-run, not writer-self-certified, gate against a committed content snapshot; this package's own targeted-GREEN evidence precedes MASTER's atomic commit and does not substitute for it.",
+    "npmTest": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." },
+    "npmRunCheck": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." },
+    "ciQa2": { "result": "PENDING", "note": "Required CI full QA run, external to this writer." },
+    "freshIndependentReview": { "result": "PENDING", "note": "Not claimed by this writer." },
+    "fullQaExecutionsUsed": 0,
+    "fullQaExecutionsBudget": 2
+  },
+
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "canonicalCommit": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+    "note": "Honest whole-package measurement, reconciled same-wave across both waves and both writers: includes the separate test writer's frozen test file (original plus its one correction) alongside this writer's own files. Six paths total across the two writers' combined change package.",
+    "changedFileCeiling": 20,
+    "measurementMode": "whole-package-from-base",
+    "changedFileCount": 6,
+    "changedFiles": [
+      "src/application/policy-batch-evaluator.mjs",
+      "tests/kernel-policy-batch-evaluator.test.mjs",
+      "tests/repository-boundary.test.mjs",
+      "README.md",
+      "CHANGELOG.md",
+      "planning/kernel-policy-batch-evaluator-p04c.json"
+    ],
+    "perFileLines": {
+      "src/application/policy-batch-evaluator.mjs": { "additions": 81, "deletions": 0, "currentLines": 81, "note": "new file, grown from 69 to 81 lines in correction wave 1 to add the descriptor-level admission check and the preflight snapshot" },
+      "tests/kernel-policy-batch-evaluator.test.mjs": { "additions": 326, "deletions": 0, "currentLines": 326, "note": "new file, owned by the separate test writer; replanned from 276 to 326 lines in correction wave 1 (accessor-element, extra-own-property and snapshot-integrity assertions added)" },
+      "tests/repository-boundary.test.mjs": { "additions": 1, "deletions": 1, "note": "one manifest line extended, written before this correction wave and unchanged by it" },
+      "README.md": { "additions": 22, "deletions": 0, "note": "written before this correction wave and unchanged by it" },
+      "CHANGELOG.md": { "additions": 10, "deletions": 0, "note": "written before this correction wave and unchanged by it" },
+      "planning/kernel-policy-batch-evaluator-p04c.json": { "additions": 149, "deletions": 0, "note": "new file, final measured line count is 149 lines after this same-wave reconciliation edit" }
+    },
+    "wholePackageGrossAdditions": 589,
+    "wholePackageGrossDeletions": 1,
+    "wholePackageNetLines": 588,
+    "band": "conditional",
+    "class": "production",
+    "conditionalEvidence": {
+      "singleNarrowProblem": "Exactly one sequential batch orchestrator (PolicyBatchEvaluator) is added over one existing PolicyDecisionPoint; no candidate derivation or combining logic is introduced. This correction wave closed two genuine preflight-admission gaps (accessor-element admission, post-preflight mutation of a later index) in that same class; it did not widen scope.",
+      "boundedFileSet": "Six files across both writers, unchanged in identity across both waves: the new production module, its dedicated frozen test, one pre-existing manifest line extended, README.md's parallel primitive-catalog entry, the CHANGELOG entry, and this planning record. This wave touched only the production module and this planning record, matching the allowed-files gate given for this wave.",
+      "noRedundantRepetition": "The descriptor-level admission check reuses the existing isGenuinePolicyRequest/isExactly brand-check pattern already established for PolicyDecisionPoint; no candidate/combining logic is duplicated anywhere in this module.",
+      "noQualityTradeoff": "No shortcut was taken to fit budget: the accessor-element and extra-own-property checks fail closed identically to the existing sparse-array and counterfeit-request checks, and the preflight snapshot is proven (not assumed) to protect a later index against a mid-batch mutation. Both correction-wave defects were fixed with a genuine descriptor-level check, not a narrowed test or a weakened contract.",
+      "fullGreen": "PENDING — external gate, not self-claimed by this writer. Targeted focus is 170/170 (3/3 in tests/kernel-policy-batch-evaluator.test.mjs plus 167/167 unaffected in tests/repository-boundary.test.mjs), against the corrected frozen-test hash c80f258736b419deb19088bbf164193818dd6b1295772def8d5a71c543b49c45.",
+      "freshReviewerAccept": "PENDING — not claimed by this writer; an independent reviewer must run fresh on the committed content.",
+      "explicitRollback": "Delete src/application/policy-batch-evaluator.mjs and tests/kernel-policy-batch-evaluator.test.mjs; revert the single manifest line in tests/repository-boundary.test.mjs; revert the added README.md P04c entry and CHANGELOG.md entry; drop this planning record. No data or runtime side effect exists to unwind."
+    }
+  },
+
+  "rollback": "Revert this single P04c atomic commit: delete src/application/policy-batch-evaluator.mjs, delete tests/kernel-policy-batch-evaluator.test.mjs, and restore tests/repository-boundary.test.mjs, README.md, CHANGELOG.md and this planning record to base 089a01ba469b02aba613525af4254860ad728a7e. No migration, remote data, tag, release or deploy is involved.",
+
+  "capability_delta": "POLICY_BATCH_SEQUENTIAL_ORCHESTRATION_ONLY",
+
+  "flags": {
+    "runnableProduct": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "freshReviewerAccepted": false
+  },
+
+  "ownerFacingTruth": {
+    "once": "Bir istek tek başına kurala bakılıp karara bağlanabiliyordu (PolicyDecisionPoint), ama birden çok isteği sırayla, güvenli biçimde topluca değerlendiren bir adım yoktu; ilk düzeltme turunda ayrıca bir dizi elemanının erişimci (accessor) olması veya değerlendirme sırasında değiştirilmesi durumunda motorun yanlış isteği değerlendirebileceği görüldü.",
+    "simdi": "P04c düzeltme turu sonunda PolicyBatchEvaluator, bir istek dizisini önce tamamen doğruluyor (erişimci veya sonradan değiştirilen elemanlar dahil hiçbiri kabul edilmiyor), sonra sırayla, tek tek, ilk hata görüldüğünde durarak değerlendiriyor; hâlâ hiçbir form gönderimine bağlı değil.",
+    "fark": "Toplu değerlendirme adımı artık hem sahte/erişimci girdilere hem de değerlendirme sırasında dizinin değiştirilmesine karşı kapalı; karar günlüğü, kalıcılık ve zorlama noktası hâlâ ayrı, sonraki alt paketlerde.",
+    "kullaniciYolculugu": "Bir CRM yöneticisinin aynı anda birden çok müşteri güncelleme isteğini tek seferde, sırayla ve güvenle değerlendirebilecek bir motor parçası artık var, fakat bu hat henüz herhangi bir form gönderimine veya API uç noktasına bağlanmadı.",
+    "kalanEngel": "P04d-P04f, ardından P05/P07 ve sonraki roadmap fazları; ayrıca npm test/check, gerekli CI QA2 ve bağımsız inceleme hâlâ bekliyor.",
+    "capability_delta": "policy batch sequential orchestration only",
+    "calistirilabilirlik": "not-runnable"
+  }
+}

@@ -359,6 +359,28 @@ the empty-object unconditional case; no persistence, statement store, cache or b
 enforcement point, SDK, app, module or delivery surface, and no readiness or release claim is
 made.
 
+**P04c — the PolicyBatchEvaluator.**
+[`src/application/policy-batch-evaluator.mjs`](src/application/policy-batch-evaluator.mjs) ·
+[`tests/kernel-policy-batch-evaluator.test.mjs`](tests/kernel-policy-batch-evaluator.test.mjs) ·
+change gate: [`planning/kernel-policy-batch-evaluator-p04c.json`](planning/kernel-policy-batch-evaluator-p04c.json)
+(targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded, so no readiness or release claim is made here)
+
+Exports `PolicyBatchEvaluator`, a frozen class whose constructor delegates exact
+`{candidatesFor}` validation to one internal `PolicyDecisionPoint`. Its one method,
+`decideAll(requests)`, is async: it preflights an ordinary dense array of exact genuine
+`PolicyRequest` values — refusing a non-array, sparse, or counterfeit-element input with a
+`TypeError` before any collaborator or hostile getter is ever touched — admits an empty array as
+ordinary input without ever calling the collaborator, then sequentially awaits one PDP decision
+per request in exact input order, stopping and rejecting with the collaborator's own error on the
+first failure with no partial result produced, and answers with a new ordinary frozen decision
+array. Deterministic and non-mutating: neither the input array nor any `PolicyRequest` inside it
+is altered.
+
+*Non-goals:* no candidate derivation or combining logic beyond what `PolicyDecisionPoint` already
+does; no decision log, persistence, PEP, SDK, UI, config, release or deploy surface, and no
+readiness or release claim is made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
