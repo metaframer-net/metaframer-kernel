@@ -286,15 +286,21 @@ externally, so no readiness or release claim is made here)
 
 Exports `AuthorizationEvaluator`, a frozen, stateless, no-arg class. Its one method,
 `decide({request, candidates})`, is entirely synchronous and pure: `request` must be an exact
-genuine `PolicyRequest`; `candidates` must be an exact, dense array of exact `{policyId, effect,
-applies}` data objects, each `policyId` a bounded lowercase canonical id, each `effect` exactly
-`"allow"` or `"deny"`, each `applies` a primitive boolean, with no duplicate `policyId` across
-the array. It combines the already-scoped candidates it is given, and derives no candidate of
-its own: no applicable candidate defaults to deny with `matchedPolicyId` `null`; an applicable
-deny always outranks every applicable allow; the winner within the deciding effect is the
-lexicographically smallest applicable `policyId`, independent of array order. The returned
-`PolicyDecision` carries `request.action.correlationId` as `traceId`, by identity, and neither
-the request nor the candidates are ever mutated.
+genuine `PolicyRequest`; `candidates` must be an exact, dense array of candidates, each either the
+exact ordinary legacy `{policyId, effect, applies}` shape or the exact ordinary v2
+`{policyId, effect, applies, priority, layer}` shape (every other shape refused), each `policyId` a
+bounded lowercase canonical id, each `effect` exactly `"allow"` or `"deny"`, each `applies` a
+primitive boolean, each v2 `priority` a safe integer, each v2 `layer` exactly `"system"`,
+`"platform"` or `"tenant"`, with no duplicate `policyId` across the array regardless of shape. A
+legacy candidate is normalized internally only, to priority `0` and layer `"tenant"`, without
+mutating the caller's object or altering the public `PolicyDecision` shape. It combines the
+already-scoped candidates it is given, and derives no candidate of its own: no applicable
+candidate defaults to deny with `matchedPolicyId` `null`; an applicable deny always outranks every
+applicable allow, whatever its priority or layer; the winner within the deciding effect is chosen
+by priority descending, then layer `system` > `platform` > `tenant`, then canonical `policyId`
+ascending, independent of array order. The returned `PolicyDecision` carries
+`request.action.correlationId` as `traceId`, by identity, and neither the request nor the
+candidates are ever mutated.
 
 *Non-goals:* still no rule or condition evaluated against `resource`/`context`, no
 role/permission/grant model, no row-level access story, no record of a decision once made, no

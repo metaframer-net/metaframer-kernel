@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04b1 `AuthorizationEvaluator` v2 candidate precedence (`src/application/authorization-evaluator.mjs`):
+  `decide` now admits either the exact ordinary legacy `{policyId, effect, applies}` candidate
+  shape or the exact ordinary v2 `{policyId, effect, applies, priority, layer}` shape (`priority`
+  a safe integer, `layer` exactly `system`/`platform`/`tenant`), refusing every other shape, with
+  duplicate `policyId` still refused across shapes. A legacy candidate normalizes internally only,
+  to priority `0` and layer `tenant`, without mutating the caller or changing the public
+  `PolicyDecision`. Applicable deny still overrides every applicable allow absolutely; the winner
+  within the deciding effect is now priority descending, then layer `system` > `platform` >
+  `tenant`, then canonical `policyId` ascending, order-independent. Default-deny, null
+  `matchedPolicyId`, the fixed reason text, `traceId` identity, synchronous purity and no I/O are
+  unchanged. Targeted GREEN only (`node --test tests/kernel-authorization-evaluator.test.mjs`);
+  `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh independent review are not
+  yet recorded, so no readiness or release claim is made here.
 - P04a `PolicyStatement` immutable policy-as-data row (`src/application/policy-statement.mjs`,
   `tests/kernel-policy-statement.test.mjs`): adds the first serial P04 subpackage, one inert
   value carrying exactly the ten fields of a declarative policy row — `id`, `effect`,
