@@ -16,6 +16,12 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P05b `src/application/write-envelope.mjs`: the frozen `WriteEnvelope` class composing
+  `UnitOfWork` with `CommitReceipt` by exact prototype — runs one write inside `UnitOfWork.run`,
+  rolls back an inexact receipt, returns the exact receipt only after commit settles. No
+  adapter/database/SDK/delivery coupling; `capability_delta` stays `NONE`. Registers
+  `write-envelope.mjs` in the closed `src/application` manifest
+  (`tests/repository-boundary.test.mjs`).
 - P05a `src/application/commit-receipt.mjs`: the frozen `CommitReceipt` Application-ring value
   class holding exactly the canonical eight fields (`requestId`, `tenantId`, `resourceId`,
   `outcome`, `committedAt`, `auditId`, `outboxEventIds`, `idempotencyKey`) per the frozen
