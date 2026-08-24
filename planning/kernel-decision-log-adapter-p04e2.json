@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-decision-log-adapter-p04e2-2026-08-24",
+  "packageKind": "policy-decision-log-postgres-adapter",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "role": "P04e2 Claude implementation writer. Sole active writer.",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p04e2-decision-log-adapter-20260824",
+  "immutableBase": "c16c362d4bf07e469e69d1e464d95a04d10ece19",
+  "goal": "PostgresDecisionLogAdapter: append(entry) derives tenant from entry.request.tenantId, writes one attested tenant transaction (BEGIN; SELECT mfk_begin_tenant_context; INSERT ... RETURNING; verify; COMMIT) into policy_decision_log, and returns the frozen DecisionLogAppendReceipt. A pure, DB-independent verifyPersistedDecisionLogRow recomputes P04d's canonical SHA-256 from the returned row's payload alone -- never trusting entry.entryHash -- binding id/tenant_id/prev_hash to the payload after undoing JSONB key reordering. The three known chain-integrity SQLSTATE violations (duplicate genesis, fork, orphan predecessor) surface as one frozen, non-retryable DecisionLogChainConflictError; every other DB error propagates unmasked.",
+  "frozenScopeHashes": {
+    "master": "4aa6bb3698ea9ab9f6b1d5547da13584381ca64cda2c0e697d3323657c5fab6e",
+    "claude": "b89b4fe7cc628a2ac773a34343ffb11db34903d35ecafe08008d2c0e8872b6e5",
+    "synthesis": "6a435e0a9f39662905c49c8c3cd01299c1a1d2ab9d16472f11b8cc18fe9f1388"
+  },
+  "frozenTests": {
+    "postgresDecisionLogAdapter": {
+      "path": "tests/postgres-decision-log-adapter.test.mjs", "readOnly": true, "changedByThisWriter": false,
+      "hashSha256": "748302db06150e4bb441364a38b2ef39d02aea156199ca3a3b3db030e9b95772", "lines": 365
+    },
+    "repositoryBoundary": {
+      "path": "tests/repository-boundary.test.mjs", "readOnly": true, "changedByThisWriter": false,
+      "hashSha256": "ea839f0e768efb920ab9d952791bdc228d4237718257e76b295513a4e0e1490d", "lines": 814
+    }
+  },
+  "allowedFiles": [
+    "src/adapters/postgres-decision-log-adapter.mjs",
+    "tools/check-kernel-persistence-ownership.mjs",
+    "planning/kernel-persistence-ownership.json",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-decision-log-adapter-p04e2.json"
+  ],
+  "green": {
+    "commands": [
+      "node --test tests/postgres-decision-log-adapter.test.mjs tests/repository-boundary.test.mjs tests/kernel-persistence-ownership.test.mjs",
+      "node tools/check-kernel-persistence-ownership.mjs"
+    ],
+    "results": "postgresDecisionLogAdapter 3/3 PASS (scenario 2 and 3 against a real Docker PostgreSQL 16 substrate, migrated with alembic); repositoryBoundary and kernelPersistenceOwnership 199/199 PASS combined; the persistence-ownership checker CLI exits 0. npm test and npm run check not yet run (out of the targeted-check budget for this writer turn)."
+  },
+  "designDecisions": {
+    "boundSafeAppend": "adapter.append is assigned as an instance arrow-function field in the constructor, closing over #pool by lexical scope rather than `this` -- so `new DecisionLogPort({ append: adapter.append })` never needs .bind(adapter).",
+    "tenantDerivation": "tenantId is read only from entry.request.tenantId.toString(); append(entry) takes no tenant option.",
+    "genuineEntryAdmission": "Reuses DecisionLogPort's brand-check pattern: isExactly(entry, DecisionLogEntry) plus a captured entryHash getter invoked as a private-field probe, so a plain object impersonating the shape is refused with TypeError before any DB work.",
+    "oneTransaction": "BEGIN; SELECT mfk_begin_tenant_context($1::uuid); INSERT ... RETURNING id,tenant_id,entry_hash,prev_hash,payload; verify the returned row; COMMIT -- verification runs before commit, so an integrity failure still rolls back.",
+    "verifierIndependence": "verifyPersistedDecisionLogRow never reads entry.entryHash; it recomputes SHA-256 from the row's own payload, using P04d's exact fixed root key order and the same recursive descending-key-order rule applied to requestResource/requestContext, after first validating every field's primitive/null/ordinary-object shape and binding id/tenant_id/prev_hash to the payload.",
+    "chainConflictMapping": "Exactly SQLSTATE 23505 policy_decision_log_one_genesis_per_tenant, 23505 policy_decision_log_one_successor_per_predecessor, and 23503 policy_decision_log_prev_hash_same_tenant_fk map to one frozen DecisionLogChainConflictError (code DECISION_LOG_CHAIN_CONFLICT, retryable false, tenantId/entryId/prevHash); every other error propagates unchanged, and every failure path rolls back with the client always released.",
+    "p06Extension": "kernelCapabilityAdapterFiles, a new optional code-frozen manifest field in tools/check-kernel-persistence-ownership.mjs, analogous to kernelCapabilityMigrations -- absent it, the legacy empty-adapter baseline holds; present, it must restate exactly [\"postgres-decision-log-adapter.mjs\"], and the manifest opts in."
+  },
+  "wholePackageBudget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "measurementMode": "Full working-tree diff against immutableBase c16c362d4bf07e469e69d1e464d95a04d10ece19, all 8 changed files including both frozen test files, measured after the MASTER correction wave.",
+    "changedFiles": ["src/adapters/postgres-decision-log-adapter.mjs", "tests/postgres-decision-log-adapter.test.mjs", "tests/repository-boundary.test.mjs", "tools/check-kernel-persistence-ownership.mjs", "planning/kernel-persistence-ownership.json", "planning/kernel-decision-log-adapter-p04e2.json", "README.md", "CHANGELOG.md"],
+    "changedFileCount": 8, "grossAdditions": 788, "grossDeletions": 1, "netLines": 787, "class": "production", "band": "conditional", "conditionalBand": { "maxNet": 800, "maxChangedFiles": 20 }, "gateState": "pending-full-green-and-fresh-reviewer-accept"
+  },
+  "rollback": {
+    "trigger": "A defect found in review, or a decision to defer P04e2.",
+    "action": "Revert of the eventual single atomic package commit is the rollback unit; no migration or schema change in this package, so no alembic downgrade is needed.",
+    "blastRadius": "Confined to this worktree's uncommitted changes; the adapter has no caller in this package.",
+    "runtimeDataImpact": "None -- no production code path invokes this adapter yet.",
+    "dependentCode": "None yet."
+  },
+  "readinessFlags": {
+    "note": "Every stronger claim stays false until the external gates below actually run.",
+    "productionReady": false, "released": false, "deployed": false, "greenIndependentlyVerified": false,
+    "externallyEffective": false, "fullQaComplete": false, "reviewerAccepted": false
+  },
+  "nonGoals": [
+    "No PDP/batch wiring, no read/query/replay API, no retry/queue/cache, no application caller of this adapter.",
+    "No change to policy_decision_log's DDL, RLS policy, append-only trigger, or any other migration.",
+    "No npm test, no npm run check, no CI run, no reviewer action by this writer."
+  ]
+}

@@ -423,6 +423,36 @@ predecessor to one successor.
 *Non-goals:* no canonical hash recomputation or verification (P04e2), no read/query API, no PEP/
 PDP wiring, and no readiness or release claim is made.
 
+**P04e2 — the `PostgresDecisionLogAdapter`.**
+[`src/adapters/postgres-decision-log-adapter.mjs`](src/adapters/postgres-decision-log-adapter.mjs) ·
+[`tests/postgres-decision-log-adapter.test.mjs`](tests/postgres-decision-log-adapter.test.mjs) ·
+change gate: [`planning/kernel-decision-log-adapter-p04e2.json`](planning/kernel-decision-log-adapter-p04e2.json)
+(targeted GREEN locally against a real Docker PostgreSQL 16; `npm test`, `npm run check`, QA1, the
+required CI QA2 run and a fresh independent review are not yet recorded, so no readiness or
+release claim is made here)
+
+Exports `PostgresDecisionLogAdapter`, whose `append(entry)` is the whole surface: tenant is
+derived only from `entry.request.tenantId`, and `adapter.append` is a bound-safe instance field,
+so `new DecisionLogPort({ append: adapter.append })` needs no `.bind(adapter)`. One transaction —
+`BEGIN`; `SELECT mfk_begin_tenant_context($1::uuid)`; `INSERT ... RETURNING id, tenant_id,
+entry_hash, prev_hash, payload`; verify the returned row; `COMMIT` — writes into P04e1's
+`policy_decision_log`, rolling back and releasing the client on any failure. The three known
+chain-integrity SQLSTATE violations (duplicate genesis, fork, orphan predecessor) surface as one
+frozen, non-retryable `DecisionLogChainConflictError` (`DECISION_LOG_CHAIN_CONFLICT`); every other
+database error propagates unmasked. The pure, exported `verifyPersistedDecisionLogRow` never
+trusts `entry.entryHash` as an oracle: it recomputes P04d's canonical SHA-256 from the row's own
+payload — after undoing whatever key order a JSONB round-trip left it in and binding
+id/tenant_id/prev_hash to that payload — refusing hash mismatch, binding drift, or any missing,
+extra or mistyped field with a `DecisionLogIntegrityError`.
+
+`tools/check-kernel-persistence-ownership.mjs` gained one analogous optional field,
+`kernelCapabilityAdapterFiles` — inert unless a manifest opts in, and then only to restate the
+frozen `["postgres-decision-log-adapter.mjs"]` declaration exactly, exactly as
+`kernelCapabilityMigrations` already worked for `0003_policy_decision_log.py`.
+
+*Non-goals:* no PDP/batch wiring, no read/query/replay API, no retry/queue/cache, no application
+caller of this adapter, and no readiness or release claim is made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and

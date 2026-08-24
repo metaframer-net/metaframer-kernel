@@ -38,6 +38,15 @@ const FROZEN_KERNEL_CAPABILITY_MIGRATIONS = [
   { file: "0003_policy_decision_log.py", tables: ["policy_decision_log"] },
 ];
 
+// P04e2's adapter for that same capability: policy_decision_log's PostgresDecisionLogAdapter.
+// Frozen in code, analogous to FROZEN_KERNEL_CAPABILITY_MIGRATIONS above, activated only when the
+// manifest opts in via the exact field named by KERNEL_CAPABILITY_ADAPTER_MANIFEST_FIELD. Manifest
+// absence of that field continues to represent the legacy frozen empty adapter baseline (this
+// array is simply not consulted); presence must match this exact declaration and its physical
+// file, so a manifest-only edit can neither invent a new kernel capability adapter nor loosen it.
+export const KERNEL_CAPABILITY_ADAPTER_MANIFEST_FIELD = "kernelCapabilityAdapterFiles";
+const FROZEN_KERNEL_CAPABILITY_ADAPTER_FILES = ["postgres-decision-log-adapter.mjs"];
+
 // The one closed transitional-in-kernel fact. Present exactly as-is, or wholly absent once its
 // physical migration and adapter are also gone — never edited into something else.
 const FROZEN_TRANSITIONAL = {
@@ -282,6 +291,17 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
     );
   }
 
+  const capabilityAdapterDeclared = Object.prototype.hasOwnProperty.call(manifest, KERNEL_CAPABILITY_ADAPTER_MANIFEST_FIELD);
+  const capabilityAdapterActivated = capabilityAdapterDeclared && deepEqual(
+    manifest[KERNEL_CAPABILITY_ADAPTER_MANIFEST_FIELD],
+    FROZEN_KERNEL_CAPABILITY_ADAPTER_FILES,
+  );
+  if (capabilityAdapterDeclared && !capabilityAdapterActivated) {
+    violations.push(
+      `${KERNEL_CAPABILITY_ADAPTER_MANIFEST_FIELD} does not match the frozen kernel capability adapter declaration`,
+    );
+  }
+
   let declaredTransitional = manifest.transitionalInKernel;
   if (!Array.isArray(declaredTransitional)) {
     violations.push("transitionalInKernel must be an array");
@@ -305,6 +325,9 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
     }
   }
   for (const file of FROZEN_KERNEL_ADAPTER_FILES) declaredAdapterFiles.set(file, "kernel");
+  if (capabilityAdapterActivated) {
+    for (const file of FROZEN_KERNEL_CAPABILITY_ADAPTER_FILES) declaredAdapterFiles.set(file, "kernel");
+  }
   if (transitionalPresent) {
     declaredMigrations.set(FROZEN_TRANSITIONAL.migrationFile, {
       tables: new Set([FROZEN_TRANSITIONAL.table]),
