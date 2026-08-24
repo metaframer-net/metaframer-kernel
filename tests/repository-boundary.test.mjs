@@ -633,7 +633,7 @@ const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
   ["application", ["action-contract.mjs", "action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "decision-log-entry.mjs", "decision-log-port.mjs", "identity.mjs", "policy-batch-evaluator.mjs", "policy-candidate-resolver.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy-statement.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
   ["sdk", ["create-customer.mjs"]],
-  ["adapters", ["postgres-commit-adapter.mjs"]],
+  ["adapters", ["postgres-commit-adapter.mjs", "postgres-decision-log-adapter.mjs"]],
   ["delivery", ["asgi-core-profile.mjs", "create-customer-asgi-composition.mjs", "create-customer-composition.mjs", "create-customer-http-message-adapter.mjs", "create-customer-request-handler.mjs", "standard-router.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();

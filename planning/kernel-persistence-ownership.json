@@ -19,6 +19,7 @@
       "tables": ["policy_decision_log"]
     }
   ],
+  "kernelCapabilityAdapterFiles": ["postgres-decision-log-adapter.mjs"],
   "kernelOwnedRuntimeTables": ["mfk_context_key", "transactional_outbox", "audit_log"],
   "kernelOwnedAdapterFiles": [],
   "transitionalInKernel": [

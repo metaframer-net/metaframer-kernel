@@ -37,6 +37,28 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   field, code-frozen to exactly `0003_policy_decision_log.py`/`policy_decision_log` and inert
   unless the manifest declares it; `planning/kernel-persistence-ownership.json` activates it.
   `planning/kernel-decision-log-db-p04e1.json` records scope, RED/GREEN and rollback.
+- P04e2 `PostgresDecisionLogAdapter` (`src/adapters/postgres-decision-log-adapter.mjs`,
+  `tests/postgres-decision-log-adapter.test.mjs`): `append(entry)` derives tenant only from
+  `entry.request.tenantId`, and `adapter.append` is a bound-safe instance field so
+  `new DecisionLogPort({ append: adapter.append })` needs no `.bind(adapter)`. One transaction —
+  `BEGIN`; `SELECT mfk_begin_tenant_context($1::uuid)`; `INSERT ... RETURNING id, tenant_id,
+  entry_hash, prev_hash, payload`; verify; `COMMIT` — writes into `policy_decision_log`, rolling
+  back and always releasing the client on failure. The three known chain-integrity SQLSTATE
+  violations (duplicate genesis `policy_decision_log_one_genesis_per_tenant`, fork
+  `policy_decision_log_one_successor_per_predecessor`, orphan predecessor
+  `policy_decision_log_prev_hash_same_tenant_fk`) surface as one frozen, non-retryable
+  `DecisionLogChainConflictError` (`DECISION_LOG_CHAIN_CONFLICT`, fields `tenantId`/`entryId`/
+  `prevHash`); every other database error propagates unmasked. The exported pure
+  `verifyPersistedDecisionLogRow` never trusts `entry.entryHash`: it recomputes P04d's canonical
+  SHA-256 from the row's own payload using the fixed root key order and the same recursive
+  descending-key-order rule applied to `requestResource`/`requestContext`, after undoing whatever
+  order a JSONB round-trip left the payload in, and binds `id`/`tenant_id`/`prev_hash` to it,
+  refusing hash mismatch, binding drift, or any missing/extra/mistyped field with a
+  `DecisionLogIntegrityError`. `tools/check-kernel-persistence-ownership.mjs` gains an analogous
+  `kernelCapabilityAdapterFiles` manifest field, code-frozen to exactly
+  `["postgres-decision-log-adapter.mjs"]` and inert unless declared;
+  `planning/kernel-persistence-ownership.json` activates it.
+  `planning/kernel-decision-log-adapter-p04e2.json` records scope, GREEN and rollback.
 - P04d `DecisionLogEntry` and `DecisionLogPort` (`src/application/decision-log-entry.mjs`,
   `src/application/decision-log-port.mjs`, `tests/kernel-decision-log.test.mjs`): adds one
   append-only, hash-chained record of a single policy decision, and a pure one-function
