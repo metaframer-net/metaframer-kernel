@@ -77,6 +77,12 @@ export class DecisionLogPort {
   get [Symbol.toStringTag]() {
     return "DecisionLogPort";
   }
+
+  // Brand-aware, so a hollow Object.create(DecisionLogPort.prototype) impostor answers false: the
+  // check is the private field's own presence, never the collaborator, and it is never invoked here.
+  static [Symbol.hasInstance](candidate) {
+    return typeof candidate === "object" && candidate !== null && #append in candidate;
+  }
 }
 Object.freeze(DecisionLogPort.prototype);
 Object.freeze(DecisionLogPort);

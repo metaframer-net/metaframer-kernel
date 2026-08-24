@@ -321,7 +321,14 @@ test("the module exports exactly Clock, and no later-package surface stands besi
   // The namespace object itself is not asserted symbol-free: a module namespace exotic object owns
   // Symbol.toStringTag by construction, so requiring zero symbols there would be a requirement on
   // the language rather than on this module. What the module actually controls is asserted instead.
-  assert.deepEqual(Object.getOwnPropertySymbols(m.Clock), [], "Clock must carry no static symbol member");
+  assert.deepEqual(
+    Object.getOwnPropertySymbols(m.Clock), [Symbol.hasInstance],
+    "Clock must carry exactly the brand-aware Symbol.hasInstance and no other static symbol member",
+  );
+  assert.deepEqual(
+    Object.keys(m.Clock).sort(), [],
+    "Clock's named static surface stays exactly length/name/prototype: no named static member is added",
+  );
   assert.deepEqual(
     Object.getOwnPropertySymbols(m.Clock.prototype), [Symbol.toStringTag],
     "Clock.prototype must carry the class-name tag and no other symbol",
@@ -848,11 +855,14 @@ test("branding is honest: the private brand is the only proof, and freezing stop
   const m = mod();
   const real = build(() => CANON);
   assert.equal(await real.now(), CANON, "the genuine instance works, which is what makes the failures below meaningful");
-  // An impostor built straight on the prototype. It answers `instanceof` and it carries the tag,
-  // and it holds no collaborator — so the method must refuse it. This is why the brand is a private
-  // field rather than a marker property: a marker can be copied onto anything.
+  assert.ok(real instanceof m.Clock, "the genuine instance must satisfy brand-aware instanceof: it actually holds the private field");
+  assert.ok(!({} instanceof m.Clock), "a plain object must not satisfy brand-aware instanceof: it holds no private field and inherits no prototype claim");
+  // An impostor built straight on the prototype. Under a bare prototype check it would once have
+  // answered `instanceof`, and it still carries the tag — but it holds no collaborator, so
+  // brand-aware `instanceof` now refuses it too, and the method must refuse it. This is why the
+  // brand is a private field rather than a marker property: a marker can be copied onto anything.
   const impostor = Object.create(m.Clock.prototype);
-  assert.ok(impostor instanceof m.Clock, "instanceof is satisfied by a prototype, so it proves nothing about state");
+  assert.ok(!(impostor instanceof m.Clock), "brand-aware instanceof must refuse a hollow Object.create impostor holding no private field");
   assert.equal(impostor[Symbol.toStringTag], "Clock", "the tag is inherited, so it proves nothing either");
   assert.equal(Object.prototype.toString.call(impostor), "[object Clock]", "and it renders exactly like the real thing");
   await assertRejectsTypeError(() => impostor.now(), "an Object.create impostor");
@@ -862,7 +872,7 @@ test("branding is honest: the private brand is the only proof, and freezing stop
   // fails, because a private field is looked up on the proxy rather than on its target. That is a
   // residual worth stating plainly: wrapping a clock in the most ordinary proxy there is breaks it.
   const proxied = new Proxy(real, {});
-  assert.ok(proxied instanceof m.Clock, "the proxy passes instanceof");
+  assert.ok(!(proxied instanceof m.Clock), "brand-aware instanceof must refuse a proxy receiver: private elements are not forwarded through the trap");
   await assertRejectsTypeError(() => proxied.now(), "a default proxy over a genuine instance");
   // Freezing the class and its prototype does not close the subclass door. `Object.freeze` protects
   // the properties it was given; it says nothing about a derived prototype, which is a new object.
@@ -877,9 +887,12 @@ test("branding is honest: the private brand is the only proof, and freezing stop
     await skewed.now(), "whatever this subclass feels like",
     "a subclass overrode the method the base class froze: freezing a prototype does not freeze the ones derived from it, and this port does not claim otherwise",
   );
-  // A forwarding proxy that rebinds each method to the target works perfectly, observes every call,
-  // and is not detectable from the far side. Nothing in this port can prevent interposition; the
-  // honest statement is that a caller holding a reference is trusting whoever handed it over.
+  // A forwarding proxy that rebinds each method to the target still works perfectly for an explicit
+  // bound method call, still observes every call, and still tags and renders identically — none of
+  // that is something this port can prevent, and the honest statement is that a caller holding a
+  // reference is trusting whoever handed it over. What brand-aware instanceof adds is narrower: the
+  // proxy itself holds no private brand, only its target does, so instanceof now catches what the
+  // tag and the rendering cannot.
   const observed = [];
   const forwarding = new Proxy(real, {
     get(target, key, receiver) {
@@ -890,7 +903,7 @@ test("branding is honest: the private brand is the only proof, and freezing stop
   });
   assert.equal(await forwarding.now(), CANON, "a bound forwarding proxy answers exactly as the real instance does");
   assert.ok(observed.includes("now"), "and it saw the call go past");
-  assert.ok(forwarding instanceof m.Clock, "it passes instanceof");
+  assert.ok(!(forwarding instanceof m.Clock), "brand-aware instanceof must refuse this proxy too: it carries no private elements of its own, only its target does");
   assert.equal(Object.prototype.toString.call(forwarding), "[object Clock]", "it renders identically");
   assert.ok(Object.isFrozen(forwarding), "and it even reports itself frozen: interposition here is undetectable from the outside");
 });

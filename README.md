@@ -453,6 +453,29 @@ frozen `["postgres-decision-log-adapter.mjs"]` declaration exactly, exactly as
 *Non-goals:* no PDP/batch wiring, no read/query/replay API, no retry/queue/cache, no application
 caller of this adapter, and no readiness or release claim is made.
 
+**P04f — the `DecisionLoggingPolicyDecisionPoint`.**
+[`src/application/decision-logging-policy-decision-point.mjs`](src/application/decision-logging-policy-decision-point.mjs) ·
+[`tests/kernel-decision-logging-policy-decision-point.test.mjs`](tests/kernel-decision-logging-policy-decision-point.test.mjs) ·
+change gate: [`planning/kernel-decision-log-wiring-p04f.json`](planning/kernel-decision-log-wiring-p04f.json)
+(targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded, so no readiness or release claim is made here)
+
+Exports `DecisionLoggingPolicyDecisionPoint`, a frozen ordinary constructor
+`{candidatesFor, decisionLog, idGenerator, clock, chainHead}` wiring `AuthorizationEvaluator` to
+`DecisionLogPort`. `decide(request)` calls `candidatesFor` once, calls
+`AuthorizationEvaluator.decide` once against the already-fetched candidates, derives
+`layerResolved` by locating the winning `matchedPolicyId` back in those same candidates (a v2
+candidate's own `layer`, `"tenant"` for a winning legacy three-key candidate, `null` for a
+default-deny), and builds one genuine `DecisionLogEntry` from `idGenerator()`, `clock.now()` and
+`chainHead(tenantId)` before awaiting `decisionLog.append` and resolving with the exact
+`PolicyDecision`. `decideAll(requests)` fully preflights every request before touching any
+collaborator, processes sequentially in input order, reads `chainHead` once per tenant per batch,
+links every later same-tenant entry from the prior successfully appended entry's own `entryHash`,
+and stops at the first failure with no partial result ever observed.
+
+*Non-goals:* concurrent-call locking, a concrete chain-head reader, retry/queue/cache/replay/PEP/
+HTTP/SDK/UI/simulation, and no readiness or release claim is made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
