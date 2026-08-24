@@ -16,6 +16,12 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P05a `src/application/commit-receipt.mjs`: the frozen `CommitReceipt` Application-ring value
+  class holding exactly the canonical eight fields (`requestId`, `tenantId`, `resourceId`,
+  `outcome`, `committedAt`, `auditId`, `outboxEventIds`, `idempotencyKey`) per the frozen
+  Actionplan contract report `reports/gj01-v2-contract-freeze-2026-08-22.json`, with no
+  ambient clock, id generator, random, I/O, adapter, UoW or delivery coupling. No
+  readiness/runnable-product claim; `capability_delta` stays `NONE`.
 - P04h roadmap current-truth sync (`planning/roadmap-v1-current-truth.json`,
   `tests/kernel-roadmap-v1-current-truth.test.mjs`, this file, `ROADMAP.md`, `README.md`): adds
   `roadmap.progress` (`completed=5`, `total=25`, `completedPackages=[P01,P02,P03,P04,P06]`,
