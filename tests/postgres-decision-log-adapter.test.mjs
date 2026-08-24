@@ -12,6 +12,7 @@ import {
 } from "../src/domain/identity-primitives.mjs";
 import { PolicyRequest, PolicyDecision } from "../src/application/policy-decision.mjs";
 import { DecisionLogEntry } from "../src/application/decision-log-entry.mjs";
+import { PolicyStatement } from "../src/application/policy-statement.mjs";
 
 // =====================================================================================
 // PostgresDecisionLogAdapter — P04e2, R2 correction. append(entry) is the whole surface: tenant
@@ -361,5 +362,296 @@ test("the adapter refuses a real duplicate genesis, fork and orphan predecessor 
     assert.deepEqual(validAfterConflicts.rows, validAfterSetup.rows, "the valid chain must be exactly unchanged after every rejected append");
   } finally {
     await adapter.close();
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
+// 4. policyDecisionLogComposition — strict admission, frozen bound-safe facade, no eager I/O.
+// No DB, no Docker: construction alone must never reach the network.
+// ---------------------------------------------------------------------------------------------
+
+const compositionRelative = "src/delivery/policy-decision-log-composition.mjs";
+const compositionUrl = pathToFileURL(path.join(root, compositionRelative)).href;
+
+function genuineStatement(overrides = {}) {
+  return new PolicyStatement({
+    id: "pol-billing-issue",
+    effect: "allow",
+    targetActor: {},
+    targetAction: "billing.invoice.issue",
+    targetResourceType: "invoice",
+    condition: {},
+    priority: 100,
+    layer: "tenant",
+    version: "1.0.0",
+    enabled: true,
+    ...overrides,
+  });
+}
+
+test("policyDecisionLogComposition admits strict composition options, hands back a frozen bound-safe {decide, decideAll, close} facade, and performs no eager I/O", async () => {
+  let compositionLoaded = null;
+  let compositionLoadError = null;
+  try {
+    compositionLoaded = await import(compositionUrl);
+  } catch (error) {
+    compositionLoadError = error;
+  }
+  assert.ok(
+    compositionLoaded !== null && typeof compositionLoaded.policyDecisionLogComposition === "function",
+    `${compositionRelative} must exist, import cleanly and export policyDecisionLogComposition: `
+      + `${compositionLoadError?.message ?? "policyDecisionLogComposition export missing"}`,
+  );
+  const { policyDecisionLogComposition } = compositionLoaded;
+
+  const untouchable = (label) => () => { throw new Error(`${label} must not run during composition construction`); };
+  const validOptions = () => ({
+    connectionString: "postgresql://user:pass@127.0.0.1:1/does-not-matter",
+    statements: [genuineStatement()],
+    idGenerator: untouchable("idGenerator"),
+    now: untouchable("now"),
+  });
+
+  for (const bad of [
+    undefined,
+    null,
+    "connectionString",
+    {},
+    { ...validOptions(), extra: 1 },
+    (() => { const { connectionString, ...rest } = validOptions(); return rest; })(),
+    (() => { const { statements, ...rest } = validOptions(); return rest; })(),
+    (() => { const { idGenerator, ...rest } = validOptions(); return rest; })(),
+    (() => { const { now, ...rest } = validOptions(); return rest; })(),
+    { ...validOptions(), connectionString: "" },
+    { ...validOptions(), connectionString: 1 },
+    { ...validOptions(), statements: "not-an-array" },
+    { ...validOptions(), statements: [{ id: "not-genuine" }] },
+    { ...validOptions(), idGenerator: "not-a-function" },
+    { ...validOptions(), now: "not-a-function" },
+  ]) {
+    assert.throws(() => policyDecisionLogComposition(bad), TypeError, `expected a refusal for ${JSON.stringify(bad)}`);
+  }
+
+  // Construction is synchronous and reaches no network: an unroutable connectionString and
+  // idGenerator/now collaborators wired to throw the moment they are ever called must both
+  // survive composition untouched.
+  const composition = policyDecisionLogComposition(validOptions());
+  assert.ok(!(composition instanceof Promise), "policyDecisionLogComposition must return synchronously, never a Promise");
+
+  try {
+    assert.ok(Object.isFrozen(composition), "the composition result must be frozen");
+    assert.deepEqual(Reflect.ownKeys(composition).sort(), ["close", "decide", "decideAll"], "the composition must hand back exactly { decide, decideAll, close } and nothing else");
+    for (const key of ["decide", "decideAll", "close"]) assert.equal(typeof composition[key], "function", `composition.${key} must be a function`);
+
+    // Bound-safe: destructuring must not strip a receiver dependency. A private-field access
+    // failure ("Cannot read private member ... from an object whose class did not declare it")
+    // would surface as a TypeError with no mention of the collaborator being validated; the
+    // genuine admission failure below names PolicyRequest/array explicitly, so asserting the
+    // message distinguishes the two.
+    const { decide, decideAll } = composition;
+    await assert.rejects(
+      () => decide({}),
+      (error) => error instanceof TypeError && /PolicyRequest/.test(error.message),
+      "decide must be bound-safe: called detached from the composition object, it must still reach its own admission check rather than fail on receiver identity",
+    );
+    await assert.rejects(
+      () => decideAll("not-an-array"),
+      (error) => error instanceof TypeError && /array/i.test(error.message),
+      "decideAll must be bound-safe likewise",
+    );
+  } finally {
+    await composition.close();
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
+// 5. PostgresDecisionLogAdapter#chainHead(tenantId) against a real PostgreSQL 16
+// policy_decision_log: empty, genesis, successor and tenant isolation.
+// ---------------------------------------------------------------------------------------------
+
+test("adapter.chainHead(tenantId) answers null on an empty tenant, the genesis hash after one append, the successor hash once a same-tenant successor exists, and stays tenant-isolated", async (t) => {
+  const { PostgresDecisionLogAdapter } = adapterMod("5", "PostgresDecisionLogAdapter");
+  assert.equal(typeof PostgresDecisionLogAdapter.prototype.chainHead, "function", "PostgresDecisionLogAdapter must expose an instance method chainHead(tenantId)");
+
+  const { connectionString } = await bringUpSubstrate(t);
+  const adapter = new PostgresDecisionLogAdapter({ connectionString });
+  // A bare, bound-safe direct handoff -- no .bind(adapter) -- proving chainHead never depends on
+  // its receiver identity. Every chain-head read below goes through this detached function.
+  const { chainHead } = adapter;
+
+  try {
+    const tenantAUuid = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
+    const tenantBUuid = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+    const tenantA = new TenantId(tenantAUuid);
+    const tenantB = new TenantId(tenantBUuid);
+
+    assert.equal(await chainHead(tenantA), null, "an empty tenant has no chain head");
+
+    const genesis = makeEntry({ id: "01ARZ3NDEKTSV4RRFFQ69G5FCV", tenantUuid: tenantAUuid, prevHash: null, ts: "2026-08-24T10:00:00.000Z", note: "genesis" });
+    await adapter.append(genesis);
+    assert.equal(await chainHead(tenantA), genesis.entryHash, "with only a genesis row, its own entry_hash is the chain head -- no same-tenant successor references it yet");
+
+    assert.equal(await chainHead(tenantB), null, "tenant B still has no chain head after tenant A's genesis append");
+
+    const successor = makeEntry({ id: "01ARZ3NDEKTSV4RRFFQ69G5FCW", tenantUuid: tenantAUuid, prevHash: genesis.entryHash, ts: "2026-08-24T10:00:01.000Z", note: "successor" });
+    await adapter.append(successor);
+    assert.equal(
+      await chainHead(tenantA),
+      successor.entryHash,
+      "once a same-tenant successor references genesis's entry_hash as its own prev_hash, genesis is no longer terminal -- the successor's own entry_hash is the new chain head",
+    );
+
+    const genesisB = makeEntry({ id: "01ARZ3NDEKTSV4RRFFQ69G5FDV", tenantUuid: tenantBUuid, prevHash: null, ts: "2026-08-24T10:00:00.000Z", note: "genesis-b" });
+    await adapter.append(genesisB);
+    assert.equal(await chainHead(tenantB), genesisB.entryHash, "tenant B's own genesis becomes its own chain head, independent of tenant A's chain");
+    assert.equal(await chainHead(tenantA), successor.entryHash, "tenant A's chain head must be unaffected by tenant B's append");
+  } finally {
+    await adapter.close();
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
+// 6. Real resolver -> policy decision -> append composition: allow/default-deny, second
+// same-tenant chaining, multi-tenant decideAll, and mid-batch failure semantics (a persisted
+// prefix stays persisted; later requests never run -- this is NOT atomic rollback).
+// ---------------------------------------------------------------------------------------------
+
+function policyRequestFor({ tenantUuid, resourceId, actionName = "billing.invoice.issue" }) {
+  const tenant = new TenantId(tenantUuid);
+  const principal = new Principal(tenant, new ActorId("svc-billing-worker"));
+  const correlation = new CorrelationId(crypto.randomUUID());
+  const action = new Command({
+    name: actionName, version: 1, principal, correlationId: correlation,
+    causationId: null, idempotencyKey: new IdempotencyKey(`key-${resourceId}`), payload: { amount: 100 },
+  });
+  return new PolicyRequest({ action, resource: { type: "invoice", id: resourceId }, context: { channel: "api" } });
+}
+
+function sequentialIdGenerator(ids) {
+  let i = 0;
+  return () => ids[i++];
+}
+
+function sequentialNow(startSeconds) {
+  let s = startSeconds;
+  return async () => {
+    const ts = `2026-08-24T11:${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}.000Z`;
+    s += 1;
+    return ts;
+  };
+}
+
+test("real resolver -> policy decision -> append composition: allow and default-deny, second same-tenant chaining, multi-tenant decideAll, and mid-batch failure leaves the persisted prefix and never runs later requests", async (t) => {
+  let compositionLoaded = null;
+  let compositionLoadError = null;
+  try {
+    compositionLoaded = await import(compositionUrl);
+  } catch (error) {
+    compositionLoadError = error;
+  }
+  assert.ok(
+    compositionLoaded !== null && typeof compositionLoaded.policyDecisionLogComposition === "function",
+    `${compositionRelative} must exist, import cleanly and export policyDecisionLogComposition: `
+      + `${compositionLoadError?.message ?? "policyDecisionLogComposition export missing"}`,
+  );
+  const { policyDecisionLogComposition } = compositionLoaded;
+
+  const { host, port, runtimePassword, connectionString } = await bringUpSubstrate(t);
+
+  async function rowsForTenant(tenantUuid) {
+    return withTenantRows(host, port, runtimePassword, tenantUuid, (client) =>
+      client.query('SELECT "id", "entry_hash", "prev_hash" FROM "policy_decision_log" ORDER BY "recorded_at"'));
+  }
+
+  const tenantAUuid = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
+  const tenantBUuid = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+
+  // -- allow, then default-deny, chaining as the second entry for the same tenant, then
+  // multi-tenant decideAll -- all through the real facade, never the manually wired collaborators. --
+  const facade1 = policyDecisionLogComposition({
+    connectionString,
+    statements: [genuineStatement()],
+    idGenerator: sequentialIdGenerator(["01ARZ3NDEKTSV4RRFFQ69G5FEA", "01ARZ3NDEKTSV4RRFFQ69G5FEB", "01ARZ3NDEKTSV4RRFFQ69G5FEC", "01ARZ3NDEKTSV4RRFFQ69G5FED"]),
+    now: sequentialNow(0),
+  });
+
+  try {
+    const allowRequest = policyRequestFor({ tenantUuid: tenantAUuid, resourceId: "inv-allow" });
+    const allowDecision = await facade1.decide(allowRequest);
+    assert.equal(allowDecision.effect, "allow");
+    assert.equal(allowDecision.matchedPolicyId, "pol-billing-issue");
+
+    const denyRequest = policyRequestFor({ tenantUuid: tenantAUuid, resourceId: "inv-deny", actionName: "billing.invoice.void" });
+    const denyDecision = await facade1.decide(denyRequest);
+    assert.equal(denyDecision.effect, "deny");
+    assert.equal(denyDecision.matchedPolicyId, null, "no statement targets billing.invoice.void, so this is a genuine default-deny");
+
+    const rowsAfterPair = await rowsForTenant(tenantAUuid);
+    assert.equal(rowsAfterPair.rows.length, 2);
+    assert.equal(rowsAfterPair.rows[0].prev_hash, null, "the allow decision is genesis for this tenant");
+    assert.equal(rowsAfterPair.rows[1].prev_hash, rowsAfterPair.rows[0].entry_hash, "the default-deny decision chains as this tenant's second entry, from the allow entry's own stored hash");
+
+    // -- multi-tenant decideAll: independent per-tenant chains in one batch. --
+    const batchRequests = [
+      policyRequestFor({ tenantUuid: tenantAUuid, resourceId: "inv-batch-a" }),
+      policyRequestFor({ tenantUuid: tenantBUuid, resourceId: "inv-batch-b" }),
+    ];
+    const batchDecisions = await facade1.decideAll(batchRequests);
+    assert.equal(batchDecisions.length, 2);
+    assert.equal(batchDecisions[0].effect, "allow");
+    assert.equal(batchDecisions[1].effect, "allow");
+
+    const rowsAAfterBatch = await rowsForTenant(tenantAUuid);
+    assert.equal(rowsAAfterBatch.rows.length, 3, "tenant A's chain grows by exactly one more entry");
+    assert.equal(rowsAAfterBatch.rows[2].prev_hash, rowsAAfterBatch.rows[1].entry_hash);
+
+    const rowsBAfterBatch = await rowsForTenant(tenantBUuid);
+    assert.equal(rowsBAfterBatch.rows.length, 1, "tenant B's batch entry is a genesis, independent of tenant A's chain");
+    assert.equal(rowsBAfterBatch.rows[0].prev_hash, null);
+  } finally {
+    await facade1.close();
+  }
+
+  // -- mid-batch failure: a second real composition on the same DB whose idGenerator hands back
+  // one id and then throws the exact sentinel on its second call. The first, already-decided
+  // request stays persisted -- this is NOT atomic rollback -- and the third request must never
+  // reach idGenerator at all. --
+  const sentinel = new Error("mid-batch idGenerator exploded");
+  let idGeneratorCalls = 0;
+  const explodingIdGenerator = () => {
+    idGeneratorCalls += 1;
+    if (idGeneratorCalls === 2) throw sentinel;
+    return ["01ARZ3NDEKTSV4RRFFQ69G5FEE", "01ARZ3NDEKTSV4RRFFQ69G5FEF"][idGeneratorCalls - 1];
+  };
+  const facade2 = policyDecisionLogComposition({
+    connectionString,
+    statements: [genuineStatement()],
+    idGenerator: explodingIdGenerator,
+    now: sequentialNow(20),
+  });
+
+  try {
+    const rowsABeforeMidBatch = await rowsForTenant(tenantAUuid);
+    const midBatchRequests = [
+      policyRequestFor({ tenantUuid: tenantAUuid, resourceId: "inv-mid-1" }),
+      policyRequestFor({ tenantUuid: tenantAUuid, resourceId: "inv-mid-2" }),
+      policyRequestFor({ tenantUuid: tenantAUuid, resourceId: "inv-mid-3" }),
+    ];
+    await assert.rejects(() => facade2.decideAll(midBatchRequests), (error) => error === sentinel);
+    assert.equal(idGeneratorCalls, 2, "the third request must never reach idGenerator once the second one's idGenerator call throws");
+
+    const rowsAAfterMidBatch = await rowsForTenant(tenantAUuid);
+    assert.equal(
+      rowsAAfterMidBatch.rows.length,
+      rowsABeforeMidBatch.rows.length + 1,
+      "the first mid-batch request's entry was already persisted before the second one failed, and stays persisted -- decideAll is not atomic rollback",
+    );
+    assert.equal(
+      rowsAAfterMidBatch.rows[rowsAAfterMidBatch.rows.length - 1].prev_hash,
+      rowsABeforeMidBatch.rows[rowsABeforeMidBatch.rows.length - 1].entry_hash,
+      "the one persisted mid-batch entry chains from the last entry already in place before this composition ran",
+    );
+  } finally {
+    await facade2.close();
   }
 });
