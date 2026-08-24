@@ -3,20 +3,20 @@ import { createHash } from "node:crypto";
 import pg from "pg";
 
 import { DecisionLogEntry } from "../application/decision-log-entry.mjs";
+import { TenantId } from "../domain/identity-primitives.mjs";
 
 // =====================================================================================
-// PostgresDecisionLogAdapter — P04e2
+// PostgresDecisionLogAdapter — P04e2, P04g
 //
 // Persists one DecisionLogEntry into the tenant-isolated, append-only `policy_decision_log`
-// table (db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py) inside one real
-// attested tenant transaction. `append(entry)` is the whole surface: tenant is derived from
-// `entry.request.tenantId`, never a caller-supplied option, so `new DecisionLogPort({ append:
-// adapter.append })` hands off a bare, bound-safe function with no receiver dependency.
-//
-// `verifyPersistedDecisionLogRow` is a pure, independent oracle: given the row this adapter's own
-// INSERT ... RETURNING produces, it recomputes P04d's canonical hash from the payload alone,
-// after undoing whatever key order a JSONB round-trip left it in, and binds the row's id/tenant_id/
-// prev_hash columns to the payload. It never trusts `entry.entryHash` as an oracle.
+// table inside one real attested tenant transaction. `append(entry)` is the whole write surface:
+// tenant is derived from `entry.request.tenantId`, so `new DecisionLogPort({ append:
+// adapter.append })` hands off a bare, bound-safe function. `chainHead(tenantId)` (P04g) is a
+// prototype method answering the tenant's unique terminal row's own entry_hash, or null for an
+// empty tenant, from the same attested transaction. `verifyPersistedDecisionLogRow` is a pure,
+// independent oracle: recomputes P04d's canonical hash from the row's own payload, after undoing
+// whatever key order a JSONB round-trip left it in, and binds id/tenant_id/prev_hash to it --
+// never trusting `entry.entryHash` as an oracle.
 // =====================================================================================
 
 const ULID_FORM = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
@@ -70,8 +70,7 @@ function exactKeys(value, keys, what) {
 }
 
 // Recursively admits only JSON-native primitive/null/array/ordinary-object shapes -- the closed
-// set a JSONB round-trip can ever hand back -- refusing anything exotic (a function, a Date, a
-// class instance, a Map) that would prove this value never genuinely came from the database.
+// set a JSONB round-trip can ever hand back -- refusing anything exotic (a function, Date, Map).
 function demandJsonShape(value, what) {
   if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return;
   if (Array.isArray(value)) {
@@ -83,8 +82,7 @@ function demandJsonShape(value, what) {
 }
 
 // The same recursive descending-key-order rule decision-log-entry.mjs applies before hashing,
-// reimplemented independently here as the oracle a JSONB round-trip must still satisfy however
-// Postgres reordered the stored keys.
+// reimplemented independently as the oracle a JSONB round-trip must still satisfy either way.
 function descendingKeyOrder(value) {
   if (Array.isArray(value)) return value.map((entry) => descendingKeyOrder(entry));
   if (value !== null && typeof value === "object") {
@@ -119,14 +117,9 @@ function demandNullableString(value, what) {
   return value;
 }
 
-/**
- * Verifies one row shaped exactly as this adapter's own INSERT ... RETURNING produces --
- * `{ id, tenant_id, entry_hash, prev_hash, payload }` -- independently of the database. Recomputes
- * P04d's canonical SHA-256 from the payload alone (never trusting `entry_hash` as an oracle),
- * binds the row's id/tenant_id/prev_hash columns to the payload, and rejects hash mismatch,
- * binding drift, or any missing/extra/mistyped payload field with a frozen
- * DecisionLogIntegrityError. Returns the frozen receipt on success.
- */
+// Verifies one row shaped exactly as this adapter's own INSERT ... RETURNING produces, rejecting
+// hash mismatch, binding drift or any missing/extra/mistyped field with a frozen
+// DecisionLogIntegrityError, returning the frozen receipt on success.
 export function verifyPersistedDecisionLogRow(row) {
   exactKeys(row, ["id", "tenant_id", "entry_hash", "prev_hash", "payload"], "row");
   demand(typeof row.id === "string" && ULID_FORM.test(row.id), "row.id must be a canonical ULID");
@@ -153,8 +146,7 @@ export function verifyPersistedDecisionLogRow(row) {
   demand(typeof payload.ts === "string" && TS_FORM.test(payload.ts), "row.payload.ts must be a canonical UTC millisecond ISO instant");
   demandNullableHex64(payload.prevHash, "row.payload.prevHash");
 
-  // Binding: the row's own id/tenant_id/prev_hash columns must agree with the payload they claim
-  // to carry -- never merely with each other.
+  // Binding: the row's own id/tenant_id/prev_hash columns must agree with the payload.
   demand(payload.id === row.id, "row.payload.id must bind to row.id");
   demand(payload.requestActor.tenantId === row.tenant_id, "row.payload.requestActor.tenantId must bind to row.tenant_id");
   demand(payload.prevHash === row.prev_hash, "row.payload.prevHash must bind to row.prev_hash");
@@ -188,9 +180,8 @@ export function verifyPersistedDecisionLogRow(row) {
 const isExactly = (value, type) =>
   value !== null && typeof value === "object" && Object.getPrototypeOf(value) === type.prototype;
 
-// A hollow instance built directly on the prototype (Object.create(DecisionLogEntry.prototype))
-// passes isExactly but carries no private field, so the entryHash getter is captured once and
-// used as a brand check: it throws for anything but a genuine DecisionLogEntry.
+// A hollow Object.create(DecisionLogEntry.prototype) impostor carries no private field, so the
+// captured entryHash getter throws for anything but a genuine instance.
 const ENTRY_HASH_BRAND = Object.getOwnPropertyDescriptor(DecisionLogEntry.prototype, "entryHash").get;
 function isGenuineEntry(value) {
   if (!isExactly(value, DecisionLogEntry)) return false;
@@ -202,9 +193,19 @@ function isGenuineEntry(value) {
   }
 }
 
-// The exact SQLSTATE/constraint pairs the 0003_policy_decision_log migration installs -- the
-// only three shapes a chain-integrity violation can take at this table. A constraint name paired
-// with the wrong SQLSTATE (or any other pair) is not one of these and must stay raw.
+// Same brand discipline for TenantId: a hollow prototype impostor carries no private #value.
+const TENANT_ID_TO_STRING = TenantId.prototype.toString;
+function isGenuineTenantId(value) {
+  if (!isExactly(value, TenantId)) return false;
+  try {
+    return UUID_FORM.test(TENANT_ID_TO_STRING.call(value));
+  } catch {
+    return false;
+  }
+}
+
+// The exact SQLSTATE/constraint pairs the 0003_policy_decision_log migration installs -- the only
+// three shapes a chain-integrity violation can take here; any other pair must stay raw.
 const CHAIN_CONFLICT_PAIRS = new Set([
   "23505:policy_decision_log_one_genesis_per_tenant",
   "23505:policy_decision_log_one_successor_per_predecessor",
@@ -223,8 +224,7 @@ export class PostgresDecisionLogAdapter {
       throw new TypeError("PostgresDecisionLogAdapter needs a connectionString string");
     }
     this.#pool = new pg.Pool({ connectionString });
-    // A bound-safe class field: `adapter.append` is a real, self-contained function, so
-    // `new DecisionLogPort({ append: adapter.append })` never needs `.bind(adapter)`.
+    // A bound-safe class field: `adapter.append` never needs `.bind(adapter)`.
     this.append = async (entry) => {
       if (!isGenuineEntry(entry)) {
         throw new TypeError("PostgresDecisionLogAdapter.append needs an exact genuine DecisionLogEntry instance");
@@ -260,6 +260,32 @@ export class PostgresDecisionLogAdapter {
       }
     };
     Object.freeze(this.append);
+    Object.defineProperty(this, "chainHead", { value: Object.freeze(this.chainHead.bind(this)) });
+  }
+  // Answers the unique terminal row -- no same-tenant successor's prev_hash names it.
+  async chainHead(tenantId) {
+    if (!isGenuineTenantId(tenantId)) {
+      throw new TypeError("PostgresDecisionLogAdapter.chainHead needs an exact genuine TenantId instance");
+    }
+    const tenant = tenantId.toString();
+    const client = await this.#pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT mfk_begin_tenant_context($1::uuid)", [tenant]);
+      const result = await client.query(
+        'SELECT "entry_hash" FROM "policy_decision_log" head WHERE head."tenant_id" = $1::uuid '
+          + 'AND NOT EXISTS (SELECT 1 FROM "policy_decision_log" succ WHERE succ."tenant_id" = '
+          + 'head."tenant_id" AND succ."prev_hash" = head."entry_hash")',
+        [tenant],
+      );
+      await client.query("COMMIT");
+      return result.rows.length === 0 ? null : result.rows[0].entry_hash;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async close() {

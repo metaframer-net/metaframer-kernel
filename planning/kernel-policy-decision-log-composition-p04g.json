@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-policy-decision-log-composition-p04g-2026-08-25",
+  "packageKind": "real-decision-log-composition",
+  "packageState": "targeted-green-candidate-awaiting-clean-snapshot-qa1",
+  "baseCommit": "05f05752f96b59b51743fce944cd536ff26a24b6",
+  "role": "P04g final Claude evidence/docs closure writer, sole active writer, direct work only, no agents, no Git mutation.",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p04g-real-decision-log-composition-20260824",
+  "immutableBase": "05f05752f96b59b51743fce944cd536ff26a24b6",
+  "goal": "PostgresDecisionLogAdapter gains chainHead(tenantId): a real bound-safe prototype instance method that requires an exact genuine TenantId (brand-checked without invoking an untrusted getter), enters the same attested BEGIN/mfk_begin_tenant_context transaction append uses, and answers the unique terminal same-tenant row via NOT EXISTS (never recorded_at ordering) or null for an empty tenant, rolling back on error and always releasing. New src/delivery/policy-decision-log-composition.mjs exports frozen policyDecisionLogComposition(options), admitting exactly the ordinary own-enumerable data options {connectionString, statements, idGenerator, now}, constructing a genuine PolicyCandidateResolver, Clock, PostgresDecisionLogAdapter, DecisionLogPort and DecisionLoggingPolicyDecisionPoint, performing no I/O and never calling idGenerator/now during construction, and returning synchronously one frozen bound {decide, decideAll, close} facade. The real facade itself, not only its collaborators, is exercised end-to-end against PostgreSQL for allow/default-deny, same/multi-tenant chaining and persisted-prefix mid-batch failure. Preserves sequential, non-atomic decideAll batch semantics.",
+  "blindScopeHashes": {
+    "master": "81cce124ce51c52371cce19307fedb31e4809ef1d53ca0088db901878c553762",
+    "claude": "226b75fb6884ed9848efaa2a25fbb3ab58896cc8a8453063fdf606d11cac73a1",
+    "synthesis": "12598e0607958c077d3ee0999b01c32885e55d648ef5e25a4385e8d7730c5392"
+  },
+  "frozenTests": {
+    "tests/postgres-decision-log-adapter.test.mjs": {
+      "readOnly": true, "originalHashAtRedSha256": "dd0f152b7413ef19e712818557b30f2cc3e5639fda96db83a8814899bc03fdbd",
+      "priorHashSha256SupersededByChangedSourceAndTestSnapshot": "05e9695c6179386d4659cc43ac57d24f99822cbff7924c4357d1865ffcbd1143",
+      "currentHashSha256": "e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7",
+      "hashUnchangedByThisWriter": true,
+      "note": "MASTER review found a real-composition coverage gap (no end-to-end policyDecisionLogComposition scenario against PostgreSQL) and a detached-chainHead gap (chainHead handed off bare from the instance) in the prior 05e969... snapshot. The separate test writer rewrote the same 3 scenarios and froze this new hash. This writer made no edit to this file.",
+      "lines": 657, "topLevelTests": 6
+    },
+    "tests/repository-boundary.test.mjs": {
+      "readOnly": true, "originalHashSha256": "5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923",
+      "hashUnchangedByThisWriter": true, "lines": 814
+    }
+  },
+  "allowedWriteFiles": [
+    "README.md", "CHANGELOG.md",
+    "planning/kernel-policy-decision-log-composition-p04g.json"
+  ],
+  "wholePackageFiles": [
+    "src/adapters/postgres-decision-log-adapter.mjs",
+    "src/delivery/policy-decision-log-composition.mjs",
+    "tests/postgres-decision-log-adapter.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "README.md", "CHANGELOG.md",
+    "planning/kernel-policy-decision-log-composition-p04g.json"
+  ],
+  "nonGoals": [
+    "No policy store, no migration.",
+    "No HTTP/UI/SDK/PEP/product caller.",
+    "No retry, queue, cache, concurrency locking.",
+    "No new dependency.",
+    "No schema/CI/config change.",
+    "No release, deploy or readiness claim.",
+    "No atomic batch rollback -- decideAll's mid-batch failure semantics stay sequential and non-atomic: an already-persisted prefix stays persisted, later requests never run."
+  ],
+  "red": {
+    "commands": ["node --test tests/postgres-decision-log-adapter.test.mjs tests/repository-boundary.test.mjs"],
+    "hashAtRed": {
+      "tests/postgres-decision-log-adapter.test.mjs": "dd0f152b7413ef19e712818557b30f2cc3e5639fda96db83a8814899bc03fdbd",
+      "tests/repository-boundary.test.mjs": "5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923"
+    },
+    "result": "Node TAP output objectively reported tests=173 pass=169 fail=4 for the exact two-file target, before src/adapters/postgres-decision-log-adapter.mjs#chainHead and src/delivery/policy-decision-log-composition.mjs existed. The writer piped this run through tail, which masked the shell exit code -- recorded honestly here as a process defect in how RED was captured, not relabelled as something else. The four failing assertions themselves (chainHead missing, policyDecisionLogComposition module missing) are valid RED evidence independent of the masked exit code.",
+    "honestCaveat": "Not independently re-run by this writer against the identical pre-implementation snapshot; reported as given in the assignment brief."
+  },
+  "targetedGreenChronology": [
+    {
+      "at": "initial-red",
+      "result": "Node TAP output objectively reported tests=173 pass=169 fail=4 for the exact two-file target, before src/adapters/postgres-decision-log-adapter.mjs#chainHead and src/delivery/policy-decision-log-composition.mjs existed. The writer piped this run through tail, which masked the shell exit code -- recorded honestly as a process defect in how RED was captured, not relabelled as something else. TAP's own pass/fail counters are objective regardless of the masked exit code."
+    },
+    {
+      "at": "2026-08-24T21:16:58Z", "commands": ["node --test tests/postgres-decision-log-adapter.test.mjs tests/repository-boundary.test.mjs"],
+      "result": "First implementation combined target: 173 tests, 171 pass, 2 fail. Root cause: the test writer's own genuineStatement() fixture helper (tests/postgres-decision-log-adapter.test.mjs) constructed `new PolicyStatement({ ..., version: 1, ... })` -- version as the number 1 -- and src/application/policy-statement.mjs#semverValue (unmodified, out of this package's scope) requires version to be an exact SemVer 2.0.0 string, throwing for any non-string. This was a mistake in the frozen fixture the test writer authored, not a production gap in this writer's two files."
+    },
+    {
+      "at": "2026-08-24T21:18:39Z", "commands": ["node --test tests/repository-boundary.test.mjs"],
+      "result": "Repository-boundary-only diagnostic, supplying distinct boundary evidence (167/167 pass), isolating that the 2 failures above were confined to tests/postgres-decision-log-adapter.test.mjs."
+    },
+    {
+      "at": "2026-08-24T21:20:55Z", "commands": ["node --test tests/postgres-decision-log-adapter.test.mjs tests/repository-boundary.test.mjs"],
+      "result": "Redundant second combined target run after docs/planning-only changes; repeated 173/171/2 with no new evidence. Recorded as a targeted-test policy deviation (a rerun that added nothing) -- kept here, not relabelled or erased.",
+      "policyDeviation": true
+    },
+    {
+      "at": "test-writer-correction",
+      "result": "The test writer corrected exactly one line of their own fixture: version: 1 -> version: \"1.0.0\". tests/postgres-decision-log-adapter.test.mjs hash became 05e9695c6179386d4659cc43ac57d24f99822cbff7924c4357d1865ffcbd1143. Targeted check after the correction: 2 tests, 2 pass, 0 fail, real shell exit 0 (no pipe/tail)."
+    },
+    {
+      "at": "2026-08-24-prior-combined-target-superseded", "commands": ["node --test tests/postgres-decision-log-adapter.test.mjs tests/repository-boundary.test.mjs"],
+      "hashChecked": {
+        "tests/postgres-decision-log-adapter.test.mjs": "05e9695c6179386d4659cc43ac57d24f99822cbff7924c4357d1865ffcbd1143",
+        "tests/repository-boundary.test.mjs": "5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923"
+      },
+      "result": "173 tests, 173 pass, 0 fail, real shell exit 0, no pipe/tail, at the then-current hashes. SUPERSEDED_BY_CHANGED_SOURCE_AND_TEST_SNAPSHOT -- not authoritative for the current snapshot; kept as historical evidence, not erased. fullQaExecutionsUsed=0 at this point too."
+    },
+    {
+      "at": "master-review-gap-found",
+      "result": "MASTER review of the 05e969...-hash snapshot found two gaps: no real-composition coverage (policyDecisionLogComposition's facade itself was never exercised end-to-end against PostgreSQL) and a detached-chainHead gap (a bare, handed-off chainHead was never proven bound-safe once detached from the instance). The separate test writer rewrote the same 3 scenarios in tests/postgres-decision-log-adapter.test.mjs and froze the new hash e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7 (657 lines)."
+    },
+    {
+      "at": "2026-08-24T21:39:12Z-approx-first-focused-red", "commands": ["node --test (focused: real-composition and detached-chainHead scenarios only)"],
+      "hashChecked": { "tests/postgres-decision-log-adapter.test.mjs": "e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7" },
+      "result": "First focused run on the rewritten fixture, after the separate test writer rewrote the same 3 scenarios and before any binding correction: 1 of 2 scenarios pass, exit 1. The real end-to-end policyDecisionLogComposition composition scenario was GREEN. The detached-chainHead scenario was RED with 'Cannot read properties of undefined (reading #pool)' -- a detached, handed-off chainHead had lost access to its own captured #pool. This snapshot did NOT yet contain the plain-assignment source change; that change and its distinct failure mode are recorded separately below.",
+      "focusedNotFullBudget": true
+    },
+    {
+      "at": "2026-08-24T21:40:50Z", "commands": ["node --test (focused: real-composition and detached-chainHead scenarios only)"],
+      "hashChecked": { "tests/postgres-decision-log-adapter.test.mjs": "e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7" },
+      "result": "After a later implementation writer changed the source to a plain assignment `this.chainHead = Object.freeze(this.chainHead.bind(this));` -- but the inherited prototype method chainHead is frozen and non-writable, so the plain assignment itself threw during adapter construction, rather than silently failing: 0 of 2 scenarios pass, exit 1. Both scenarios failed during adapter construction with 'Cannot assign to read only property chainHead'. This is a distinct snapshot and a distinct failure mode from the prior 1-of-2 #pool RED above; it is not that snapshot and was not caused by that snapshot's cause.",
+      "focusedNotFullBudget": true
+    },
+    {
+      "at": "2026-08-24T21:41:04Z", "commands": ["node --test (focused: real-composition and detached-chainHead scenarios only)"],
+      "hashChecked": { "tests/postgres-decision-log-adapter.test.mjs": "e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7" },
+      "result": "After changing src/adapters/postgres-decision-log-adapter.mjs's constructor to Object.defineProperty(this, \"chainHead\", { value: Object.freeze(this.chainHead.bind(this)) }) instead of a plain assignment -- installing a frozen, already-bound value property over the inherited prototype method rather than writing through it -- the same focused run is 2 of 2 pass, exit 0. The prototype method chainHead itself remains defined and unchanged; only the per-instance own-property binding changed.",
+      "focusedNotFullBudget": true
+    },
+    {
+      "at": "final-combined-target", "commands": ["node --test tests/postgres-decision-log-adapter.test.mjs tests/repository-boundary.test.mjs"],
+      "hashChecked": {
+        "tests/postgres-decision-log-adapter.test.mjs": "e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7",
+        "tests/repository-boundary.test.mjs": "5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923"
+      },
+      "result": "173 tests, 173 pass, 0 fail, real shell exit 0, no pipe/tail. This is the only authoritative targeted GREEN for the current snapshot (both frozen test hashes verified immediately before this run). This is targeted-test chronology, not full-QA usage: fullQaExecutionsUsed=0 until a clean committed snapshot runs QA1.",
+      "durationMs": 7986.0155,
+      "authoritative": true
+    }
+  ],
+  "diagnosisNote": "The prior 2-test failure originated entirely inside the frozen test's own fixture helper, calling an unrelated, already-shipped module (PolicyStatement) with a value (version: 1) that module has always rejected. Nothing in src/adapters/postgres-decision-log-adapter.mjs or src/delivery/policy-decision-log-composition.mjs was on the call stack that threw, and neither was changed in response at that time. The test writer corrected their own fixture (version: 1 -> \"1.0.0\"). Later, MASTER review found a genuine coverage gap (not a fixture mistake): the rewritten fixture added a detached-chainHead scenario. Three distinct snapshots followed, in order: (A) before any binding correction, the focused run was 1/2 pass exit 1 -- the real end-to-end composition scenario was GREEN, and the detached-chainHead scenario was RED with 'Cannot read properties of undefined (reading #pool)' at #pool, because chainHead was still an unbound prototype method; (B) after a later source change to a plain assignment `this.chainHead = Object.freeze(this.chainHead.bind(this));`, the focused run was 0/2 pass exit 1 -- both scenarios failed during adapter construction with 'Cannot assign to read only property chainHead', because the inherited frozen prototype method is non-writable, so the plain assignment threw rather than silently failing; (C) after switching to Object.defineProperty(this, \"chainHead\", { value: Object.freeze(this.chainHead.bind(this)) }), the focused run was 2/2 pass exit 0, followed by the final current-snapshot combined run at 173/173 pass exit 0. That was a real implementation defect, fixed with Object.defineProperty, not a test-fixture correction.",
+  "budget": {
+    "canonicalSource": "actionplan#changePackageBudget",
+    "measurementMode": "whole-package-from-base",
+    "changedFiles": [
+      "src/adapters/postgres-decision-log-adapter.mjs",
+      "src/delivery/policy-decision-log-composition.mjs",
+      "tests/postgres-decision-log-adapter.test.mjs",
+      "tests/repository-boundary.test.mjs",
+      "README.md", "CHANGELOG.md",
+      "planning/kernel-policy-decision-log-composition-p04g.json"
+    ],
+    "changedFileCount": 7,
+    "changedTestFileCount": 2,
+    "maxChangedFiles": 20,
+    "maxNet": 800,
+    "perFileLines": {
+      "src/adapters/postgres-decision-log-adapter.mjs": { "additions": 58, "deletions": 32, "currentLines": 300, "note": "chainHead(tenantId) added, installed per instance via Object.defineProperty over a frozen inherited prototype method; several multi-line comments condensed to keep the file at the 300-line cap; frozen as of this writer's turn" },
+      "src/delivery/policy-decision-log-composition.mjs": { "additions": 85, "deletions": 0, "currentLines": 85, "note": "new file; frozen as of this writer's turn" },
+      "tests/postgres-decision-log-adapter.test.mjs": { "additions": 292, "deletions": 0, "currentLines": 657, "note": "frozen, read-only, authored outside this writer's scope; rewritten by the separate test writer after a MASTER review found a real-composition coverage gap and a detached-chainHead gap; current hash e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7 supersedes the prior 05e9695c... hash; unchanged by this writer" },
+      "tests/repository-boundary.test.mjs": { "additions": 1, "deletions": 1, "currentLines": 814, "note": "frozen, read-only, authored outside this writer's scope; hash 5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923 unchanged" },
+      "README.md": { "additions": 69, "deletions": 0, "note": "P04g catalog entry, updated to the current e6cbc... test hash, SUPERSEDED_BY_CHANGED_SOURCE_AND_TEST_SNAPSHOT marker for the prior 05e969... GREEN, the chainHead Object.defineProperty binding design, real end-to-end PostgreSQL composition coverage, and the split correction separating the 1/2 #pool RED (before any binding change) from the distinct 0/2 read-only-property RED (after the plain-assignment source change) at 2026-08-24T21:40:50Z" },
+      "CHANGELOG.md": { "additions": 33, "deletions": 0, "note": "P04g changelog entry, updated to the current e6cbc... test hash, SUPERSEDED_BY_CHANGED_SOURCE_AND_TEST_SNAPSHOT marker for the prior 05e969... GREEN, the chainHead Object.defineProperty binding design, and real end-to-end PostgreSQL composition coverage" },
+      "planning/kernel-policy-decision-log-composition-p04g.json": { "additions": 182, "deletions": 0, "currentLines": 182, "note": "this record, rewritten this turn to split the conflated 1/2-#pool and 0/2-read-only-property RED snapshots into two distinct targetedGreenChronology entries (A and B), keep C and the final combined GREEN distinct, and recompute the canonical budget" }
+    },
+    "wholePackageGrossAdditionsExcludingThisRecord": 538,
+    "wholePackageGrossDeletionsExcludingThisRecord": 33,
+    "wholePackageNetLinesExcludingThisRecord": 505,
+    "wholePackageGrossAdditionsIncludingThisRecord": 720,
+    "wholePackageGrossDeletionsIncludingThisRecord": 33,
+    "wholePackageNetLinesIncludingThisRecord": 687,
+    "wholePackageFileCountIncludingThisRecord": 7,
+    "band": "conditional", "class": "production",
+    "conditionalEvidence": {
+      "singleNarrowProblem": "Exactly one adapter capability (chainHead) plus exactly one new composition-root module wiring already-shipped collaborators; no second evaluation path, no locking, no new policy engine.",
+      "boundedFileSet": "Seven whole-package files, all seven measured (canonical budget applies to the whole package, this planning record included): one edited production module (300 lines, at the cap), one new production module (85 lines), two frozen read-only target tests (657 and 814 lines, unchanged by this writer -- the 657-line test was rewritten by the separate test writer after a MASTER review found a real-composition and detached-chainHead coverage gap), README's and CHANGELOG's catalog entries, and this planning record (182 lines). Whole-package totals INCLUDING this record: 720 gross additions, 33 gross deletions, net 687 across all 7 files -- inside the conditional band's <=800 net ceiling and <=20 changed-file cap. (Excluding this self-referential record: 538 gross additions, 33 gross deletions, net 505 across the other 6 files.)",
+      "noRedundantRepetition": "Reuses the isExactly/exactOptions/isGenuineEntry admission idioms already established in postgres-decision-log-adapter.mjs, decision-logging-policy-decision-point.mjs and create-customer-composition.mjs; no new admission helper library introduced.",
+      "noQualityTradeoff": "Full admission checks preserved: exact-prototype-plus-brand checks for TenantId/DecisionLogEntry, exact own-enumerable-key checks for composition options, synchronous no-I/O construction, and the composition facade stays frozen and bound-safe. The detached-chainHead defect found by MASTER review was fixed by Object.defineProperty over the frozen inherited prototype method, not by weakening any check.",
+      "fullGreen": "NOT CLAIMED (full-suite npm test/npm run check). Targeted combined run at the current frozen test hashes: 173 tests, 173 pass, 0 fail, real shell exit 0, duration 7986.0155ms -- see targetedGreenChronology above for the full corrected-fixture and superseded-snapshot history. Full-suite npm test/npm run check, QA1 (clean committed snapshot), CI QA2 and independent review are all PENDING, not run by this writer. fullQaExecutionsUsed=0.",
+      "freshReviewerAccept": "PENDING -- not claimed by this writer.",
+      "explicitRollback": "Package-level (all 7 wholePackageFiles, atomic): revert src/adapters/postgres-decision-log-adapter.mjs to base 05f05752f96b59b51743fce944cd536ff26a24b6 (removes chainHead, the TenantId brand helper and the Object.defineProperty instance binding); delete src/delivery/policy-decision-log-composition.mjs; revert tests/postgres-decision-log-adapter.test.mjs to base 05f05752f96b59b51743fce944cd536ff26a24b6 (removes the new scenarios including the rewritten real-composition and detached-chainHead scenarios); revert tests/repository-boundary.test.mjs to base 05f05752f96b59b51743fce944cd536ff26a24b6; revert the README.md/CHANGELOG.md P04g entries; delete this planning record. Both test files were authored by a separate test writer, outside this implementation writer's edit scope, but atomic package rollback covers all seven wholePackageFiles regardless of who authored each one -- writer ownership does not shrink package rollback. No data or runtime side effect to unwind -- no migration, no Git mutation performed."
+    }
+  },
+  "rollback": "Revert this P04g package, all 7 wholePackageFiles, atomic: restore src/adapters/postgres-decision-log-adapter.mjs to base 05f05752f96b59b51743fce944cd536ff26a24b6; delete src/delivery/policy-decision-log-composition.mjs; restore tests/postgres-decision-log-adapter.test.mjs to base 05f05752f96b59b51743fce944cd536ff26a24b6; restore tests/repository-boundary.test.mjs to base 05f05752f96b59b51743fce944cd536ff26a24b6; revert the README.md/CHANGELOG.md P04g entries; delete this planning record. Both test files were authored by a separate test writer, not this implementation writer, but atomic package rollback still covers them -- writer ownership does not shrink package rollback. Back to base 05f05752f96b59b51743fce944cd536ff26a24b6. No migration, remote data, tag, release or deploy is involved. No Git command was run by this writer.",
+  "capability_delta": "DECISION_LOG_CHAIN_HEAD_READER_AND_COMPOSITION_ROOT_CLASS_TARGETED_GREEN_CANDIDATE",
+  "flags": {
+    "runnableProduct": false, "kernelReady": false, "sdkReady": false, "appBuildable": false,
+    "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false,
+    "gapClosed": false, "freshReviewerAccepted": false
+  },
+  "ownerFacingTruth": {
+    "once": "P04f bir yetkilendirme kararını otomatik olarak karar kaydına dönüştüren sınıfı eklemişti (DecisionLoggingPolicyDecisionPoint); ama zincirin son halkasını (chainHead) gerçek veritabanından okuyan hiçbir kod yoktu, ve bu parçaları tek bir çağrılabilir bütün haline getiren hiçbir kurulum (composition) da yoktu.",
+    "simdi": "PostgresDecisionLogAdapter'a chainHead(tenantId) eklendi: bir kiracının zincirinin en son (uçtaki) kaydının hash'ini gerçek veritabanından okuyor; hem prototip metodu olarak hem de örneğe (instance) bağlı, ayrılmış (detached) halde bile çalışan güvenli bir kopya olarak. Yeni policyDecisionLogComposition fonksiyonu ise dört basit girdiden (bağlantı dizesi, politika kuralları, kimlik üreteci, saat) gerçek bir karar noktası kuruyor ve geriye sadece decide/decideAll/close veren tek, sabitlenmiş bir nesne veriyor -- hiçbir ağ çağrısı kurulum anında yapılmıyor. Bu bütünün kendisi de artık gerçek bir PostgreSQL veritabanına karşı uçtan uca test ediliyor: izin/varsayılan-red kararları, aynı kiracıda ve çoklu kiracıda zincirleme, ve bir grup (batch) ortasında bir isteğin başarısız olması durumunda o ana kadar kaydedilenlerin veritabanında kalıp sonraki isteklerin hiç çalışmaması.",
+    "fark": "Bir önceki turda 173/173 yeşil raporlanmıştı, ama MASTER incelemesi bunun gerçek bir boşluk bıraktığını buldu: policyDecisionLogComposition'ın kendisi hiç gerçek veritabanına karşı uçtan uca denenmemişti, ve chainHead örnekten ayrıldığında (detached) güvenle çalıştığı da kanıtlanmamıştı. Ayrı test yazarı aynı üç senaryoyu yeniden yazdı; sonrasında üç ayrı görüntü sırayla çalıştırıldı: (A) herhangi bir bağlama düzeltmesinden önce, odaklı çalıştırma 1/2 başarılı, çıkış 1 -- gerçek uçtan uca kurulum senaryosu yeşildi, ayrılmış (detached) chainHead senaryosu ise #pool noktasında 'Cannot read properties of undefined (reading #pool)' ile kırmızıydı, çünkü chainHead hâlâ bağlanmamış bir prototip metoduydu; (B) daha sonra kaynak koduna düz bir atama eklendiğinde (`this.chainHead = Object.freeze(this.chainHead.bind(this));`), odaklı çalıştırma 0/2, çıkış 1 -- her iki senaryo da kurucu (constructor) sırasında 'Cannot assign to read only property chainHead' ile başarısız oldu, çünkü miras alınan dondurulmuş prototip metodu yazılamaz (non-writable) durumdaydı, yani düz atama sessizce işe yaramadı değil, doğrudan hata fırlattı; (C) Object.defineProperty'ye geçildikten sonra aynı odaklı çalıştırma 2/2 yeşil, çıkış 0, ve ardından iki dosyanın tamamına karşı son birleşik çalıştırma 173/173, 0 hata, gerçek çıkış kodu 0. Önceki 05e969... hash'indeki 173/173 artık SUPERSEDED_BY_CHANGED_SOURCE_AND_TEST_SNAPSHOT olarak işaretlendi, güncel kanıt değil.",
+    "kullaniciYolculugu": "Bir CRM formunun onay/red kararını gerçek bir veritabanına zincir bütünlüğüyle kaydedecek ve bu zincirin son halkasını okuyacak yapı taşları artık tek bir kurulum çağrısıyla bir araya getirilebiliyor, ve bu bütünün kendisi de gerçek bir veritabanına karşı uçtan uca doğrulandı; ama henüz hiçbir HTTP uç noktasına, form gönderimine veya gerçek bir politika deposuna bağlı değil.",
+    "kalanEngel": "PolicyCandidateResolver zaten çağıranın verdiği politika kurallarını (statements) kullanıyor; kalıcı bir politika deposu sadece bir gelecek-hedef/non-goal, bir sonraki pakete borç değil. P04h ayrı ve dar kapsamlı bir pakettir: bu paket birleştikten (merge) sonra sadece yol haritasının canonical current-truth projeksiyon/güncelleme kaydı (öncelikle planning/roadmap-v1-current-truth.json, ona ait current-truth testi ve gerekli ROADMAP/README/CHANGELOG/planning kaydı, kendi ayrı dondurulmuş kapsamında) -- kalıcı politika deposu P04h'nin de kapsamında değil, ayrı bir gelecek-hedef olarak kalıyor. Bu paket yol haritası sayacını 4/25'ten 5/25'e taşımak için tek başına yeterli değil, o adım P04h'yi bekliyor. Ayrıca: npm test, npm run check, QA1 (temiz commit edilmiş görüntü üzerinde), gerekli CI QA2 koşusu ve bağımsız inceleme hâlâ yapılmadı.",
+    "capability_delta": "chain-head reader (prototype method plus bound-safe detached instance copy) plus a composition root now exercised end-to-end against real PostgreSQL, targeted-green candidate awaiting clean-snapshot QA1, CI QA2 and independent review",
+    "calistirilabilirlik": "not-runnable"
+  }
+}

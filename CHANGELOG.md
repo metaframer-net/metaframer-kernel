@@ -16,6 +16,39 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04g `PostgresDecisionLogAdapter#chainHead(tenantId)` and `policyDecisionLogComposition`
+  (`src/adapters/postgres-decision-log-adapter.mjs`,
+  `src/delivery/policy-decision-log-composition.mjs`,
+  `tests/postgres-decision-log-adapter.test.mjs`): `chainHead(tenantId)` is a real prototype
+  method, additionally installed per instance in the constructor via `Object.defineProperty(this,
+  "chainHead", { value: Object.freeze(this.chainHead.bind(this)) })` — a bare-handoff,
+  bound-safe instance collaborator while the prototype method itself remains defined — requiring
+  an exact genuine `TenantId` (brand-checked via a captured `TenantId.prototype.toString`, exact
+  prototype and canonical-UUID result, never an untrusted getter). It enters the same attested
+  tenant transaction `append` uses and answers the unique terminal same-tenant row — the row no
+  same-tenant successor's `prev_hash` names, via `NOT EXISTS`, never `recorded_at` ordering — or
+  `null` for an empty tenant, rolling back on error and always releasing the pooled client.
+  `policyDecisionLogComposition(options)` is a new frozen composition root admitting exactly
+  `{connectionString, statements, idGenerator, now}`, constructing a genuine
+  `PolicyCandidateResolver`, `Clock`, `PostgresDecisionLogAdapter`, `DecisionLogPort` and
+  `DecisionLoggingPolicyDecisionPoint`, and returning synchronously — no eager I/O, `idGenerator`
+  or `now` call — one frozen bound-safe `{ decide, decideAll, close }` facade. The facade itself
+  is exercised end-to-end against a real PostgreSQL 16 database: allow and default-deny
+  decisions, second same-tenant chaining, multi-tenant `decideAll`, and a mid-batch failure that
+  leaves the already-persisted prefix persisted and never runs later requests. Preserves
+  sequential, non-atomic batch semantics. Non-goals: policy store, migration,
+  HTTP/UI/SDK/PEP/product caller, retry/queue/cache, concurrency locking, new dependency, atomic
+  batch rollback. `planning/kernel-policy-decision-log-composition-p04g.json` records scope,
+  targeted results (`node --test tests/postgres-decision-log-adapter.test.mjs
+  tests/repository-boundary.test.mjs` is 173/173 pass, 0 fail, real exit 0 at frozen test hashes
+  `tests/postgres-decision-log-adapter.test.mjs`
+  `e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7` (657 lines) and
+  `tests/repository-boundary.test.mjs`
+  `5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923` (814 lines); an earlier
+  173/173 GREEN at test hash `05e9695c6179386d4659cc43ac57d24f99822cbff7924c4357d1865ffcbd1143`
+  is SUPERSEDED_BY_CHANGED_SOURCE_AND_TEST_SNAPSHOT, not authoritative, after a MASTER review
+  found a real-composition coverage gap and a detached-`chainHead` gap and the test writer
+  rewrote the same three scenarios) and rollback.
 - P04f `DecisionLoggingPolicyDecisionPoint` (`src/application/decision-logging-policy-decision-point.mjs`,
   `tests/kernel-decision-logging-policy-decision-point.test.mjs`): wires `AuthorizationEvaluator`
   to `DecisionLogPort` behind a frozen ordinary constructor `{candidatesFor, decisionLog,

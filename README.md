@@ -476,6 +476,75 @@ and stops at the first failure with no partial result ever observed.
 *Non-goals:* concurrent-call locking, a concrete chain-head reader, retry/queue/cache/replay/PEP/
 HTTP/SDK/UI/simulation, and no readiness or release claim is made.
 
+**P04g — `PostgresDecisionLogAdapter#chainHead` and `policyDecisionLogComposition`.**
+[`src/adapters/postgres-decision-log-adapter.mjs`](src/adapters/postgres-decision-log-adapter.mjs) ·
+[`src/delivery/policy-decision-log-composition.mjs`](src/delivery/policy-decision-log-composition.mjs) ·
+[`tests/postgres-decision-log-adapter.test.mjs`](tests/postgres-decision-log-adapter.test.mjs) ·
+change gate: [`planning/kernel-policy-decision-log-composition-p04g.json`](planning/kernel-policy-decision-log-composition-p04g.json)
+(targeted GREEN candidate: `node --test tests/postgres-decision-log-adapter.test.mjs
+tests/repository-boundary.test.mjs` reports 173/173 pass, 0 fail, real exit 0 at frozen test
+hashes `tests/postgres-decision-log-adapter.test.mjs`
+`e6cbc16dfaf563ea2ba1f39f48c277fa0e314f8bf7cc14d979d98a2432b737f7` (657 lines) and
+`tests/repository-boundary.test.mjs`
+`5099a8165f5e9192158ab1fd6f1e55c9993c8829253bbb6435bc74b3c0a5b923` (814 lines). An earlier
+173/173 GREEN recorded at test hash
+`05e9695c6179386d4659cc43ac57d24f99822cbff7924c4357d1865ffcbd1143` is now
+SUPERSEDED_BY_CHANGED_SOURCE_AND_TEST_SNAPSHOT, not authoritative: a MASTER review found that
+snapshot's coverage gap — no real end-to-end composition scenario, and no detached-`chainHead`
+scenario — and a separate test writer rewrote the same three scenarios and froze the new hash
+above. Against the rewritten fixture, before any binding correction, a focused two-scenario run
+was 1/2 exit 1 (the real end-to-end composition scenario GREEN, the detached-`chainHead` scenario
+RED with "Cannot read properties of undefined (reading #pool)" — a detached, handed-off
+`chainHead` had lost access to its own captured `#pool`). Separately, a later implementation
+writer changed the source to a plain assignment `this.chainHead = Object.freeze(this.chainHead.bind(this));`
+onto the frozen, non-writable inherited prototype method; because that assignment itself throws
+rather than silently failing, the same focused run at 2026-08-24T21:40:50Z was a distinct 0/2
+exit 1, both scenarios failing during adapter construction with "Cannot assign to read only
+property chainHead" — not the 1/2 `#pool` snapshot above. After changing the source to
+`Object.defineProperty` with a frozen bound value, the same focused run was 2/2 exit 0 at
+2026-08-24T21:41:04Z. The combined run at the two hashes above, reported at the top of this
+paragraph, is the only authoritative targeted GREEN for the current snapshot; these are targeted
+runs, `fullQaExecutionsUsed` remains 0.
+`npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh independent review are not
+yet recorded, so no readiness or release claim is made here)
+
+`PostgresDecisionLogAdapter` gains an instance method `chainHead(tenantId)`, defined once on
+`PostgresDecisionLogAdapter.prototype` (so the frozen test's own
+`PostgresDecisionLogAdapter.prototype.chainHead` assertion holds), and additionally installed per
+instance via `Object.defineProperty(this, "chainHead", { value: Object.freeze(this.chainHead.bind(this)) })`
+in the constructor — a bare-handoff, bound-safe instance collaborator
+(`const { chainHead } = adapter; chainHead(tenantId)` keeps working detached from `adapter`)
+while the prototype method itself remains defined and unchanged. It requires an exact genuine
+`TenantId` — brand-checked through a captured `TenantId.prototype.toString` plus exact prototype
+and canonical-UUID result, never an untrusted own-property getter — enters the same attested
+`BEGIN` / `mfk_begin_tenant_context` transaction `append` uses, and answers the unique terminal
+same-tenant row (the row no same-tenant successor's `prev_hash` names, via `NOT EXISTS`, never
+`recorded_at` ordering) or `null` for an empty tenant, rolling back and always releasing the
+pooled client.
+
+`src/delivery/policy-decision-log-composition.mjs` exports a frozen
+`policyDecisionLogComposition(options)`. It admits exactly the ordinary own-enumerable data
+options `{connectionString, statements, idGenerator, now}`, constructs a genuine
+`PolicyCandidateResolver`, `Clock`, `PostgresDecisionLogAdapter`, `DecisionLogPort` and
+`DecisionLoggingPolicyDecisionPoint` from them, passes the adapter's bound-safe `append` and
+`chainHead` through, and returns synchronously — never a Promise, and never touching
+`idGenerator`/`now`/the network during construction — one frozen bound-safe
+`{ decide, decideAll, close }` facade, nothing more. This facade itself, not only its individual
+collaborators, is exercised end-to-end against a real PostgreSQL 16 database: allow and
+default-deny decisions, second same-tenant chaining, multi-tenant `decideAll`, and a mid-batch
+failure that leaves the already-persisted prefix persisted and never runs later requests.
+
+*Non-goals:* no policy store, no migration, no HTTP/UI/SDK/PEP/product caller, no
+retry/queue/cache, no concurrency locking, no new dependency, no atomic batch rollback (a
+mid-batch failure leaves the already-persisted prefix persisted and never runs later requests),
+and no readiness or release claim is made. `PolicyCandidateResolver` already consumes
+caller-supplied statements, so a persisted policy store remains only a non-goal/future gap, not
+work owed to any next package. A separate P04h package is still required — a minimal canonical
+roadmap current-truth projection/update package (principally
+`planning/roadmap-v1-current-truth.json` plus its relevant current-truth test and the necessary
+ROADMAP/README/CHANGELOG/planning record within its own separately frozen scope) — before this
+can move the roadmap counter from 4/25 to 5/25.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
