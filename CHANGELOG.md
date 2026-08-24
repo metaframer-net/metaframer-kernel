@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04f `DecisionLoggingPolicyDecisionPoint` (`src/application/decision-logging-policy-decision-point.mjs`,
+  `tests/kernel-decision-logging-policy-decision-point.test.mjs`): wires `AuthorizationEvaluator`
+  to `DecisionLogPort` behind a frozen ordinary constructor `{candidatesFor, decisionLog,
+  idGenerator, clock, chainHead}`. `decide(request)` makes exactly one `candidatesFor` call and
+  one `AuthorizationEvaluator.decide` call, derives `layerResolved` by locating the winning
+  `matchedPolicyId` back in the already-fetched candidates (v2 layer, `"tenant"` for a legacy
+  three-key winner, `null` for default-deny), builds one genuine `DecisionLogEntry` from
+  `idGenerator()`, `clock.now()` and `chainHead(tenantId)`, and awaits `decisionLog.append` before
+  resolving with the exact `PolicyDecision`. `decideAll(requests)` fully preflights the whole
+  batch before touching any collaborator, evaluates sequentially in input order, reads
+  `chainHead` once per tenant per batch, chains later same-tenant entries from the prior
+  successfully appended entry's own `entryHash`, and stops at the first failure with no partial
+  result ever observed. `planning/kernel-decision-log-wiring-p04f.json` records scope, targeted
+  GREEN and rollback.
 - P04e1 `policy_decision_log` DB substrate (`db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py`,
   `db/tests/test_policy_decision_log.py`): a third Alembic revision (`down_revision =
   "0002_customer_records"`) adding a dedicated append-only hash-chain table, never a reuse of

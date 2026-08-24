@@ -172,9 +172,9 @@ function collaboratorOf(options) {
 // The collaborator is held privately and is never handed back. A getter, a static lookup or a
 // `toJSON` would each put a live collaborator one hop from a caller that could then call it
 // directly, and a caller calling it directly has walked straight around the only thing this port
-// does. The private field is also the only honest proof of what an instance is: `instanceof` is
-// satisfied by a prototype and the tag is inherited, so both can be worn by an object holding no
-// collaborator at all, and such an object must not be able to answer.
+// does. The prototype and the `Symbol.toStringTag` can each be worn by an object holding no
+// collaborator at all, so neither proves anything by itself; the brand-aware `Symbol.hasInstance`
+// below checks for the private field itself, which cannot be imitated the same way.
 // =====================================================================================
 
 export class Clock {
@@ -222,6 +222,12 @@ export class Clock {
 
   get [Symbol.toStringTag]() {
     return "Clock";
+  }
+
+  // Brand-aware, so a hollow Object.create(Clock.prototype) impostor answers false: the check is
+  // the private field's own presence, never the collaborator, and it is never invoked here.
+  static [Symbol.hasInstance](candidate) {
+    return typeof candidate === "object" && candidate !== null && #read in candidate;
   }
 }
 Object.freeze(Clock.prototype);
