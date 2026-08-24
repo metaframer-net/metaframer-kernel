@@ -18,8 +18,8 @@
   "productionSurface": {
     "package": "db/metaframer_kernel_db",
     "importRoot": "metaframer_kernel_db",
-    "headRevision": "0002_customer_records",
-    "revisionCount": 2,
+    "headRevision": "0003_policy_decision_log",
+    "revisionCount": 3,
     "modules": [
       {
         "path": "db/metaframer_kernel_db/__init__.py",
@@ -52,12 +52,17 @@
       {
         "path": "db/metaframer_kernel_db/alembic/versions/0002_customer_records.py",
         "role": "GJ-01's first tenant-owned domain table, chained onto the baseline"
+      },
+      {
+        "path": "db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py",
+        "role": "P04e1's dedicated hash-chain policy decision log, chained onto the customer revision"
       }
     ],
     "runtimeTables": [
       "transactional_outbox",
       "audit_log"
     ],
+    "policyDecisionLogTable": "policy_decision_log",
     "supportObjects": [
       {
         "name": "mfk_context_key",

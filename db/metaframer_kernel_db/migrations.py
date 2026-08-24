@@ -16,8 +16,9 @@ from typing import Final
 from alembic.config import Config
 
 #: The current head of the revision tree. 0001 creates the runtime substrate; 0002 adds the first
-#: tenant-owned domain table, GJ-01's customer records.
-HEAD_REVISION: Final = "0002_customer_records"
+#: tenant-owned domain table, GJ-01's customer records; 0003 adds P04e1's dedicated policy decision
+#: log.
+HEAD_REVISION: Final = "0003_policy_decision_log"
 
 #: The role the migration grants runtime privileges to. Configurable, because the substrate does
 #: not get to decide what an operator calls their application role.

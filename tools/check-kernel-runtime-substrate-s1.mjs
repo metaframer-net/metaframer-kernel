@@ -126,12 +126,18 @@ export const PRODUCTION_MODULES = [
   "db/metaframer_kernel_db/alembic/env.py",
   "db/metaframer_kernel_db/alembic/versions/0001_runtime_substrate.py",
   "db/metaframer_kernel_db/alembic/versions/0002_customer_records.py",
+  "db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py",
 ];
 export const REVISIONS_DIR = "db/metaframer_kernel_db/alembic/versions";
 // The baseline revision: the single cohesive S1 substrate. It still has no predecessor.
 export const BASE_REVISION = "0001_runtime_substrate";
-// The current head: 0002 adds GJ-01's first tenant-owned domain table on top of the S1 baseline.
-export const HEAD_REVISION = "0002_customer_records";
+// The second revision: GJ-01's first tenant-owned domain table, chained onto the S1 baseline.
+export const CUSTOMER_REVISION = "0002_customer_records";
+// The current head: P04e1's dedicated policy decision log, chained onto the customer revision.
+export const HEAD_REVISION = "0003_policy_decision_log";
+// P04e1's dedicated hash-chain decision log table. Declared separately from the two S1 runtime
+// tables, never folded into them and never a reuse of audit_log.
+export const POLICY_DECISION_LOG_TABLE = "policy_decision_log";
 // This package owns exactly these runtime tables, named as they exist in the database. There is
 // no domain here, so no business table may be invented to exercise transaction or policy
 // behaviour; the substrate's own tables are the subjects. Row-level-security obligations are
@@ -470,9 +476,12 @@ export function evaluateContract({ contract } = {}) {
   if (surface.package !== PRODUCTION_PACKAGE) push("production-surface-drift:package");
   if (surface.importRoot !== PRODUCTION_IMPORT_ROOT) push("production-surface-drift:importRoot");
   if (surface.headRevision !== HEAD_REVISION) push("production-surface-drift:headRevision");
-  if (surface.revisionCount !== 2) push("production-surface-drift:revisionCount");
+  if (surface.revisionCount !== 3) push("production-surface-drift:revisionCount");
   if (canonicalJson(surface.runtimeTables) !== canonicalJson(PHYSICAL_RUNTIME_TABLES)) {
     push("production-surface-drift:runtimeTables");
+  }
+  if (surface.policyDecisionLogTable !== POLICY_DECISION_LOG_TABLE) {
+    push("production-surface-drift:policyDecisionLogTable");
   }
   if (canonicalJson((surface.modules ?? []).map((m) => m?.path)) !== canonicalJson(PRODUCTION_MODULES)) {
     push("production-surface-drift:modules");
@@ -1266,8 +1275,11 @@ export function checkProductionSurface(root = ROOT) {
       .filter((entry) => entry.isFile() && entry.name.endsWith(".py"))
       .map((entry) => entry.name)
       .sort();
-    if (revisions.length !== 2) errors.push(`revision-count:${revisions.length}:${revisions.join(",")}`);
-    else if (canonicalJson(revisions) !== canonicalJson([`${BASE_REVISION}.py`, `${HEAD_REVISION}.py`].sort())) {
+    if (revisions.length !== 3) errors.push(`revision-count:${revisions.length}:${revisions.join(",")}`);
+    else if (
+      canonicalJson(revisions) !==
+      canonicalJson([`${BASE_REVISION}.py`, `${CUSTOMER_REVISION}.py`, `${HEAD_REVISION}.py`].sort())
+    ) {
       errors.push(`revision-name-drift:${revisions.join(",")}`);
     }
   }
@@ -1311,21 +1323,42 @@ export function checkSourceCrossBinding(root = ROOT) {
     if (!/gen_random_bytes\(32\)/.test(baseline)) errors.push("revision-missing:per-database-secret");
   }
 
+  const customer = read(`${REVISIONS_DIR}/${CUSTOMER_REVISION}.py`);
+  if (customer === null) errors.push(`source-unreadable:${REVISIONS_DIR}/${CUSTOMER_REVISION}.py`);
+  else {
+    if (!new RegExp(`^revision\\s*=\\s*"${CUSTOMER_REVISION}"`, "m").test(customer)) {
+      errors.push("revision-id-mismatch");
+    }
+    // The customer revision must chain directly onto the baseline: any other predecessor is drift.
+    if (!new RegExp(`^down_revision\\s*=\\s*"${BASE_REVISION}"`, "m").test(customer)) {
+      errors.push("customer-revision-does-not-chain-to-baseline");
+    }
+    for (const table of CUSTOMER_DOMAIN_TABLES) {
+      if (!customer.includes(table)) errors.push(`customer-table-not-declared-in-source:${table}`);
+    }
+    for (const fragment of ["ENABLE ROW LEVEL SECURITY", "FORCE ROW LEVEL SECURITY"]) {
+      if (!customer.includes(fragment)) errors.push(`revision-missing:${fragment}`);
+    }
+  }
+
   const revision = read(`${REVISIONS_DIR}/${HEAD_REVISION}.py`);
   if (revision === null) errors.push(`source-unreadable:${REVISIONS_DIR}/${HEAD_REVISION}.py`);
   else {
     if (!new RegExp(`^revision\\s*=\\s*"${HEAD_REVISION}"`, "m").test(revision)) {
       errors.push("revision-id-mismatch");
     }
-    // The head must chain directly onto the baseline: any other predecessor is drift.
-    if (!new RegExp(`^down_revision\\s*=\\s*"${BASE_REVISION}"`, "m").test(revision)) {
-      errors.push("head-revision-does-not-chain-to-baseline");
+    // The head must chain directly onto the customer revision: any other predecessor is drift.
+    if (!new RegExp(`^down_revision\\s*=\\s*"${CUSTOMER_REVISION}"`, "m").test(revision)) {
+      errors.push("head-revision-does-not-chain-to-customer-revision");
     }
-    for (const table of CUSTOMER_DOMAIN_TABLES) {
-      if (!revision.includes(table)) errors.push(`customer-table-not-declared-in-source:${table}`);
+    if (!revision.includes(POLICY_DECISION_LOG_TABLE)) {
+      errors.push(`policy-decision-log-table-not-declared-in-source:${POLICY_DECISION_LOG_TABLE}`);
     }
     for (const fragment of ["ENABLE ROW LEVEL SECURITY", "FORCE ROW LEVEL SECURITY"]) {
       if (!revision.includes(fragment)) errors.push(`revision-missing:${fragment}`);
+    }
+    if (!/FOR EACH STATEMENT EXECUTE FUNCTION \{APPEND_ONLY_FUNCTION\}/.test(revision)) {
+      errors.push("revision-missing:policy-decision-log-append-only-statement-trigger");
     }
   }
 

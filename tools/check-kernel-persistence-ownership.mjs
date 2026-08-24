@@ -27,6 +27,17 @@ const FROZEN_KERNEL_MIGRATIONS = [
 ];
 const FROZEN_KERNEL_ADAPTER_FILES = [];
 
+// P04e1's dedicated kernel capability migration: policy_decision_log. Frozen in code, exactly like
+// FROZEN_KERNEL_MIGRATIONS above, but activated only when the manifest opts in via the exact
+// field named by KERNEL_CAPABILITY_MANIFEST_FIELD. Manifest absence of that field continues to
+// represent the legacy frozen fixture set (this array is simply not consulted); presence must
+// match this exact declaration and its physical file, so a manifest-only edit can neither invent
+// a new kernel capability migration nor loosen this one.
+export const KERNEL_CAPABILITY_MANIFEST_FIELD = "kernelCapabilityMigrations";
+const FROZEN_KERNEL_CAPABILITY_MIGRATIONS = [
+  { file: "0003_policy_decision_log.py", tables: ["policy_decision_log"] },
+];
+
 // The one closed transitional-in-kernel fact. Present exactly as-is, or wholly absent once its
 // physical migration and adapter are also gone — never edited into something else.
 const FROZEN_TRANSITIONAL = {
@@ -258,6 +269,19 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
     violations.push("kernelOwnedAdapterFiles does not match the frozen closed kernel-owned adapter set");
   }
 
+  // The P04e1 kernel capability migration is inert unless the manifest opts in via the exact
+  // field, and once it does, it must restate the frozen declaration exactly — no growth, no drift.
+  const capabilityDeclared = Object.prototype.hasOwnProperty.call(manifest, KERNEL_CAPABILITY_MANIFEST_FIELD);
+  const capabilityActivated = capabilityDeclared && deepEqual(
+    manifest[KERNEL_CAPABILITY_MANIFEST_FIELD],
+    FROZEN_KERNEL_CAPABILITY_MIGRATIONS,
+  );
+  if (capabilityDeclared && !capabilityActivated) {
+    violations.push(
+      `${KERNEL_CAPABILITY_MANIFEST_FIELD} does not match the frozen kernel capability migration declaration`,
+    );
+  }
+
   let declaredTransitional = manifest.transitionalInKernel;
   if (!Array.isArray(declaredTransitional)) {
     violations.push("transitionalInKernel must be an array");
@@ -274,6 +298,11 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
 
   for (const entry of FROZEN_KERNEL_MIGRATIONS) {
     declaredMigrations.set(entry.file, { tables: new Set(entry.tables), kind: "kernel" });
+  }
+  if (capabilityActivated) {
+    for (const entry of FROZEN_KERNEL_CAPABILITY_MIGRATIONS) {
+      declaredMigrations.set(entry.file, { tables: new Set(entry.tables), kind: "kernel" });
+    }
   }
   for (const file of FROZEN_KERNEL_ADAPTER_FILES) declaredAdapterFiles.set(file, "kernel");
   if (transitionalPresent) {
