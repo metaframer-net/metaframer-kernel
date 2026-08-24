@@ -16,6 +16,29 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04b2 `PolicyCandidateResolver` (`src/application/policy-candidate-resolver.mjs`,
+  `tests/kernel-policy-candidate-resolver.test.mjs`): adds a pure, synchronous resolver that
+  turns a frozen array of genuine `PolicyStatement` rows into the exact ordinary v2 candidate
+  array (`{policyId, effect, applies, priority, layer}`) already accepted unchanged by
+  `AuthorizationEvaluator` and `PolicyDecisionPoint`. `candidatesFor(request)` requires a genuine
+  `PolicyRequest`; a lookalike built on the real prototype but missing its private state is
+  refused with a `TypeError` before any of its own-property getters are ever invoked (proven
+  against a hostile `action` getter). Matching grammar: `targetActor` is an ordinary object
+  admitting only the optional `tenantId`/`actorId` string keys, compared via `.toString()` — any
+  other key is a malformed selector and fails closed; `targetAction` and `targetResourceType`
+  must equal the request's action name / resource type exactly; an empty `condition` object is
+  unconditional, any non-empty condition is unsupported and fails closed (`applies=false`, never
+  evaluated, never thrown); a disabled statement's candidate always carries `applies=false`
+  regardless of every other axis. Resolving is deterministic, order-independent and mutates
+  neither the supplied statements array, any `PolicyStatement`, nor the `PolicyRequest` passed
+  in. `tests/repository-boundary.test.mjs`'s closed `src/application` module manifest is
+  extended with `policy-candidate-resolver.mjs`. See
+  `planning/kernel-policy-candidate-resolver-p04b2.json`.
+  `capability_delta: POLICY_CANDIDATE_DERIVATION_ONLY`; every stronger readiness flag (including
+  `runnableProduct`) stays `false`. Targeted GREEN only
+  (`node --test tests/kernel-policy-candidate-resolver.test.mjs tests/repository-boundary.test.mjs`);
+  `npm test`, `npm run check`, the required CI QA2 run and a fresh independent review are not yet
+  recorded, so no readiness or release claim is made here.
 - P04b1 `AuthorizationEvaluator` v2 candidate precedence (`src/application/authorization-evaluator.mjs`):
   `decide` now admits either the exact ordinary legacy `{policyId, effect, applies}` candidate
   shape or the exact ordinary v2 `{policyId, effect, applies, priority, layer}` shape (`priority`

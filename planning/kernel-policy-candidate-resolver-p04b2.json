@@ -1,0 +1,164 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-policy-candidate-resolver-p04b2-2026-08-24",
+  "generatedAt": "2026-08-24",
+  "packageKind": "pure-policy-candidate-derivation",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "baseCommit": "e28a900486624a4272cc7248d226a75897f87732",
+
+  "sequenceReference": {
+    "source": "planning/roadmap-v1-current-truth.json",
+    "id": "P04b2",
+    "note": "Roadmap v1 P04, second serial P04b subpackage: PolicyCandidateResolver, the pure derivation step that turns genuine PolicyStatement rows plus a genuine PolicyRequest into the exact v2 candidate array the already-landed AuthorizationEvaluator (P04b1) and PolicyDecisionPoint accept unchanged. Decision-log, batch and persistence remain deferred to later P04 subpackages."
+  },
+
+  "role": "P04b2 ultra-fast implementation writer, direct work only, no Agent/child/background worker.",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p04b2-ultra-fast-20260824",
+  "immutableBase": "e28a900486624a4272cc7248d226a75897f87732",
+
+  "scopeSynthesis": {
+    "sha256": "f7df15ed5b141d4a2dcf6e0ae0d349ec9b51cd48aab334573f58fd9c596e80d1",
+    "note": "Blind implementation-writer scope hash, supplied by the orchestrator alongside the frozen test file at package start. This writer never saw the test-authoring side's own scope hash before both were frozen."
+  },
+  "frozenTest": {
+    "path": "tests/kernel-policy-candidate-resolver.test.mjs",
+    "readOnly": true,
+    "originalRedHashSha256": "95cbb093c4f9abd9e6bb54c44a46e3125609dc108e465b4c8abf73f10d55ff3e",
+    "originalRedResult": "3 tests failed via the shared mod() guard — src/application/policy-candidate-resolver.mjs did not yet exist, so every scenario (integration, grammar, determinism) failed the same PolicyCandidateResolver export check before any assertion body ran.",
+    "correctionWaves": 2,
+    "correctionWave1": {
+      "changedBy": "separate test writer, not this implementation writer",
+      "change": "corrected one false prototype-sensitive assertion in the determinism/purity test (the non-mutation check against req.resource), which had compared the genuine PolicyRequest#resource getter's null-prototype canonical value against an Object.prototype literal with assert.deepEqual under node:assert/strict — a defect in the test's own expectation, not in this package's implementation, and not reachable or fixable from src/application/policy-candidate-resolver.mjs.",
+      "correctedHashSha256": "5cea81f8003cacdfdd5985b3da95beba6a4b1cce8f644e38ba6855d472d631b4",
+      "retained": true
+    },
+    "correctionWave2": {
+      "marker": "P04B2-R1",
+      "changedBy": "separate test writer, not this implementation writer",
+      "why": "MASTER independently confirmed 2/3 PASS at the wave-1 hash against this writer's then-current implementation: the grammar test failed because a counterfeit PolicyStatement built directly on PolicyStatement.prototype (carrying a hostile own-property `id` getter, no real private brand state) was silently admitted by the constructor's prior `Array.isArray(statements) && statements.every(isExactly(..., PolicyStatement))` check, which tests prototype identity only and never a genuine private-field brand. The test writer's replan added two adversarial assertions to the grammar test: (1) that same counterfeit statement must be refused by the constructor with a TypeError before its hostile `id` getter ever runs, and (2) a sparse (holed) statements array must likewise be refused with a TypeError rather than silently densified. Both required a source-side fix in the allowed src/application/policy-candidate-resolver.mjs, not a further test correction, since the counterfeit-admission gap was a genuine implementation defect.",
+      "newFrozenHashSha256": "2c28c0082813a94a39f929b334f3f3bb57569e66735e070fe15d1f634efbd500",
+      "redAtWave2": "2/3 PASS against this writer's pre-fix implementation, confirmed independently by MASTER before this writer's second pass: the grammar test failed exactly at the new counterfeit-admission assertion (`Missing expected exception: a counterfeit PolicyStatement lacking private brand state must be refused with a TypeError`); the integration and determinism tests remained GREEN, unaffected.",
+      "greenAtWave2": "3/3 PASS after this writer added a captured-private-getter brand check (`PolicyStatement.prototype`'s `effect` getter, called on each candidate statement — `effect` rather than `id` because the adversarial fixture overrides `id` specifically) and a dense-array admission check (`Array.isArray`, exact `Array.prototype`, no hole, no property beside its indices) to the `PolicyCandidateResolver` constructor, both evaluated and failing closed with a `TypeError` before any statement's own-property getter is ever reached. All other resolver semantics (targetActor/targetAction/targetResourceType/condition/enabled matching, the v2 candidate shape, purity, determinism, the existing PolicyRequest brand check) are unchanged."
+    },
+    "verifiedAgainstPresentSource": "170/170 GREEN (3/3 in this file plus 167/167 unaffected in tests/repository-boundary.test.mjs) against this writer's current src/application/policy-candidate-resolver.mjs, at the wave-2 corrected hash 2c28c0082813a94a39f929b334f3f3bb57569e66735e070fe15d1f634efbd500."
+  },
+
+  "falseReadinessFlagsEncountered": {
+    "note": "None raised by this writer's own implementation. The one defect found during the first pass (the req.resource null-prototype assert.deepEqual mismatch) was a false assertion in the frozen test file itself, corrected by the separate test writer in correction wave 1; this writer's production module required no change across either hash.",
+    "productionCodeChangedBetweenWaves": false
+  },
+
+  "goal": "Add PolicyCandidateResolver, a frozen class holding a fixed array of genuine PolicyStatement rows, exposing one synchronous method candidatesFor(request) that: (a) refuses a non-genuine PolicyRequest with a TypeError before any of its own-property getters run (proven against a hostile lookalike carrying a getter-trapped `action`); (b) maps each statement to the exact ordinary 5-key v2 candidate shape {policyId, effect, applies, priority, layer} already accepted unchanged by AuthorizationEvaluator/PolicyDecisionPoint; (c) computes applies from statement.enabled, exact targetAction/targetResourceType equality, a targetActor grammar admitting only optional tenantId/actorId string keys (any other key fails closed), and an empty-object-only unconditional condition (any non-empty condition fails closed, never evaluated, never thrown); (d) is deterministic, order-independent, and mutates neither the input statements array, any PolicyStatement, nor the PolicyRequest passed in.",
+
+  "allowedFiles": [
+    "src/application/policy-candidate-resolver.mjs",
+    "tests/repository-boundary.test.mjs",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-policy-candidate-resolver-p04b2.json"
+  ],
+
+  "nonGoals": [
+    "no change to the frozen tests/kernel-policy-candidate-resolver.test.mjs",
+    "no change to any existing public contract (PolicyStatement, PolicyRequest, PolicyDecision, AuthorizationEvaluator, PolicyDecisionPoint)",
+    "no combining algorithm or deny-overrides execution — that stays in AuthorizationEvaluator/PolicyDecisionPoint",
+    "no condition evaluator beyond the empty-object unconditional case",
+    "no persistence, statement store, cache, batch or decision-log",
+    "no PEP, HTTP or UI surface",
+    "no version bump, CI/config change, dependency change, commit, push, PR, full npm test/check, release or deploy",
+    "no Agent/child/background worker; direct work only"
+  ],
+
+  "red": {
+    "marker": "P04B2-R1",
+    "commands": ["node --test tests/kernel-policy-candidate-resolver.test.mjs"],
+    "hashAtRed": "2c28c0082813a94a39f929b334f3f3bb57569e66735e070fe15d1f634efbd500",
+    "result": "2/3 PASS: the grammar test failed with \"Missing expected exception: a counterfeit PolicyStatement lacking private brand state must be refused with a TypeError\" against this writer's then-current implementation, which admitted a counterfeit PolicyStatement built directly on PolicyStatement.prototype (no real private brand state) because its admission check tested prototype identity only. The integration and determinism tests remained GREEN.",
+    "priorRedHashSha256": "95cbb093c4f9abd9e6bb54c44a46e3125609dc108e465b4c8abf73f10d55ff3e",
+    "priorRedResult": "3 tests failed: every scenario failed the shared mod() guard because src/application/policy-candidate-resolver.mjs did not yet exist (retained as history; superseded by the hash above)."
+  },
+
+  "green": {
+    "marker": "P04B2-R1",
+    "commands": [
+      "node --test tests/kernel-policy-candidate-resolver.test.mjs tests/repository-boundary.test.mjs",
+      "git diff --check"
+    ],
+    "hashAtGreen": "2c28c0082813a94a39f929b334f3f3bb57569e66735e070fe15d1f634efbd500",
+    "result": "170/170 PASS: 3/3 in tests/kernel-policy-candidate-resolver.test.mjs (integration, grammar including the new counterfeit-statement and sparse-array assertions, determinism) plus 167/167 unaffected in tests/repository-boundary.test.mjs, after adding a captured-private-getter brand check (PolicyStatement.prototype's effect getter) and a dense-array admission check to the PolicyCandidateResolver constructor. git diff --check reported no whitespace errors.",
+    "priorGreenHashSha256": "5cea81f8003cacdfdd5985b3da95beba6a4b1cce8f644e38ba6855d472d631b4",
+    "priorGreenResult": "3/3 PASS at the wave-1 hash (retained as history; superseded by the hash above)."
+  },
+
+  "qa": {
+    "note": "Full local QA (npm test, npm run check) is a writer-run, not writer-self-certified, gate against a committed content snapshot; this package's own targeted-GREEN evidence precedes MASTER's atomic commit and does not substitute for it.",
+    "npmTest": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." },
+    "npmRunCheck": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." },
+    "ciQa2": { "result": "PENDING", "note": "Required CI full QA run, external to this writer." },
+    "freshIndependentReview": { "result": "PENDING", "note": "Not claimed by this writer." }
+  },
+
+  "budget": {
+    "canonicalSource": "karacaismail/actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "canonicalCommit": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+    "note": "Honest whole-package measurement, reconciled same-wave: includes the separate test writer's frozen test file alongside this writer's four files, six paths total across the two writers' combined change package.",
+    "changedFileCeiling": 20,
+    "changedFileCount": 6,
+    "changedFiles": [
+      "src/application/policy-candidate-resolver.mjs",
+      "tests/kernel-policy-candidate-resolver.test.mjs",
+      "tests/repository-boundary.test.mjs",
+      "README.md",
+      "CHANGELOG.md",
+      "planning/kernel-policy-candidate-resolver-p04b2.json"
+    ],
+    "perFileLines": {
+      "src/application/policy-candidate-resolver.mjs": { "additions": 115, "deletions": 0, "note": "new file, grown from 97 to 115 lines in P04B2-R1 to add the private-getter brand check and dense-array admission check" },
+      "tests/kernel-policy-candidate-resolver.test.mjs": { "additions": 358, "deletions": 0, "note": "new file, replanned to 358 lines by the separate test writer under marker P04B2-R1 (counterfeit-statement and sparse-array assertions added)" },
+      "tests/repository-boundary.test.mjs": { "additions": 1, "deletions": 1, "note": "one manifest line extended" },
+      "README.md": { "additions": 25, "deletions": 0 },
+      "CHANGELOG.md": { "additions": 23, "deletions": 0 },
+      "planning/kernel-policy-candidate-resolver-p04b2.json": { "additions": 164, "deletions": 0, "note": "new file, final measured line count after this P04B2-R1 replan edit" }
+    },
+    "grossAdditions": 686,
+    "grossDeletions": 1,
+    "netLines": 685,
+    "band": "conditional",
+    "class": "production",
+    "conditionalEvidence": {
+      "singleNarrowProblem": "Exactly one pure, synchronous derivation class (PolicyCandidateResolver) is added, proven by exactly one dedicated frozen test file; no combining algorithm, batch, decision-log or persistence is touched, and no existing public contract changes. P04B2-R1 closed one genuine admission-brand gap in that same class; it did not widen scope.",
+      "boundedFileSet": "Six files across both writers: the new production module, its dedicated frozen test, one pre-existing manifest line extended, README.md's parallel primitive-catalog entry, the CHANGELOG entry, and this planning record. No file outside this bounded set was touched in either wave.",
+      "noRedundantRepetition": "The genuine-instance brand check mirrors the existing carriesBrand pattern already used once in policy-decision.mjs; within this module one carriesBrand helper is now reused for both the PolicyRequest and the PolicyStatement admission checks. The frozen test file exercises one class through three non-overlapping scenarios (integration, grammar, determinism) with no duplicated fixture logic beyond the shared genuine-fixture helpers at its top.",
+      "noQualityTradeoff": "No shortcut was taken to fit budget: the targetActor/condition grammar fails closed on every unsupported shape identically, both brand checks are proven rather than assumed (a hostile getter is shown never to run), and both correction waves fixed a defect (a false test assertion, then a genuine admission gap) rather than weakening coverage.",
+      "fullGreen": "PENDING — external gate, not self-claimed by this writer. Targeted focus is 170/170 (3/3 in tests/kernel-policy-candidate-resolver.test.mjs plus 167/167 unaffected in tests/repository-boundary.test.mjs), against the P04B2-R1 frozen-test hash 2c28c0082813a94a39f929b334f3f3bb57569e66735e070fe15d1f634efbd500.",
+      "freshReviewerAccept": "PENDING — not claimed by this writer; an independent reviewer must run fresh on the committed content.",
+      "explicitRollback": "Delete src/application/policy-candidate-resolver.mjs and tests/kernel-policy-candidate-resolver.test.mjs; revert the single RING_MODULE_MANIFEST line in tests/repository-boundary.test.mjs; revert the added README.md P04b2 entry and CHANGELOG.md entry; drop this planning record. No data or runtime side effect exists to unwind."
+    }
+  },
+
+  "rollback": "Revert this single P04b2 atomic commit: delete src/application/policy-candidate-resolver.mjs and restore tests/repository-boundary.test.mjs, README.md and CHANGELOG.md to base e28a900. No migration, remote data, tag, release or deploy is involved. The frozen test file tests/kernel-policy-candidate-resolver.test.mjs is owned by the test writer's package and is not touched by this rollback.",
+
+  "capability_delta": "POLICY_CANDIDATE_DERIVATION_ONLY",
+
+  "flags": {
+    "runnableProduct": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "freshReviewerAccepted": false
+  },
+
+  "ownerFacingTruth": {
+    "once": "Bir policy satırı artık değişmez veri olarak taşınabiliyordu (P04a), ve motor elle hazırlanmış adayları sıralayabiliyordu (P04b1); fakat satırdan aday üretecek adım yoktu.",
+    "simdi": "P04b2 sonunda bir dizi policy satırı ile bir istek, kanonik v2 aday dizisine dönüştürülebiliyor; hâlâ hiçbir form gönderiminde otomatik çalışmıyor.",
+    "fark": "Kural satırından aday türetme adımı kuruldu; karar günlüğü, toplu değerlendirme ve kalıcılık ayrı alt paketlerde kalıyor.",
+    "kullaniciYolculugu": "CRM yöneticisinin \"satışçı yalnız kendi müşterisini güncellesin\" kuralı artık gerçek bir isteğe karşı aday üretebilir ve mevcut karar motoruna beslenebilir, fakat bu hat henüz herhangi bir form gönderimine bağlanmadı.",
+    "kalanEngel": "P04c-P04f, ardından P05/P07 ve sonraki roadmap fazları.",
+    "capability_delta": "policy candidate derivation only",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
