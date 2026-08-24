@@ -16,6 +16,23 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04d `DecisionLogEntry` and `DecisionLogPort` (`src/application/decision-log-entry.mjs`,
+  `src/application/decision-log-port.mjs`, `tests/kernel-decision-log.test.mjs`): adds one
+  append-only, hash-chained record of a single policy decision, and a pure one-function
+  forwarding seam over an append-only collaborator. `DecisionLogEntry` fixes a canonical ULID
+  `id`, the genuine `PolicyRequest`/`PolicyDecision` pair it covers, a `layerResolved` bound to
+  the decision's `matchedPolicyId` (non-null only for `"system"`/`"platform"`/`"tenant"`, `null`
+  only for a default-deny), a canonical UTC millisecond ISO `ts`, and a `prevHash` (`null` or
+  lowercase 64-hex) into one fixed JSON payload, and requires `decision.traceId` to be the exact
+  same `CorrelationId` instance as `request.action.correlationId` by identity, not merely
+  value-equal. `entryHash` is the `node:crypto` SHA-256 of that fixed payload with no ambient
+  clock, id, random or I/O. `DecisionLogPort` exposes exactly `append(entry)`: a hostile options
+  accessor is never invoked while checking admission, a counterfeit entry built on the genuine
+  prototype is refused before its collaborator is ever reached, and a genuine call forwards to
+  the collaborator with an undefined receiver, preserving its resolved or rejected identity
+  unchanged. No persisted-row verifier, DB/RLS/WORM, PDP/batch wiring, read/update/delete API,
+  retry/queue/cache, SDK/UI/config/version/release/deploy/readiness claim is introduced. See
+  `planning/kernel-decision-log-p04d.json`.
 - P04c `PolicyBatchEvaluator` (`src/application/policy-batch-evaluator.mjs`,
   `tests/kernel-policy-batch-evaluator.test.mjs`): adds a sequential batch orchestrator whose
   constructor delegates exact `{candidatesFor}` validation to one internal `PolicyDecisionPoint`.

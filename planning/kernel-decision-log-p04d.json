@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-decision-log-p04d-2026-08-24",
+  "packageKind": "policy-decision-log-append-only-record",
+  "packageState": "repair-wave-r1-writer-candidate-awaiting-external-gates",
+  "baseCommit": "f62e833ae15700539618b58bd5168601d5de3d81",
+  "role": "P04d implementation repair writer. The original implementation writer was a separate, now-stopped Claude panel (5fce0c42-4335-4b33-aee4-e428f18580bc) after an infrastructure stop. This panel (532197e1-8b31-4a5c-be68-8446b1b67fe2) is a distinct continuation writer that inherited ownership of the unfinished worktree, then performed R1: a MASTER source review of the inherited output found direct contract defects inside scope, repaired here. Direct work only, no agents, no Git.",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p04d-ultra-fast-20260824",
+  "immutableBase": "f62e833ae15700539618b58bd5168601d5de3d81",
+  "goal": "DecisionLogEntry: a frozen append-only hash-chained record of one policy decision whose entryHash is the node:crypto SHA-256 of a fixed canonical JSON payload (ULID id, genuine PolicyRequest/PolicyDecision pair, layerResolved bound to matchedPolicyId, canonical UTC millisecond ISO ts, prevHash null-or-64-hex, decision.traceId required to be the exact same CorrelationId instance as request.action.correlationId). DecisionLogPort: a pure one-function forwarding seam exposing only append(entry) over an append-only collaborator.",
+  "blindScopeHashes": {
+    "master": "4607d2aa2821d42b5034b8269b8bd4d360f3d44cc1fcea073290a66198620762",
+    "claude": "954f2cd8f3ccc7d81eeec9d875b7258acc335eaf162ff0f915189bcb85371233",
+    "synthesis": "03b2c19a8ea332c98a6a9de24a06d1976004374e52859341d994326b2e62ffb2"
+  },
+  "frozenTest": {
+    "path": "tests/kernel-decision-log.test.mjs", "readOnly": true,
+    "originalHashSha256": "195295b4fd49064c8d84fc4c893144769e51947717e657137216cd12e1fb4428",
+    "originalLines": 276,
+    "originalRedResult": "0/3 PASS, 3/3 FAIL: both source modules did not yet exist. Sole cause of the original RED; never run against any implementation.",
+    "correctionWaves": 1,
+    "correctionWave1": {
+      "changedBy": "separate test writer, not any implementation writer",
+      "correctedHashSha256": "9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6",
+      "correctedLines": 319,
+      "why": "The test writer's own replan of its first draft, corrected before either source module existed, so not a reaction to any prior implementation: fixed an invalid value access in one of its own fixtures, removed a self-referential hash oracle (a payload computed by reading an entry's own getters back rather than from literal fixed inputs), and added assertions the first draft omitted for genuine/counterfeit request and decision admission, decision.traceId identity, and frozen-instance/prototype/class checks. The original 276-line draft's expectedGenesisPayload asserted the literal insertion order of its own RESOURCE fixture (type, id); this correction retained that same literal payload and did not establish a general descending-key ordering rule. The original implementation writer later generalized the frozen expected ordering into a recursive descending-lexicographic-order rule applied at every level of the canonical hash payload; that generalization belongs to the implementation, not to this test correction.",
+      "redAtWave1": "0/3 PASS, 3/3 FAIL, same cause as the original RED: both source modules still absent at the corrected hash. No implementation existed yet by anyone.",
+      "greenAtWave1": "N/A at this wave — GREEN was first reached only once an implementation existed, after this correction."
+    },
+    "verifiedAgainstPresentSource": "170/170 GREEN (tests/kernel-decision-log.test.mjs plus tests/repository-boundary.test.mjs) against this repair wave's src/application/decision-log-entry.mjs and src/application/decision-log-port.mjs, at hash 9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6, run by this writer after the repair below."
+  },
+  "falseReadinessFlagsEncountered": {
+    "note": "The prior-stopped-writer handoff is true and is restored here: the original implementation writer was the separate, now-stopped Claude panel 5fce0c42-4335-4b33-aee4-e428f18580bc; this panel (532197e1-8b31-4a5c-be68-8446b1b67fe2) is the distinct continuation writer that inherited that worktree. What this writer's own prior planning record (superseded here) got wrong was two other claims: that the test correction reacted to the inherited implementation, and that the inherited source was already correct and complete on inspection. Both are false: the test correction predates any implementation and reacted to nothing in it; MASTER source review found five genuine contract defects in the inherited implementation, repaired below as R1.",
+    "productionReady": false, "released": false, "deployed": false, "enforcementPointIntroduced": false
+  },
+  "repairWaveR1": {
+    "trigger": "MASTER source review of the inherited implementation (originally authored by stopped panel 5fce0c42-4335-4b33-aee4-e428f18580bc, inherited by this continuation writer), inside the same allowed-files scope, no Git.",
+    "defectsRepaired": [
+      "1. Both option gates admitted any object whose own-key shape matched, including null-prototype/exotic-prototype objects; both now require Object.getPrototypeOf(options) === Object.prototype before any key is inspected, matching Clock and Identity. Descriptor-safe enumerable-data-property checks unchanged.",
+      "2. requestValue/decisionValue admitted a hollow counterfeit built directly on PolicyRequest.prototype/PolicyDecision.prototype on prototype identity alone; both now also call a captured frozen-prototype getter ('action'/'effect') as a deliberate brand probe and refuse if it throws, rather than relying on a later incidental getter access.",
+      "3. timestampValue used JavaScript host Date arithmetic (new Date(Date.UTC(...))) instead of this repository's own Clock contract; it now computes leap-year, month-length and range checks arithmetically exactly as src/application/clock.mjs does, with year 0000 explicitly refused as below the floor.",
+      "4. DecisionLogPort#append returned Promise.reject(...) on refusal but a bare collaborator call on success, so its shape differed by path; it is now declared async, refuses by throwing (an async method turns every path, refusal included, into a rejection), and awaits the collaborator's result, preserving resolved/rejected identity and an undefined receiver, called exactly once.",
+      "5. reversedKeyOrder only reversed the top-level keys of one shallow fixture shape; it is now descendingKeyOrder, a general recursive rule documented in-source: at every level to any depth, an object's own enumerable keys are re-emitted in descending lexicographic order, an array is walked in existing order with the rule applied recursively per element, and a primitive passes through unchanged."
+    ],
+    "notRepaired": "No change to tests/kernel-decision-log.test.mjs (frozen, read-only, hash unchanged at 9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6). No Git command run.",
+    "focusedSuiteBeforeRepair": "170/170 PASS, same as after: the five defects are contract gaps MASTER found by source review, not gaps the frozen test's own assertions exercise, so the pass count did not move.",
+    "focusedSuiteAfterRepair": "170/170 PASS at the same frozen-test hash: node --test tests/kernel-decision-log.test.mjs tests/repository-boundary.test.mjs."
+  },
+  "allowedFilesThisWave": ["src/application/decision-log-entry.mjs", "src/application/decision-log-port.mjs", "tests/repository-boundary.test.mjs", "README.md", "CHANGELOG.md", "planning/kernel-decision-log-p04d.json"],
+  "nonGoals": [
+    "No DB/RLS/WORM, no persisted-row verifier.", "No PDP or batch wiring.",
+    "No read/update/delete/latest/replay/query API.", "No retry, queue, cache, or SDK.",
+    "No UI, config, version, release, or deploy surface.",
+    "No readiness or release claim is made anywhere in this package.",
+    "No change to the frozen tests/kernel-decision-log.test.mjs (hash 9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6, verified unchanged)."
+  ],
+  "red": {
+    "commands": ["node --test tests/kernel-decision-log.test.mjs"],
+    "hashAtRed": "9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6",
+    "result": "0/3 PASS, 3/3 FAIL at the corrected hash, before either source module existed. Never established against an implementation, only against absent source — the honest predecessor of this wave's GREEN.",
+    "priorRedHashSha256": "195295b4fd49064c8d84fc4c893144769e51947717e657137216cd12e1fb4428",
+    "priorRedResult": "0/3 PASS, 3/3 FAIL: original 276-line file, same cause, superseded by the corrected hash and retained only as history."
+  },
+  "green": {
+    "commands": ["node --test tests/kernel-decision-log.test.mjs tests/repository-boundary.test.mjs"],
+    "hashAtGreen": "9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6",
+    "result": "170/170 PASS across the two focused test files against this repair wave's decision-log-entry.mjs and decision-log-port.mjs, and the unchanged repository-boundary.test.mjs manifest edit."
+  },
+  "qa": {
+    "note": "Full local QA (npm test, npm run check) is writer-run, not writer-self-certified, against a committed snapshot; per instruction this writer ran only the two focused test files.",
+    "npmTest": { "result": "PENDING", "note": "External gate, after MASTER commits this candidate." },
+    "npmRunCheck": { "result": "PENDING", "note": "External gate, after MASTER commits this candidate." },
+    "ciQa2": { "result": "PENDING", "note": "Required CI full QA run, external to this writer." },
+    "freshIndependentReview": { "result": "PENDING", "note": "Not claimed by this writer." },
+    "fullQaExecutionsUsed": 0, "fullQaExecutionsBudget": 2
+  },
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "note": "Honest whole-package measurement from base f62e833ae15700539618b58bd5168601d5de3d81, covering every file across both waves (the original implementation by stopped panel 5fce0c42-4335-4b33-aee4-e428f18580bc, and this R1 repair by continuation panel 532197e1-8b31-4a5c-be68-8446b1b67fe2) plus this planning record.",
+    "measurementMode": "whole-package-from-base",
+    "changedFileCount": 7,
+    "changedFiles": ["src/application/decision-log-entry.mjs", "src/application/decision-log-port.mjs", "tests/kernel-decision-log.test.mjs", "tests/repository-boundary.test.mjs", "README.md", "CHANGELOG.md", "planning/kernel-decision-log-p04d.json"],
+    "perFileLines": {
+      "src/application/decision-log-entry.mjs": { "additions": 234, "deletions": 0, "currentLines": 234, "note": "new file; grown 187->234 lines in R1 for the Object.prototype options gate, brand probes, arithmetic timestamp check, and general descendingKeyOrder" },
+      "src/application/decision-log-port.mjs": { "additions": 82, "deletions": 0, "currentLines": 82, "note": "new file; grown 77->82 lines in R1 for the Object.prototype options gate and uniformly-async append" },
+      "tests/kernel-decision-log.test.mjs": { "additions": 319, "deletions": 0, "currentLines": 319, "note": "new file, owned by the separate test writer, never modified by any implementation writer; corrected once from a 276-line draft (195295b4fd49064c8d84fc4c893144769e51947717e657137216cd12e1fb4428) before any implementation existed" },
+      "tests/repository-boundary.test.mjs": { "additions": 1, "deletions": 1, "note": "one manifest line extended; unchanged in R1" },
+      "README.md": { "additions": 24, "deletions": 0, "note": "P04d catalog entry; unchanged in R1" },
+      "CHANGELOG.md": { "additions": 17, "deletions": 0, "note": "P04d changelog entry; unchanged in R1" },
+      "planning/kernel-decision-log-p04d.json": { "additions": 122, "deletions": 0, "currentLines": 122, "note": "this planning record, rewritten entirely this R1 wave; compacted to keep whole-package net at or below the conditional ceiling without dropping evidence" }
+    },
+    "wholePackageGrossAdditions": 799,
+    "wholePackageGrossDeletions": 1,
+    "wholePackageNetLines": 798,
+    "band": "conditional", "class": "production",
+    "conditionalEvidence": {
+      "singleNarrowProblem": "Exactly one append-only hash-chained decision-log entry type and one pure one-method forwarding port; no PDP/batch wiring, no persistence, no PEP. R1 repaired five genuine contract defects (options-gate ordinariness, brand-probe admission, arithmetic timestamp validation, uniformly async append, general recursive key ordering) in that same narrow scope; it did not widen it.",
+      "boundedFileSet": "Seven files: two production modules repaired in place, one dedicated frozen test (separate writer, untouched), one pre-existing manifest line, README's catalog entry, the CHANGELOG entry, and this planning record. This wave's writes are limited to the two allowed source files and this record.",
+      "noRedundantRepetition": "The Object.prototype options gate and brand-probe admission reuse the exact pattern already established in src/application/clock.mjs and src/application/identity.mjs; no duplicate logic beyond matching that convention.",
+      "noQualityTradeoff": "Each repair closes a genuine admission or determinism gap (non-ordinary options, hollow prototype-only counterfeit, a JavaScript host Date arithmetic impossible date, non-uniformly-async method, shallow-only ordering) rather than narrowing a check or weakening a contract to fit the frozen test's existing assertions.",
+      "fullGreen": "PENDING — external gate, not self-claimed. Targeted focus is 170/170 against hash 9f4b78baf58d8dd1d8a37856066b72dc588842b3188d16dc6eaed544ace6b3f6.",
+      "freshReviewerAccept": "PENDING — not claimed by this writer.",
+      "explicitRollback": "Delete decision-log-entry.mjs, decision-log-port.mjs and kernel-decision-log.test.mjs; revert the manifest line in repository-boundary.test.mjs; revert the README.md/CHANGELOG.md P04d entries; delete this planning record. No data or runtime side effect to unwind."
+    }
+  },
+  "rollback": "Revert this single P04d atomic commit: delete src/application/decision-log-entry.mjs, delete src/application/decision-log-port.mjs, delete tests/kernel-decision-log.test.mjs, and restore tests/repository-boundary.test.mjs, README.md, CHANGELOG.md and this planning record to base f62e833ae15700539618b58bd5168601d5de3d81. No migration, remote data, tag, release or deploy is involved.",
+  "capability_delta": "POLICY_DECISION_LOG_ENTRY_AND_FORWARDING_PORT_ONLY",
+  "flags": {
+    "runnableProduct": false, "kernelReady": false, "sdkReady": false, "appBuildable": false,
+    "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false,
+    "gapClosed": false, "freshReviewerAccepted": false
+  },
+  "ownerFacingTruth": {
+    "once": "Bir kararın (izin/red) kim tarafından, hangi isteğe karşı, ne zaman verildiğini değiştirilemez biçimde kaydedecek bir yapı yoktu. Bu paketin ilk yazımında, MASTER'ın kaynak incelemesinin bulduğu gibi, kabul kapıları tam sağlam değildi: sahte bir seçenek/istek/karar nesnesi bazı durumlarda fark edilmeden geçebilir, zaman damgası tarayıcının kendi takvim ayrıştırıcısına güvenirdi, kayıt ekleme adımı her yolda aynı biçimde asenkron değildi.",
+    "simdi": "Bu düzeltme turunda (R1) kabul kapıları Clock/Identity ile aynı kalıba çekildi: seçenek nesnesi sıradan olmalı, istek/karar nesnesi doğru prototipte ve gerçek yapıcıdan geçmiş olmalı (sahte kabuk artık kabul edilmiyor), zaman damgası artık takvim aritmetiğiyle doğrulanıyor, append(entry) her yolda aynı biçimde asenkron. İç içe alan sırası artık tek bir genel, her derinlikte geçerli kurala bağlandı.",
+    "fark": "Karar kaydı hâlâ sabit, değiştirilemez, hash zincirine bağlı bir satır; kabul kapıları artık sahte girdilere karşı daha sıkı. Bunu bir veritabanına, WORM'a ya da zorlama noktasına bağlayan hiçbir şey henüz yok.",
+    "kullaniciYolculugu": "Bir CRM yöneticisinin onay/red kararının kaydını tutacak veri yapısı tanımlı, fakat henüz hiçbir form gönderimine, veritabanına veya API uç noktasına bağlanmadı.",
+    "kalanEngel": "P04e ve sonrası, ardından P05/P07 ve sonraki roadmap fazları; npm test/check, gerekli CI QA2 ve bağımsız inceleme hâlâ bekliyor.",
+    "capability_delta": "policy decision log entry and forwarding port only",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
