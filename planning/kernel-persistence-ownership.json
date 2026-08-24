@@ -1,0 +1,29 @@
+{
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "capabilityDelta": "NONE",
+  "governanceDelta": "PERSISTENCE_OWNERSHIP_GUARD",
+  "fullGreen": "pending",
+  "freshReviewerAccept": "pending",
+  "migrationsDir": "db/metaframer_kernel_db/alembic/versions",
+  "adaptersDir": "src/adapters",
+  "canonicalSubstrateReference": "db/kernel-runtime-substrate-s1.json#productionSurface",
+  "kernelOwnedMigrations": [
+    {
+      "file": "0001_runtime_substrate.py",
+      "tables": ["mfk_context_key", "transactional_outbox", "audit_log"]
+    }
+  ],
+  "kernelOwnedRuntimeTables": ["mfk_context_key", "transactional_outbox", "audit_log"],
+  "kernelOwnedAdapterFiles": [],
+  "transitionalInKernel": [
+    {
+      "migrationFile": "0002_customer_records.py",
+      "table": "customer_records",
+      "adapterFile": "postgres-commit-adapter.mjs",
+      "status": "transitional-in-kernel",
+      "targetOwner": "application",
+      "retirementPath": "P11-P14",
+      "removalIsConvergence": true
+    }
+  ]
+}

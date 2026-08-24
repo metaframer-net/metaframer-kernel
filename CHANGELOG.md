@@ -16,6 +16,23 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P06 kernel persistence-ownership admission guard (`planning/kernel-persistence-ownership.json`,
+  `tools/check-kernel-persistence-ownership.mjs`, `tests/kernel-persistence-ownership.test.mjs`):
+  an additive, read-only, dependency-free build-time check, composed once into `npm run check`
+  and exposed standalone as `npm run check:persistence-ownership`. It classifies this checkout's
+  Alembic migrations and `src/adapters` files against a closed declaration: the runtime substrate
+  (`mfk_context_key`, `transactional_outbox`, `audit_log`) is kernel-owned; `customer_records`
+  (`0002_customer_records.py`, `src/adapters/postgres-commit-adapter.mjs`) is recorded as a
+  current `transitional-in-kernel` fact with target owner `application` and retirement path
+  P11-P14, never as already app-owned. Any undeclared migration, table, or adapter file denies;
+  removing the transitional exception is admissible convergence; malformed, case-variant,
+  traversal, absolute-path, or symlinked declarations deny; unsupported/ambiguous DDL shapes deny
+  rather than being guessed at; and editing the manifest alone, without the matching real file
+  content already present on disk, cannot self-authorize new persistence growth. It adds no
+  runtime `src/application` port, no database/schema/adapter change, and no readiness movement;
+  `capability_delta` is `NONE` and product remains not-runnable. Governance-only:
+  `packageState: "writer-candidate-awaiting-external-gates"`; a full local/CI QA pass and an
+  independent reviewer accept are recorded as pending external gates, not yet claimed here.
 - P02 handler-free ActionContract IR (`src/application/action-contract.mjs`,
   `tests/kernel-action-contract.test.mjs`): adds one immutable declarative value describing an
   action's shape — exactly `kind` ("command" or "query"), the dotted-lowercase `name`, a safe
