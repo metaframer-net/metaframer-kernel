@@ -16,6 +16,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P01 current-truth + roadmap v1 (`planning/roadmap-v1-current-truth.json`, `ROADMAP.md`,
+  `tests/kernel-roadmap-v1-current-truth.test.mjs`): adds the sole machine-readable owner of
+  Roadmap v1 state — source classes, current implemented/not-implemented truth with every
+  stronger readiness flag `false`, the fixed 25-package denominator across 8 delivery
+  phases/families F0–F7 (P01–P25), the approved dependency DAG, a 3-lane writer cap with
+  shared locks, per-phase Definitions of Done, and owner-facing
+  `once`/`simdi`/`fark`/`kullaniciYolculugu`/`kalanEngel` fields with `capability_delta: NONE`.
+  `ROADMAP.md` is its concise human projection; `README.md` gains a pointer to both.
 - GJ-01 V15M host-runner CLI boundary (`host/python_asgi/create_customer_host_cli.py`,
   `tests/kernel-python-host-runner-cli.test.mjs`): adds the smallest explicit Python CLI/argv
   boundary over the existing V15L `run_create_customer_host` selector. The new module exposes

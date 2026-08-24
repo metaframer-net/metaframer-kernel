@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-roadmap-v1-current-truth",
+  "packageId": "p01-current-truth-roadmap",
+  "sourceClasses": {
+    "actionplan": {
+      "role": "canonical governance and decision source",
+      "repository": "karacaismail/actionplan",
+      "ref": "pinned-authority-commit",
+      "sha": "811505b0229705cf39edbf0d6b60248c46a72091",
+      "note": "read-only; pinned to this exact commit, not a claim about current origin/main; a local checkout path is a discovery hint only, never trusted as identity"
+    },
+    "actionplanDesignBudget": {
+      "role": "clean design/budget snapshot, distinct from the pinned authority commit above",
+      "repository": "karacaismail/actionplan",
+      "ref": "main",
+      "sha": "c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3",
+      "note": "read-only; carries change-package budget/class definitions, not authority state"
+    },
+    "kernel": {
+      "role": "Claude-authored implementation truth substrate for the roadmap",
+      "repository": "metaframer-kernel",
+      "note": "this repository; single Claude writer, no fallback writer"
+    }
+  },
+  "currentTruth": {
+    "runtimeImplementationStarted": true,
+    "activationRecord": "external-annotated-tag",
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false,
+    "implementedPieces": [
+      "Domain layer (src/domain) kernel primitives and policy/PDP building blocks, test-verified",
+      "Application layer (src/application) pipeline, commit service and request handler composition, test-verified",
+      "Adapters layer (src/adapters) — a Postgres commit adapter over the S1 Postgres/RLS/transaction/outbox/audit substrate",
+      "Delivery layer (src/delivery) — framework-neutral ASGI host-boundary primitives and standard router composition",
+      "CreateCustomer-specific golden-slice composition chain (HTTP message adapter, pipeline, request handler, ASGI composition) test-verified end to end at the primitive layer",
+      "src/sdk — a CreateCustomer-specific generated client, not yet a generic contract-to-SDK generator",
+      "ASGI host-boundary profile (core profile, conformance, scope/encoder rules) test-verified",
+      "Python host app factory and optional Uvicorn/Hypercorn host runners with explicit CLI selection (host/python_asgi, not src/delivery)",
+      "PostgreSQL-backed transaction/outbox/audit substrate test-verified in isolation"
+    ],
+    "notImplementedPieces": [
+      "generic contract-to-SDK generator (P07/P08) producing a versioned SDK for arbitrary action contracts",
+      "app-core (P10) and a real application built on the Kernel, beyond the CreateCustomer golden slice",
+      "policy-as-data batch and decision-log adapter wired end to end (P04)",
+      "outbox relay lifecycle (P18) actually delivering events out of the transactional outbox",
+      "production proof: no HA/DR, security, performance or promotion gate evidence exists yet (P19-P25)"
+    ],
+    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, but no generic SDK, application-owned persistence or product Surface exists to make it runnable as a real product."
+  },
+  "roadmap": {
+    "version": "v1",
+    "denominator": 25,
+    "families": [
+      { "id": "F0", "dodRef": "F0", "dod": "Current-truth + roadmap artifact is test-verified, budget-compliant and owner-legible; it is the sole machine-readable owner of roadmap state." },
+      { "id": "F1", "dodRef": "F1", "dod": "Kernel primitive + policy/authorization/PDP public contract building blocks are test-verified in isolation with every stronger readiness flag held false." },
+      { "id": "F2", "dodRef": "F2", "dod": "A generic SDK generator and versioned distribution, with clean consumer conformance proven, land test-verified with no product code touched." },
+      { "id": "F3", "dodRef": "F3", "dod": "app-core and application-owned persistence (app-owned customer schema, adapter, cutover/rollback, Kernel cleanup) land test-verified end to end." },
+      { "id": "F4", "dodRef": "F4", "dod": "A real product slice — Customer module typed API and a separate Surface/UI projection — is demonstrably runnable, not just test-verified in isolation." },
+      { "id": "F5", "dodRef": "F5", "dod": "Installable delivery host adapters and the outbox relay lifecycle land test-verified, each import-side-effect-free and fail-closed, delivering events." },
+      { "id": "F6", "dodRef": "F6", "dod": "Enterprise operation readiness — observability/SLO, performance, security, deploy package/staging, HA/DR/upgrade rollback — lands test-verified." },
+      { "id": "F7", "dodRef": "F7", "dod": "External proof by three independent consumer teams and the full promotion gate set land test-verified; gapClosed can be evaluated for the first time." }
+    ],
+    "phases": [
+      { "id": "P01", "name": "Current Truth & Roadmap", "family": "F0", "dodRef": "F0", "dependsOn": [] },
+      { "id": "P02", "name": "Action Contract IR", "family": "F1", "dodRef": "F1", "dependsOn": ["P01"] },
+      { "id": "P03", "name": "PDP Request/Decision", "family": "F1", "dodRef": "F1", "dependsOn": ["P02"] },
+      { "id": "P04", "name": "policy-as-data, batch and decision-log adapter", "family": "F1", "dodRef": "F1", "dependsOn": ["P03", "P06"] },
+      { "id": "P05", "name": "UoW, CommitReceipt and write envelope", "family": "F1", "dodRef": "F1", "dependsOn": ["P02", "P04"] },
+      { "id": "P06", "name": "persistence ownership guard", "family": "F1", "dodRef": "F1", "dependsOn": ["P01"] },
+      { "id": "P07", "name": "generic generator", "family": "F2", "dodRef": "F2", "dependsOn": ["P03", "P05", "P06"] },
+      { "id": "P08", "name": "versioned SDK distribution", "family": "F2", "dodRef": "F2", "dependsOn": ["P07"] },
+      { "id": "P09", "name": "clean consumer conformance", "family": "F2", "dodRef": "F2", "dependsOn": ["P08"] },
+      { "id": "P10", "name": "app-core", "family": "F3", "dodRef": "F3", "dependsOn": ["P09"] },
+      { "id": "P11", "name": "app-owned customer schema", "family": "F3", "dodRef": "F3", "dependsOn": ["P06", "P10"] },
+      { "id": "P12", "name": "app-owned adapter", "family": "F3", "dodRef": "F3", "dependsOn": ["P11"] },
+      { "id": "P13", "name": "data cutover and rollback", "family": "F3", "dodRef": "F3", "dependsOn": ["P12"] },
+      { "id": "P14", "name": "Kernel cleanup and parity", "family": "F3", "dodRef": "F3", "dependsOn": ["P13"] },
+      { "id": "P15", "name": "Customer module typed API", "family": "F4", "dodRef": "F4", "dependsOn": ["P10", "P14"] },
+      { "id": "P16", "name": "separate Surface/UI projection", "family": "F4", "dodRef": "F4", "dependsOn": ["P15"] },
+      { "id": "P17", "name": "installable ASGI host adapters", "family": "F5", "dodRef": "F5", "dependsOn": ["P09", "P15"] },
+      { "id": "P18", "name": "outbox relay lifecycle", "family": "F5", "dodRef": "F5", "dependsOn": ["P05", "P14"] },
+      { "id": "P19", "name": "observability/SLO", "family": "F6", "dodRef": "F6", "dependsOn": ["P16", "P17", "P18"] },
+      { "id": "P20", "name": "performance", "family": "F6", "dodRef": "F6", "dependsOn": ["P19"] },
+      { "id": "P21", "name": "security", "family": "F6", "dodRef": "F6", "dependsOn": ["P19"] },
+      { "id": "P22", "name": "deploy package/staging", "family": "F6", "dodRef": "F6", "dependsOn": ["P19"] },
+      { "id": "P23", "name": "HA/DR/upgrade rollback", "family": "F6", "dodRef": "F6", "dependsOn": ["P22"] },
+      { "id": "P24", "name": "three independent consumer teams", "family": "F7", "dodRef": "F7", "dependsOn": ["P16"] },
+      { "id": "P25", "name": "promotion gates", "family": "F7", "dodRef": "F7", "dependsOn": ["P20", "P21", "P23", "P24"] }
+    ]
+  },
+  "execution": {
+    "maxWriterLanes": 3,
+    "writerModel": "single active writer per change package (CLAUDE_ONLY_FAIL_CLOSED); lane count bounds concurrently open independent packages, never concurrent writers inside one package",
+    "sharedLocks": [
+      "package.json / package-lock.json (dependency surface)",
+      "versioning-policy.json + CHANGELOG.md (versioning and changelog gate)",
+      "planning/*.json canonical machine-readable fields",
+      "AGENTS.md and other canonical contract documents"
+    ]
+  },
+  "ownerFacing": {
+    "once": "Kernel gelistirme durumu birbiriyle celisen coktan tarihsel dosyaya dagilmisti; tek bir 'su an nerede, sirada ne var' cevabi yoktu.",
+    "simdi": "Tek makine-okunur roadmap kaynagi var (bu dosya): 25 paketlik sabit plan (8 teslimat fazi/ailesi), onaylanmis bagimlilik zinciri ve mevcut gercek (hicbir hazirlik bayragi acik degil).",
+    "fark": "Once dagilmis, birbiriyle celisebilen durum metinleri; simdi tek kaynak + insan-okunur ROADMAP.md projeksiyonu + README isaretcisi.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; sadece izole, test edilmis alt yapi taslari var.",
+    "kalanEngel": "F1-F7 fazlarinin tamami (P02-P25) tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+    "capability_delta": "NONE",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
