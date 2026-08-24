@@ -72,7 +72,7 @@
       { "id": "P01", "name": "Current Truth & Roadmap", "family": "F0", "dodRef": "F0", "dependsOn": [] },
       { "id": "P02", "name": "Action Contract IR", "family": "F1", "dodRef": "F1", "dependsOn": ["P01"] },
       { "id": "P03", "name": "PDP Request/Decision", "family": "F1", "dodRef": "F1", "dependsOn": ["P02"] },
-      { "id": "P04", "name": "policy-as-data, batch and decision-log adapter", "family": "F1", "dodRef": "F1", "dependsOn": ["P03"] },
+      { "id": "P04", "name": "policy-as-data, batch and decision-log adapter", "family": "F1", "dodRef": "F1", "dependsOn": ["P03", "P06"] },
       { "id": "P05", "name": "UoW, CommitReceipt and write envelope", "family": "F1", "dodRef": "F1", "dependsOn": ["P02", "P04"] },
       { "id": "P06", "name": "persistence ownership guard", "family": "F1", "dodRef": "F1", "dependsOn": ["P01"] },
       { "id": "P07", "name": "generic generator", "family": "F2", "dodRef": "F2", "dependsOn": ["P03", "P05", "P06"] },

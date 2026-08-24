@@ -34,7 +34,7 @@ never moves without a newly named plan version.
 ```
 P01 -> P02, P06
 P02 -> P03
-P03 -> P04
+P03, P06 -> P04
 P02, P04 -> P05
 P03, P05, P06 -> P07
 P07 -> P08
