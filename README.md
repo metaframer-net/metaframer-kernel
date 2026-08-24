@@ -381,6 +381,30 @@ is altered.
 does; no decision log, persistence, PEP, SDK, UI, config, release or deploy surface, and no
 readiness or release claim is made.
 
+**P04d — DecisionLogEntry and the DecisionLogPort.**
+[`src/application/decision-log-entry.mjs`](src/application/decision-log-entry.mjs) ·
+[`src/application/decision-log-port.mjs`](src/application/decision-log-port.mjs) ·
+[`tests/kernel-decision-log.test.mjs`](tests/kernel-decision-log.test.mjs) ·
+change gate: [`planning/kernel-decision-log-p04d.json`](planning/kernel-decision-log-p04d.json)
+(targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded, so no readiness or release claim is made here)
+
+Exports `DecisionLogEntry`, a frozen value type carrying one policy decision's fixed, hashable
+record — a canonical ULID `id`, the genuine `PolicyRequest`/`PolicyDecision` pair it covers, a
+`layerResolved` (`"system"`/`"platform"`/`"tenant"`, `null` only for a default-deny), a canonical
+UTC millisecond ISO `ts`, and a `prevHash` (`null` or lowercase 64-hex). It refuses a
+`decision.traceId` that is merely value-equal to `request.action.correlationId` and admits only
+the exact same `CorrelationId` instance by identity. Every covered field is fixed at construction
+into one JSON payload, and `entryHash` is the `node:crypto` SHA-256 of exactly that payload — no
+ambient clock, id, random or I/O anywhere in the module. `DecisionLogPort` is a one-method
+forwarding seam: `append(entry)` refuses anything but a genuine `DecisionLogEntry` before its
+collaborator is ever called, then forwards to it with an undefined receiver, preserving the
+collaborator's resolved or rejected identity unchanged.
+
+*Non-goals:* no persisted-row verifier, no DB/RLS/WORM, no PDP/batch wiring, no read/update/
+delete/latest/replay/query method or API, no retry/queue/cache, and no readiness or release
+claim is made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
