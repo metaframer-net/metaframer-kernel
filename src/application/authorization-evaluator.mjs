@@ -63,15 +63,28 @@ function isOrdinaryDenseArray(value) {
   return Reflect.ownKeys(value).length === value.length + 1;
 }
 
-const CANDIDATE_KEYS = ["policyId", "effect", "applies"];
+const LEGACY_CANDIDATE_KEYS = ["policyId", "effect", "applies"];
+const V2_CANDIDATE_KEYS = ["policyId", "effect", "applies", "priority", "layer"];
 const EFFECTS = new Set(["allow", "deny"]);
 const POLICY_ID_MAX = 128;
 const POLICY_ID_FORM = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
+const LAYERS = new Set(["system", "platform", "tenant"]);
+const LAYER_RANK = { system: 2, platform: 1, tenant: 0 };
+const LEGACY_PRIORITY = 0;
+const LEGACY_LAYER = "tenant";
 
 function checkCandidate(candidate) {
-  if (!isOrdinaryDataObject(candidate) || !hasExactEnumerableDataKeys(candidate, CANDIDATE_KEYS)) {
-    throw new TypeError(`an authorization candidate takes exactly these keys: ${CANDIDATE_KEYS.join(", ")}`);
+  if (!isOrdinaryDataObject(candidate)) {
+    throw new TypeError(`an authorization candidate takes exactly these keys: ${LEGACY_CANDIDATE_KEYS.join(", ")}`
+      + ` or these keys: ${V2_CANDIDATE_KEYS.join(", ")}`);
   }
+  const isLegacyShape = hasExactEnumerableDataKeys(candidate, LEGACY_CANDIDATE_KEYS);
+  const isV2Shape = hasExactEnumerableDataKeys(candidate, V2_CANDIDATE_KEYS);
+  if (!isLegacyShape && !isV2Shape) {
+    throw new TypeError(`an authorization candidate takes exactly these keys: ${LEGACY_CANDIDATE_KEYS.join(", ")}`
+      + ` or these keys: ${V2_CANDIDATE_KEYS.join(", ")}`);
+  }
+
   const { policyId, effect, applies } = candidate;
   if (typeof policyId !== "string" || policyId.length === 0 || policyId.length > POLICY_ID_MAX
     || !POLICY_ID_FORM.test(policyId)) {
@@ -83,7 +96,19 @@ function checkCandidate(candidate) {
   if (typeof applies !== "boolean") {
     throw new TypeError("an authorization candidate applies needs a primitive boolean");
   }
-  return { policyId, effect, applies };
+
+  if (isLegacyShape) {
+    return { policyId, effect, applies, priority: LEGACY_PRIORITY, layer: LEGACY_LAYER };
+  }
+
+  const { priority, layer } = candidate;
+  if (typeof priority !== "number" || !Number.isSafeInteger(priority)) {
+    throw new TypeError("a v2 authorization candidate priority needs a safe integer");
+  }
+  if (typeof layer !== "string" || !LAYERS.has(layer)) {
+    throw new TypeError('a v2 authorization candidate layer needs exactly "system", "platform" or "tenant"');
+  }
+  return { policyId, effect, applies, priority, layer };
 }
 
 function checkCandidates(candidates) {
@@ -105,8 +130,23 @@ function checkCandidates(candidates) {
 
 const REASON = "authorization decision combined from the given candidate outcomes";
 
-function smallestPolicyId(entries) {
-  return entries.map((entry) => entry.policyId).sort()[0];
+function winningPolicyId(entries) {
+  let winner = entries[0];
+  for (let index = 1; index < entries.length; index += 1) {
+    const entry = entries[index];
+    if (entry.priority !== winner.priority) {
+      if (entry.priority > winner.priority) winner = entry;
+      continue;
+    }
+    const entryRank = LAYER_RANK[entry.layer];
+    const winnerRank = LAYER_RANK[winner.layer];
+    if (entryRank !== winnerRank) {
+      if (entryRank > winnerRank) winner = entry;
+      continue;
+    }
+    if (entry.policyId < winner.policyId) winner = entry;
+  }
+  return winner.policyId;
 }
 
 export class AuthorizationEvaluator {
@@ -132,12 +172,12 @@ export class AuthorizationEvaluator {
 
     if (applicableDenies.length > 0) {
       return new PolicyDecision({
-        effect: "deny", reason: REASON, matchedPolicyId: smallestPolicyId(applicableDenies), traceId,
+        effect: "deny", reason: REASON, matchedPolicyId: winningPolicyId(applicableDenies), traceId,
       });
     }
     if (applicableAllows.length > 0) {
       return new PolicyDecision({
-        effect: "allow", reason: REASON, matchedPolicyId: smallestPolicyId(applicableAllows), traceId,
+        effect: "allow", reason: REASON, matchedPolicyId: winningPolicyId(applicableAllows), traceId,
       });
     }
     return new PolicyDecision({

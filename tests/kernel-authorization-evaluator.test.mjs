@@ -62,6 +62,7 @@ const COMMAND = new Command({
 const REQUEST = new PolicyRequest({ action: COMMAND, resource: { id: "inv-1" }, context: {} });
 
 const cand = (policyId, effect, applies) => ({ policyId, effect, applies });
+const EXPECTED_REASON = "authorization decision combined from the given candidate outcomes";
 
 function decisionOf(evaluator, request, candidates) {
   return evaluator.decide({ request, candidates });
@@ -354,4 +355,221 @@ test("PKG12 change-gate contract: identity, authority, budget, allowed files, no
     /fresh.*review/i, /no readiness.*claim|no release claim/i,
     /source.*(<=|at most|no more than).*300/i, /net.*(<=|at most|no more than).*800/i,
   ]) hasMatch(c.exitCriteria, re, "exitCriteria");
+});
+
+// F. P04b1 — v2 candidate {policyId, effect, applies, priority, layer}: admission, refusal, and
+// legacy three-key compatibility. Priority is a safe-integer strength signal; layer is one of
+// system|platform|tenant. Legacy exact-three-key candidates must remain behaviorally neutral.
+
+const LAYERS = ["system", "platform", "tenant"];
+const cand2 = (policyId, effect, applies, priority, layer) => ({ policyId, effect, applies, priority, layer });
+
+test("P04b1: v2 {policyId,effect,applies,priority,layer} candidates are admitted and validated; hostile forms refused; legacy three-key candidates stay neutral", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+  const build = (candidates) => evaluator.decide({ request: REQUEST, candidates });
+
+  // -- exact ordinary v2 candidates across every declared layer are admissible.
+  for (const layer of LAYERS) {
+    assert.doesNotThrow(
+      () => build([cand2("pol-a", "allow", true, 10, layer)]),
+      `an exact ordinary v2 candidate with layer "${layer}" must be admitted`,
+    );
+  }
+
+  // -- priority must be a safe integer.
+  for (const [label, badPriority] of [
+    ["a float", 1.5], ["NaN", NaN], ["Infinity", Infinity], ["-Infinity", -Infinity],
+    ["a string", "10"], ["a boolean", true], ["null", null], ["undefined", undefined],
+    ["above MAX_SAFE_INTEGER", Number.MAX_SAFE_INTEGER + 1024],
+    ["below -MAX_SAFE_INTEGER", -(Number.MAX_SAFE_INTEGER + 1024)],
+  ]) {
+    throws(() => build([cand2("pol-a", "allow", true, badPriority, "system")]),
+      `a v2 candidate priority that is ${label} must be refused`);
+  }
+  assert.doesNotThrow(() => build([cand2("pol-a", "allow", true, 0, "system")]), "priority zero is a valid safe integer");
+  assert.doesNotThrow(() => build([cand2("pol-a", "allow", true, -5, "system")]), "a negative safe-integer priority is valid");
+
+  // -- layer must be exactly one of system|platform|tenant.
+  for (const badLayer of ["System", "PLATFORM", "org", "", "system ", null, undefined, 1, ["system"]]) {
+    throws(() => build([cand2("pol-a", "allow", true, 1, badLayer)]),
+      `a v2 candidate layer of ${JSON.stringify(badLayer)} must be refused`);
+  }
+
+  // -- hostile v2-shaped forms are refused outright.
+  const extraKey = { policyId: "pol-a", effect: "allow", applies: true, priority: 1, layer: "system", scope: "x" };
+  const accessorPriority = { policyId: "pol-a", effect: "allow", applies: true, layer: "system" };
+  Object.defineProperty(accessorPriority, "priority", { enumerable: true, get: () => 1 });
+  const accessorLayer = { policyId: "pol-a", effect: "allow", applies: true, priority: 1 };
+  Object.defineProperty(accessorLayer, "layer", { enumerable: true, get: () => "system" });
+  class ProxyTarget { constructor() { Object.assign(this, cand2("pol-a", "allow", true, 1, "system")); } }
+  const exoticProxy = new Proxy(new ProxyTarget(), {});
+  class CandidateClass { constructor() { Object.assign(this, cand2("pol-a", "allow", true, 1, "system")); } }
+  const exoticInstance = new CandidateClass();
+  const exoticArray = Object.assign(["pol-a", "allow"], { applies: true, priority: 1, layer: "system" });
+  const nonEnumPolicyId = { effect: "allow", applies: true, priority: 1, layer: "system" };
+  Object.defineProperty(nonEnumPolicyId, "policyId", { value: "pol-a", enumerable: false });
+  const nonEnumApplies = { policyId: "pol-a", effect: "allow", priority: 1, layer: "system" };
+  Object.defineProperty(nonEnumApplies, "applies", { value: true, enumerable: false });
+
+  for (const [label, bad] of [
+    ["an extra-key v2 candidate", extraKey],
+    ["a v2 candidate with an accessor-defined priority", accessorPriority],
+    ["a v2 candidate with an accessor-defined layer", accessorLayer],
+    ["a Proxy-wrapped v2-shaped object", exoticProxy],
+    ["a class-instance v2-shaped object", exoticInstance],
+    ["an array carrying v2 fields as properties", exoticArray],
+    ["a v2 candidate with a non-enumerable policyId", nonEnumPolicyId],
+    ["a v2 candidate with a non-enumerable applies", nonEnumApplies],
+  ]) {
+    throws(() => build([bad]), `${label} must be refused, never silently admitted`);
+  }
+
+  // -- legacy exact three-key candidates remain behaviorally neutral: still accepted, unaffected.
+  assert.doesNotThrow(() => build([cand("pol-a", "allow", true)]),
+    "a legacy exact three-key candidate must remain admissible after P04b1");
+  const legacyOnly = decisionOf(evaluator, REQUEST, [cand("pol-a", "allow", true), cand("pol-b", "deny", false)]);
+  assert.equal(legacyOnly.effect, "allow", "a legacy-only candidate set must decide exactly as it did before P04b1");
+  assert.equal(legacyOnly.matchedPolicyId, "pol-a");
+});
+
+// G. P04b1 — deny-overrides stays absolute regardless of priority or layer.
+test("P04b1: an applicable deny overrides every applicable allow no matter its priority or layer", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+
+  const scenarios = [
+    {
+      label: "low-priority tenant deny beats high-priority system allow",
+      candidates: [
+        cand2("pol-allow", "allow", true, 100, "system"),
+        cand2("pol-deny", "deny", true, -100, "tenant"),
+      ],
+      expectMatch: "pol-deny",
+    },
+    {
+      label: "equal-priority equal-layer deny still beats allow",
+      candidates: [
+        cand2("pol-allow", "allow", true, 5, "platform"),
+        cand2("pol-deny", "deny", true, 5, "platform"),
+      ],
+      expectMatch: "pol-deny",
+    },
+    {
+      label: "many high-ranked allows, one low-ranked deny: deny still wins",
+      candidates: [
+        cand2("pol-allow-a", "allow", true, 50, "system"),
+        cand2("pol-allow-b", "allow", true, 40, "system"),
+        cand2("pol-allow-c", "allow", true, 30, "platform"),
+        cand2("pol-deny", "deny", true, -1000, "tenant"),
+      ],
+      expectMatch: "pol-deny",
+    },
+  ];
+
+  for (const { label, candidates, expectMatch } of scenarios) {
+    for (const ordering of [candidates, [...candidates].reverse(), [...candidates].sort(() => 0.5)]) {
+      const decision = decisionOf(evaluator, REQUEST, ordering);
+      assert.equal(decision.effect, "deny", `${label}: deny must win regardless of order`);
+      assert.equal(decision.matchedPolicyId, expectMatch, `${label}: the deny candidate must be the match`);
+    }
+  }
+});
+
+// H. P04b1 — within one winning effect: priority descending, then layer system>platform>tenant,
+// then canonical policyId ascending; order-independent; default-deny/trace/reason/purity preserved.
+test("P04b1: winner within one effect is priority-desc, then layer system>platform>tenant, then policyId-asc, order-independent, with prior semantics preserved", () => {
+  const m = mod();
+  const evaluator = new m.AuthorizationEvaluator();
+
+  const table = [
+    {
+      label: "higher priority wins outright",
+      candidates: [
+        cand2("pol-low", "allow", true, 1, "system"),
+        cand2("pol-high", "allow", true, 9, "tenant"),
+      ],
+      expectMatch: "pol-high",
+    },
+    {
+      label: "tied priority: system beats platform beats tenant",
+      candidates: [
+        cand2("pol-tenant", "allow", true, 5, "tenant"),
+        cand2("pol-platform", "allow", true, 5, "platform"),
+        cand2("pol-system", "allow", true, 5, "system"),
+      ],
+      expectMatch: "pol-system",
+    },
+    {
+      label: "tied priority, platform beats tenant when system absent",
+      candidates: [
+        cand2("pol-tenant", "allow", true, 5, "tenant"),
+        cand2("pol-platform", "allow", true, 5, "platform"),
+      ],
+      expectMatch: "pol-platform",
+    },
+    {
+      label: "tied priority and layer: canonical policyId ascending",
+      candidates: [
+        cand2("pol-zulu", "allow", true, 5, "system"),
+        cand2("pol-alpha", "allow", true, 5, "system"),
+        cand2("pol-mike", "allow", true, 5, "system"),
+      ],
+      expectMatch: "pol-alpha",
+    },
+    {
+      label: "full three-tier resolution: priority first, then layer, then policyId",
+      candidates: [
+        cand2("pol-a", "allow", true, 1, "system"),
+        cand2("pol-b", "allow", true, 9, "tenant"),
+        cand2("pol-c", "allow", true, 9, "platform"),
+        cand2("pol-z", "allow", true, 9, "platform"),
+      ],
+      expectMatch: "pol-c",
+    },
+    {
+      label: "deny effect obeys the same within-effect ordering as allow",
+      candidates: [
+        cand2("pol-deny-low", "deny", true, 1, "system"),
+        cand2("pol-deny-high", "deny", true, 9, "platform"),
+        cand2("pol-allow-irrelevant", "allow", true, 100, "system"),
+      ],
+      expectMatch: "pol-deny-high",
+    },
+  ];
+
+  for (const { label, candidates, expectMatch } of table) {
+    const winningEffect = candidates.find((c) => c.policyId === expectMatch).effect;
+    for (const ordering of [candidates, [...candidates].reverse(), [...candidates].sort(() => 0.5)]) {
+      const decision = decisionOf(evaluator, REQUEST, ordering);
+      assert.equal(decision.effect, winningEffect, `${label}: winning effect must match`);
+      assert.equal(decision.matchedPolicyId, expectMatch, `${label}: winner must be order-independent`);
+    }
+  }
+
+  // -- default-deny still holds when nothing applies, v2 shape included.
+  const noneApply = decisionOf(evaluator, REQUEST, [
+    cand2("pol-a", "allow", false, 100, "system"),
+    cand2("pol-b", "deny", false, 100, "system"),
+  ]);
+  assert.equal(noneApply.effect, "deny");
+  assert.equal(noneApply.matchedPolicyId, null, "default deny must still carry a null matchedPolicyId under v2 candidates");
+
+  // -- reason and traceId are preserved for v2-shaped decisions.
+  const v2Decision = decisionOf(evaluator, REQUEST, [cand2("pol-a", "allow", true, 1, "system")]);
+  assert.equal(v2Decision.reason, EXPECTED_REASON, "the reason text must be unchanged for v2 candidates");
+  assert.equal(v2Decision.traceId, REQUEST.action.correlationId, "traceId must still be request.action.correlationId under v2 candidates");
+  assert.ok(isExactly(v2Decision, PolicyDecision), "the v2 path must still answer with an exact genuine PolicyDecision");
+
+  // -- purity: v2 candidates and the request are left unmutated, and decide stays synchronous.
+  const frozenV2 = Object.freeze([
+    Object.freeze(cand2("pol-a", "allow", true, 3, "system")),
+    Object.freeze(cand2("pol-b", "deny", true, 1, "tenant")),
+  ]);
+  const beforeJson = JSON.stringify(frozenV2);
+  const requestBefore = REQUEST.toString();
+  const purityDecision = evaluator.decide({ request: REQUEST, candidates: frozenV2 });
+  assert.ok(!(purityDecision instanceof Promise), "decide must never return a Promise for v2 candidates");
+  assert.equal(JSON.stringify(frozenV2), beforeJson, "v2 candidates must be unchanged after decide");
+  assert.equal(REQUEST.toString(), requestBefore, "the request must be unchanged after a v2 decide call");
 });

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-policy-candidate-precedence-p04b1-2026-08-24",
+  "generatedAt": "2026-08-24",
+  "packageKind": "candidate-precedence-extension",
+  "packageState": "writer-candidate-targeted-green-awaiting-external-gates",
+  "correctionWave": {
+    "note": "One correction wave. The separate test writer fixed only its missing expected-reason (REASON) binding in tests/kernel-authorization-evaluator.test.mjs; this writer changed no byte of the test file across either wave.",
+    "originalRedTest": {
+      "sha256": "1669507b37d6078237ccf4b37d8697659003c992f34cdf36de05377797263d33",
+      "note": "Pre-existing writer handoff: 13 legacy PASS + 3 P04b1 RED before this writer's implementation."
+    },
+    "postImplementationBeforeCorrection": {
+      "sha256": "1669507b37d6078237ccf4b37d8697659003c992f34cdf36de05377797263d33",
+      "targetedResult": "15/16 PASS; section H's single test failed with ReferenceError: REASON is not defined at line 559, a defect in the frozen test file itself, not in the implementation."
+    },
+    "correctedFrozenTest": {
+      "sha256": "3f669d09098d30d2b2c0750ca3a1051eae2ad39aaef6fa5edb986cd9c19bec84",
+      "fix": "test writer bound the missing expected-reason (REASON) identifier used by section H"
+    },
+    "targetedResultAfterCorrection": "16/16 PASS, verified by this writer with node --test tests/kernel-authorization-evaluator.test.mjs against the corrected frozen test file.",
+    "resolvedRisk": "frozen-test-reason-undefined is RESOLVED: the section H ReferenceError no longer occurs; all P04b1 priority/layer/policyId ordering assertions in that test now pass."
+  },
+  "baseCommit": "b6e761374b4ee18d6d4eb484eb9a233ed7f2eed3",
+  "role": "ultra-fast-v1 pilot implementation writer for P04b1: extend AuthorizationEvaluator.decide to admit an exact ordinary v2 {policyId, effect, applies, priority, layer} candidate shape alongside the exact ordinary legacy {policyId, effect, applies} shape, and to resolve the winner within a deciding effect by priority-desc, then layer system>platform>tenant, then policyId-asc, order-independent, while keeping deny-overrides absolute and every prior contract (default-deny, null matchedPolicyId, fixed reason, traceId identity, sync purity, no I/O) unchanged.",
+  "preExistingWriterHandoff": {
+    "note": "Only tests/kernel-authorization-evaluator.test.mjs arrived pre-modified by an upstream test writer with 13 legacy PASS + 3 P04b1 RED. This writer changed no byte of that file at handoff time or across the correction wave; see correctionWave above for the test writer's own later fix.",
+    "sha256": "1669507b37d6078237ccf4b37d8697659003c992f34cdf36de05377797263d33",
+    "verifiedUnchangedByThisWriter": true
+  },
+  "scopeSynthesis": {
+    "sha256": "0ef3339623fc628d6e34e132bfd9203e1b1a51705cd233b5cc426537759141c9"
+  },
+  "allowedFiles": [
+    "src/application/authorization-evaluator.mjs",
+    "README.md",
+    "planning/kernel-policy-candidate-precedence-p04b1.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no matcher, wildcard or condition evaluation against resource/context",
+    "no rbac/abac/rebac role, permission or grant model",
+    "no PolicyRecordSet, candidatesFor derivation or record set",
+    "no batch evaluation, decision-log entry, audit, cache or RLS/persistence adapter",
+    "no PEP, HTTP, SDK or UI surface",
+    "no change to the frozen test file, PolicyRequest, PolicyDecision or PolicyDecisionPoint public contracts",
+    "no npm test / npm run check / CI / version bump / release / deploy / readiness claim by this writer",
+    "no commit, push, merge or main promotion by this writer"
+  ],
+  "scopeResolution": {
+    "note": "checkCandidate in src/application/authorization-evaluator.mjs now branches on exact enumerable key-set shape: the legacy three-key {policyId, effect, applies} shape and the v2 five-key {policyId, effect, applies, priority, layer} shape are both checked via the existing hasExactEnumerableDataKeys descriptor guard (refusing accessor-defined, non-enumerable, extra-key, proxy-wrapped and class-instance forms identically to before); any other shape is refused. A legacy candidate is normalized internally to {priority: 0, layer: 'tenant'} without mutating the caller's object and without adding priority/layer to the public PolicyDecision. priority is validated with Number.isSafeInteger; layer is validated against an exact system|platform|tenant set. Duplicate policyId is still refused across shapes via the existing seen-set. The prior smallestPolicyId tie-break was replaced by winningPolicyId, a single linear scan comparing priority (desc), then a fixed layer-rank table system=2>platform=1>tenant=0 (desc), then policyId (asc); applied identically to the applicable-deny group and the applicable-allow group, so deny-overrides stays absolute and unaffected by priority/layer."
+  },
+  "red": {
+    "commands": ["node --test tests/kernel-authorization-evaluator.test.mjs"],
+    "result": "Pre-existing handoff state: 13 legacy tests PASS, 3 P04b1 tests (sections F, G, H) FAIL because src/application/authorization-evaluator.mjs did not yet admit the v2 candidate shape or apply priority/layer/policyId precedence."
+  },
+  "green": {
+    "commands": ["node --test tests/kernel-authorization-evaluator.test.mjs"],
+    "result": "16/16 tests PASS after implementing v2 candidate admission/validation and priority-then-layer-then-policyId winner resolution in src/application/authorization-evaluator.mjs, and after the separate test writer's correction-wave fix to tests/kernel-authorization-evaluator.test.mjs (binding the previously-missing REASON identifier used by section H). All sections A-H PASS, including F and G (P04b1 v2 admission/refusal, and deny-overrides regardless of priority/layer) and H (priority-desc, then layer system>platform>tenant, then policyId-asc, order-independent, with default-deny/reason/traceId/purity preserved). Verified directly by this writer against the corrected frozen test file."
+  },
+  "qa": {
+    "note": "Only targeted focused runs were performed, per this package's writer mandate. Full local QA (npm test, npm run check) is deferred to MASTER after the immutable commit; required CI QA2 and a fresh independent review are external gates not claimed here.",
+    "npmTest": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." },
+    "npmRunCheck": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." }
+  },
+  "budget": {
+    "externalBudgetReference": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "fullQaBudget": 2,
+    "note": "This is the honest whole-package measurement: five files changed since base b6e7613, including tests/kernel-authorization-evaluator.test.mjs (not in this writer's own allowedFiles, but part of the package as a whole) and the newly-created, previously-untracked planning/kernel-policy-candidate-precedence-p04b1.json. The test file's diff reflects both the pre-existing upstream test writer's P04b1 additions and its own correction-wave fix, not any byte authored by this writer.",
+    "changedFileCount": 5,
+    "changedFileCeiling": 20,
+    "grossAdditions": 410,
+    "grossDeletions": 17,
+    "netLines": 393,
+    "band": "default",
+    "class": "production",
+    "canonicalDerivation": "Read directly from the external canonical consumer at /Users/karaca/DEV/mimari/actionplan/worktrees/kernel-pkg17-changelog-handoff-2026-08-19, HEAD f25018d937557381cf8f8dd1012c29a2e48ba374, src/data/standards/short-code.json#changePackageBudget. That schema declares maxChangedFiles: 20 and a bands array whose \"default\" band carries maxNet: 400 with requires: [] (\"Normal/varsayılan bant; her sınıf için aynıdır ve ek kanıt istemez.\"), and whose \"conditional\" band carries maxNet: 800 with seven required conditions (single-narrow-problem, bounded-file-set, no-redundant-repetition, no-quality-tradeoff, full-green, fresh-reviewer-accept, explicit-rollback). This package's honest whole-package measurement is changedFileCount=5 (<=20) and netLines=393 (<=400), so it classifies exactly band=default, class=production, without needing the conditional band or any of its seven required conditions/safeguards.",
+    "perFile": {
+      "src/application/authorization-evaluator.mjs": { "additions": 48, "deletions": 8, "net": 40, "authoredBy": "this writer" },
+      "README.md": { "additions": 15, "deletions": 9, "net": 6, "authoredBy": "this writer" },
+      "CHANGELOG.md": { "additions": 13, "deletions": 0, "net": 13, "authoredBy": "this writer" },
+      "planning/kernel-policy-candidate-precedence-p04b1.json": { "additions": 116, "deletions": 0, "net": 116, "authoredBy": "this writer", "note": "new file, previously untracked; measured via git diff --numstat against /dev/null, after removing 15 blank lines from this file (semantic content unchanged)" },
+      "tests/kernel-authorization-evaluator.test.mjs": { "additions": 218, "deletions": 0, "net": 218, "authoredBy": "separate test writer, both the pre-existing P04b1 handoff and the correction-wave REASON fix; zero bytes from this writer" }
+    }
+  },
+  "rollback": "Revert this package's single atomic commit: restore src/application/authorization-evaluator.mjs, README.md and CHANGELOG.md to base b6e7613, and delete planning/kernel-policy-candidate-precedence-p04b1.json. tests/kernel-authorization-evaluator.test.mjs is untouched by this writer and needs no rollback action on its account. No migration, remote data, tag, release or deploy is involved.",
+  "capability_delta": "AUTHORIZATION_EVALUATOR_ADMITS_PRIORITIZED_LAYERED_CANDIDATES_ONLY",
+  "flags": {
+    "runnableProduct": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "freshReviewerAccepted": false
+  },
+  "ownerFacingTruth": {
+    "once": "Yetki motoru yalnızca eski tip, sıra bilgisi taşımayan adayları değerlendirebiliyordu; hangi kuralın önce geleceğini (merkez mi bölge mi, yüksek öncelik mi) ayırt edemiyordu.",
+    "simdi": "Motor artık öncelik (priority) ve katman (system/platform/tenant) taşıyan yeni tip adayları da kabul ediyor; eski adaylar hâlâ aynı şekilde çalışıyor. Yasaklayan (deny) kural, önceliği ne olursa olsun hâlâ kesin olarak kazanıyor.",
+    "fark": "Aynı etki (allow/deny) içinde birden fazla aday varsa, artık önce öncelik sayısına, sonra katmana (merkez > platform > kiracı), sonra kural kimliğine bakarak tek bir kazanan seçiliyor; eşleşme yoksa hâlâ varsayılan ret geçerli.",
+    "kullaniciYolculugu": "Bir yöneticinin merkez düzeyinde tanımladığı düşük öncelikli bir izin kuralı ile bir kiracının yüksek öncelikli izin kuralı çakıştığında artık hangisinin kazanacağı belirlenebiliyor; ama bu kuralları gerçek bir form gönderiminde kim, nasıl tanımlayacak sorusu hâlâ ayrı alt paketlerde.",
+    "kalanEngel": "npm test / npm run check tam çalıştırması, zorunlu CI QA2 ve bağımsız taze inceleme henüz yapılmadı. Önceki düzeltme dalgasında dondurulmuş test dosyasındaki REASON tanım hatası, ayrı test yazarı tarafından giderildi; hedefli test seti artık 16/16 yeşil.",
+    "capability_delta": "authorization evaluator admits prioritized, layered candidates only",
+    "calistirilabilirlik": "not-runnable"
+  },
+  "risks": [
+    {
+      "id": "frozen-test-reason-undefined",
+      "severity": "resolved",
+      "description": "tests/kernel-authorization-evaluator.test.mjs line 559 previously referenced a bare `REASON` identifier that the test file never defined or imported, causing section H's single test to fail with ReferenceError before its own assertions executed. This was outside this writer's allowed files (the test file is frozen/read-only to this writer). The separate test writer's correction wave bound the missing REASON identifier, corrected sha256 3f669d09098d30d2b2c0750ca3a1051eae2ad39aaef6fa5edb986cd9c19bec84.",
+      "evidence": "Before correction: node --test tests/kernel-authorization-evaluator.test.mjs -> 15 pass, 1 fail, 'ReferenceError [Error]: REASON is not defined' at tests/kernel-authorization-evaluator.test.mjs:559:35. After correction: node --test tests/kernel-authorization-evaluator.test.mjs -> 16 pass, 0 fail."
+    }
+  ]
+}
