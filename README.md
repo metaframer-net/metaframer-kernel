@@ -539,11 +539,12 @@ retry/queue/cache, no concurrency locking, no new dependency, no atomic batch ro
 mid-batch failure leaves the already-persisted prefix persisted and never runs later requests),
 and no readiness or release claim is made. `PolicyCandidateResolver` already consumes
 caller-supplied statements, so a persisted policy store remains only a non-goal/future gap, not
-work owed to any next package. A separate P04h package is still required — a minimal canonical
-roadmap current-truth projection/update package (principally
-`planning/roadmap-v1-current-truth.json` plus its relevant current-truth test and the necessary
-ROADMAP/README/CHANGELOG/planning record within its own separately frozen scope) — before this
-can move the roadmap counter from 4/25 to 5/25.
+work owed to any next package. The P04h roadmap current-truth projection/update package
+(`planning/roadmap-v1-current-truth.json` plus its current-truth test and the
+ROADMAP/README/CHANGELOG record within its own separately frozen scope) has now synced the
+roadmap counter to this evidence: `5/25 tamamlandı, P05/25 aktif`. P04 (policy-as-data, batch
+and decision-log adapter) is closed; P05 (UoW, CommitReceipt and write envelope) is the active
+package. This truth-sync adds no runtime capability and moves no flag under **Current status**.
 
 ## Authorized order and what remains closed
 
@@ -552,22 +553,19 @@ activated) → kernel primitives, typed action and PDP → generated SDK → one
 golden slice.
 
 The second stage is under way and is not finished. The primitives, the typed action contracts,
-the ports, the PolicyDecision protocol values, the candidate-outcome combining rule and the
-central `PolicyDecisionPoint` orchestration listed above are implemented; what that stage still
-lacks is the piece that scopes candidates in the first place — `src/application/policy.mjs`
-forwards a question and decides nothing, `src/application/policy-decision.mjs` names the shape
-of a question and an answer without evaluating either, `src/application/authorization-evaluator.mjs`
-combines candidate outcomes it is given without deriving any of them from a rule, and
-`src/application/policy-decision-point.mjs` orchestrates that combining step around a
-caller-supplied `candidatesFor` without deriving a candidate itself. Rule/candidate derivation
-and RLS integration remain unimplemented, so the typed-action/PDP stage is not yet complete. The
-generated SDK and the golden slice remain closed and unstarted, and nothing here may be read as
-opening them.
+the ports, the PolicyDecision protocol values, the candidate-outcome combining rule, the central
+`PolicyDecisionPoint` orchestration, and P04's candidate resolution (`PolicyCandidateResolver`),
+sequential batch evaluation and PostgreSQL-backed decision-log composition
+(`policyDecisionLogComposition`) are merged and test-verified on `main`. What that stage still
+lacks is P05 — the UoW composition, `CommitReceipt` and the write envelope wiring the
+unit-of-work port to a real commit boundary — the active next package. The generic SDK generator,
+app-core, the product Surface and every later readiness/promotion gate remain closed and
+unstarted, and nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
-unauthorized. What has landed is implementation evidence on a branch: its tests verify these
-contracts and nothing further; they close no gate and activate nothing beyond S1.
+unauthorized. Its tests verify these contracts and nothing further; they close no gate and
+activate nothing beyond S1.
 
 `GO-RUNTIME-PILOT` is a separate contract needing 10/10 GREEN gates, an independent verifier
 and a human countersign — `GRP-01` is RED and is evaluated externally. Production is a

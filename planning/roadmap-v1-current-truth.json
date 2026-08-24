@@ -44,12 +44,13 @@
       "src/sdk — a CreateCustomer-specific generated client, not yet a generic contract-to-SDK generator",
       "ASGI host-boundary profile (core profile, conformance, scope/encoder rules) test-verified",
       "Python host app factory and optional Uvicorn/Hypercorn host runners with explicit CLI selection (host/python_asgi, not src/delivery)",
-      "PostgreSQL-backed transaction/outbox/audit substrate test-verified in isolation"
+      "PostgreSQL-backed transaction/outbox/audit substrate test-verified in isolation",
+      "P04 policy-as-data candidate resolution, sequential batch evaluation and a decision-log adapter, composed end to end with a real PostgreSQL decision-log (chain-hashed, tenant-attested) via policyDecisionLogComposition, test-verified against PostgreSQL 16"
     ],
     "notImplementedPieces": [
       "generic contract-to-SDK generator (P07/P08) producing a versioned SDK for arbitrary action contracts",
       "app-core (P10) and a real application built on the Kernel, beyond the CreateCustomer golden slice",
-      "policy-as-data batch and decision-log adapter wired end to end (P04)",
+      "P05 UoW composition, CommitReceipt and the write envelope wiring the unit-of-work port to a real commit boundary",
       "outbox relay lifecycle (P18) actually delivering events out of the transactional outbox",
       "production proof: no HA/DR, security, performance or promotion gate evidence exists yet (P19-P25)"
     ],
@@ -94,7 +95,15 @@
       { "id": "P23", "name": "HA/DR/upgrade rollback", "family": "F6", "dodRef": "F6", "dependsOn": ["P22"] },
       { "id": "P24", "name": "three independent consumer teams", "family": "F7", "dodRef": "F7", "dependsOn": ["P16"] },
       { "id": "P25", "name": "promotion gates", "family": "F7", "dodRef": "F7", "dependsOn": ["P20", "P21", "P23", "P24"] }
-    ]
+    ],
+    "progress": {
+      "completed": 5,
+      "total": 25,
+      "completedPackages": ["P01", "P02", "P03", "P04", "P06"],
+      "activePackage": "P05",
+      "asOfKernelMain": "10d078df1d9baac3d67c26fc8f89af07503b64f8",
+      "statusLine": "5/25 tamamlandı, P05/25 aktif"
+    }
   },
   "execution": {
     "maxWriterLanes": 3,
@@ -119,11 +128,11 @@
     }
   },
   "ownerFacing": {
-    "once": "Kernel gelistirme durumu birbiriyle celisen coktan tarihsel dosyaya dagilmisti; tek bir 'su an nerede, sirada ne var' cevabi yoktu.",
-    "simdi": "Tek makine-okunur roadmap kaynagi var (bu dosya): 25 paketlik sabit plan (8 teslimat fazi/ailesi), onaylanmis bagimlilik zinciri ve mevcut gercek (hicbir hazirlik bayragi acik degil).",
-    "fark": "Once dagilmis, birbiriyle celisebilen durum metinleri; simdi tek kaynak + insan-okunur ROADMAP.md projeksiyonu + README isaretcisi.",
-    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; sadece izole, test edilmis alt yapi taslari var.",
-    "kalanEngel": "F1-F7 fazlarinin tamami (P02-P25) tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+    "once": "Once P04'un policy-as-data, batch ve decision-log adapter kaniti PostgreSQL'e karsi test edilmisti ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
+    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 5/25 tamamlandi, P05 aktif: bu paket (P04h) sadece o roadmap gercegini P04'un gercek PostgreSQL kanitiyla senkronlar, hicbir calisma zamani kod eklemez.",
+    "fark": "Once P04 tamamlanmisti ama sayac 4/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 5/25 tamamlandi, P05/25 aktif durumunu projekte ediyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P05'in UoW/CommitReceipt/write envelope'i ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
+    "kalanEngel": "P05 (UoW, CommitReceipt, write envelope) dahil F1-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
     "capability_delta": "NONE",
     "calistirilabilirlik": "not-runnable"
   }
