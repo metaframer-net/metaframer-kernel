@@ -40,10 +40,22 @@ P04E1_REVISION = "0003_policy_decision_log"
 # Fixed physical names taken directly from the P04e1 contract, not read through schema.contract:
 # declaring that mapping is itself part of the production work this suite is RED against.
 TABLE = "policy_decision_log"
-ID_COLUMN, TENANT_COLUMN, ENTRY_HASH_COLUMN, PREV_HASH_COLUMN, PAYLOAD_COLUMN, RECORDED_AT_COLUMN = (
-    "id", "tenant_id", "entry_hash", "prev_hash", "payload", "recorded_at"
+(
+    ID_COLUMN,
+    TENANT_COLUMN,
+    ENTRY_HASH_COLUMN,
+    PREV_HASH_COLUMN,
+    PAYLOAD_COLUMN,
+    RECORDED_AT_COLUMN,
+) = ("id", "tenant_id", "entry_hash", "prev_hash", "payload", "recorded_at")
+COLUMNS = (
+    ID_COLUMN,
+    TENANT_COLUMN,
+    ENTRY_HASH_COLUMN,
+    PREV_HASH_COLUMN,
+    PAYLOAD_COLUMN,
+    RECORDED_AT_COLUMN,
 )
-COLUMNS = (ID_COLUMN, TENANT_COLUMN, ENTRY_HASH_COLUMN, PREV_HASH_COLUMN, PAYLOAD_COLUMN, RECORDED_AT_COLUMN)
 
 _ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # Crockford base32, canonical uppercase form
 
@@ -101,7 +113,13 @@ def _row(tenant: str, predecessor: dict | None, note: str) -> dict:
 def _values(row: dict) -> tuple:
     import json
 
-    return (row["entry_id"], row["tenant"], row["entry_hash"], row["prev_hash"], json.dumps(row["payload"]))
+    return (
+        row["entry_id"],
+        row["tenant"],
+        row["entry_hash"],
+        row["prev_hash"],
+        json.dumps(row["payload"]),
+    )
 
 
 def _migrate_to_head(substrate, alembic_config):
@@ -120,8 +138,12 @@ def _insert(connection, row: dict):
             f'RETURNING "{ID_COLUMN}"'
         ),
         {
-            "id": entry_id, "tenant": tenant, "entry_hash": entry_hash, "prev_hash": prev_hash,
-            "payload": payload, "recorded_at": datetime.now(timezone.utc),
+            "id": entry_id,
+            "tenant": tenant,
+            "entry_hash": entry_hash,
+            "prev_hash": prev_hash,
+            "payload": payload,
+            "recorded_at": datetime.now(timezone.utc),
         },
     ).scalar_one()
 
@@ -174,9 +196,9 @@ def test_0003_upgrades_the_schema_and_downgrade_returns_exactly_to_0002(substrat
             (TABLE,),
         )
         index_defs = "\n".join(row[0] for row in cursor.fetchall())
-    assert "UNIQUE" in index_defs and TENANT_COLUMN in index_defs and ENTRY_HASH_COLUMN in index_defs, (
-        f"a unique (tenant_id, entry_hash) index must exist on {TABLE}"
-    )
+    assert (
+        "UNIQUE" in index_defs and TENANT_COLUMN in index_defs and ENTRY_HASH_COLUMN in index_defs
+    ), f"a unique (tenant_id, entry_hash) index must exist on {TABLE}"
     row_security, force_row_security = dbfacts.force_rls_enabled(substrate, TABLE)
     assert row_security is True
     assert force_row_security is True
@@ -184,9 +206,13 @@ def test_0003_upgrades_the_schema_and_downgrade_returns_exactly_to_0002(substrat
     # 2. Downgrading to the previous head removes it and nothing else the S1/GJ-01 surface owns.
     command.downgrade(config, CUSTOMER_REVISION)
     assert dbfacts.current_alembic_revision(substrate) == CUSTOMER_REVISION
-    assert not dbfacts.table_exists(substrate, TABLE), "downgrade to 0002 must drop policy_decision_log"
+    assert not dbfacts.table_exists(substrate, TABLE), (
+        "downgrade to 0002 must drop policy_decision_log"
+    )
     for untouched in ("customer_records", "transactional_outbox", "audit_log"):
-        assert dbfacts.table_exists(substrate, untouched), f"downgrading 0003 must not touch {untouched}"
+        assert dbfacts.table_exists(substrate, untouched), (
+            f"downgrading 0003 must not touch {untouched}"
+        )
 
     # 3. Re-upgrading is a genuine repeat, not a one-shot.
     command.upgrade(config, P04E1_REVISION)
@@ -215,11 +241,19 @@ def test_genesis_rows_isolate_by_tenant_and_deny_a_missing_or_forged_context(sub
 
     # Tenant isolation: each tenant sees only its own row.
     with tenant_transaction(url, TENANT_A) as connection:
-        rows_a = connection.execute(sqlalchemy.text(f'SELECT "{ID_COLUMN}" FROM "{TABLE}"')).scalars().all()
+        rows_a = (
+            connection.execute(sqlalchemy.text(f'SELECT "{ID_COLUMN}" FROM "{TABLE}"'))
+            .scalars()
+            .all()
+        )
     assert rows_a == [genesis_a["entry_id"]]
 
     with tenant_transaction(url, TENANT_B) as connection:
-        rows_b = connection.execute(sqlalchemy.text(f'SELECT "{ID_COLUMN}" FROM "{TABLE}"')).scalars().all()
+        rows_b = (
+            connection.execute(sqlalchemy.text(f'SELECT "{ID_COLUMN}" FROM "{TABLE}"'))
+            .scalars()
+            .all()
+        )
     assert rows_b == [genesis_b["entry_id"]]
 
     # WITH CHECK: an attested TENANT_A transaction cannot write a row naming TENANT_B, even with a
@@ -272,7 +306,9 @@ def test_the_successor_chain_holds_and_every_broken_link_and_mutation_is_rejecte
 
     with tenant_transaction(url, TENANT_A) as connection:
         stored_prev_hash = connection.execute(
-            sqlalchemy.text(f'SELECT "{PREV_HASH_COLUMN}" FROM "{TABLE}" WHERE "{ID_COLUMN}" = :id'),
+            sqlalchemy.text(
+                f'SELECT "{PREV_HASH_COLUMN}" FROM "{TABLE}" WHERE "{ID_COLUMN}" = :id'
+            ),
             {"id": successor["entry_id"]},
         ).scalar_one()
     assert stored_prev_hash == genesis["entry_hash"]
@@ -296,7 +332,10 @@ def test_the_successor_chain_holds_and_every_broken_link_and_mutation_is_rejecte
     # prev_hash != entry_hash invariant can reject it, never a payload/column mismatch.
     self_id, self_hash = _ulid(), _hex64()
     self_linked = {
-        "entry_id": self_id, "tenant": TENANT_A, "entry_hash": self_hash, "prev_hash": self_hash,
+        "entry_id": self_id,
+        "tenant": TENANT_A,
+        "entry_hash": self_hash,
+        "prev_hash": self_hash,
         "payload": _payload(self_id, TENANT_A, self_hash, "self-link"),
     }
     _rejects(self_linked)
@@ -318,17 +357,23 @@ def test_the_successor_chain_holds_and_every_broken_link_and_mutation_is_rejecte
     with pytest.raises(sqlalchemy.exc.DBAPIError):
         with tenant_transaction(url, TENANT_A) as connection:
             connection.execute(
-                sqlalchemy.text(f'UPDATE "{TABLE}" SET "{PAYLOAD_COLUMN}" = :payload WHERE "{ID_COLUMN}" = :id'),
+                sqlalchemy.text(
+                    f'UPDATE "{TABLE}" SET "{PAYLOAD_COLUMN}" = :payload WHERE "{ID_COLUMN}" = :id'
+                ),
                 {"payload": '{"tampered": true}', "id": target_id},
             )
     with pytest.raises(sqlalchemy.exc.DBAPIError):
         with tenant_transaction(url, TENANT_A) as connection:
             connection.execute(
-                sqlalchemy.text(f'DELETE FROM "{TABLE}" WHERE "{ID_COLUMN}" = :id'), {"id": target_id},
+                sqlalchemy.text(f'DELETE FROM "{TABLE}" WHERE "{ID_COLUMN}" = :id'),
+                {"id": target_id},
             )
 
     for statement, params in (
-        (f'UPDATE "{TABLE}" SET "{PAYLOAD_COLUMN}" = %s WHERE "{ID_COLUMN}" = %s', ('{"tampered": true}', target_id)),
+        (
+            f'UPDATE "{TABLE}" SET "{PAYLOAD_COLUMN}" = %s WHERE "{ID_COLUMN}" = %s',
+            ('{"tampered": true}', target_id),
+        ),
         (f'DELETE FROM "{TABLE}" WHERE "{ID_COLUMN}" = %s', (target_id,)),
     ):
         with substrate.connect(substrate.migration) as connection, connection.cursor() as cursor:

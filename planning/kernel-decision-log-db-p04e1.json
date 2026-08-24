@@ -3,45 +3,36 @@
   "id": "kernel-decision-log-db-p04e1-2026-08-24",
   "packageKind": "policy-decision-log-db-substrate",
   "packageState": "writer-candidate-awaiting-external-gates",
-  "role": "P04e1 single Claude implementation writer/repair writer. Direct work only, no agents, no Git mutation (read-only Git inspection occurred).",
+  "role": "P04e1 single Claude implementation/repair writer. Direct work only, no agents, no Git mutation (read-only Git inspection occurred).",
   "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p04e1-decision-log-db-20260824",
   "immutableBase": "b3a92c912ac96056243ca882ef2dcfa93562a4d0",
   "goal": "A dedicated policy_decision_log table (0003_policy_decision_log.py, chained onto 0002_customer_records), never a reuse of audit_log, carrying P04d's hash-chain payload shape under FORCE row-level security, a runtime role limited to SELECT/INSERT, and a table-specific append-only trigger; fail-closed CHECK constraints bind payload.id/payload.prevHash/payload.requestActor.tenantId to their columns, reject a self-link, and reject a missing key or wrong JSON type rather than passing under SQL NULL; a self-referencing FK plus two partial unique indexes cap each tenant to one genesis row and each predecessor to one successor.",
-  "frozenScopeHashes": {
-    "master": "d1834ffac75d1777779f762839e6d315c3a73cd61869c9e240a9293fdbd10e61",
-    "claude": "777da28e704675bcfd164154b92888c301a5a592ebe77096575c81fa8a0c63dc",
-    "synthesis": "eccac388b57c5b2f245c450059129a3f17a4dc0a3be91740707381a631c629e8"
-  },
+  "frozenScopeHashes": { "master": "d1834ffac75d1777779f762839e6d315c3a73cd61869c9e240a9293fdbd10e61", "claude": "777da28e704675bcfd164154b92888c301a5a592ebe77096575c81fa8a0c63dc", "synthesis": "eccac388b57c5b2f245c450059129a3f17a4dc0a3be91740707381a631c629e8" },
   "frozenTests": {
-    "note": "Wave R1 (this writer's original implementation) ran against R2 hashes. The test writer then delivered R3, correcting both frozen files; this repair wave reconciles against the R3 hashes below, which this writer verified directly (shasum -a 256) and ran against.",
     "policyDecisionLog": {
-      "path": "db/tests/test_policy_decision_log.py", "readOnly": true,
+      "path": "db/tests/test_policy_decision_log.py", "readOnly": true, "changedByThisWriter": false,
       "hashSha256R2": "6444943a4320f2a05edc65ff9efd1c0a991b6380a032fe543fd0355f7a378cf8", "linesR2": 335,
       "hashSha256R3": "a0fb3bc40440b8c076f8e240f6cc9a65cf6f09a39dba4060a34b0da3cc45c580", "linesR3": 342,
-      "r3Change": "adds the first-character 0-7 restriction to the test's own _ulid() helper (canonical ULID timestamp bits), no other assertion change observed.",
-      "changedByThisWriter": false
+      "hashSha256R4": "7b13386bc70f51043df048f48666ca155c8b5ad22f5e6dcfc2c99a7d4a6a5e26", "linesR4": 387,
+      "history": "R2->R3 added the ULID first-char 0-7 restriction to _ulid(). R3->R4 is repository-pinned ruff formatting only vs b579a47 (63 additions/18 deletions), no scenario/assertion change; 3/3 focused PASS is the test writer's own R4 evidence, reused not rerun. All hashes verified via shasum -a 256."
     },
     "runtimeSubstrateS1": {
-      "path": "tests/kernel-runtime-substrate-s1.test.mjs", "readOnly": true,
+      "path": "tests/kernel-runtime-substrate-s1.test.mjs", "readOnly": true, "changedByThisWriter": false,
       "hashSha256R2": "4c619a765d98bc0284a9de7562b1b9bf1d80e7bb901c356e4802364969ef3bdb", "linesR2": 1607,
-      "hashSha256R3": "fc4011ca21c2adaa9d7286580fab98eb806b7bf942d0d3926dea87bcb9712c74", "linesR3": 1607,
-      "r3Change": "the 'a third revision claimed without one existing' attack no longer collides with the real contract's honest revisionCount=3; the R2 self-contradiction this writer flagged in wave R1 is resolved in R3.",
-      "changedByThisWriter": false
+      "hashSha256R3andR4": "fc4011ca21c2adaa9d7286580fab98eb806b7bf942d0d3926dea87bcb9712c74", "linesR3andR4": 1607,
+      "history": "Unchanged since R3, verified unchanged again at R4; R2->R3 resolved a revisionCount self-contradiction flagged in wave R1."
     }
   },
   "red": {
-    "commands": [
-      "node --test tests/kernel-runtime-substrate-s1.test.mjs", "node --test tests/kernel-persistence-ownership.test.mjs"
-    ],
+    "commands": ["node --test tests/kernel-runtime-substrate-s1.test.mjs", "node --test tests/kernel-persistence-ownership.test.mjs"],
     "focusedFailuresWaveR1": [
-      "every public outbox mutation is fenced on the claim token -- head-revision-not-declared-in-source:0002_customer_records",
-      "an expired claim lease is a proven behaviour, not a promise -- same cause",
-      "the production surface is exactly one substrate package with exactly three revisions -- revision-count:2",
-      "the contract agrees with the production source it describes -- head-revision-not-declared-in-source:0002_customer_records",
-      "the production CLI validates the real repository and exits zero -- checker CLI exited 1 with the same two findings",
-      "real repository checkout classifies cleanly (kernel-persistence-ownership.test.mjs) -- undeclared migration file: 0003_policy_decision_log.py"
+      "outbox mutation fencing test -- head-revision-not-declared-in-source:0002_customer_records",
+      "expired claim lease test -- same cause", "exactly-three-revisions test -- revision-count:2",
+      "contract-agrees-with-source test -- head-revision-not-declared-in-source:0002_customer_records",
+      "production CLI test -- checker CLI exited 1 with the same two findings",
+      "kernel-persistence-ownership real-checkout test -- undeclared migration file: 0003_policy_decision_log.py"
     ],
-    "note": "Six focused RED failures captured pre-implementation in wave R1, before HEAD_REVISION/the checker/the ownership manifest were updated. No fresh RED was re-established for this repair wave: R2->R3 test corrections and the two DDL repairs below were verified straight to GREEN."
+    "note": "Six focused RED failures in wave R1, pre-implementation. No fresh RED re-established for R2->R4 test corrections or the DDL repairs; each verified straight to GREEN."
   },
   "green": {
     "commands": [
@@ -49,68 +40,52 @@
       "node --test tests/kernel-runtime-substrate-s1.test.mjs tests/kernel-persistence-ownership.test.mjs",
       "node tools/check-kernel-runtime-substrate-s1.mjs", "node tools/check-kernel-persistence-ownership.mjs"
     ],
-    "results": {
-      "pytest": "3/3 PASS (db/tests/test_policy_decision_log.py, R3 hash) against a real disposable Docker-backed PostgreSQL 16 instance.",
-      "runtimeSubstrateS1Suite": "155/155 PASS (R3 hash) -- the R2 revisionCount self-contradiction flagged in wave R1 is gone in R3.",
-      "kernelPersistenceOwnershipSuite": "32/32 PASS.",
-      "runtimeSubstrateS1Checker": "OK kernel-runtime-substrate-s1 (CLI exit 0).",
-      "kernelPersistenceOwnershipChecker": "OK, checkout classifies cleanly (CLI exit 0).",
-      "ruff": "PASS on the changed migration and the frozen R3 test (targeted, read-only check of the test file only)."
-    }
+    "results": "pytest 3/3 PASS (R3 hash, real Docker PostgreSQL 16); runtimeSubstrateS1 155/155 PASS (R3 hash); kernelPersistenceOwnership 32/32 PASS; both checker CLIs exit 0; ruff PASS on the changed migration and the frozen test file. R4's own 3/3 focused PASS is the test writer's evidence, reused per instruction rather than rerun."
   },
-  "repairWriterAllowedFiles": [
-    "db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py",
-    "planning/kernel-decision-log-db-p04e1.json"
-  ],
+  "ci": { "run": "32762591575", "job": "97544646887", "result": "substrate-static RED only because R3 would need reformatting (pre-R4, now moot: R4 is exactly that formatting); substrate-pytest GREEN. QA2 (required CI full QA) not yet complete." },
+  "qa1": {
+    "historicalRun": "At b579a470ea9bdcd4a6520124050757a6d53dfcbe (HEAD=TREE=cd543ffddc1b75e8ab4f5b12475b07b45b855d61, clean): npm test 1454/1454 PASS exit 0 (run twice, a disclosed deviation from 'exactly once', both identical); npm run check ran once and completed end-to-end (implicit exit 0 via its && chain).",
+    "invalidatedForPromotion": "The R4 test-file snapshot postdates b579a47, so that QA1 no longer covers the current worktree/CI-diff source; one replacement local QA1 is required under this snapshot-changed reason before promotion.",
+    "fullQaExecutionsUsed": 1, "fullQaExecutionsBudget": 2
+  },
+  "repairWriterAllowedFiles": ["planning/kernel-decision-log-db-p04e1.json"],
   "nonGoals": [
-    "No canonical hash recomputation or verification of entry_hash/prev_hash against the payload's actual bytes (P04e2's job); this table only enforces internal shape/chain-linkage consistency in DDL.",
-    "No read/query/replay API over the table.", "No PEP/PDP wiring, no application-layer caller of this table.",
-    "No change to audit_log, transactional_outbox, customer_records, or their existing grants/policies/triggers.",
-    "No widening of schema.RUNTIME_TABLES or kernelOwnedRuntimeTables.",
-    "No change to either frozen test file (this repair wave verified their R3 content, never edited it).",
-    "No Git mutation (read-only Git inspection occurred, e.g. git diff --check), no npm test, no npm run check, no full pytest, no full QA, no release or deploy action.",
-    "No readiness, verification, or promotion claim is made anywhere in this package."
+    "No canonical hash recomputation/verification of entry_hash/prev_hash against the payload's bytes (P04e2's job).",
+    "No read/query/replay API, no PEP/PDP wiring, no application-layer caller of this table.",
+    "No change to audit_log, transactional_outbox, customer_records, RUNTIME_TABLES or kernelOwnedRuntimeTables.",
+    "No change to either frozen test file by this writer (R2/R3/R4 are the test writer's); no Git mutation, no npm test/check, no full pytest/QA, no CI rerun, no release/deploy/reviewer action."
   ],
   "designDecisions": {
-    "idColumn": "text PRIMARY KEY, CHECK id ~ '^[0-7][0-9A-HJKMNP-TV-Z]{25}$' -- canonical uppercase ULID: the first base32 character is restricted to 0-7 (the 48-bit millisecond timestamp's top 3 bits are always zero), the remaining 25 draw from the full Crockford alphabet. Repaired from an initial 26-character-unrestricted-first-char pattern.",
+    "idColumn": "text PRIMARY KEY, CHECK id ~ '^[0-7][0-9A-HJKMNP-TV-Z]{25}$' -- canonical uppercase ULID (top 3 timestamp bits always zero).",
     "hashColumns": "entry_hash text NOT NULL CHECK ~ '^[0-9a-f]{64}$'; prev_hash text NULL, same pattern when present.",
-    "payloadBindingFailClosed": "Repaired: id/prevHash/requestActor.tenantId bindings now each require the JSON key present (jsonb `?`) and the expected JSON type (jsonb_typeof), and the value-equality comparison (where one applies) is wrapped `IS TRUE`; together the key/type guards and the wrapped equality make the whole CHECK expression fail closed, so a missing key or wrong type is a CHECK violation rather than a SQL NULL the CHECK would silently pass. Genesis requires the JSON key 'prevHash' actually present with jsonb_typeof = 'null' (no equality comparison applies there); a successor requires it present as a JSON string equal to the prev_hash column.",
+    "payloadBindingFailClosed": "id/prevHash/requestActor.tenantId bindings each require the JSON key present (jsonb `?`) and expected type (jsonb_typeof), with the equality comparison (where one applies) wrapped `IS TRUE`; together these make the whole CHECK fail closed instead of passing under SQL NULL. Genesis requires 'prevHash' present with jsonb_typeof='null' (no equality applies there); successor requires it present as a string equal to prev_hash.",
     "selfLinkRejection": "CHECK (prev_hash IS NULL OR prev_hash <> entry_hash), independent of the payload-agreement checks.",
-    "chainIntegrity": "UNIQUE (tenant_id, entry_hash) plus a self-referencing FK (tenant_id, prev_hash) -> (tenant_id, entry_hash) rejects any prev_hash naming a hash never written, scoped per tenant.",
-    "singleThreadedChain": "Partial unique index on (tenant_id) WHERE prev_hash IS NULL caps one genesis per tenant; on (tenant_id, prev_hash) WHERE prev_hash IS NOT NULL caps one successor per predecessor.",
-    "rls": "ENABLE + FORCE ROW LEVEL SECURITY, one FOR ALL USING/WITH CHECK policy on tenant_id = mfk_current_tenant(), reusing S1's attestation mechanism.",
+    "chainIntegrity": "UNIQUE (tenant_id, entry_hash) plus self-FK (tenant_id, prev_hash)->(tenant_id, entry_hash) rejects any prev_hash naming a hash never written, per tenant.",
+    "singleThreadedChain": "Partial unique index on (tenant_id) WHERE prev_hash IS NULL caps one genesis/tenant; on (tenant_id, prev_hash) WHERE prev_hash IS NOT NULL caps one successor/predecessor.",
+    "rls": "ENABLE + FORCE ROW LEVEL SECURITY, one FOR ALL USING/WITH CHECK policy on tenant_id = mfk_current_tenant(), reusing S1's attestation.",
     "grants": "SELECT, INSERT only to the runtime role -- no UPDATE/DELETE, matching audit_log's grant shape.",
-    "appendOnlyTrigger": "Dedicated statement trigger mfk_policy_decision_log_append_only, BEFORE UPDATE OR DELETE OR TRUNCATE, always raises -- blocks the owning role too, mirroring 0001's pattern with its own function.",
+    "appendOnlyTrigger": "Dedicated statement trigger mfk_policy_decision_log_append_only, BEFORE UPDATE OR DELETE OR TRUNCATE, always raises -- blocks the owning role too.",
     "migrationChain": "down_revision = '0002_customer_records'; downgrade() drops only this revision's trigger, function and table."
   },
   "wholePackageBudget": {
-    "canonicalSource": "actionplan@karacaismail/actionplan:src/data/standards/short-code.json#changePackageBudget",
-    "measurementMode": "whole-package-from-base, across all waves (R1 implementation, the test writer's R3 correction, and this implementation repair), 12 changed files including both frozen test files.",
-    "changedFileCount": 12,
-    "grossAdditions": 791, "grossDeletions": 21, "netLines": 770,
-    "budgetHeadroom": "under the 800-net / 20-file whole-package ceiling"
-  },
-  "qa": {
-    "note": "Full local QA (npm test, npm run check) and the required CI full QA run are external gates, not writer-self-certified. This writer ran only the focused commands listed under green.",
-    "npmTest": { "result": "PENDING" }, "npmRunCheck": { "result": "PENDING" },
-    "ciQa2": { "result": "PENDING", "note": "Required CI full QA run, external to this writer." },
-    "freshIndependentReview": { "result": "PENDING", "note": "Not claimed by this writer." },
-    "fullQaExecutionsUsed": 0, "fullQaExecutionsBudget": 2
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "measurementMode": "whole-package-from-base b3a92c912ac96056243ca882ef2dcfa93562a4d0, across R1 implementation, the test writer's R2->R4 corrections (R4 = ruff reformat only), this record's repair/reconciliation waves, 12 changed files including both frozen test files.",
+    "changedFileCount": 12, "grossAdditions": 811, "grossDeletions": 21, "netLines": 790,
+    "budgetHeadroom": "at the 790-net target (10 lines below the 800 ceiling); 12 files, under 20"
   },
   "rollback": {
     "trigger": "A defect found in review, or a decision to defer P04e1.",
-    "action": "revert of the eventual single atomic package commit (the complete 12-file boundary, not just this repair wave's two files) is the rollback unit; alembic downgrade to 0002_customer_records drops policy_decision_log, its trigger and function -- downgrade semantics unchanged by this correction.",
+    "action": "Revert of the eventual single atomic 12-file package commit is the rollback unit; alembic downgrade to 0002_customer_records drops policy_decision_log, its trigger and function -- downgrade semantics unchanged.",
     "blastRadius": "Confined to this worktree's uncommitted changes and, once migrated, to the policy_decision_log table alone.",
-    "runtimeDataImpact": "DESTRUCTIVE for any policy_decision_log rows written before a downgrade; back up first if any exist. No other table is touched.",
+    "runtimeDataImpact": "DESTRUCTIVE for policy_decision_log rows written before a downgrade; back up first if any exist. No other table is touched.",
     "dependentCode": "None yet -- no application code reads or writes this table in this package."
   },
   "readinessFlags": {
     "note": "Every stronger claim stays false until the external gates above actually run.",
-    "productionReady": false, "released": false, "deployed": false,
-    "greenIndependentlyVerified": false, "externallyEffective": false,
-    "fullQaComplete": false, "reviewerAccepted": false
+    "productionReady": false, "released": false, "deployed": false, "greenIndependentlyVerified": false,
+    "externallyEffective": false, "fullQaComplete": false, "reviewerAccepted": false
   },
   "followUp": {
-    "p04e2": "Canonical entry_hash recomputation and chain verification against the payload's actual bytes -- deliberately out of scope here, where only the shape/linkage of the row itself is enforced in DDL."
+    "p04e2": "Canonical entry_hash recomputation and chain verification against the payload's actual bytes -- out of scope here, where only the row's own shape/linkage is enforced in DDL."
   }
 }
