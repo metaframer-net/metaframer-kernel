@@ -13,6 +13,12 @@
       "tables": ["mfk_context_key", "transactional_outbox", "audit_log"]
     }
   ],
+  "kernelCapabilityMigrations": [
+    {
+      "file": "0003_policy_decision_log.py",
+      "tables": ["policy_decision_log"]
+    }
+  ],
   "kernelOwnedRuntimeTables": ["mfk_context_key", "transactional_outbox", "audit_log"],
   "kernelOwnedAdapterFiles": [],
   "transitionalInKernel": [

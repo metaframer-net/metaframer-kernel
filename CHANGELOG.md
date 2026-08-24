@@ -16,6 +16,27 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P04e1 `policy_decision_log` DB substrate (`db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py`,
+  `db/tests/test_policy_decision_log.py`): a third Alembic revision (`down_revision =
+  "0002_customer_records"`) adding a dedicated append-only hash-chain table, never a reuse of
+  `audit_log`. Columns mirror P04d's payload shape (`id` canonical-uppercase ULID, `tenant_id`
+  uuid, `entry_hash`/`prev_hash` lowercase 64-hex, `payload` jsonb, `recorded_at`); CHECK
+  constraints bind `payload.id`/`payload.prevHash`/`payload.requestActor.tenantId` to their
+  columns and reject a self-link. An inline unique `(tenant_id, entry_hash)` plus a self-FK on
+  `(tenant_id, prev_hash)` chain each row to its same-tenant predecessor; two partial unique
+  indexes cap each tenant to one genesis row and each predecessor to one successor. FORCE
+  row-level security keyed off `mfk_current_tenant()`, `mfk_runtime` granted SELECT/INSERT only,
+  and a dedicated statement trigger refuses UPDATE/DELETE/TRUNCATE for the owner too.
+  `db/metaframer_kernel_db/schema.py` adds `POLICY_DECISION_LOG_TABLE` and a
+  `policy_decision_log_table` schema-contract key without touching `RUNTIME_TABLES`.
+  `db/metaframer_kernel_db/migrations.py`'s `HEAD_REVISION` now points at
+  `0003_policy_decision_log`. `db/kernel-runtime-substrate-s1.json` and
+  `tools/check-kernel-runtime-substrate-s1.mjs` advance to three physical revisions
+  (0001/0002/0003) and cross-bind the new revision's RLS and trigger source.
+  `tools/check-kernel-persistence-ownership.mjs` gains a `kernelCapabilityMigrations` manifest
+  field, code-frozen to exactly `0003_policy_decision_log.py`/`policy_decision_log` and inert
+  unless the manifest declares it; `planning/kernel-persistence-ownership.json` activates it.
+  `planning/kernel-decision-log-db-p04e1.json` records scope, RED/GREEN and rollback.
 - P04d `DecisionLogEntry` and `DecisionLogPort` (`src/application/decision-log-entry.mjs`,
   `src/application/decision-log-port.mjs`, `tests/kernel-decision-log.test.mjs`): adds one
   append-only, hash-chained record of a single policy decision, and a pure one-function

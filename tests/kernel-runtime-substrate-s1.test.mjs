@@ -487,19 +487,37 @@ test("every declared capability is implemented, inside the one production surfac
   }
 });
 
-test("the production surface is exactly one substrate package with exactly two revisions", () => {
+// P04e1 chains a third revision, 0003_policy_decision_log, onto the S1 head. It adds a dedicated
+// policy_decision_log table as a separate kernel capability, never a reuse of audit_log, so the
+// two-table S1 RUNTIME_TABLES set below stays exactly transactional_outbox and audit_log.
+// CUSTOMER_REVISION is named explicitly, distinct from the imported HEAD_REVISION: once
+// production advances HEAD_REVISION to 0003, reusing it here for "the 0002 file" would silently
+// duplicate 0003 and drop 0002 from this expectation.
+const CUSTOMER_REVISION = "0002_customer_records";
+const P04E1_REVISION = "0003_policy_decision_log";
+const POLICY_DECISION_LOG_TABLE = "policy_decision_log";
+const POLICY_DECISION_LOG_MODULE = `${REVISIONS_DIR}/${P04E1_REVISION}.py`;
+
+test("the production surface is exactly one substrate package with exactly three revisions", () => {
   assert.deepEqual(checkProductionSurface(root), []);
   for (const relative of PRODUCTION_MODULES) {
     assert.ok(existsSync(path.join(root, relative)), `${relative} must exist`);
   }
-  // Two revisions: the S1 baseline, and the head chained onto it.
+  assert.ok(existsSync(path.join(root, POLICY_DECISION_LOG_MODULE)), `${POLICY_DECISION_LOG_MODULE} must exist`);
+  // The verifier's own head must have moved onto P04e1's revision, not stayed at 0002.
+  assert.equal(HEAD_REVISION, P04E1_REVISION);
+  // Three revisions: the S1 baseline, the customer-records head it chained onto, and the
+  // policy_decision_log revision P04e1 chains onto that head.
   const revisions = readdirSync(path.join(root, REVISIONS_DIR), { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".py"))
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual(revisions, [`${BASE_REVISION}.py`, `${HEAD_REVISION}.py`].sort());
-  assert.equal(contract.productionSurface.revisionCount, 2);
-  assert.equal(contract.productionSurface.headRevision, HEAD_REVISION);
+  assert.deepEqual(
+    revisions,
+    [`${BASE_REVISION}.py`, `${CUSTOMER_REVISION}.py`, `${P04E1_REVISION}.py`].sort(),
+  );
+  assert.equal(contract.productionSurface.revisionCount, 3);
+  assert.equal(contract.productionSurface.headRevision, P04E1_REVISION);
   // The repository-root fence and the no-second-home rule both still hold.
   for (const fenced of FORBIDDEN_ROOT_PATHS) {
     assert.equal(existsSync(path.join(root, fenced)), false, `${fenced} must not exist at the root`);
@@ -511,10 +529,18 @@ test("the production surface is exactly one substrate package with exactly two r
 
 test("the contract agrees with the production source it describes", () => {
   assert.deepEqual(checkSourceCrossBinding(root), []);
-  // Exactly two runtime tables, and the names in the contract are the names in the code.
+  // Exactly two runtime tables, and the names in the contract are the names in the code. The
+  // policy decision log is P04e1's own kernel capability table, declared separately from the two
+  // S1 runtime tables rather than folded into them or reusing audit_log.
   assert.deepEqual(contract.productionSurface.runtimeTables, PHYSICAL_RUNTIME_TABLES);
+  assert.deepEqual(contract.productionSurface.runtimeTables, ["transactional_outbox", "audit_log"]);
   assert.equal(contract.productionSurface.runtimeTables.length, RUNTIME_TABLES.length);
   assert.equal(contract.productionSurface.package, PRODUCTION_PACKAGE);
+  assert.equal(contract.productionSurface.policyDecisionLogTable, POLICY_DECISION_LOG_TABLE);
+  assert.ok(
+    !contract.productionSurface.runtimeTables.includes(POLICY_DECISION_LOG_TABLE),
+    "policy_decision_log must be declared separately, never folded into the S1 runtime tables",
+  );
 });
 
 test("the tenant-context mechanism keeps no secret in the repository and claims no more than it delivers", () => {
@@ -854,7 +880,7 @@ const attacks = [
   ["a green run promoted to effectiveness", () => mutated("phaseStatus.externallyEffective", true), "phase-status-drift:externallyEffective"],
   ["a capability declared implemented outside the production surface", () => mutated("requiredCapabilities.0.implementedIn", "db/tests/_harness/capability.py"), "capability-implemented-outside-production-surface:migration.alembic_config"],
   ["a capability quietly left unimplemented", () => mutated("requiredCapabilities.0.implementedInPhaseB", false), "capability-not-implemented:migration.alembic_config"],
-  ["a third revision claimed without one existing", () => mutated("productionSurface.revisionCount", 3), "production-surface-drift:revisionCount"],
+  ["a fourth revision claimed without one existing", () => mutated("productionSurface.revisionCount", 4), "production-surface-drift:revisionCount"],
   ["a domain table added to the production surface", () => mutated("productionSurface.runtimeTables", ["transactional_outbox", "audit_log", "business_record"]), "production-surface-drift:runtimeTables"],
   ["a signing secret admitted into version control", () => mutated("productionSurface.tenantContextMechanism.secretInVersionControl", true), "tenant-context-mechanism-drift:secretInVersionControl"],
   ["a raw setting declared sufficient for access", () => mutated("productionSurface.tenantContextMechanism.rawSettingSufficientForAccess", true), "tenant-context-mechanism-drift:rawSettingSufficientForAccess"],

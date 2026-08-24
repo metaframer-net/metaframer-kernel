@@ -405,6 +405,24 @@ collaborator's resolved or rejected identity unchanged.
 delete/latest/replay/query method or API, no retry/queue/cache, and no readiness or release
 claim is made.
 
+**P04e1 — the `policy_decision_log` DB substrate.**
+[`db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py`](db/metaframer_kernel_db/alembic/versions/0003_policy_decision_log.py) ·
+[`db/tests/test_policy_decision_log.py`](db/tests/test_policy_decision_log.py) ·
+change gate: [`planning/kernel-decision-log-db-p04e1.json`](planning/kernel-decision-log-db-p04e1.json)
+(targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded, so no readiness or release claim is made here)
+
+A third Alembic revision, chained onto `0002_customer_records`, adds a dedicated table for
+P04d's hash-chain payload — never a reuse of `audit_log`. FORCE row-level security, a runtime
+role limited to SELECT/INSERT, and a table-specific append-only trigger match the rest of the S1
+substrate; CHECK constraints additionally bind `payload.id`/`payload.prevHash`/
+`payload.requestActor.tenantId` to their columns and reject a self-link, and a self-referencing
+foreign key plus two partial unique indexes cap each tenant to one genesis row and each
+predecessor to one successor.
+
+*Non-goals:* no canonical hash recomputation or verification (P04e2), no read/query API, no PEP/
+PDP wiring, and no readiness or release claim is made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
