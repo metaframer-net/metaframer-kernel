@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-action-contract-ir-p02-2026-08-24",
+  "generatedAt": "2026-08-24",
+  "packageKind": "handler-free-declarative-action-contract-ir",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "baseCommit": "fd144e1b602d1b5a142674555abb72a7173a3107",
+
+  "sequenceReference": {
+    "source": "planning/roadmap-v1-current-truth.json",
+    "id": "P02",
+    "note": "Roadmap v1 P02: the one handler-free, immutable ActionContract IR v1 used by a machine reader (e.g. P07) to describe an action's declarative shape, without describing or executing any second runtime action."
+  },
+
+  "scopeCorrection": {
+    "sourceKind": "external-master-decision-record",
+    "sourceLocator": "not-persisted-in-repository",
+    "sha256": "51825b6afe45c4a1c56e2ffcc4282b5be486d758efe236b460f76910ed569b51",
+    "note": "MASTER-authorized correction adding tests/repository-boundary.test.mjs to the allowed-file set, solely to register action-contract.mjs in the pre-existing closed src/application module manifest (RING_MODULE_MANIFEST). No other assertion or repository-boundary behavior changed. Immutable base and sole writer unchanged; no writer handoff occurred."
+  },
+
+  "reviewCorrection": {
+    "sourceKind": "external-master-decision-record",
+    "sourceLocator": "not-persisted-in-repository",
+    "sha256": "a0853ae60ba8ba272bdf3cd9467bda5433bac3be7978cf8329491281372043a5",
+    "note": "Independent review returned RED on truthfulness (a self-claimed GREEN packageState ahead of external gates) and MASTER inspection found fail-closed boundary gaps in the top-level options check and the identifier grammar. This package no longer self-claims packageState: GREEN, hardens exactOptions to an ordinary Object.prototype data object with exactly six own enumerable data properties (no accessor invoked while checking), and hardens identifier() to refuse __proto__/constructor/prototype by exact name in addition to the existing grammar. The prior reviewer snapshot is invalidated by these edits and must not be reused; a fresh reviewer must run on the corrected, committed content."
+  },
+
+  "goal": "Add ActionContract, a handler-free immutable declarative IR v1 describing an action's shape via exactly kind, name, version, ordered fields, ordered outcomes and ordered errorEnvelopeFields. It canonicalizes and deeply freezes caller-declared ordinary dense identifier arrays while preserving their order, rejects duplicates/unsafe identifiers/prototype tricks/accessors/symbols/sparse or extra-property arrays and unknown or missing top-level options, and renders deterministically. It describes an action; it never executes one, dispatches one, or renders code for one. Command and Query in src/application/action-primitives.mjs remain the sole effect boundary and are untouched by this package.",
+
+  "allowedFiles": [
+    "src/application/action-contract.mjs",
+    "tests/kernel-action-contract.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/kernel-action-contract-ir-p02.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no handler, dispatcher, bus or router",
+    "no P03 policy/PDP types",
+    "no P04 policy data",
+    "no P05 write envelope",
+    "no P07 renderer/CLI/SDK files",
+    "no migration of the historical CreateCustomer protocol record",
+    "no dependency/config/workflow change",
+    "no version/release/readiness/deploy/production change",
+    "no change to src/application/action-primitives.mjs (Command/Query remain the effect boundary)",
+    "no repository-boundary.test.mjs assertion or behavior change beyond registering action-contract.mjs in the existing closed src/application manifest"
+  ],
+
+  "scopeResolution": {
+    "note": "ActionContract is a standalone value class in src/application/action-contract.mjs with no import of any kind (framework-free, capability-free, and independent of action-primitives.mjs, which it deliberately does not touch or extend). It validates kind (exactly \"command\" or \"query\"), name (the same dotted-lowercase, >=2-segment, <=128-character coordinate shape action-primitives.mjs uses), version (a safe integer >=1), and three ordered identifier lists (fields, outcomes, errorEnvelopeFields), each an ordinary dense array of unique, 1-64-character, letter-led [A-Za-z][A-Za-z0-9_]* identifiers, cloned and deeply frozen with caller order preserved (never sorted, since declared order is part of the contract). toJSON()/toString() render the fixed key order kind, name, version, fields, outcomes, errorEnvelopeFields deterministically; equals() is exact-class and structural over that rendering."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-action-contract.test.mjs"],
+    "result": "Every test in tests/kernel-action-contract.test.mjs failed via the shared mod() guard: \"src/application/action-contract.mjs must exist and import cleanly: Cannot find module ... action-contract.mjs\", confirming the module did not exist before implementation."
+  },
+
+  "green": {
+    "commands": [
+      "node --test tests/kernel-action-contract.test.mjs tests/kernel-action-primitives.test.mjs tests/repository-boundary.test.mjs"
+    ],
+    "result": "Historical, pre-correction stage: 198/198 PASS after implementing src/application/action-contract.mjs and updating only the RING_MODULE_MANIFEST application-ring entry in tests/repository-boundary.test.mjs to add action-contract.mjs (197/198 PASS immediately before that manifest update, with the sole failure being that closed-manifest assertion refusing the new, unlisted module). Current, post-review-correction result (top-level options boundary, unsafe-identifier refusal, planning-record drift guard added): 204/204 PASS — this is the count this package's own test now asserts and enforces against drift."
+  },
+
+  "qa": {
+    "note": "Historical record of one invalid pre-commit local-QA attempt only. Full local QA (npm test, npm run check) is a writer-run, not writer-self-certified, gate, and no run recorded here is a promotion verdict. No retry was taken on this unchanged, still-uncommitted snapshot after the attempt below — retrying would not change the outcome until the candidate is committed. The required valid full-QA evidence is npm test and npm run check executed to completion on an unchanged *committed* content snapshot, taken later as external gate evidence; producing that evidence is not an in-repo self-status flip and does not retroactively validate the attempt recorded here.",
+    "npmTest": {
+      "invalidationReason": "npm test was run exactly once, against the uncommitted working tree, before this candidate was committed. 11 of 1378 tests failed, every one a pre-existing, already-closed historical package's evidence test asserting \"this package changes no forbidden files relative to HEAD\" / \"no src/** ... relative to HEAD\". Those tests diff the working tree against HEAD by construction; the mere presence of the new, uncommitted src/application/action-contract.mjs file trips them regardless of what that file contains. This is the allowed invalidation reason under the versioning/changelog and change-gate rules: the run is not evidence against or for ActionContract, and is not a valid promotion signal on an uncommitted tree.",
+      "result": "1367/1378 PASS, 11 FAIL (all of the class described above); this attempt was not retried on this same uncommitted snapshot.",
+      "nextGate": "A full npm test run must be taken on an unchanged, committed content snapshot (after this candidate is accepted and its files committed) for the forbidden-path evidence tests to diff against the correct base. That later run is external gate evidence, not something this writer or this record certifies."
+    },
+    "npmRunCheck": {
+      "invalidationReason": "The first npm run check invocation was externally interrupted by the user before any checker in its chain (check-repository-boundary.mjs through check-kernel-runtime-pilot-consumer-sync.mjs) produced a final exit code or verdict for the run as a whole. No result — pass or fail — exists for this invocation, and it was not retried on this same uncommitted snapshot.",
+      "result": "No verdict: interrupted mid-run, exit code unknown.",
+      "nextGate": "npm run check must be run to completion on an unchanged, committed content snapshot before any GREEN claim. That later run is external gate evidence, not something this writer or this record certifies."
+    }
+  },
+
+  "budget": {
+    "canonicalSource": "karacaismail/actionplan@c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3:src/data/standards/short-code.json#changePackageBudget",
+    "canonicalCommit": "c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3",
+    "changedFileCeiling": 20,
+    "changedFileCount": 5,
+    "grossAdditions": 756,
+    "grossDeletions": 2,
+    "netLines": 754,
+    "class": "conditional-401-800",
+    "conditionalEvidence": {
+      "singleNarrowProblem": "Exactly one declarative value type (ActionContract) is added; no second concern is touched.",
+      "boundedFileSet": "Five files: the new module, its dedicated test, one pre-existing manifest line updated under MASTER-authorized scope correction, the planning record, and the changelog entry.",
+      "noRedundantRepetition": "This module necessarily keeps its own local coordinate/options validation: action-primitives.mjs exports runtime value types (Command, Query, KernelError, Result), not reusable validators, so there is no shared validator module to import instead. The meaningful evidence is narrower and true: one exact-options validator and one identifier-list validator are each written once and reused across all six options / all three ordered lists respectively within this module, and the module imports nothing from action-primitives.mjs and does not extend or wrap its effect-boundary classes.",
+      "noQualityTradeoff": "No shortcut was taken to fit budget: canonical-value discipline (ordinary dense arrays, no holes/extra props/accessors/symbols, no duplicates, deep freeze, preserved order) is applied identically to all three identifier lists, matching the rigor of the existing action-primitives.mjs canonical-value rule.",
+      "fullGreen": "PENDING — an external, required gate the writer may not self-claim. Focused parity is current 204/204 (see green). Full local QA is recorded in qa: npm test's 11 failures are the working-tree-vs-HEAD forbidden-path class described there, not a defect in this package, but neither npm test nor npm run check has produced a valid completed verdict on a committed snapshot, so fullGreen cannot be declared yet.",
+      "freshReviewerAccept": "PENDING — not claimed by this writer. The prior reviewer snapshot (before this review-correction pass) is invalidated per reviewCorrection and must not be reused; an independent reviewer must run fresh on the corrected, committed content.",
+      "explicitRollback": "git revert of the five-file additive/edit shard: delete src/application/action-contract.mjs and tests/kernel-action-contract.test.mjs, revert the single RING_MODULE_MANIFEST line in tests/repository-boundary.test.mjs, and drop this planning record and its CHANGELOG entry. No data or runtime side effect exists to unwind."
+    }
+  },
+
+  "rollback": "Revert the five-file additive/edit shard described in budget.conditionalEvidence.explicitRollback. No database, runtime, or persisted state is touched by this package.",
+
+  "capability_delta": "PUBLIC_ACTION_CONTRACT_IR_ONLY",
+
+  "flags": {
+    "runnableProduct": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "freshReviewerAccepted": false
+  }
+}
