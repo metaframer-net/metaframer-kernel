@@ -631,7 +631,7 @@ const MATERIALIZED_RINGS = ["domain", "application", "sdk", "adapters", "deliver
  */
 const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
-  ["application", ["action-contract.mjs", "action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
+  ["application", ["action-contract.mjs", "action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "identity.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy-statement.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs"]],
   ["sdk", ["create-customer.mjs"]],
   ["adapters", ["postgres-commit-adapter.mjs"]],
   ["delivery", ["asgi-core-profile.mjs", "create-customer-asgi-composition.mjs", "create-customer-composition.mjs", "create-customer-http-message-adapter.mjs", "create-customer-request-handler.mjs", "standard-router.mjs"]],

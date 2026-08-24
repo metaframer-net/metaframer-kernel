@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-policy-statement-p04a-2026-08-24",
+  "generatedAt": "2026-08-24",
+  "packageKind": "immutable-policy-as-data-row",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "baseCommit": "ab1ab6ffc193847bb8461a3edd933a2ba06f0f37",
+
+  "sequenceReference": {
+    "source": "planning/roadmap-v1-current-truth.json",
+    "id": "P04a",
+    "note": "Roadmap v1 P04, first serial subpackage: the one immutable, inert PolicyStatement policy-as-data row. Record-set behavior, condition semantics, matching, candidate derivation, ordering and deny-overrides execution are deferred to P04b."
+  },
+
+  "scopeSynthesis": {
+    "sourceLocator": "/private/tmp/kernel-p04-scope-synthesis-ab1ab6f-20260824.md",
+    "sha256": "51619ac9d7bfe781a9e67b5c78724d1b0d7444cffa1e782d3aa9ccd37ba80cf9",
+    "freezeMarker": "P04_SCOPE_REVIEW_GREEN_AB1AB6F",
+    "note": "Blind MASTER/Claude scope synthesis, independently accepted. Historical unmerged PolicyStatement commits are design archaeology only; this package's bytes are newly authored on this immutable base, never copied or laundered from them."
+  },
+
+  "goal": "Add PolicyStatement, an immutable value carrying exactly the ten fields of one declarative policy row: id, effect, targetActor, targetAction, targetResourceType, condition, priority, layer, version, enabled. effect is exactly allow|deny; layer is exactly system|platform|tenant; priority is a safe integer; enabled is a primitive boolean; version is an exact SemVer 2.0.0 string retained verbatim; id/targetAction/targetResourceType are bounded canonical lowercase scalars; targetActor and condition are defensive, deterministic, deeply frozen JSON-data values that fail closed on cycles, shared references, holes, accessors, symbols, hostile keys, non-finite numbers and exotic prototypes. Deterministic toJSON/toString/equals; no clock, random, environment, filesystem or network effect. It is inert: it never matches, combines, derives a candidate, batches or logs a decision.",
+
+  "allowedFiles": [
+    "src/application/policy-statement.mjs",
+    "tests/kernel-policy-statement.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/kernel-policy-statement-p04a.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no matcher, wildcard or condition evaluation",
+    "no PolicyRecordSet / record set",
+    "no candidate resolver or candidatesFor derivation",
+    "no combining algorithm or deny-overrides execution",
+    "no batch evaluation (P04c)",
+    "no decision-log entry, hash-chain or append port (P04d)",
+    "no audit/outbox/cache",
+    "no persistence, migration or RLS adapter (P04e)",
+    "no PEP, HTTP or UI surface",
+    "no change to Policy, PolicyRequest, PolicyDecision, AuthorizationEvaluator, PolicyDecisionPoint or the CreateCustomer pipeline",
+    "no P05, P07, CI/config, version bump, release, deploy or readiness-marker change",
+    "no historical-branch byte reuse"
+  ],
+
+  "scopeResolution": {
+    "note": "PolicyStatement is a standalone value class in src/application/policy-statement.mjs with zero imports. It follows the exactOptions/exact-class/deep-freeze conventions already established by src/application/policy-decision.mjs and src/application/action-contract.mjs in this ring: an ordinary Object.prototype options object carrying exactly the ten declared own enumerable data properties (checked by descriptor, never invoked); a captured canonicalRoot/canonicalValue routine (mirroring policy-decision.mjs's PolicyRequest resource/context hardening) governs targetActor and condition; bounded regex-checked scalars govern id, targetAction, targetResourceType, effect, layer and version; priority and enabled are checked by primitive type. toJSON()/toString() render the fixed ten-key declared order; equals() is exact-class and structural over that rendering."
+  },
+
+  "red": {
+    "commands": ["node --test tests/kernel-policy-statement.test.mjs tests/repository-boundary.test.mjs"],
+    "result": "39 tests failed: every test in tests/kernel-policy-statement.test.mjs failed via the shared mod() guard, \"src/application/policy-statement.mjs must exist and import cleanly: Cannot find module ... policy-statement.mjs\", and tests/repository-boundary.test.mjs's closed src/application manifest assertion failed with \"src/application must hold policy-statement.mjs as a file\", confirming both the missing module and the missing manifest entry before any production source existed. 166 unrelated repository-boundary rows passed unaffected."
+  },
+
+  "green": {
+    "commands": [
+      "node --test tests/kernel-policy-statement.test.mjs tests/kernel-policy-decision.test.mjs tests/kernel-policy-decision-point.test.mjs tests/kernel-authorization-evaluator.test.mjs tests/repository-boundary.test.mjs"
+    ],
+    "result": "221/221 PASS after implementing src/application/policy-statement.mjs, extending only the RING_MODULE_MANIFEST application-ring entry in tests/repository-boundary.test.mjs to add policy-statement.mjs, and a MASTER-directed correction adding five targeted direct assertions to tests/kernel-policy-statement.test.mjs (non-enumerable option refusal; repeated-reference refusal in both targetActor and condition; constructor/prototype hostile-key refusal alongside the existing __proto__ case; exact-class equality refusing a genuine subclass instance and a hollow prototype-only object; and the documented 16-container nesting ceiling failing closed one level past it). The existing Policy, PolicyDecision/PolicyRequest and PolicyDecisionPoint/AuthorizationEvaluator test suites remain unchanged and GREEN throughout; no production behavior changed, only test coverage of already-enforced behavior."
+  },
+
+  "qa": {
+    "note": "Full local QA (npm test, npm run check) is a writer-run, not writer-self-certified, gate against a committed content snapshot; this package's historical-evidence tests treat uncommitted production files as forbidden-path deltas, so a valid full-QA run must follow MASTER's atomic commit of this candidate, not precede it. No full QA run is claimed here.",
+    "npmTest": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." },
+    "npmRunCheck": { "result": "PENDING", "note": "External gate, run only after MASTER commits this candidate." }
+  },
+
+  "budget": {
+    "canonicalSource": "karacaismail/actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "canonicalCommit": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+    "changedFileCeiling": 20,
+    "changedFileCount": 5,
+    "grossAdditions": 797,
+    "grossDeletions": 1,
+    "netLines": 796,
+    "class": "conditional-401-800",
+    "conditionalEvidence": {
+      "singleNarrowProblem": "Exactly one immutable, inert declarative value type (PolicyStatement) is added; no matcher, resolver, batch or log is touched.",
+      "boundedFileSet": "Five files: the new module, its dedicated test, one pre-existing manifest line extended, the planning record, and the changelog entry.",
+      "noRedundantRepetition": "The canonicalRoot/canonicalValue hardening routine mirrors the existing pattern already used once per module in policy-decision.mjs and action-contract.mjs (each ring module keeps its own local copy, since this ring imports no shared validator module); within this module the routine is written once and reused for both targetActor and condition.",
+      "noQualityTradeoff": "No shortcut was taken to fit budget: hostile-input hardening (cycles, shared references, holes, accessors, symbols, hostile keys, non-finite numbers, exotic prototypes) is applied identically to both JSON-data fields, matching the rigor of the existing PolicyRequest resource/context hardening.",
+      "fullGreen": "PENDING — external gate, not self-claimed by this writer. Focused parity is 221/221 (see green).",
+      "freshReviewerAccept": "PENDING — not claimed by this writer; an independent reviewer must run fresh on the committed content.",
+      "explicitRollback": "Delete src/application/policy-statement.mjs and tests/kernel-policy-statement.test.mjs; revert the single RING_MODULE_MANIFEST line in tests/repository-boundary.test.mjs; drop this planning record and its CHANGELOG entry. No data or runtime side effect exists to unwind."
+    }
+  },
+
+  "rollback": "Revert the single P04a atomic commit: delete the three new files and restore only tests/repository-boundary.test.mjs and CHANGELOG.md to base ab1ab6f. No migration, remote data, tag, release or deploy is involved.",
+
+  "capability_delta": "IMMUTABLE_POLICY_AS_DATA_REPRESENTATION_ONLY",
+
+  "flags": {
+    "runnableProduct": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "freshReviewerAccepted": false
+  },
+
+  "ownerFacingTruth": {
+    "once": "Yetki motoru elle hazırlanmış adayları değerlendirebiliyor, fakat yöneticinin tanımladığı kuralı kanonik veri olarak taşıyamıyordu.",
+    "simdi": "P04a sonunda bir policy satırı değişmez, doğrulanabilir veri olacak; hâlâ eşleşmeyecek ve karar üretmeyecek.",
+    "fark": "Kuralın veri kontratı kurulacak; kural motoru, batch ve karar günlüğü ayrı alt paketlerde kalacak.",
+    "kullaniciYolculugu": "CRM yöneticisinin \"satışçı yalnız kendi müşterisini güncellesin\" kuralı temsil edilebilecek, fakat bu kural henüz form gönderiminde uygulanmayacak.",
+    "kalanEngel": "P04b-P04f, ardından P05/P07 ve sonraki roadmap fazları.",
+    "capability_delta": "immutable policy-as-data representation only",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
