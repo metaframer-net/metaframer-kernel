@@ -334,6 +334,31 @@ is supplied by the caller; no RBAC, ABAC or ReBAC model is introduced; no row-le
 integration exists or is claimed; there is no enforcement point, no SDK, app, module or delivery
 surface, and no readiness or release claim is made.
 
+**P04b2 — the PolicyCandidateResolver.**
+[`src/application/policy-candidate-resolver.mjs`](src/application/policy-candidate-resolver.mjs) ·
+[`tests/kernel-policy-candidate-resolver.test.mjs`](tests/kernel-policy-candidate-resolver.test.mjs) ·
+change gate: [`planning/kernel-policy-candidate-resolver-p04b2.json`](planning/kernel-policy-candidate-resolver-p04b2.json)
+(targeted GREEN locally; `npm test`, `npm run check`, QA1, the required CI QA2 run and a fresh
+independent review are not yet recorded, so no readiness or release claim is made here)
+
+Exports `PolicyCandidateResolver`, a frozen class carrying a fixed array of genuine
+`PolicyStatement` rows. Its one method, `candidatesFor(request)`, is synchronous: it refuses a
+non-genuine `PolicyRequest` with a `TypeError` before any of its own-property getters are ever
+touched, then maps each statement to the exact ordinary v2 candidate shape `PolicyDecisionPoint`
+and `AuthorizationEvaluator` already accept unchanged — `{policyId, effect, applies, priority,
+layer}`. A candidate's `applies` requires the statement enabled, its `targetAction` and
+`targetResourceType` to equal the request's exactly, its `targetActor` (only the optional
+`tenantId`/`actorId` string keys) to match, and its `condition` to be empty; any grammar
+violation or unsupported condition fails closed to `applies=false`, never thrown, never
+evaluated. Resolving is deterministic, order-independent, and mutates neither the supplied
+statements, any `PolicyStatement`, nor the `PolicyRequest` passed in.
+
+*Non-goals:* no combining algorithm, deny-overrides execution or decision — that is
+`AuthorizationEvaluator`/`PolicyDecisionPoint`'s job, unchanged; no condition evaluator beyond
+the empty-object unconditional case; no persistence, statement store, cache or batch; no
+enforcement point, SDK, app, module or delivery surface, and no readiness or release claim is
+made.
+
 ## Authorized order and what remains closed
 
 The authorized order is: DB / RLS / transaction / outbox / audit (S1, implemented and
