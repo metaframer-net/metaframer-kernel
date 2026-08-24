@@ -2,6 +2,14 @@
 
 These rules add to the profile-level MASTER -> PM/worker -> Claude authority contract.
 
+## Ultra-fast v1 pilot guardrails
+
+For a small, bounded change package that wants pilot-speed packaging (separate test writer,
+implementation writer, read-only reviewer; one Pane; one correction wave; a timed checkpoint),
+use the `ultra-fast-development` skill. It is a projection of
+`planning/ultra-fast-v1-policy.json`, the sole canonical owner of its speed numbers; that policy
+is additive to, and never a replacement for, the external Actionplan change-package budget.
+
 ## Scope
 
 - The `PLANNING_ONLY`, `VALID_BLOCKED` and `NO_GO` tokens in `repository-status.json` and in

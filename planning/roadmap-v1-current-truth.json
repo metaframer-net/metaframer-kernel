@@ -104,7 +104,19 @@
       "versioning-policy.json + CHANGELOG.md (versioning and changelog gate)",
       "planning/*.json canonical machine-readable fields",
       "AGENTS.md and other canonical contract documents"
-    ]
+    ],
+    "operationalGuardrails": {
+      "note": "process/tooling overlays on top of the fixed 25-package plan; they do not add, remove or renumber any phase, and never move the denominator.",
+      "gc02PaneLifecycle": {
+        "role": "event-driven Pane panel cleanup only (never a timer, cron, daemon, hook or background loop)",
+        "canonicalSource": "global Pane-garbage-collector lifecycle directive plus the pane-garbage-collector skill/agent"
+      },
+      "ultraFastV1Pilot": {
+        "role": "additive pilot packaging overlay for small, bounded change packages (separate test writer, implementation writer, read-only reviewer)",
+        "canonicalSource": "planning/ultra-fast-v1-policy.json, projected in .claude/skills/ultra-fast-development/SKILL.md",
+        "readinessClaimed": false
+      }
+    }
   },
   "ownerFacing": {
     "once": "Kernel gelistirme durumu birbiriyle celisen coktan tarihsel dosyaya dagilmisti; tek bir 'su an nerede, sirada ne var' cevabi yoktu.",
