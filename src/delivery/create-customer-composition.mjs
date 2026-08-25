@@ -2,19 +2,24 @@ import { Identity } from "../application/identity.mjs";
 import { PolicyDecisionPoint } from "../application/policy-decision-point.mjs";
 import { CreateCustomerPipeline } from "../application/create-customer-pipeline.mjs";
 import { CreateCustomerCommitService } from "../application/create-customer-commit-service.mjs";
-import { PostgresCommitAdapter } from "../adapters/postgres-commit-adapter.mjs";
+import { UnitOfWork } from "../application/unit-of-work.mjs";
+import { WriteEnvelope } from "../application/write-envelope.mjs";
+import { createPostgresUnitOfWork } from "../adapters/postgres-unit-of-work.mjs";
+import { createPostgresWrite } from "../adapters/postgres-write-envelope-write.mjs";
 import { CreateCustomerRequestHandler } from "./create-customer-request-handler.mjs";
 
 // =====================================================================================
 // createCustomerComposition
 //
 // The smallest framework-neutral composition root that wires one real
-// CreateCustomerRequestHandler to a real CreateCustomerCommitService and a real
-// PostgresCommitAdapter. It constructs Identity, PolicyDecisionPoint, CreateCustomerPipeline,
-// PostgresCommitAdapter, CreateCustomerCommitService and CreateCustomerRequestHandler from
-// exactly the four caller-supplied collaborators, and hands back exactly one frozen
-// { handler, close } object — never the adapter, service, pipeline, identity or policy
-// decision point.
+// CreateCustomerRequestHandler to a real CreateCustomerCommitService, backed by one
+// createPostgresUnitOfWork resource. It constructs Identity, PolicyDecisionPoint,
+// CreateCustomerPipeline, the PostgresUnitOfWork resource, CreateCustomerCommitService and
+// CreateCustomerRequestHandler from exactly the four caller-supplied collaborators, and hands
+// back exactly one frozen { handler, close } object — never the resource, service, pipeline,
+// identity or policy decision point. Each commit is its own fresh UnitOfWork/write/WriteEnvelope
+// triple, driven from the same shared resource.port, so concurrent ALLOW_COMMIT requests never
+// contend with each other.
 //
 // Framework-free and capability-free by construction: no HTTP/ASGI import, no FastAPI, no
 // Django, no Uvicorn, no Hypercorn, no fetch, no fs/net/http import, no clock, no random
@@ -53,8 +58,9 @@ function checkOptions(options) {
 
 /**
  * Wire one real CreateCustomerRequestHandler to a real CreateCustomerCommitService and a real
- * PostgresCommitAdapter, from exactly the four caller-supplied collaborators. Returns a frozen
- * `{ handler, close }` object; `close` closes the composed PostgresCommitAdapter.
+ * createPostgresUnitOfWork resource, from exactly the four caller-supplied collaborators.
+ * Returns a frozen `{ handler, close }` object; `close` closes the composed
+ * createPostgresUnitOfWork resource.
  */
 export function createCustomerComposition(options) {
   const checked = checkOptions(options);
@@ -66,16 +72,21 @@ export function createCustomerComposition(options) {
     policyDecisionPoint,
     evaluateInvariants: checked.evaluateInvariants,
   });
-  const adapter = new PostgresCommitAdapter({ connectionString: checked.connectionString });
+  const resource = createPostgresUnitOfWork({ connectionString: checked.connectionString });
   const service = new CreateCustomerCommitService({
     pipeline,
-    commit: adapter.commit.bind(adapter),
+    commit: (preparedChangeSet, context) => {
+      const unitOfWork = new UnitOfWork(resource.port);
+      const write = createPostgresWrite({ requestId: context.requestId, idempotencyKey: context.idempotencyKey });
+      const envelope = new WriteEnvelope({ unitOfWork, write });
+      return envelope.commit(preparedChangeSet);
+    },
   });
   const handler = new CreateCustomerRequestHandler({ service });
 
   return Object.freeze({
     handler,
-    close: () => adapter.close(),
+    close: () => resource.close(),
   });
 }
 Object.freeze(createCustomerComposition);

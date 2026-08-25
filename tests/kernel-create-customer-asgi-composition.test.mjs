@@ -517,36 +517,51 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
 
     const decoded = JSON.parse(new TextDecoder().decode(responseBody.body));
     const receipt = decoded.commitReceipt;
-    assert.equal(receipt.receiptType, "CommitReceipt");
-    assert.deepEqual([...receipt.committedIntents].sort(), ["audit", "customer", "idempotency", "transactionalOutbox"]);
-    assert.deepEqual(receipt.deferredIntents, []);
-    assert.equal(typeof receipt.customerRecordId, "string");
-    assert.equal(typeof receipt.auditLogId, "string");
-    assert.equal(typeof receipt.outboxId, "string");
+    assert.deepEqual(
+      Object.keys(receipt).sort(),
+      ["auditId", "committedAt", "idempotencyKey", "outboxEventIds", "outcome", "requestId", "resourceId", "tenantId"].sort(),
+      "the committed response body's commitReceipt must carry exactly the canonical eight CommitReceipt keys",
+    );
+    assert.equal(receipt.requestId, requestId);
+    assert.equal(receipt.tenantId, tenantId);
+    assert.equal(receipt.idempotencyKey, `idem-${requestId}`);
+    assert.equal(receipt.outcome, "COMMITTED");
+    assert.match(
+      receipt.committedAt,
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+      "committedAt must be a canonical UTC millisecond ISO instant",
+    );
+    assert.equal(typeof receipt.resourceId, "string");
+    assert.ok(receipt.resourceId.length > 0);
+    assert.equal(typeof receipt.auditId, "string");
+    assert.ok(receipt.auditId.length > 0);
+    assert.ok(Array.isArray(receipt.outboxEventIds));
+    assert.equal(receipt.outboxEventIds.length, 1);
+    assert.equal(typeof receipt.outboxEventIds[0], "string");
     assert.deepEqual(result, events);
 
     await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
       const customer = await client.query(
         "SELECT tenant_id, name FROM customer_records WHERE id = $1",
-        [receipt.customerRecordId],
+        [receipt.resourceId],
       );
-      assert.equal(customer.rows.length, 1);
+      assert.equal(customer.rows.length, 1, "receipt.resourceId must be the real persisted customer_records row id");
       assert.equal(customer.rows[0].tenant_id, tenantId);
       assert.equal(customer.rows[0].name, "Ada Lovelace");
 
       const audit = await client.query(
         "SELECT tenant_id, event_type FROM audit_log WHERE id = $1",
-        [receipt.auditLogId],
+        [receipt.auditId],
       );
-      assert.equal(audit.rows.length, 1);
+      assert.equal(audit.rows.length, 1, "receipt.auditId must be the real persisted audit_log row id");
       assert.equal(audit.rows[0].tenant_id, tenantId);
       assert.equal(audit.rows[0].event_type, "customer.create");
 
       const outbox = await client.query(
         "SELECT tenant_id, event_type FROM transactional_outbox WHERE id = $1",
-        [receipt.outboxId],
+        [receipt.outboxEventIds[0]],
       );
-      assert.equal(outbox.rows.length, 1);
+      assert.equal(outbox.rows.length, 1, "receipt.outboxEventIds[0] must be the real persisted transactional_outbox row id");
       assert.equal(outbox.rows[0].tenant_id, tenantId);
       assert.equal(outbox.rows[0].event_type, "customer.created");
     });
@@ -574,6 +589,76 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
       assert.equal(Number(auditCount.rows[0].count), 1, "the duplicate request must not insert a second audit row");
       const outboxCount = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
       assert.equal(Number(outboxCount.rows[0].count), 1, "the duplicate request must not enqueue a second outbox row");
+    });
+
+    // P05E: within the same live composition, two concurrent distinct ALLOW requests (unique
+    // request/idempotency keys) must both commit and persist independently, each owning its own
+    // canonical resourceId/auditId/outboxEventIds row, proving per-request transactional
+    // ownership with no shared UnitOfWork in-flight collision.
+    const concurrentARequestId = crypto.randomUUID();
+    const concurrentBRequestId = crypto.randomUUID();
+    const concurrentAScope = {
+      type: "http",
+      method: "POST",
+      path: "/customers",
+      headers: [
+        ["content-type", "application/json"],
+        ["x-request-id", concurrentARequestId],
+        ["x-actor-id", actorId],
+        ["x-tenant-id", tenantId],
+        ["idempotency-key", `idem-${concurrentARequestId}`],
+      ],
+    };
+    const concurrentBScope = {
+      type: "http",
+      method: "POST",
+      path: "/customers",
+      headers: [
+        ["content-type", "application/json"],
+        ["x-request-id", concurrentBRequestId],
+        ["x-actor-id", actorId],
+        ["x-tenant-id", tenantId],
+        ["idempotency-key", `idem-${concurrentBRequestId}`],
+      ],
+    };
+    const concurrentABytes = new TextEncoder().encode(JSON.stringify({ name: "Grace Hopper" }));
+    const concurrentBBytes = new TextEncoder().encode(JSON.stringify({ name: "Katherine Johnson" }));
+    const concurrentACollector = collectingSend();
+    const concurrentBCollector = collectingSend();
+
+    await Promise.all([
+      composition.app(concurrentAScope, receiveOnce(concurrentABytes), concurrentACollector.send),
+      composition.app(concurrentBScope, receiveOnce(concurrentBBytes), concurrentBCollector.send),
+    ]);
+
+    assert.equal(concurrentACollector.events[0].status, 201, "the first concurrent ALLOW request must commit");
+    assert.equal(concurrentBCollector.events[0].status, 201, "the second concurrent ALLOW request must commit independently");
+
+    const concurrentAReceipt = JSON.parse(new TextDecoder().decode(concurrentACollector.events[1].body)).commitReceipt;
+    const concurrentBReceipt = JSON.parse(new TextDecoder().decode(concurrentBCollector.events[1].body)).commitReceipt;
+
+    assert.equal(concurrentAReceipt.requestId, concurrentARequestId);
+    assert.equal(concurrentBReceipt.requestId, concurrentBRequestId);
+    assert.notEqual(concurrentAReceipt.resourceId, concurrentBReceipt.resourceId, "each concurrent commit must own a distinct customer row");
+    assert.notEqual(concurrentAReceipt.auditId, concurrentBReceipt.auditId, "each concurrent commit must own a distinct audit row");
+    assert.notEqual(
+      concurrentAReceipt.outboxEventIds[0],
+      concurrentBReceipt.outboxEventIds[0],
+      "each concurrent commit must own a distinct outbox row",
+    );
+
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      for (const [receipt, name] of [[concurrentAReceipt, "Grace Hopper"], [concurrentBReceipt, "Katherine Johnson"]]) {
+        const customer = await client.query(
+          "SELECT tenant_id, name FROM customer_records WHERE id = $1",
+          [receipt.resourceId],
+        );
+        assert.equal(customer.rows.length, 1);
+        assert.equal(customer.rows[0].tenant_id, tenantId);
+        assert.equal(customer.rows[0].name, name);
+      }
+      const customerCount = await client.query("SELECT count(*) FROM customer_records WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(customerCount.rows[0].count), 3, "both concurrent commits must persist independently alongside the earlier commit, with no lost or merged row");
     });
   } finally {
     await composition.close();

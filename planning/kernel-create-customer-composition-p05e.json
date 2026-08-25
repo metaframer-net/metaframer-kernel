@@ -1,0 +1,98 @@
+{
+  "id": "kernel-create-customer-composition-p05e",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "immutableBase": {
+    "commit": "c88f1702259e45e889794ec58aac6c5db2dfe08d",
+    "tree": "0fd85c87cd3ecd255efc2b68aff504dbd88993c4"
+  },
+  "branch": "kernel-roadmap-v1-p05e-composition-wiring-20260825",
+  "blindScopeHash": "f0e7cd10642095bcc0cea9aee74260268fbda148d097fcbf97d78944359e0d18",
+  "masterScopeHash": "c52cadc4fae93f650d40b42a3376f9ed32361c442cac2085f31d547b01ba3fe9",
+  "synthesisHash": "a5035cef38b583cad47aaa4b76e0df1994461d8a93963f8b444683afee5f67d1",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+  "changePackageBudgetSource": "src/data/standards/short-code.json#changePackageBudget",
+  "testHashes": {
+    "tests/kernel-create-customer-asgi-composition.test.mjs": "9fef35a5b577f23dcd83dafb6be0e1848b96eabcf1e42d27424091611a2a3c9e",
+    "tests/kernel-python-host-bridge-real-pg-allow.test.mjs": "fa161dbe553f471fbd683e42733cd005786ffeb5f195bde2239ae58506f2c3c0"
+  },
+  "calistirilabilirlik": "not-runnable",
+  "allowedFiles": [
+    "src/delivery/create-customer-composition.mjs",
+    "planning/kernel-create-customer-composition-p05e.json",
+    "CHANGELOG.md",
+    "tests/kernel-create-customer-asgi-composition.test.mjs",
+    "tests/kernel-python-host-bridge-real-pg-allow.test.mjs"
+  ],
+  "nonGoals": [
+    "no edit to the two frozen downstream real-path test files beyond what the reviewer/test-writer stage already delivered before this writer started",
+    "no ASGI composition, HTTP message adapter, router, host bridge or delivery boundary change beyond the createCustomerComposition commit-port wiring this package makes",
+    "no CreateCustomerCommitService, UnitOfWork, WriteEnvelope, createPostgresUnitOfWork or createPostgresWrite contract change: this package only wires existing exports together",
+    "no PostgresCommitAdapter deletion; only its use inside createCustomerComposition is removed",
+    "no full QA run in this handoff (repository guards are HEAD-relative; MASTER creates the clean candidate commit first)",
+    "no staging, commit, push, PR, release or deploy performed by this writer",
+    "no constructor option or public { handler, close } result shape change"
+  ],
+  "scope": "src/delivery/create-customer-composition.mjs: replace the legacy PostgresCommitAdapter collaborator with one createPostgresUnitOfWork({connectionString}) resource. Build the CreateCustomerCommitService commit port as a closure over (preparedChangeSet, context) that, on every invocation, constructs a fresh `new UnitOfWork(resource.port)`, a fresh `createPostgresWrite({requestId: context.requestId, idempotencyKey: context.idempotencyKey})`, a fresh `new WriteEnvelope({unitOfWork, write})`, and returns `envelope.commit(preparedChangeSet)`. `close` calls `resource.close()` instead of the removed adapter's close. Constructor options and the public { handler, close } result shape are unchanged; only the module's own comments describing the wiring are updated to match.",
+  "redEvidence": {
+    "command": "node --test tests/kernel-create-customer-asgi-composition.test.mjs tests/kernel-python-host-bridge-real-pg-allow.test.mjs",
+    "resultBeforeChange": "25 total, 23 pass, 2 fail solely because createCustomerComposition still wired the legacy single-adapter PostgresCommitAdapter instead of a per-commit UnitOfWork/WriteEnvelope pair",
+    "failingScenarios": [
+      "createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /customers request to a real PostgreSQL 16 commit (P05E concurrent-independent-commit addition inside this scenario)",
+      "Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /customers to a real PostgreSQL 16 commit, with duplicate-request 409 proof"
+    ]
+  },
+  "changedScenariosThisPackage": [
+    "P05E: within the same live composition, two concurrent distinct ALLOW requests (unique request/idempotency keys) must both commit and persist independently, each owning its own canonical resourceId/auditId/outboxEventIds row, proving per-request transactional ownership with no shared UnitOfWork in-flight collision",
+    "the ASGI real-PostgreSQL commit scenario now exercises the createPostgresUnitOfWork + WriteEnvelope commit path instead of the removed PostgresCommitAdapter path",
+    "the ASGI real-PostgreSQL idempotency-conflict retry scenario continues to surface a deterministic 409 IDEMPOTENCY_CONFLICT through the new commit port",
+    "the Python host-bridge real-PostgreSQL ALLOW scenario continues to carry POST /customers to a real commit through the new commit port",
+    "removal of the obsolete shallow-HEAD guard scenario the frozen test files no longer assert"
+  ],
+  "targetedGreen": {
+    "command": "node --test tests/kernel-create-customer-asgi-composition.test.mjs tests/kernel-python-host-bridge-real-pg-allow.test.mjs",
+    "result": "25/25 PASS, run once after the source change; not repeated"
+  },
+  "budget": {
+    "note": "gross additions/deletions/net/changedFiles below are the full P05e package: working tree against the immutable P05e base snapshot, computed with git diff --numstat across all changed files, including the two frozen test files delivered before this writer started",
+    "components": {
+      "CHANGELOG.md": { "additions": 11, "deletions": 0 },
+      "planning/kernel-create-customer-composition-p05e.json": { "additions": 98, "deletions": 0 },
+      "src/delivery/create-customer-composition.mjs": { "additions": 23, "deletions": 12 },
+      "tests/kernel-create-customer-asgi-composition.test.mjs": { "additions": 97, "deletions": 12, "note": "frozen; authored by the reviewer/test-writer stage, not this writer" },
+      "tests/kernel-python-host-bridge-real-pg-allow.test.mjs": { "additions": 20, "deletions": 46, "note": "frozen; authored by the reviewer/test-writer stage, not this writer" }
+    },
+    "grossAdditions": 249,
+    "grossDeletions": 70,
+    "net": 179,
+    "changedFiles": 5,
+    "class": "default",
+    "gate": "GREEN_NET_LE_400",
+    "bandsSource": "src/data/standards/short-code.json#changePackageBudget",
+    "bands": { "default": "maxNet400", "conditional": "maxNet800", "waiver": "maxNet1200" }
+  },
+  "qa": {
+    "qa1LocalFullRun": "pending",
+    "ciFullRun": "pending",
+    "fullQaExecutionsPerChangePackage": 2,
+    "spentThisPackage": 0
+  },
+  "rollback": "revert the eventual single atomic package commit (source, planning, CHANGELOG together, alongside the already-delivered frozen test files) with one normal git revert of that commit; no migration or data cleanup is needed since no schema or persisted-data shape changed.",
+  "once": "createCustomerComposition ALLOW_COMMIT yolunda tek paylaşılan bir PostgresCommitAdapter'e commit ediyordu; bu eski yol UnitOfWork/WriteEnvelope sınırını hiç kullanmıyordu ve geriye eski (legacy) bir makbuz şekli döndürüyordu.",
+  "simdi": "createCustomerComposition artık tek bir createPostgresUnitOfWork kaynağı kuruyor; her commit çağrısında taze bir UnitOfWork, taze bir Postgres yazma fonksiyonu ve taze bir WriteEnvelope oluşturup commit'i onun üzerinden yapıyor ve geriye kanonik (canonical) CommitReceipt'i döndürüyor.",
+  "fark": "Commit yolu artık UnitOfWork/WriteEnvelope sınırından geçiyor ve kanonik makbuzu döndürüyor; eşzamanlı iki ayrı ALLOW isteği taze UnitOfWork sayesinde hâlâ aynı bağlantıyı/durumu paylaşmadan, her biri kendi satırını bağımsız olarak kalıcı hale getiriyor — bu bağımsızlık test tarafından zaten doğrulanmıştı, yeni icat edilmedi.",
+  "kullaniciYolculugu": "Bu adım yalnızca composition kablolamasının bir entegrasyon-sınırı kanıtıdır; henüz hiçbir gerçek CRM/HRMS müşteri formu veya kullanıcı arayüzü bu yola bağlı değildir ve çalıştırılabilir/tıklanabilir değildir. Test, aynı anda gönderilen iki farklı müşteri kaydı isteğinin birbirine karışmadan, her birinin kendi veritabanı satırıyla bağımsız şekilde kaydedildiğini kanıtlar; bu, gerçek bir kullanıcı akışı değil, entegrasyon sınırının kanıtıdır.",
+  "kalanEngel": "Tam QA henüz koşulmadı; HEAD-relative guard'lar temiz bir aday commit gerektiriyor; releaseReady/deployReady hâlâ false; hiçbir gerçek form/UI bu yola henüz bağlı değil.",
+  "capability_delta": "TEST-VERIFIED, NOT-RUNNABLE: createCustomerComposition's commit port now runs through UnitOfWork/WriteEnvelope and returns the canonical CommitReceipt shape instead of the legacy PostgresCommitAdapter receipt, proven only by the two frozen integration-boundary tests; no product-facing form or UI is wired to this path yet.",
+  "readiness": {
+    "productReady": false,
+    "releaseReady": false,
+    "deployReady": false,
+    "runnable": false
+  },
+  "nextPhase": {
+    "id": "P05f",
+    "description": "update current truth once P05e composition wiring lands"
+  },
+  "afterNextPhase": null,
+  "roadmapStatus": "P05 stays active"
+}
