@@ -70,7 +70,12 @@ export class CreateCustomerCommitService {
     }
 
     const preparedChangeSet = outcome.preparedChangeSet;
-    const commitReceipt = await this.#commit(preparedChangeSet, { tenantId: preparedChangeSet.intents.customer.tenantId });
+    const context = Object.freeze({
+      requestId: outcome.requestId,
+      tenantId: preparedChangeSet.intents.customer.tenantId,
+      idempotencyKey: actionSpec.idempotencyKey,
+    });
+    const commitReceipt = await this.#commit(preparedChangeSet, context);
 
     return Object.freeze({
       outcome: "COMMITTED",

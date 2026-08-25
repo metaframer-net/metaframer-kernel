@@ -1,0 +1,88 @@
+{
+  "id": "kernel-create-customer-commit-context-p05d",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "immutableBase": {
+    "commit": "91e04d968938302972743b5bb7235c51f7c2ab67",
+    "tree": "73b3339c72b5dbf568c25982291768c99e79c610"
+  },
+  "branch": "kernel-roadmap-v1-p05d-runtime-wiring-20260825",
+  "blindScopeHash": "d15ace88d6797da7d1cfbf3c8f192b42e1974c8f6ec163147433ba08e44f6e91",
+  "masterScopeHash": "cb78cf2d9fcaf0063e7ce18d29d6fde3efbc6fd78c24a595fab31ac7f4e4b755",
+  "synthesisHash": "61bbb865a923e4cbecd236cf0ae6685ff2bce4af34f52a7eb4ef3bd75a88558f",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+  "changePackageBudgetSource": "src/data/standards/short-code.json#changePackageBudget",
+  "testHashes": {
+    "tests/kernel-create-customer-commit-service.test.mjs": "083740659a4fa73b812ef8f9c0e16f469f1c8e4226e0935289bac091c29a2748"
+  },
+  "calistirilabilirlik": "not-runnable",
+  "allowedFiles": [
+    "src/application/create-customer-commit-service.mjs",
+    "planning/kernel-create-customer-commit-context-p05d.json",
+    "CHANGELOG.md",
+    "tests/kernel-create-customer-commit-service.test.mjs"
+  ],
+  "nonGoals": [
+    "no adapter, UnitOfWork, WriteEnvelope, CommitReceipt, composition, delivery, host, database, schema or contract change beyond the ALLOW_COMMIT commit-context seam this package intentionally makes inside the service",
+    "no wiring of createCustomerComposition (deferred to P05e)",
+    "no full QA run in this handoff (repository guards are HEAD-relative; MASTER creates the clean candidate commit first)",
+    "no staging, commit, push, PR, release or deploy performed by this writer",
+    "no constructor option, non-ALLOW path or public result shape change beyond the ALLOW_COMMIT context seam"
+  ],
+  "scope": "src/application/create-customer-commit-service.mjs: on ALLOW_COMMIT, construct one fresh ordinary Object.freeze context carrying exactly requestId (validated pipeline outcome requestId), tenantId (preparedChangeSet.intents.customer.tenantId), idempotencyKey (already-admitted raw actionSpec.idempotencyKey), replacing the prior unfrozen {tenantId}-only context; await the injected commit exactly once as commit(preparedChangeSet, context) and pass the returned receipt through by identity. Constructor options, non-ALLOW paths and public result shapes are unchanged.",
+  "redEvidence": {
+    "command": "node --test tests/kernel-create-customer-commit-service.test.mjs",
+    "resultBeforeChange": "7 total, 5 pass, 2 fail solely because the prior commit only passed an unfrozen {tenantId} context",
+    "failingScenarios": [
+      "ALLOW_COMMIT: commit is called exactly once with preparedChangeSet and a fresh frozen ordinary context carrying exactly requestId, tenantId, idempotencyKey",
+      "ALLOW_COMMIT: two allowed requests do not share or leak context objects"
+    ]
+  },
+  "targetedGreen": {
+    "command": "node --test tests/kernel-create-customer-commit-service.test.mjs",
+    "result": "7/7 PASS, run once after the source change; not repeated"
+  },
+  "budget": {
+    "components": {
+      "CHANGELOG.md": { "additions": 13, "deletions": 0 },
+      "src/application/create-customer-commit-service.mjs": { "additions": 6, "deletions": 1 },
+      "tests/kernel-create-customer-commit-service.test.mjs": { "additions": 46, "deletions": 5, "note": "frozen, pre-existing modification, not authored by this writer" },
+      "planning/kernel-create-customer-commit-context-p05d.json": { "additions": 88, "deletions": 0 }
+    },
+    "grossAdditions": 153,
+    "grossDeletions": 6,
+    "net": 147,
+    "changedFiles": 4,
+    "class": "default",
+    "gate": "GREEN_NET_LE_400",
+    "bandsSource": "src/data/standards/short-code.json#changePackageBudget",
+    "bands": { "default": "maxNet400", "conditional": "maxNet800", "waiver": "maxNet1200" }
+  },
+  "qa": {
+    "qa1LocalFullRun": "pending",
+    "ciFullRun": "pending",
+    "fullQaExecutionsPerChangePackage": 2,
+    "spentThisPackage": 0
+  },
+  "rollback": "revert the eventual single atomic four-file package commit (source, frozen test, planning, CHANGELOG together) with one normal git revert of that commit; no migration or data cleanup is needed since no adapter, database, schema or persisted-data change is in scope.",
+  "once": "CreateCustomerCommitService, ALLOW_COMMIT durumunda commit portuna sadece {tenantId} taşıyan donmamış bir bağlam gönderiyordu.",
+  "simdi": "ALLOW_COMMIT durumunda commit portuna requestId, tenantId, idempotencyKey taşıyan taze, donmuş (Object.freeze) sıradan bir bağlam nesnesi gönderiliyor; commit tam olarak bir kez çağrılıyor ve dönen makbuz kimliğiyle aynen geçiriliyor.",
+  "fark": "Commit portunun aldığı bağlam artık pipeline'ın onayladığı requestId ve actionSpec'in idempotencyKey değerini de taşıyor; iki ardışık istek artık bağlam nesnesini paylaşmıyor.",
+  "kullaniciYolculugu": "Bu adım servis katmanının iç sözleşmesini düzeltir; henüz hiçbir gerçek CRM/HRMS formu bu servise bağlı değildir (composition P05e'de yapılacak), bu yüzden kullanıcı tarafında çalışan/tıklanabilir hiçbir yeni akış yoktur.",
+  "kalanEngel": "createCustomerComposition henüz bu servisi kablo ile bağlamıyor (P05e); iki downstream gerçek-yol testi de henüz güncellenmedi; tam QA henüz koşulmadı ve HEAD-relative guard'lar temiz bir aday commit gerektiriyor.",
+  "capability_delta": "NONE",
+  "readiness": {
+    "productReady": false,
+    "releaseReady": false,
+    "deployReady": false,
+    "runnable": false
+  },
+  "nextPhase": {
+    "id": "P05e",
+    "description": "wire createCustomerComposition to CreateCustomerCommitService and update the two downstream real-path tests"
+  },
+  "afterNextPhase": {
+    "id": "P05f",
+    "description": "update current truth once P05e composition wiring lands"
+  },
+  "roadmapStatus": "P05 stays active"
+}

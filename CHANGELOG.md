@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P05d `src/application/create-customer-commit-service.mjs`: on `ALLOW_COMMIT`, the service now
+  builds one fresh, frozen ordinary context carrying exactly `requestId` (the validated pipeline
+  outcome), `tenantId` (`preparedChangeSet.intents.customer.tenantId`) and `idempotencyKey` (the
+  already-admitted raw `actionSpec.idempotencyKey`), replacing the prior unfrozen `{tenantId}`-only
+  context passed to the injected commit port; the port is still awaited exactly once as
+  `commit(preparedChangeSet, context)` and its returned `CommitReceipt` still passes through by
+  identity. Constructor options, non-`ALLOW_COMMIT` paths and public result shapes are unchanged.
+  Targeted `node --test tests/kernel-create-customer-commit-service.test.mjs`: 7/7 PASS. No
+  adapter, UnitOfWork, WriteEnvelope, CommitReceipt, composition, delivery, host, database or
+  schema change beyond this service commit-context seam; `createCustomerComposition`
+  is not yet wired to this service (deferred to P05e). `capability_delta` is `NONE`; every
+  readiness/product/release/deploy flag stays `false` and the product is not runnable from this
+  change alone.
 - P05c `src/adapters/postgres-unit-of-work.mjs`, `src/adapters/postgres-write-envelope-write.mjs`:
   a lazy `createPostgresUnitOfWork({connectionString})` owning one `pg.Pool`, returning a frozen
   `{port, close}` whose port is a frozen ordinary `{begin, commit, rollback}` (BEGIN/COMMIT with
