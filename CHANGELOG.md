@@ -16,6 +16,12 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P12 `consumers/customer-app-core/customer-records-adapter.mjs`
+  (`createCustomerRecordsAdapter({query})`, plus `planning/kernel-customer-app-owned-adapter-p12.json`):
+  an app-owned, query-injectable adapter that canonicalizes a P11 customer record, requires a
+  matching `tenantId`, issues exactly one parameterized INSERT against `CUSTOMER_RECORDS_SCHEMA`,
+  and returns the single frozen canonical row. No real database connection, migration, or
+  cutover exists; `capability_delta: APPLICATION_OWNED_CUSTOMER_RECORDS_QUERY_ADAPTER_ONLY`.
 - P11b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
   `planning/kernel-p11-current-truth-closure-p11b.json`): synced the roadmap current-truth
   artifact to P11's real merged evidence — the app-owned, immutable `customer_records` schema
