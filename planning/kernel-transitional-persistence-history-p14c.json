@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-transitional-persistence-history-p14c-2026-08-26",
+  "packageKind": "P14c kernel persistence-ownership split governance implementation (checker/manifest/tests/changelog) plus this evidence record",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": {
+    "commit": "0a908bf1d961186103c37d5d669e3b2cc584848d",
+    "tree": "76e626d57ace3ca6765cbde82ed824ba46f2a22c"
+  },
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p14c-safe-kernel-cleanup-20260826",
+
+  "scopeHashes": {
+    "master": "92e30ffc7be53b975251182d5f837ef7a4a80a7aff82738a3a5b1cd65b7372e4",
+    "blind": "cedab8fc13add3d37860bc6b0f73035b39a7653db313a2457847cf24082a0033",
+    "synthesis": "a61a9e3a62821b277ea1a240be799953d7fcfb7a7fddee6b1cb00bfe8faf9ca9",
+    "recovery": "b6ca1c8a363330af4f906b7d6019e96abfc394e5592c64a4e7b5ea581224980d"
+  },
+
+  "allowedWriteFiles": [
+    "CHANGELOG.md",
+    "planning/kernel-persistence-ownership.json",
+    "tests/kernel-customer-app-owned-schema-p11.test.mjs",
+    "tests/kernel-persistence-ownership.test.mjs",
+    "tools/check-kernel-persistence-ownership.mjs",
+    "planning/kernel-transitional-persistence-history-p14c.json"
+  ],
+  "thisWriterLane": {
+    "role": "P2-finding implementation/evidence correction writer, after the test writer's handoff, sole active writer",
+    "allowedWriteFiles": ["tools/check-kernel-persistence-ownership.mjs", "planning/kernel-transitional-persistence-history-p14c.json"],
+    "note": "this writer's only production edit is the one-line checker correction in tools/check-kernel-persistence-ownership.mjs (see p2Findings below); the other four package files (CHANGELOG.md, planning/kernel-persistence-ownership.json, both test files) were authored/handed off by earlier writers and are untouched by this writer"
+  },
+
+  "p2Findings": {
+    "source": "independent review, two P2 findings on the P14c change package",
+    "finding": "the checker's legacy-field-retirement check read `Object.prototype.hasOwnProperty.call(manifest, \"transitionalInKernel\") && manifest.transitionalInKernel !== undefined`, so a manifest with an own `transitionalInKernel` property explicitly set to `undefined` was treated as absent and admitted, instead of being denied fail-closed like every other presence of the retired field",
+    "targetedRedBeforeCorrection": {
+      "command": "node --test tests/kernel-persistence-ownership.test.mjs tests/kernel-customer-app-owned-schema-p11.test.mjs",
+      "result": { "tests": 42, "pass": 41, "fail": 1 },
+      "failingTest": "P14c a manifest with an own transitionalInKernel property whose value is undefined is denied, not treated as absent"
+    },
+    "correction": "removed the `!== undefined` conjunct in tools/check-kernel-persistence-ownership.mjs's evaluatePersistenceOwnership: any own `transitionalInKernel` property on the manifest now denies regardless of its declared value; every other rule and exact violation wording is unchanged",
+    "targetedGreenAfterCorrection": {
+      "command": "node --test tests/kernel-persistence-ownership.test.mjs tests/kernel-customer-app-owned-schema-p11.test.mjs",
+      "result": { "tests": 42, "pass": 42, "fail": 0 }
+    }
+  },
+
+  "nonGoals": [
+    "migrations 0001/0002/0003", "src/adapters or other runtime", "consumers",
+    "live wiring", "real Postgres", "current-truth counter", "P14 completion", "P15/P18",
+    "dependency/config/generated/CI", "Git mutation", "release/deploy/readiness"
+  ],
+
+  "testProvenance": {
+    "history": [
+      {
+        "stage": "original-red",
+        "path": "tests/kernel-persistence-ownership.test.mjs",
+        "result": { "tests": 36, "pass": 26, "fail": 10 },
+        "reason": "checker still enforced the retired combined transitionalInKernel record; manifest still declared it"
+      },
+      {
+        "stage": "compatibility-red",
+        "path": "tests/kernel-customer-app-owned-schema-p11.test.mjs",
+        "result": { "tests": 6, "pass": 5, "fail": 1 },
+        "reason": "P11 scenario read manifest.transitionalInKernel directly, which the P14c split contract retires; not yet corrected at this stage"
+      }
+    ],
+    "frozenFinal": [
+      {
+        "path": "tests/kernel-persistence-ownership.test.mjs",
+        "sha256": "8266b873c4a71902e49b7003247e8c00a655c33f97e39f619f5db93e78f49dc3",
+        "result": { "command": "node --test tests/kernel-persistence-ownership.test.mjs", "tests": 36, "pass": 36, "fail": 0 }
+      },
+      {
+        "path": "tests/kernel-customer-app-owned-schema-p11.test.mjs",
+        "sha256": "0995938d78860c6e118d5b0a2b43f634012ae8c18b745565b9d40e5c1a3414da",
+        "result": { "command": "node --test tests/kernel-customer-app-owned-schema-p11.test.mjs", "tests": 6, "pass": 6, "fail": 0 }
+      }
+    ],
+    "combinedTargeted": { "tests": 42, "pass": 42, "fail": 0, "p14cOwnershipTests": 8, "changedP11Scenarios": 1 },
+    "note": "hashes and counts here are the post-P2-correction frozen final state (see p2Findings above); prior recorded hashes/35-6-41 counts were superseded by the independent review's findings and this writer's correction"
+  },
+
+  "unchangedTargetedEvidence": {
+    "directChecker": { "command": "node tools/check-kernel-persistence-ownership.mjs", "result": "kernel persistence ownership: current checkout classifies cleanly (build-time guard only)." },
+    "gitDiffCheck": { "command": "git diff --check", "result": "clean, no output" },
+    "p10": { "command": "node --test tests/kernel-customer-app-core-p10.test.mjs", "result": "GREEN, 5/5" },
+    "p12": { "command": "node --test tests/kernel-customer-app-owned-adapter-p12.test.mjs", "result": "GREEN, 6/6" },
+    "p13": { "command": "node --test tests/kernel-customer-data-cutover-p13.test.mjs", "result": "GREEN, 6/6" },
+    "p14a": { "command": "node --test tests/kernel-customer-app-core-cutover-p14a.test.mjs", "result": "GREEN, 4/4" },
+    "p14b": { "command": "node --test tests/kernel-customer-app-persistence-parity-p14b.test.mjs", "result": "GREEN, 4/4" }
+  },
+
+  "budget": {
+    "band": "default", "canonicalMaxFiles": 20, "canonicalMaxNet": 400,
+    "grossAdditions": 451, "grossDeletions": 72, "net": 379, "fileCount": 6,
+    "accounting": {
+      "CHANGELOG.md": { "additions": 13, "deletions": 0 },
+      "planning/kernel-persistence-ownership.json": { "additions": 11, "deletions": 3 },
+      "tests/kernel-customer-app-owned-schema-p11.test.mjs": { "additions": 8, "deletions": 6 },
+      "tests/kernel-persistence-ownership.test.mjs": { "additions": 133, "deletions": 43 },
+      "tools/check-kernel-persistence-ownership.mjs": { "additions": 72, "deletions": 20, "note": "includes this writer's one-line P2 correction (removing the `!== undefined` conjunct)" },
+      "planning/kernel-transitional-persistence-history-p14c.json": { "additions": 214, "deletions": 0, "note": "self, new file; additions equal this file's own final line count (wc -l) at time of writing" }
+    },
+    "arithmeticAssertion": "sum(additions) 13+11+8+133+72+214 = 451 = grossAdditions; sum(deletions) 0+3+6+43+20+0 = 72 = grossDeletions; 451-72 = 379 = net; 6 rows = fileCount",
+    "note": "grossAdditions/grossDeletions/net/fileCount sum the accounting rows above across all six package files, taken from git diff --numstat for the first five and this file's own final wc -l for the self row. If a later edit changes this file's own final line count, the self row, the three totals, and this arithmetic assertion must all be recomputed together from the actual final wc -l."
+  },
+
+  "qaHistory": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "physicalLocalFullExecutionCount": 4,
+    "accepted": { "local": 1, "ci": 1, "ciStatus": "pending" },
+    "physicalRuns": [
+      {
+        "run": 1,
+        "label": "first-local-full",
+        "actor": "unspecified prior writer",
+        "command": "npm test",
+        "result": "1532/1533 RED on P11 drift",
+        "disposition": "observed, not accepted-gate; snapshot was still drifted at that point"
+      },
+      {
+        "run": null,
+        "label": "planning-and-changelog-edit",
+        "actor": "unspecified prior writer",
+        "disposition": "changed the snapshot; invalidates run 1's result as current evidence (not a QA execution itself)"
+      },
+      {
+        "run": 2,
+        "label": "compatibility-writer-extra-full",
+        "actor": "compatibility test writer",
+        "result": "invoked accidentally on the changed-but-still-red snapshot, before that writer's own correction",
+        "disposition": "exceptional observed run, explicitly NOT counted against the accepted final-local/CI budget of 2"
+      },
+      {
+        "run": null,
+        "label": "compatibility-correction",
+        "actor": "compatibility test writer",
+        "disposition": "changed the snapshot again; produced the frozen tests this package now verifies (not a QA execution itself)"
+      },
+      {
+        "run": null,
+        "label": "targeted-final-checks-this-writer",
+        "actor": "this writer",
+        "commands": [
+          "node --test tests/kernel-persistence-ownership.test.mjs",
+          "node --test tests/kernel-customer-app-owned-schema-p11.test.mjs",
+          "node --test tests/kernel-customer-app-core-p10.test.mjs",
+          "node --test tests/kernel-customer-app-owned-adapter-p12.test.mjs",
+          "node --test tests/kernel-customer-data-cutover-p13.test.mjs",
+          "node --test tests/kernel-customer-app-core-cutover-p14a.test.mjs",
+          "node --test tests/kernel-customer-app-persistence-parity-p14b.test.mjs",
+          "node tools/check-kernel-persistence-ownership.mjs",
+          "git diff --check"
+        ],
+        "result": "all GREEN on the corrected snapshot (combined targeted 42/42; P10/P12/P13/P14a/P14b unchanged-GREEN; direct checker GREEN; git diff --check clean)",
+        "disposition": "not a full run; gates the decision to spend the one allowed accepted-local full below"
+      },
+      {
+        "run": 3,
+        "label": "final-local-full-recovery-qa-pre-review-correction",
+        "actor": "prior writer (this writer's predecessor)",
+        "reason": "all targeted final checks GREEN on the then-current snapshot",
+        "npmTest": { "command": "npm test", "tests": 1532, "pass": 1532, "fail": 0 },
+        "npmRunCheck": { "command": "npm run check", "result": "GREEN on that snapshot" },
+        "disposition": "was accepted-local at the time, but became non-current once the independent review's P2 findings required the checker/evidence correction in p2Findings above; that correction changed the snapshot, so this run is retained here as history only and is no longer the accepted-local slot"
+      },
+      {
+        "run": 4,
+        "label": "final-local-full-recovery-qa-post-p2-correction",
+        "actor": "this writer",
+        "reason": "the reviewer-driven P2 checker correction changed the snapshot after run 3, which is the recorded managed reason for exactly one additional final local full recovery run; all targeted final checks (combined 42/42, focused P10/P12/P13/P14a/P14b unchanged-GREEN, direct checker GREEN, git diff --check clean) were GREEN on the corrected snapshot before this run was spent",
+        "npmTest": { "command": "npm test", "tests": 1533, "pass": 1533, "fail": 0 },
+        "npmRunCheck": { "command": "npm run check", "result": "GREEN — every check-chain step (repository boundary, control-plane bootstrap, AI development readiness, runtime substrate S1, token economy, P01 architecture fitness, CEM01 repo handshake, kernel-persistence-ownership, versioning/changelog, current-effective compose incl. runtime pilot consumer sync) reports OK/GREEN; only historical/non-effective snapshot and branch-candidate/activation-base sections print their standing non-effective NO_GO/BLOCKED framing, unchanged by this package" },
+        "disposition": "accepted-local, the sole accepted exact-current local slot, counts 1 of 2 in fullQaExecutionsPerChangePackage; no further full QA run by this writer after this"
+      }
+    ],
+    "acceptedCI": {
+      "run": "ci-full",
+      "status": "not yet observed by this writer; recorded as the second, exceptional recovery-gated exact-final slot in the accepted budget, pending"
+    },
+    "postRecordingPolicy": "after this writer records the actual final results above, this writer runs only: JSON parse of this file, the arithmetic assertion, the two frozen tests, the direct checker, and git diff --check; no further full QA run by this writer."
+  },
+
+  "capabilityDelta": {
+    "before": "The single manifest field `transitionalInKernel` carried both the historical `0002_customer_records.py`/`customer_records` migration fact and the `postgres-commit-adapter.mjs` retirement-pending adapter fact as one combined record.",
+    "after": "`tools/check-kernel-persistence-ownership.mjs` retires `transitionalInKernel` outright — its presence at all now denies fail-closed. `applicationOwnedHistoricalMigrations` must always restate the one frozen `0002_customer_records.py`/`customer_records` record because `0003_policy_decision_log.py`'s `down_revision` still depends on it. `transitionalKernelAdapters` may state the one frozen `postgres-commit-adapter.mjs` record, or be empty only once the physical adapter file is also gone. `planning/kernel-persistence-ownership.json` declares the split.",
+    "strongerFlags": {
+      "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false,
+      "deployAllowed": false, "productionAllowed": false, "gapClosed": false,
+      "oneGoldenSliceReady": false, "runnableProduct": false
+    },
+    "notRunnable": "Build-time governance guard change plus evidence recording only: no migration, adapter, consumer, or live entrypoint changed by this writer."
+  },
+
+  "ownerFacing": {
+    "once": "Musteri kayitlarinin (customer_records) gecmis tablosu ile bu tabloyu su an okuyan/yazan gecici kod parcasi (adapter) tek bir kayitta birlikte anlatiliyordu; ikisi birlikte silinmeden hicbiri ayri ayri kaldirilamiyordu.",
+    "simdi": "Artik ikisi ayri ayri takip ediliyor: tablo gecmisi (0002_customer_records.py) hep kalmasi gerekiyor cunku sonraki bir Kernel kaydi (0003) ona dayaniyor; gecici adapter parcasi fiziksel dosyasi silindiginde ayrica, tablo kaydina dokunmadan 'artik yok' diye isaretlenebiliyor. Bu paket ayrica butun test/QA gecmisini dogru sayilarla kayit altina aliyor.",
+    "fark": "Once tek bir anlatim vardi ve ikisi birbirine bagliydi. Simdi iki ayri, daha dogru anlatim var; ayrica kanit kaydi (kac test kirmizi/yesildi, kac tam QA calistirildi) dogru sayilarla duzeltildi.",
+    "kullaniciYolculugu": "Hicbir canli akis degismedi; bu sadece derleme/kontrol asamasinda calisan bir denetim kuralinin ic mantigi ve kanit kaydi. Kullanicinin gordugu form/kaydet/reddet/tekrar dene akisinda gozle gorulur bir fark yok.",
+    "kalanEngel": "P14'un geri kalani: gecici adapter parcasinin gercekten uygulamaya tasinmasi ve fiziksel olarak kaldirilmasi, sonrasinda P15/P18.",
+    "capabilityDelta": "kernelReady=false, sdkReady=false, appBuildable=false, releaseAllowed=false, deployAllowed=false, productionAllowed=false, gapClosed=false, oneGoldenSliceReady=false, runnableProduct=false — no stronger flag moved"
+  },
+
+  "rollback": "git revert covering all six package files: CHANGELOG.md, planning/kernel-persistence-ownership.json, tests/kernel-customer-app-owned-schema-p11.test.mjs, tests/kernel-persistence-ownership.test.mjs, tools/check-kernel-persistence-ownership.mjs, planning/kernel-transitional-persistence-history-p14c.json. This writer's own edits are confined to the last file, but rollback of the package is never partial — it reverts all six together, not just this evidence record.",
+
+  "p14Status": { "incomplete": true, "readiness": false },
+
+  "findings": [],
+
+  "successMarker": "P14C_FINAL_EVIDENCE_GREEN"
+}

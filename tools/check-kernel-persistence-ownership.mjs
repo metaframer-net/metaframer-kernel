@@ -58,15 +58,26 @@ const FROZEN_KERNEL_CAPABILITY_ADAPTER_FILES = ["postgres-decision-log-adapter.m
 export const P05_COMPOSITION_ADAPTER_MANIFEST_FIELD = "p05CompositionAdapterFiles";
 const FROZEN_P05_COMPOSITION_ADAPTER_FILES = ["postgres-unit-of-work.mjs", "postgres-write-envelope-write.mjs"];
 
-// The one closed transitional-in-kernel fact. Present exactly as-is, or wholly absent once its
-// physical migration and adapter are also gone — never edited into something else.
-const FROZEN_TRANSITIONAL = {
+// P14c split ownership contract: the former single transitionalInKernel record is retired and
+// replaced by two independent frozen facts. The migration half — applicationOwnedHistoricalMigrations
+// — is required and preserved: 0002_customer_records.py is application-owned history that
+// 0003_policy_decision_log.py's down_revision still depends on, so it can never simply vanish.
+const FROZEN_HISTORICAL_MIGRATION = {
   migrationFile: "0002_customer_records.py",
   table: "customer_records",
-  adapterFile: "postgres-commit-adapter.mjs",
-  status: "transitional-in-kernel",
+  status: "historical-application-migration",
   targetOwner: "application",
-  retirementPath: "P11-P14",
+  preserveInPlace: true,
+  requiredByRevision: "0003_policy_decision_log.py",
+};
+
+// The adapter half — transitionalKernelAdapters — may be declared exactly as this one frozen
+// record, or wholly absent once the physical adapter file is also gone (convergence).
+const FROZEN_TRANSITIONAL_ADAPTER = {
+  adapterFile: "postgres-commit-adapter.mjs",
+  status: "retirement-pending",
+  targetOwner: "application",
+  retirementPath: "P14",
   removalIsConvergence: true,
 };
 
@@ -326,15 +337,42 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
     );
   }
 
-  let declaredTransitional = manifest.transitionalInKernel;
-  if (!Array.isArray(declaredTransitional)) {
-    violations.push("transitionalInKernel must be an array");
-    declaredTransitional = [];
+  // The legacy combined transitionalInKernel field is retired under the P14c split contract; its
+  // presence at all — correct or not — must deny fail-closed rather than be accepted in parallel.
+  if (Object.prototype.hasOwnProperty.call(manifest, "transitionalInKernel")) {
+    violations.push(
+      "legacy transitionalInKernel field is retired; declare applicationOwnedHistoricalMigrations and transitionalKernelAdapters instead",
+    );
   }
-  const transitionalPresent =
-    declaredTransitional.length === 1 && deepEqual(declaredTransitional[0], FROZEN_TRANSITIONAL);
-  if (declaredTransitional.length > 0 && !transitionalPresent) {
-    violations.push("transitionalInKernel does not match the one frozen transitional record");
+
+  const declaredHistorical = manifest.applicationOwnedHistoricalMigrations;
+  const historicalPresent =
+    Array.isArray(declaredHistorical) &&
+    declaredHistorical.length === 1 &&
+    deepEqual(declaredHistorical[0], FROZEN_HISTORICAL_MIGRATION);
+  if (!historicalPresent) {
+    violations.push(
+      "applicationOwnedHistoricalMigrations does not match the one required, preserved historical application migration record",
+    );
+  }
+
+  const declaredAdapters = manifest.transitionalKernelAdapters;
+  let adapterPresent = false;
+  if (
+    Array.isArray(declaredAdapters) &&
+    declaredAdapters.length === 1 &&
+    deepEqual(declaredAdapters[0], FROZEN_TRANSITIONAL_ADAPTER)
+  ) {
+    adapterPresent = true;
+  } else if (Array.isArray(declaredAdapters) && declaredAdapters.length === 0) {
+    // Convergence candidate: valid only once the physical adapter file is also gone (checked below).
+  } else {
+    const unexpected = (Array.isArray(declaredAdapters) ? declaredAdapters : [])
+      .filter((e) => !deepEqual(e, FROZEN_TRANSITIONAL_ADAPTER))
+      .map((e) => (e && typeof e === "object" ? (e.adapterFile ?? JSON.stringify(e)) : String(e)));
+    violations.push(
+      `transitionalKernelAdapters does not match the frozen transitional adapter declaration (unexpected: ${unexpected.join(", ")})`,
+    );
   }
 
   const declaredMigrations = new Map(); // filename -> { tables: Set, kind: 'kernel'|'transitional' }
@@ -355,12 +393,14 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
   if (p05CompositionActivated) {
     for (const file of FROZEN_P05_COMPOSITION_ADAPTER_FILES) declaredAdapterFiles.set(file, "composition");
   }
-  if (transitionalPresent) {
-    declaredMigrations.set(FROZEN_TRANSITIONAL.migrationFile, {
-      tables: new Set([FROZEN_TRANSITIONAL.table]),
-      kind: "transitional",
+  if (historicalPresent) {
+    declaredMigrations.set(FROZEN_HISTORICAL_MIGRATION.migrationFile, {
+      tables: new Set([FROZEN_HISTORICAL_MIGRATION.table]),
+      kind: "historical",
     });
-    declaredAdapterFiles.set(FROZEN_TRANSITIONAL.adapterFile, "transitional");
+  }
+  if (adapterPresent) {
+    declaredAdapterFiles.set(FROZEN_TRANSITIONAL_ADAPTER.adapterFile, "transitional");
   }
 
   validateCanonicalReference(manifest, repoRoot, violations);
@@ -386,7 +426,13 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
     }
   }
   requireKernelFilesFound(declaredMigrations, foundMigrations, "migration", violations);
-  denyOrphanedTransitionalFile(migrationsDir, FROZEN_TRANSITIONAL.migrationFile, "migration", transitionalPresent, violations);
+  denyOrphanedTransitionalFile(
+    migrationsDir,
+    FROZEN_HISTORICAL_MIGRATION.migrationFile,
+    "migration",
+    historicalPresent,
+    violations,
+  );
 
   const { realPath: adaptersDir, violation: adaptersDirViolation } = resolveConfined(
     repoRoot,
@@ -398,7 +444,13 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
 
   const foundAdapters = scanDeclaredDir(adaptersDir, declaredAdapterFiles, null, "adapter", violations);
   requireKernelFilesFound(declaredAdapterFiles, foundAdapters, "adapter", violations);
-  denyOrphanedTransitionalFile(adaptersDir, FROZEN_TRANSITIONAL.adapterFile, "adapter", transitionalPresent, violations);
+  denyOrphanedTransitionalFile(
+    adaptersDir,
+    FROZEN_TRANSITIONAL_ADAPTER.adapterFile,
+    "adapter",
+    adapterPresent,
+    violations,
+  );
 
   return { ok: violations.length === 0, violations };
 }

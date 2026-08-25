@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P14c `tools/check-kernel-persistence-ownership.mjs`: retires the combined `transitionalInKernel`
+  manifest record (its presence, correct or not, now denies fail-closed) and replaces it with two
+  independently frozen facts checked in code, not merely restated in the manifest. The migration
+  half, `applicationOwnedHistoricalMigrations`, is required and preserved — `0002_customer_records.py`
+  stays application-owned history that `0003_policy_decision_log.py`'s `down_revision` still
+  depends on, so it can be missing, relabelled, or grown but never simply admitted. The adapter
+  half, `transitionalKernelAdapters`, may state the one frozen `postgres-commit-adapter.mjs`
+  retirement-pending record, or be the empty array only once that physical adapter file is also
+  gone (admissible convergence); any unknown adapter entry still denies by name, and an orphaned
+  physical adapter with no declaration still denies. `planning/kernel-persistence-ownership.json`
+  now carries the split declaration. No migration, adapter, consumer, or live wiring changed; this
+  is a governance-only build-time guard update. See
+  `planning/kernel-transitional-persistence-history-p14c.json`.
 - P14b `consumers/customer-app-core/customer-persistence-adapter.mjs` (`createCustomerPersistenceAdapter`,
   `CustomerIdempotencyConflictError`): fail-closed validates tenantId/audit/transactionalOutbox/
   idempotency metadata before any query, delegates the unchanged P12 `createCustomerRecordsAdapter`
