@@ -578,7 +578,14 @@ roadmap current-truth package has since synced the counter again to
 `12/25 tamamlandı, P13/25 aktif`, closing P12 (an application-owned, query-injected
 `customer_records` adapter — `consumers/customer-app-core/customer-records-adapter.mjs`,
 `createCustomerRecordsAdapter`, test-verified) with P13 (data cutover and rollback) as the active
-package; that sync also adds no runtime capability and moves no flag under **Current status**.
+package; that sync also adds no runtime capability and moves no flag under **Current status**. A
+further roadmap current-truth package has since synced the counter again to
+`13/25 tamamlandı, P14/25 aktif`, closing P13 (a frozen, default-legacy
+`createCustomerDataCutover` controller — `consumers/customer-app-core/customer-data-cutover.mjs`
+— gating a compatibility-checked switch to the P12 adapter behind one
+BEGIN/tenant-context/insert/COMMIT transaction with rollback, test-verified) with P14 (Kernel
+cleanup and parity) as the active package; that sync also adds no runtime capability and moves no
+flag under **Current status**.
 
 ## Authorized order and what remains closed
 
@@ -603,10 +610,13 @@ composing a P08-generated public action SDK module only through its public contr
 is now also merged and test-verified. P11 — an app-owned, immutable customer records schema and
 validator contract (`CUSTOMER_RECORDS_SCHEMA`, `canonicalizeCustomerRecord`) — is now also merged
 and test-verified. P12 — an application-owned, query-injected `customer_records` adapter
-(`createCustomerRecordsAdapter`) — is now also merged and test-verified. What that stage still
-lacks is P13 — data cutover and rollback — the active next package. A real database
-connection/wiring, Kernel cleanup, the product Surface and every later readiness/promotion gate
-remain closed and unstarted, and nothing here may be read as opening them.
+(`createCustomerRecordsAdapter`) — is now also merged and test-verified. P13 — a frozen,
+default-legacy data cutover/rollback controller (`createCustomerDataCutover`) gating a
+compatibility-checked switch to the P12 adapter behind one transaction with rollback — is now
+also merged and test-verified. What that stage still lacks is P14 — Kernel cleanup and
+parity — the active next package. Live application persistence integration, audit/outbox/
+idempotency parity, live composition, the product Surface and every later readiness/promotion
+gate remain closed and unstarted, and nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is

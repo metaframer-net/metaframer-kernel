@@ -22,6 +22,18 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   application insert path (BEGIN / `mfk_begin_tenant_context` / P12 adapter insert / COMMIT,
   rollback-on-failure), and `rollback()`/`close()`. No live traffic moved; not yet wired into
   app-core. See `planning/kernel-customer-data-cutover-p13.json`.
+- P13b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p13-current-truth-closure-p13b.json`): synced the roadmap current-truth
+  artifact — a 25-package denominator — to P13's real merged evidence — the frozen,
+  default-legacy data cutover/rollback controller (`consumers/customer-app-core/customer-data-cutover.mjs`,
+  `createCustomerDataCutover`) — is now recorded as implemented, removing P13 from
+  `notImplementedPieces` and replacing it with P14 (Kernel cleanup and parity) as the explicit
+  next-missing piece. Progress moves from `12/25 tamamlandı, P13/25 aktif` to
+  `13/25 tamamlandı, P14/25 aktif` (completed: P01–P13; active: P14, Kernel cleanup and parity),
+  with every readiness flag (`kernelReady`, `sdkReady`, `appBuildable`, `releaseAllowed`,
+  `deployAllowed`, `productionAllowed`, `gapClosed`, `oneGoldenSliceReady`, `runnableProduct`)
+  held `false` and `capability_delta: NONE`. This is a documentation/current-truth sync only; it
+  adds no runtime capability and moves no readiness flag. No npm release.
 - P12b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
   `planning/kernel-p12-current-truth-closure-p12b.json`): synced the roadmap current-truth
   artifact to P12's real merged evidence — the application-owned, query-injected
