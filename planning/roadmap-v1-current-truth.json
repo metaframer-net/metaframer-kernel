@@ -50,14 +50,15 @@
       "P05 UoW (UnitOfWork), canonical CommitReceipt and the write envelope wiring the unit-of-work port to a real commit boundary, composed end to end into the CreateCustomer commit-boundary composition chain, test-verified",
       "P08 versioned SDK distribution: tools/generate-versioned-action-sdk-distribution.mjs (renderVersionedActionSdkDistribution(contract, distributionVersion)) wraps P07's renderActionSdk with a caller-supplied Kernel distribution version, distinct from the action's own contract version, into a coordinate-addressed, integrity-checked manifest+module file set; test-verified, targeted 27/27 GREEN, no npm publish/release",
       "P09 clean SDK consumer conformance: a standalone, builtins-only clean consumer fixture (tests/fixtures/versioned-sdk-clean-consumer.mjs) copies P08's real versioned SDK distribution payload into a temp directory, empties the environment, and validates the distribution version, module path, manifest shape, module file existence and the exact recomputed SHA-256 before importing it; test-verified; no npm publish/release",
-      "P10 app-core: an app-owned Customer app-core public-SDK consumer boundary (consumers/customer-app-core/customer-app-core.mjs, CUSTOMER_APP_CORE_MANIFEST plus createCustomerAppCore) that composes a P08-generated public action SDK module only through its public contract surface at an exact SDK-derived coordinate, fails closed on a missing/malformed/wrong-coordinate SDK or a missing/near-match customer:core capability grant (default-deny), and exposes no schema/adapter/CRUD/Surface/UI/host/release/readiness behavior; test-verified"
+      "P10 app-core: an app-owned Customer app-core public-SDK consumer boundary (consumers/customer-app-core/customer-app-core.mjs, CUSTOMER_APP_CORE_MANIFEST plus createCustomerAppCore) that composes a P08-generated public action SDK module only through its public contract surface at an exact SDK-derived coordinate, fails closed on a missing/malformed/wrong-coordinate SDK or a missing/near-match customer:core capability grant (default-deny), and exposes no schema/adapter/CRUD/Surface/UI/host/release/readiness behavior; test-verified",
+      "P11 app-owned customer schema: a pure, zero-import, application-owned customer_records schema and validator contract (consumers/customer-app-core/customer-records-schema.mjs, CUSTOMER_RECORDS_SCHEMA plus canonicalizeCustomerRecord) that deep-freezes its six-field/index/RLS/runtime-grant descriptor and canonicalizes/validates an exact-six-key record fail-closed, with no SQL, migration, adapter, CRUD, or cutover behavior; test-verified"
     ],
     "notImplementedPieces": [
-      "app-owned customer schema (P11) and application-owned persistence built on the Kernel, beyond the P10 public-SDK consumer boundary",
+      "app-owned adapter (P12) and application-owned persistence built on the Kernel, beyond the P11 schema/validator contract",
       "outbox relay lifecycle (P18) actually delivering events out of the transactional outbox",
       "production proof: no HA/DR, security, performance or promotion gate evidence exists yet (P19-P25)"
     ],
-    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, P07's generic renderActionSdk generator plus P08's versioned SDK distribution wrapper exist over the exact P02 ActionContract, P09's clean-consumer conformance proof exists over P08's real distribution payload, and P10's app-core public-SDK consumer boundary now exists, but app-owned customer schema, application-owned persistence and a product Surface remain absent to make it runnable as a real product."
+    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, P07's generic renderActionSdk generator plus P08's versioned SDK distribution wrapper exist over the exact P02 ActionContract, P09's clean-consumer conformance proof exists over P08's real distribution payload, P10's app-core public-SDK consumer boundary exists, and P11's app-owned customer schema/validator contract now exists, but an app-owned adapter, application-owned persistence, cutover/rollback and a product Surface remain absent to make it runnable as a real product."
   },
   "roadmap": {
     "version": "v1",
@@ -100,12 +101,12 @@
       { "id": "P25", "name": "promotion gates", "family": "F7", "dodRef": "F7", "dependsOn": ["P20", "P21", "P23", "P24"] }
     ],
     "progress": {
-      "completed": 10,
+      "completed": 11,
       "total": 25,
-      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08", "P09", "P10"],
-      "activePackage": "P11",
-      "asOfKernelMain": "0f1fb371524f6455417026ac3816bc3ebc56b641",
-      "statusLine": "10/25 tamamlandı, P11/25 aktif"
+      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08", "P09", "P10", "P11"],
+      "activePackage": "P12",
+      "asOfKernelMain": "26a3155b3722d077308fa0a5ba9ab1ed935f5aa8",
+      "statusLine": "11/25 tamamlandı, P12/25 aktif"
     }
   },
   "execution": {
@@ -131,11 +132,11 @@
     }
   },
   "ownerFacing": {
-    "once": "Once P10'un app-core sinir kaniti (consumers/customer-app-core) main'e mergelenmisti ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
-    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 10/25 tamamlandi, P11 aktif: bu paket sadece o roadmap gercegini P10'un gercek mergelenmis app-core sinir kanitiyla senkronlar, hicbir calisma zamani davranisi degistirmez.",
-    "fark": "Once P10 mergelenmisti ama sayac 9/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 10/25 tamamlandi, P11/25 aktif durumunu projekte ediyor.",
-    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P11'deki app-owned customer schema ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
-    "kalanEngel": "P11 (app-owned customer schema) dahil F3-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+    "once": "Once P11'in app-owned customer schema/validator sozlesme kaniti (consumers/customer-app-core/customer-records-schema.mjs) main'e mergelenmisti ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
+    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 11/25 tamamlandi, P12 aktif: bu paket sadece o roadmap gercegini P11'in gercek mergelenmis schema/validator sozlesme kanitiyla (CUSTOMER_RECORDS_SCHEMA, canonicalizeCustomerRecord) senkronlar, hicbir calisma zamani davranisi degistirmez.",
+    "fark": "Once P11 mergelenmisti ama sayac 10/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 11/25 tamamlandi, P12/25 aktif durumunu projekte ediyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P12'deki app-owned adapter, uygulama-sahipli kalicilik ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
+    "kalanEngel": "P12 (app-owned adapter) dahil F3-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
     "capability_delta": "NONE",
     "calistirilabilirlik": "not-runnable"
   }

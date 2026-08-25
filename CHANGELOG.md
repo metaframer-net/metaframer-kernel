@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P11b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p11-current-truth-closure-p11b.json`): synced the roadmap current-truth
+  artifact to P11's real merged evidence — the app-owned, immutable `customer_records` schema
+  and validator contract (`consumers/customer-app-core/customer-records-schema.mjs`,
+  `CUSTOMER_RECORDS_SCHEMA` plus `canonicalizeCustomerRecord`) — is now recorded as implemented,
+  removing the prior "app-owned customer schema (P11)... not yet" claim and replacing it with
+  P12 (app-owned adapter) as the explicit next-missing piece. Progress moves from
+  `10/25 tamamlandı, P11/25 aktif` to `11/25 tamamlandı, P12/25 aktif` (completed: P01–P11;
+  active: P12, app-owned adapter), with every readiness flag (`kernelReady`, `sdkReady`,
+  `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`,
+  `oneGoldenSliceReady`, `runnableProduct`) held `false` and `capability_delta: NONE`. This is a
+  documentation/current-truth sync only; it adds no runtime capability and moves no readiness
+  flag. No npm release.
 - P11 `consumers/customer-app-core/customer-records-schema.mjs`: a pure, zero-import,
   application-owned `customer_records` schema contract (`CUSTOMER_RECORDS_SCHEMA` plus
   `canonicalizeCustomerRecord`) that deep-freezes its six-field/index/RLS/runtime-grant
