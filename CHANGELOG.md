@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P07 `tools/generate-action-sdk.mjs` (generic `renderActionSdk(contract)`) plus
+  `tests/kernel-generic-action-sdk-generator.test.mjs`: a pure, capability-free generator that
+  renders a framework-neutral, import-free ESM SDK module from an arbitrary P02 `ActionContract`
+  instance, generalizing the existing pinned CreateCustomer generator without changing it. See
+  `planning/kernel-generic-generator-p07.json` for scope hashes, allowed files, and gate status.
+  Targeted combined run (`kernel-generic-action-sdk-generator`, `kernel-action-contract`,
+  `kernel-generated-sdk-generation`, `kernel-generated-sdk-generation-determinism`) is 32/32
+  GREEN; full local QA and CI remain pending. Every readiness flag (`kernelReady`, `sdkReady`,
+  `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`,
+  `oneGoldenSliceReady`, `runnableProduct`) stays `false`; `capability_delta:
+  GENERIC_SDK_GENERATOR_ONLY`.
 - P05f `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections):
   synced the roadmap current-truth artifact to P05's real evidence — `UnitOfWork` (UoW), the
   canonical `CommitReceipt` and the write envelope are now recorded as implemented and composed

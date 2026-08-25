@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-generic-generator-p07-2026-08-25",
+  "generatedAt": "2026-08-25",
+  "packageKind": "implementation-evidence-finalization",
+  "type": "generic-action-sdk-generator",
+  "packageState": "targeted-green-exact-shape-hardened-external-gates-pending",
+
+  "baseCommit": "340aa3bbe82684f5905f4cae829684df8cf3b32a",
+
+  "scopeHashes": {
+    "master": "a1906e081b4a2996d1b95d2b968e7f3b5bc112eac63d4e0da158b327f5395d10",
+    "blind": "b2ca335c207411a44712eab3d6f0a068b00a06193fe9d7f31c0bee640cbd4abf",
+    "synthesis": "ef3ee66a466681e196f061fbf49e8653b9549ba338b3c1285485f2c3d816ebd9"
+  },
+
+  "allowedFiles": [
+    "tests/kernel-generic-action-sdk-generator.test.mjs",
+    "tools/generate-action-sdk.mjs",
+    "planning/kernel-generic-generator-p07.json",
+    "CHANGELOG.md"
+  ],
+
+  "nonGoals": [
+    "no src/** change",
+    "no other test or tool file edit",
+    "no package.json, dependency, lockfile, CI/workflow/config change",
+    "no roadmap progress counter change",
+    "no commit, push, or merge performed by this package",
+    "no full npm test / npm run check run in this step",
+    "no production, release, or deploy claim",
+    "no P08 distribution: this package does not package, publish, or expose the generic generator as a consumable distribution surface",
+    "no P09 clean-consumer wiring: this package does not wire the generic generator into any downstream/consumer entrypoint"
+  ],
+
+  "history": {
+    "originalRedResult": "0/4 (initial test authoring attempt failed before any implementation existed)",
+    "correctedTestHandoff": "tests/kernel-generic-action-sdk-generator.test.mjs handed off read-only after correction; independently confirmed 4/4 GREEN prior to this step",
+    "implementationHandoff": "tools/generate-action-sdk.mjs handed off read-only after implementation writer made the corrected test suite pass"
+  },
+
+  "targetedGreen": {
+    "command": "node --test tests/kernel-generic-action-sdk-generator.test.mjs tests/kernel-action-contract.test.mjs tests/kernel-generated-sdk-generation.test.mjs tests/kernel-generated-sdk-generation-determinism.test.mjs",
+    "tests": 32,
+    "pass": 32,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+
+  "fileHashesSha256": {
+    "tests/kernel-generic-action-sdk-generator.test.mjs": "d581c2c5cc5b0c32a0f9d4b80a8b20a760a5f7dc878a0ae9813e6b14da58004b",
+    "tools/generate-action-sdk.mjs": "1fe9dd8619ee6d13d869fc4c8a1b7c8ec949eb20acc7640d58d60a758867c0af"
+  },
+
+  "red": {
+    "command": "node --test tests/kernel-generic-action-sdk-generator.test.mjs",
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "reason": "missing-module: tools/generate-action-sdk.mjs did not yet exist when the corrected test file was first run, so all four tests failed on module resolution before any implementation existed"
+  },
+
+  "focusedExactShapeRed": {
+    "command": "node --test tests/kernel-generic-action-sdk-generator.test.mjs",
+    "tests": 4,
+    "pass": 3,
+    "fail": 1,
+    "reason": "exact-shape-gap: buildActionSpec/isErrorEnvelope used Object.keys() and a plain typeof-object/Array.isArray guard, so a null-prototype object, a custom-prototype object, or an object carrying an extra symbol own key was silently accepted instead of rejected",
+    "resolution": "hardened the generated ESM template to add a shared ordinary-object predicate (value !== null && typeof value === \"object\" && Object.getPrototypeOf(value) === Object.prototype), matching the existing CreateCustomer SDK baseline in tools/generate-create-customer-sdk.mjs, and switched buildActionSpec/isErrorEnvelope from Object.keys() to Reflect.ownKeys() so non-enumerable and symbol-keyed extras are counted rather than silently ignored; no other API or behavior change"
+  },
+
+  "budget": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "spentThisStep": 0,
+    "changedFileCount": 4,
+    "grossAdditions": 400,
+    "grossDeletions": 0,
+    "netLines": 400,
+    "class": "default",
+    "note": "This step ran only the focused exact-shape test (3 pass 1 fail RED confirmed, then 4/4 GREEN after the fix) and the same combined four-file targeted command (32/32 GREEN), not a full local QA run; full QA and CI remain pending per default budget."
+  },
+
+  "revert": {
+    "scope": "explicit-four-file-revert",
+    "files": [
+      "tests/kernel-generic-action-sdk-generator.test.mjs",
+      "tools/generate-action-sdk.mjs",
+      "planning/kernel-generic-generator-p07.json",
+      "CHANGELOG.md"
+    ],
+    "mechanism": "non-destructive git revert of the eventual single atomic commit that introduces these four files restores prior state with no other repository surface touched; no git checkout or history rewrite is used"
+  },
+
+  "flags": {
+    "kernelReady": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "gapClosed": false,
+    "sdkReady": false
+  },
+  "runnableProduct": false,
+
+  "capabilityDelta": "GENERIC_SDK_GENERATOR_ONLY: tools/generate-action-sdk.mjs adds a pure, capability-free generator that renders a framework-neutral ESM SDK module from an arbitrary P02 ActionContract instance; it is generic evidence alongside the existing pinned CreateCustomer generator and unlocks no new readiness flag and no runnable product surface.",
+
+  "pending": {
+    "reviewer": "independent read-only reviewer on the same immutable snapshot has not yet run",
+    "fullLocalQa": "not yet run for this package",
+    "ci": "required CI full QA not yet run",
+    "roadmapUpdate": "not performed by this package"
+  },
+
+  "versionBump": false
+}
