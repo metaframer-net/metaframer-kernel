@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P12b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p12-current-truth-closure-p12b.json`): synced the roadmap current-truth
+  artifact to P12's real merged evidence — the application-owned, query-injected
+  `customer_records` adapter (`consumers/customer-app-core/customer-records-adapter.mjs`,
+  `createCustomerRecordsAdapter`) — is now recorded as implemented, removing the prior
+  "app-owned adapter (P12)... not yet" claim and replacing it with P13 (data cutover and
+  rollback) as the explicit next-missing piece. Progress moves from
+  `11/25 tamamlandı, P12/25 aktif` to `12/25 tamamlandı, P13/25 aktif` (completed: P01–P12;
+  active: P13, data cutover and rollback), with every readiness flag (`kernelReady`, `sdkReady`,
+  `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`,
+  `oneGoldenSliceReady`, `runnableProduct`) held `false` and `capability_delta: NONE`. This is a
+  documentation/current-truth sync only; it adds no runtime capability and moves no readiness
+  flag. No npm release.
 - P12 `consumers/customer-app-core/customer-records-adapter.mjs`
   (`createCustomerRecordsAdapter({query})`, plus `planning/kernel-customer-app-owned-adapter-p12.json`):
   an app-owned, query-injectable adapter that canonicalizes a P11 customer record, requires a

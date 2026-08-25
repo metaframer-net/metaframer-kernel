@@ -31,12 +31,12 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`11/25 tamamlandı, P12/25 aktif` (`roadmap.progress` in
+`12/25 tamamlandı, P13/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
-packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11. P11 (app-owned customer schema)
-is closed — an app-owned, immutable customer records schema and validator contract
-(`consumers/customer-app-core/customer-records-schema.mjs`, `CUSTOMER_RECORDS_SCHEMA` plus
-`canonicalizeCustomerRecord`) test-verified. P12 (app-owned adapter) is the active package and the
+packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12. P12 (app-owned adapter)
+is closed — an application-owned, query-injected customer_records adapter
+(`consumers/customer-app-core/customer-records-adapter.mjs`, `createCustomerRecordsAdapter`)
+test-verified. P13 (data cutover and rollback) is the active package and the
 next explicit gap; none of this moves any readiness flag under [README.md](README.md)
 `## Current status`.
 

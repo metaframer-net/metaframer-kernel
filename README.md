@@ -573,7 +573,12 @@ package has since synced the counter again to `11/25 tamamlandı, P12/25 aktif`,
 app-owned, immutable customer records schema and validator contract —
 `consumers/customer-app-core/customer-records-schema.mjs`, `CUSTOMER_RECORDS_SCHEMA` plus
 `canonicalizeCustomerRecord`, test-verified) with P12 (app-owned adapter) as the active package;
-that sync also adds no runtime capability and moves no flag under **Current status**.
+that sync also adds no runtime capability and moves no flag under **Current status**. A further
+roadmap current-truth package has since synced the counter again to
+`12/25 tamamlandı, P13/25 aktif`, closing P12 (an application-owned, query-injected
+`customer_records` adapter — `consumers/customer-app-core/customer-records-adapter.mjs`,
+`createCustomerRecordsAdapter`, test-verified) with P13 (data cutover and rollback) as the active
+package; that sync also adds no runtime capability and moves no flag under **Current status**.
 
 ## Authorized order and what remains closed
 
@@ -597,9 +602,11 @@ and test-verified. P10 — app-core, an app-owned Customer app-core public-SDK c
 composing a P08-generated public action SDK module only through its public contract surface —
 is now also merged and test-verified. P11 — an app-owned, immutable customer records schema and
 validator contract (`CUSTOMER_RECORDS_SCHEMA`, `canonicalizeCustomerRecord`) — is now also merged
-and test-verified. What that stage still lacks is P12 — app-owned adapter — the active next
-package. Application-owned persistence, the product Surface and every later readiness/promotion
-gate remain closed and unstarted, and nothing here may be read as opening them.
+and test-verified. P12 — an application-owned, query-injected `customer_records` adapter
+(`createCustomerRecordsAdapter`) — is now also merged and test-verified. What that stage still
+lacks is P13 — data cutover and rollback — the active next package. A real database
+connection/wiring, Kernel cleanup, the product Surface and every later readiness/promotion gate
+remain closed and unstarted, and nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
