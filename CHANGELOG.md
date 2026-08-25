@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P11 `consumers/customer-app-core/customer-records-schema.mjs`: a pure, zero-import,
+  application-owned `customer_records` schema contract (`CUSTOMER_RECORDS_SCHEMA` plus
+  `canonicalizeCustomerRecord`) that deep-freezes its six-field/index/RLS/runtime-grant
+  descriptor, agrees with `planning/kernel-persistence-ownership.json`'s transitional
+  `customer_records` entry and the `0002_customer_records.py` migration shape, and
+  canonicalizes/validates an exact-six-key record fail-closed with no SQL, migration,
+  adapter, CRUD, or cutover behavior. See
+  `tests/kernel-customer-app-owned-schema-p11.test.mjs` and
+  `planning/kernel-customer-app-owned-schema-p11.json`.
 - P10b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
   `planning/kernel-p10-current-truth-closure-p10b.json`): synced the roadmap current-truth
   artifact to P10's real merged evidence — the app-owned Customer app-core public-SDK consumer
