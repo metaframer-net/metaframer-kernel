@@ -1,0 +1,110 @@
+{
+  "id": "kernel-postgres-write-envelope-p05c",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "immutableBase": {
+    "commit": "27665bed9a5e913037f717fa4ae52463ac651f4f",
+    "tree": "62a9b55e1423315da5430cc572650cbd270be825"
+  },
+  "blindScopeHash": "40c54de2d6456b9240989e1fb9051417956d4a8befb8a88f7de5e9e0ee4350a3",
+  "masterScopeHash": "7efa92015d05e3ce23297ce8dc1de8eb8188a121e6e141dceec9237393361af3",
+  "synthesisHash": "44beb3b55b5f2818b568e11c69abee4f449516cb9bce146dc2e31d18a318dc94",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+  "changePackageBudgetSource": "src/data/standards/short-code.json#changePackageBudget",
+  "testHashes": {
+    "tests/postgres-unit-of-work-write-envelope.test.mjs": "6aa75c9d90114e5cba52f31cb7ed7768a5ba8dddc494ed2386520dc827c8afb8",
+    "tests/repository-boundary.test.mjs": "790ca287acd89f23d32ed3f2bc07c41f542b455158bebd76b00f7952624a7a20"
+  },
+  "calistirilabilirlik": "not-runnable",
+  "allowedFiles": [
+    "src/adapters/postgres-unit-of-work.mjs",
+    "src/adapters/postgres-write-envelope-write.mjs",
+    "src/adapters/postgres-commit-adapter.mjs",
+    "tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "tests/repository-boundary.test.mjs",
+    "tools/check-kernel-persistence-ownership.mjs",
+    "planning/kernel-persistence-ownership.json",
+    "planning/kernel-postgres-write-envelope-p05c.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no UnitOfWork/WriteEnvelope/CommitReceipt application-ring changes",
+    "no public PostgresCommitAdapter.commit behavior change (export-only helper changes)",
+    "no delivery/current-truth/wiring", "no CI/config/readiness/release/deploy claim",
+    "no src file or test file edited by this correction; no persistence ownership/capability/readiness/release/promotion granted by the new ownership-manifest field; customer_records stays transitional-in-kernel unchanged"
+  ],
+  "scope": "src/adapters/postgres-unit-of-work.mjs: lazy createPostgresUnitOfWork({connectionString}) owning one pg.Pool, returning a frozen {port, close} whose port is a frozen ordinary {begin, commit, rollback}, shareable across fresh application UnitOfWork instances. src/adapters/postgres-write-envelope-write.mjs: createPostgresWrite({requestId, idempotencyKey}) building the WriteEnvelope write(scope, preparedChangeSet) collaborator, committing all four intents inside the caller's transaction scope against the same S1 substrate PostgresCommitAdapter targets and resolving to a canonical CommitReceipt; validation and duplicate-fingerprint recognition reuse the exact PostgresCommitAdapter helpers (checkPreparedChangeSet, checkTenantId, isDuplicateIdempotencyFingerprintError), now exported for reuse with zero public commit behavior change. Ownership-inventory correction: tools/check-kernel-persistence-ownership.mjs and planning/kernel-persistence-ownership.json add one frozen, opt-in p05CompositionAdapterFiles manifest field admitting exactly postgres-unit-of-work.mjs and postgres-write-envelope-write.mjs into the closed src/adapters inventory scan under a distinct 'composition' kind, closing the isolated persistence-ownership RED found by the second targeted diagnostic; no persistence ownership, capability, readiness, release or promotion is granted, and the one frozen transitional customer_records record is untouched.",
+  "correctedRed": {
+    "command": "node --test tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "result": "4/4 scenarios FAIL: src/adapters/postgres-unit-of-work.mjs and src/adapters/postgres-write-envelope-write.mjs did not exist.",
+    "note": "supersedes an earlier, incorrect 5-test RED framing"
+  },
+  "targetedGreen": {
+    "commands": [
+      "node --test tests/postgres-unit-of-work-write-envelope.test.mjs",
+      "node --test --test-name-pattern=\"a real tree reaches the same verdict\" tests/repository-boundary.test.mjs"
+    ],
+    "result": "corrected-source targeted GREEN, run separately per MASTER instruction: 4/4 PASS (postgres-unit-of-work-write-envelope.test.mjs, real PostgreSQL 16 container) and 1/1 PASS (repository-boundary.test.mjs, name-pattern-filtered manifest verdict test).",
+    "supersededHistory": [
+      "preliminary pre-correction targeted GREEN: 4/4 (postgres-unit-of-work-write-envelope.test.mjs) + 167/167 (full repository-boundary.test.mjs) — superseded by this writer correction (helper export/reuse), source changed since"
+    ]
+  },
+  "ownershipAlignment": {
+    "command": "node --test tests/kernel-persistence-ownership.test.mjs",
+    "result": "32/32 PASS on the corrected tools/planning pair, including the previously failing 'real repository checkout classifies cleanly'.",
+    "targetedExecutionCount": 2, "redundantSecondExecution": true,
+    "note": "closes the isolated valid-QA1 RED found and diagnosed on the clean b91aed87c53a0ccc29409e4be74e980cb1d426f7 candidate: the two P05c adapter files were undeclared in the separate persistence-ownership inventory manifest. The first 32/32 run followed the checker/manifest correction and is the evidence run. The second 32/32 run was an unnecessary repeat performed after documentation-only edits (CHANGELOG.md/planning) that could not affect tools/check-kernel-persistence-ownership.mjs or planning/kernel-persistence-ownership.json; it spent no full-QA budget (this is a targeted test, not npm test/check) and must not be repeated again."
+  },
+  "invalidFullQaAttempts": [
+    {
+      "command": "npm test --silent",
+      "result": "12 guard-test failures",
+      "reason": "INVALID_AS_UNCOMMITTED_WORKTREE_ENVIRONMENT",
+      "note": "all 12 failures are pre-existing 'no src/** diff from HEAD' guards belonging to other, already-closed packages (kernel-python-host-app-factory, generated-sdk-step-closure, etc.); they necessarily reject any uncommitted src/** file in the working tree, including this package's own new src/adapters files, and are not a P05c contract violation. Recorded as invalid rather than as a used QA budget slot."
+    }
+  ],
+  "supersededQa1Attempts": [
+    {
+      "candidate": { "commit": "b91aed87c53a0ccc29409e4be74e980cb1d426f7", "tree": "275743d9fa97e621aebfa1db57c54da5faf19e36" },
+      "command": "npm test --silent",
+      "result": "FAIL: isolated to one persistence-ownership-inventory RED (tests/kernel-persistence-ownership.test.mjs, 'real repository checkout classifies cleanly'); the rest of the changed-surface impact group and the DB group (46/46) were GREEN",
+      "reason": "SNAPSHOT_GATE_SUPERSEDED_BY_TARGETED_CORRECTION",
+      "note": "this was a valid full local execution on a clean, correctly-identified candidate and counts historically (validFullQa1Used=1 overall). It is superseded only for the current-snapshot verdict: this targeted correction changed the snapshot (tools/planning ownership pair) after that run, so the b91aed87... QA1 outcome no longer describes the current source. A fresh writer-local QA1 on the corrected clean snapshot is authorized as a replacement run (see budget.additionalLocalFullQaAuthorizedReason); CI remains the normal QA2."
+    }
+  ],
+  "budget": {
+    "class": "conditional",
+    "grossAdditions": 585,
+    "grossDeletions": 4,
+    "net": 581,
+    "changedFiles": 9,
+    "gate": "WITHIN_CONDITIONAL_CEILING_GATES_PENDING",
+    "waiver": false,
+    "conditionalEvidence": {
+      "single-narrow-problem": "GREEN",
+      "bounded-file-set": "GREEN",
+      "no-redundant-repetition": "GREEN",
+      "no-quality-tradeoff": "TARGETED_GREEN_FULL_QA_PENDING",
+      "full-green": "PENDING_VALID_QA1_AND_CI",
+      "fresh-reviewer-accept": "PENDING",
+      "explicit-rollback": "GREEN"
+    },
+    "targetedEvidence": "4/4 GREEN (postgres-unit-of-work-write-envelope.test.mjs) + 1/1 GREEN (repository-boundary.test.mjs, filtered) + 32/32 GREEN (kernel-persistence-ownership.test.mjs, ownership-alignment correction)",
+    "fullQaExecutionsPerChangePackage": 2,
+    "validFullQa1Used": 1,
+    "currentSnapshotValidFullQa1Used": 0,
+    "additionalLocalFullQaAuthorizedReason": "SNAPSHOT_CHANGED_AFTER_TARGETED_CORRECTION",
+    "note": "the b91aed87c... npm test run was a valid full local execution and counts toward validFullQa1Used=1 overall; it is recorded superseded for the current-snapshot verdict only (supersededQa1Attempts), since this targeted correction changed the tools/planning ownership snapshot after that run. Because the snapshot changed, one replacement writer-local full QA run is authorized on the corrected clean snapshot (additionalLocalFullQaAuthorizedReason); the normal per-package full-QA budget remains 2, and CI remains the normal QA2. currentSnapshotValidFullQa1Used stays 0 until that replacement run happens on the corrected clean candidate."
+  },
+  "rollback": "revert the eventual single atomic package commit restores all 9 files (src/adapters/postgres-unit-of-work.mjs, src/adapters/postgres-write-envelope-write.mjs, src/adapters/postgres-commit-adapter.mjs, tests/postgres-unit-of-work-write-envelope.test.mjs, tests/repository-boundary.test.mjs, tools/check-kernel-persistence-ownership.mjs, planning/kernel-persistence-ownership.json, planning/kernel-postgres-write-envelope-p05c.json, CHANGELOG.md) to their pre-package state; no migration ran and no data was mutated, so rollback is a pure code/planning revert with no database or migration cleanup required.",
+  "once": "src/adapters had a PostgresCommitAdapter that owned its own pool end-to-end, but nothing satisfying the application UnitOfWork/WriteEnvelope ports against a real PostgreSQL substrate.",
+  "simdi": "PostgresCommitAdapter'in dogrulama ve celisme-tanima yardimcilari artik disariya acik; bunlari yeniden kullanan iki yeni adapter dosyasi (postgres-unit-of-work.mjs, postgres-write-envelope-write.mjs) UnitOfWork/WriteEnvelope portlarini gercek bir PostgreSQL 16 container'ina karsi calisir hale getiriyor, ama henuz hicbir teslimat/akis buna baglanmadi.",
+  "fark": "Bir sonraki paket artik bu adapter ciftini gercek bir teslimat akisina baglayabilir; bu paket kendisi hicbir kullanici yolculugu acmiyor.",
+  "kullaniciYolculugu": "Hicbir kullanici yolculugu calismiyor: delivery, wiring ve gercek istek akisi yok; sadece bilesen seviyesinde, Docker'daki gercek bir PostgreSQL'e karsi dogrulanmis adapter kodu var.",
+  "kalanEngel": "P05 aktif kalmaya devam ediyor; adapterlerin gercek bir teslimat/host akisina baglanmasi ve bu paketin temiz bir commit uzerinde gecerli QA1 alması henuz yapilmadi.",
+  "capability_delta": "POSTGRES_UOW_WRITE_ENVELOPE_COMPONENT_EVIDENCED",
+  "flags": {
+    "kernelReady": false, "sdkReady": false, "appBuildable": false,
+    "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false,
+    "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false
+  }
+}

@@ -1,0 +1,277 @@
+import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// =====================================================================================
+// PostgresUnitOfWork + PostgresWrite (WriteEnvelope composition) — targeted RED/GREEN for P05c.
+//
+// Proves createPostgresUnitOfWork() yields a lazy, frozen {port, close} resource whose port is
+// accepted by fresh application UnitOfWork instances, and that composing createPostgresWrite()
+// with a real UnitOfWork inside a WriteEnvelope commits all four intents atomically against a
+// REAL PostgreSQL 16 container, never a mock or in-memory substrate. One container is reused
+// across the DB-backed scenarios below.
+// =====================================================================================
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const uowPath = "src/adapters/postgres-unit-of-work.mjs";
+const writePath = "src/adapters/postgres-write-envelope-write.mjs";
+const commitAdapterPath = "src/adapters/postgres-commit-adapter.mjs";
+const uowModulePath = "src/application/unit-of-work.mjs";
+const writeEnvelopeModulePath = "src/application/write-envelope.mjs";
+const commitReceiptModulePath = "src/application/commit-receipt.mjs";
+
+const IMAGE = "postgres:16-alpine";
+const SUPERUSER_PASSWORD = crypto.randomUUID();
+const MIGRATION_PASSWORD = crypto.randomUUID();
+const RUNTIME_PASSWORD = crypto.randomUUID();
+const MIGRATION_ROLE = "mfk_migration";
+const RUNTIME_ROLE = "mfk_runtime";
+const DATABASE = "mfk_p05c_uow";
+
+function dockerAvailable() {
+  return spawnSync("docker", ["version", "--format", "{{.Server.Version}}"], { encoding: "utf8" }).status === 0;
+}
+
+function startContainer() {
+  const name = `mfk-p05c-uow-${crypto.randomBytes(6).toString("hex")}`;
+  execFileSync("docker", [
+    "run", "-d", "--rm", "--name", name,
+    "-e", `POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}`,
+    "-p", "127.0.0.1::5432", IMAGE,
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  return name;
+}
+
+function publishedPort(name) {
+  const mapping = execFileSync("docker", ["port", name, "5432/tcp"], { encoding: "utf8" }).trim();
+  const line = mapping.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("["));
+  return Number(line.split(":").at(-1));
+}
+
+function waitReady(name, deadlineMs) {
+  const deadline = Date.now() + deadlineMs;
+  while (Date.now() < deadline) {
+    const result = spawnSync("docker", [
+      "exec", name, "pg_isready", "--quiet", "--host", "127.0.0.1", "--port", "5432", "--username", "postgres",
+    ], { timeout: 5000 });
+    if (result.status === 0) return;
+  }
+  throw new Error(`${name} did not become ready in time`);
+}
+
+function stopContainer(name) {
+  spawnSync("docker", ["rm", "--force", "--volumes", name], { stdio: "ignore" });
+}
+
+async function withPg(host, port, user, password, database, fn) {
+  const pgModule = await import("pg");
+  const { Client } = pgModule.default ?? pgModule;
+  const client = new Client({ host, port, user, password, database, ssl: false });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.end();
+  }
+}
+
+function runMigration(host, port) {
+  const url = `postgresql+psycopg://${MIGRATION_ROLE}:${MIGRATION_PASSWORD}@${host}:${port}/${DATABASE}`;
+  const code = [
+    "from metaframer_kernel_db.migrations import alembic_config",
+    "from alembic import command",
+    `command.upgrade(alembic_config(${JSON.stringify(url)}, runtime_role=${JSON.stringify(RUNTIME_ROLE)}), 'head')`,
+  ].join("\n");
+  const result = spawnSync("uv", ["run", "--frozen", "python", "-c", code], { cwd: path.join(root, "db"), encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`alembic upgrade failed:\n${result.stdout}\n${result.stderr}`);
+}
+
+function validIntentsForTenant(tenantId) {
+  const correlationId = crypto.randomUUID();
+  return {
+    customer: { type: "customer.create", tenantId, payload: { name: "Ada" } },
+    audit: { type: "audit.append", tenantId, actorId: "actor-1", action: "customer.create", correlationId },
+    transactionalOutbox: { type: "outbox.enqueue", eventName: "customer.created", tenantId, correlationId },
+    idempotency: { type: "idempotency.record", tenantId, fingerprint: `fp-${correlationId}`, correlationId },
+  };
+}
+
+// Shared substrate: one Docker PostgreSQL 16 container, migrated once, reused by every
+// DB-backed scenario in this file via node:test's before/after hooks.
+let container;
+let host;
+let port;
+let connectionString;
+
+test.before(async () => {
+  if (!dockerAvailable()) throw new Error("docker is not available in this environment: environment failure, not a capability gap");
+  container = startContainer();
+  waitReady(container, 60000);
+  port = publishedPort(container);
+  host = "127.0.0.1";
+
+  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, "postgres", async (client) => {
+    await client.query(`CREATE ROLE ${MIGRATION_ROLE} WITH NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION INHERIT LOGIN PASSWORD '${MIGRATION_PASSWORD}'`);
+    await client.query(`CREATE ROLE ${RUNTIME_ROLE} WITH NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT LOGIN PASSWORD '${RUNTIME_PASSWORD}'`);
+    await client.query(`CREATE DATABASE ${DATABASE} OWNER ${MIGRATION_ROLE}`);
+    await client.query(`REVOKE ALL ON DATABASE ${DATABASE} FROM PUBLIC`);
+    await client.query(`GRANT CONNECT ON DATABASE ${DATABASE} TO ${RUNTIME_ROLE}`);
+  });
+  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+    await client.query(`ALTER SCHEMA public OWNER TO ${MIGRATION_ROLE}`);
+    await client.query("REVOKE ALL ON SCHEMA public FROM PUBLIC");
+    await client.query(`GRANT USAGE ON SCHEMA public TO ${RUNTIME_ROLE}`);
+    await client.query(`REVOKE CREATE ON SCHEMA public FROM ${RUNTIME_ROLE}`);
+  });
+  runMigration(host, port);
+  connectionString = `postgresql://${RUNTIME_ROLE}:${encodeURIComponent(RUNTIME_PASSWORD)}@${host}:${port}/${DATABASE}`;
+});
+
+test.after(() => {
+  if (container) stopContainer(container);
+});
+
+test("createPostgresUnitOfWork is lazy and its port drives fresh, concurrently usable UnitOfWork instances", async () => {
+  const { createPostgresUnitOfWork } = await import(pathToFileURL(path.join(root, uowPath)).href);
+  const { UnitOfWork } = await import(pathToFileURL(path.join(root, uowModulePath)).href);
+
+  const resource = createPostgresUnitOfWork({ connectionString });
+  assert.ok(Object.isFrozen(resource));
+  assert.deepEqual(Reflect.ownKeys(resource).sort(), ["close", "port"]);
+  assert.equal(typeof resource.close, "function");
+  const p = resource.port;
+  assert.equal(Object.getPrototypeOf(p), Object.prototype);
+  assert.deepEqual(Reflect.ownKeys(p).sort(), ["begin", "commit", "rollback"]);
+
+  const uowA = new UnitOfWork(resource.port);
+  const uowB = new UnitOfWork(resource.port);
+  const [resultA, resultB] = await Promise.all([
+    uowA.run(async () => "A-done"),
+    uowB.run(async () => "B-done"),
+  ]);
+  assert.equal(resultA, "A-done");
+  assert.equal(resultB, "B-done");
+
+  await resource.close();
+});
+
+test("WriteEnvelope composed with createPostgresWrite over a real UnitOfWork commits all four intents in one tenant transaction and returns a canonical CommitReceipt", async () => {
+  const { createPostgresUnitOfWork } = await import(pathToFileURL(path.join(root, uowPath)).href);
+  const { createPostgresWrite } = await import(pathToFileURL(path.join(root, writePath)).href);
+  const { UnitOfWork } = await import(pathToFileURL(path.join(root, uowModulePath)).href);
+  const { WriteEnvelope } = await import(pathToFileURL(path.join(root, writeEnvelopeModulePath)).href);
+  const { CommitReceipt } = await import(pathToFileURL(path.join(root, commitReceiptModulePath)).href);
+
+  const resource = createPostgresUnitOfWork({ connectionString });
+  try {
+    const tenantId = crypto.randomUUID();
+    const requestId = crypto.randomUUID();
+    const idempotencyKey = crypto.randomUUID();
+    const preparedChangeSet = Object.freeze({ persistenceState: "pending", intents: Object.freeze(validIntentsForTenant(tenantId)) });
+
+    const write = createPostgresWrite({ requestId, idempotencyKey });
+    const envelope = new WriteEnvelope({ unitOfWork: new UnitOfWork(resource.port), write });
+    const receipt = await envelope.commit(preparedChangeSet);
+
+    assert.equal(Object.getPrototypeOf(receipt), CommitReceipt.prototype);
+    assert.ok(Object.isFrozen(receipt));
+    assert.equal(receipt.requestId, requestId);
+    assert.equal(receipt.tenantId, tenantId);
+    assert.equal(typeof receipt.resourceId, "string");
+    assert.equal(receipt.outcome, "COMMITTED");
+    assert.match(receipt.committedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    assert.equal(typeof receipt.auditId, "string");
+    assert.equal(receipt.outboxEventIds.length, 1);
+    assert.equal(receipt.idempotencyKey, idempotencyKey);
+
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const customer = await client.query("SELECT tenant_id, recorded_at FROM customer_records WHERE id = $1", [receipt.resourceId]);
+      assert.equal(customer.rows.length, 1);
+      assert.equal(customer.rows[0].tenant_id, tenantId);
+      assert.equal(receipt.committedAt, customer.rows[0].recorded_at.toISOString());
+      const audit = await client.query("SELECT tenant_id FROM audit_log WHERE id = $1", [receipt.auditId]);
+      assert.equal(audit.rows.length, 1);
+      const outbox = await client.query("SELECT tenant_id FROM transactional_outbox WHERE id = $1", [receipt.outboxEventIds[0]]);
+      assert.equal(outbox.rows.length, 1);
+    });
+  } finally {
+    await resource.close();
+  }
+});
+
+test("a write/body failure inside the real UnitOfWork rolls back, preserves the thrown object by identity, and leaves no partial rows", async () => {
+  const { createPostgresUnitOfWork } = await import(pathToFileURL(path.join(root, uowPath)).href);
+  const { UnitOfWork } = await import(pathToFileURL(path.join(root, uowModulePath)).href);
+
+  const resource = createPostgresUnitOfWork({ connectionString });
+  try {
+    const tenantId = crypto.randomUUID();
+    const uow = new UnitOfWork(resource.port);
+    const marker = new Error("body failure marker");
+
+    await assert.rejects(
+      () => uow.run(async (scope) => {
+        await scope.query("SELECT mfk_begin_tenant_context($1::uuid)", [tenantId]);
+        await scope.query(
+          "INSERT INTO customer_records (tenant_id, name, payload) VALUES ($1, $2, $3)",
+          [tenantId, "Ada", JSON.stringify({ name: "Ada" })],
+        );
+        throw marker;
+      }),
+      (error) => {
+        assert.equal(error, marker);
+        return true;
+      },
+    );
+
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const customer = await client.query("SELECT count(*) FROM customer_records WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(customer.rows[0].count), 0, "the rolled-back insert must leave no row");
+    });
+  } finally {
+    await resource.close();
+  }
+});
+
+test("a repeated preparedChangeSet fingerprint through WriteEnvelope rejects with IdempotencyConflictError and leaves exactly one row per table", async () => {
+  const { createPostgresUnitOfWork } = await import(pathToFileURL(path.join(root, uowPath)).href);
+  const { createPostgresWrite } = await import(pathToFileURL(path.join(root, writePath)).href);
+  const { IdempotencyConflictError } = await import(pathToFileURL(path.join(root, commitAdapterPath)).href);
+  const { UnitOfWork } = await import(pathToFileURL(path.join(root, uowModulePath)).href);
+  const { WriteEnvelope } = await import(pathToFileURL(path.join(root, writeEnvelopeModulePath)).href);
+
+  const resource = createPostgresUnitOfWork({ connectionString });
+  try {
+    const tenantId = crypto.randomUUID();
+    const preparedChangeSet = Object.freeze({ persistenceState: "pending", intents: Object.freeze(validIntentsForTenant(tenantId)) });
+    const write = createPostgresWrite({ requestId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID() });
+
+    const firstEnvelope = new WriteEnvelope({ unitOfWork: new UnitOfWork(resource.port), write });
+    await firstEnvelope.commit(preparedChangeSet);
+
+    const secondEnvelope = new WriteEnvelope({ unitOfWork: new UnitOfWork(resource.port), write });
+    await assert.rejects(
+      () => secondEnvelope.commit(preparedChangeSet),
+      (error) => {
+        assert.ok(error instanceof IdempotencyConflictError);
+        assert.equal(error.code, "IDEMPOTENCY_CONFLICT");
+        assert.equal(error.tenantId, tenantId);
+        return true;
+      },
+    );
+
+    await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+      const customer = await client.query("SELECT count(*) FROM customer_records WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(customer.rows[0].count), 1, "no duplicate customer row");
+      const audit = await client.query("SELECT count(*) FROM audit_log WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(audit.rows[0].count), 1, "no duplicate audit row");
+      const outbox = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
+      assert.equal(Number(outbox.rows[0].count), 1, "no duplicate outbox row");
+    });
+  } finally {
+    await resource.close();
+  }
+});

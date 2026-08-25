@@ -16,6 +16,26 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P05c `src/adapters/postgres-unit-of-work.mjs`, `src/adapters/postgres-write-envelope-write.mjs`:
+  a lazy `createPostgresUnitOfWork({connectionString})` owning one `pg.Pool`, returning a frozen
+  `{port, close}` whose port is a frozen ordinary `{begin, commit, rollback}` (BEGIN/COMMIT with
+  best-effort ROLLBACK-on-COMMIT-failure/ROLLBACK, always releasing the client), shareable across
+  fresh application `UnitOfWork` instances; and `createPostgresWrite({requestId, idempotencyKey})`
+  building the `WriteEnvelope` `write(scope, preparedChangeSet)` collaborator, committing all four
+  write intents inside the caller's own transaction scope against the same S1 substrate
+  `PostgresCommitAdapter` targets and resolving to a canonical `CommitReceipt`, reusing its exact
+  helpers (`checkPreparedChangeSet`, `checkTenantId`, `isDuplicateIdempotencyFingerprintError`, now
+  exported, zero public `commit` behavior change). Registered in the closed `src/adapters`
+  `RING_MODULE_MANIFEST` and, separately, admitted into
+  `planning/kernel-persistence-ownership.json` via a new frozen, opt-in
+  `p05CompositionAdapterFiles` manifest field (`tools/check-kernel-persistence-ownership.mjs`) —
+  inventory admission only, granting no persistence ownership/capability/readiness/release; the
+  one transitional `customer_records` record is unchanged. Composed end to end against a real
+  PostgreSQL 16 container: a lazy, shareable port; `WriteEnvelope` committing all four intents to
+  a canonical `CommitReceipt`; rollback with no partial rows on body failure; a repeated
+  fingerprint rejecting with `IdempotencyConflictError`. Component-level evidence only;
+  `capability_delta` is `POSTGRES_UOW_WRITE_ENVELOPE_COMPONENT_EVIDENCED`, every readiness/release
+  flag stays `false`.
 - P05b `src/application/write-envelope.mjs`: the frozen `WriteEnvelope` class composing
   `UnitOfWork` with `CommitReceipt` by exact prototype — runs one write inside `UnitOfWork.run`,
   rolls back an inexact receipt, returns the exact receipt only after commit settles. No
