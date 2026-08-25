@@ -1,5 +1,9 @@
 // P10 — app-owned Customer app-core public-SDK consumer boundary.
 // Zero static Kernel imports: receives the P08-generated public SDK module as a plain object.
+// P14a — createCustomerAppCoreWithPersistence composes the real P13 cutover controller behind
+// an explicit opt-in export, reusing the same fail-closed validation as createCustomerAppCore.
+
+import { createCustomerDataCutover } from "./customer-data-cutover.mjs";
 
 export const CUSTOMER_APP_CORE_MANIFEST = Object.freeze({
   appSlug: "customer",
@@ -40,5 +44,16 @@ export function createCustomerAppCore({ sdk, coordinate, grantedCapabilities } =
   return Object.freeze({
     sdkCoordinate: coordinate,
     status: "ready",
+  });
+}
+
+export function createCustomerAppCoreWithPersistence({ sdk, coordinate, grantedCapabilities, cutoverOptions } = {}) {
+  const appCore = createCustomerAppCore({ sdk, coordinate, grantedCapabilities });
+  const persistence = createCustomerDataCutover(cutoverOptions);
+
+  return Object.freeze({
+    sdkCoordinate: appCore.sdkCoordinate,
+    status: appCore.status,
+    persistence,
   });
 }

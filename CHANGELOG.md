@@ -16,6 +16,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P14a `consumers/customer-app-core/customer-app-core.mjs` (`createCustomerAppCoreWithPersistence`):
+  an explicit opt-in composition that reuses `createCustomerAppCore`'s public-SDK-contract and
+  `customer:core` fail-closed validation unchanged, then constructs the real P13
+  `createCustomerDataCutover` from injected `cutoverOptions` and returns a frozen
+  `{sdkCoordinate, status, persistence}` result. Default persistence writer stays `legacy`;
+  construction never touches the pool; there is no automatic cutover; validation and cutover
+  errors propagate unchanged. `createCustomerAppCore` itself is unchanged. Not wired into any
+  live entrypoint. See `planning/kernel-customer-app-core-cutover-p14a.json`.
 - P13 `consumers/customer-app-core/customer-data-cutover.mjs` (`createCustomerDataCutover`):
   a frozen, legacy-default controller with a gated `cutover()` (verifies compatibility against
   a real pg client before switching `activeWriter` to `application`), a single-transaction

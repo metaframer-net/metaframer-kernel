@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-customer-app-core-cutover-p14a-2026-08-25",
+  "packageKind": "implementation",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": { "commit": "ac1bf4d0ca1b223660e09e9526f5044e494bb496", "tree": "08f6f85fedcf78e9434a830ca497493a47924325" },
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p14-cleanup-parity-20260825",
+
+  "scopeHashes": {
+    "master": "2e72f40f3ed072c1d63278fcc152313820d096ab92a554050f51f112e2b520b6",
+    "blind": "a26233ffac2bd1a804a374096430e53656fca69111f02f9238bb312cd6ca53a6",
+    "synthesis": "9a110c51928e00fd5589b385a7fd2b691584599b04b4f309d2db5b35a80376b5"
+  },
+
+  "allowedWriteFiles": [
+    "consumers/customer-app-core/customer-app-core.mjs",
+    "planning/kernel-customer-app-core-cutover-p14a.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "test edits", "P12/P13 edits", "Kernel src/db/host/migrations/ownership checker/current truth",
+    "live activation", "audit/outbox/idempotency parity", "cleanup", "P14 completion",
+    "P15/P18", "dependency/config/generated/CI", "commit/push/release/deploy/readiness"
+  ],
+
+  "testProvenance": {
+    "path": "tests/kernel-customer-app-core-cutover-p14a.test.mjs",
+    "sha256": "592b6399cb7a54449c798177221b809cf57c71f56984b289ff2be2ab02fc4f8b",
+    "note": "frozen, handed off pre-implementation; not edited by this writer",
+    "red": { "reason": "createCustomerAppCoreWithPersistence absent", "tests": 4, "pass": 0, "fail": 4 },
+    "green": { "command": "node --test tests/kernel-customer-app-core-cutover-p14a.test.mjs", "tests": 4, "pass": 4, "fail": 0 }
+  },
+
+  "unchangedTargetedEvidence": {
+    "p10": { "command": "node --test tests/kernel-customer-app-core-p10.test.mjs", "tests": 5, "pass": 5, "fail": 0 },
+    "p13": { "command": "node --test tests/kernel-customer-data-cutover-p13.test.mjs", "tests": 6, "pass": 6, "fail": 0 },
+    "persistenceOwnershipChecker": { "command": "node tools/check-kernel-persistence-ownership.mjs", "result": "kernel persistence ownership: current checkout classifies cleanly (build-time guard only)." }
+  },
+
+  "capabilityDelta": {
+    "before": "createCustomerAppCore exposes only sdkCoordinate/status; the P13 cutover controller (createCustomerDataCutover) exists but nothing in app-core composes it, so it has no explicit opt-in entrypoint",
+    "after": "consumers/customer-app-core/customer-app-core.mjs adds createCustomerAppCoreWithPersistence: reuses createCustomerAppCore's public-SDK-contract and customer:core fail-closed validation unchanged, then constructs a real createCustomerDataCutover from injected cutoverOptions and returns a frozen {sdkCoordinate, status, persistence} composition. Default persistence writer is legacy; construction never touches the pool; there is no automatic cutover; errors from validation or from the cutover controller propagate unchanged. createCustomerAppCore's own behavior and output are unchanged.",
+    "strongerFlags": {
+      "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false,
+      "deployAllowed": false, "productionAllowed": false, "gapClosed": false,
+      "oneGoldenSliceReady": false, "runnableProduct": false
+    },
+    "notRunnable": "Nothing in this package wires createCustomerAppCoreWithPersistence into any live app entrypoint, config, or bootstrap; no live CreateCustomer traffic moves; no automatic cutover trigger exists. This is an explicit, opt-in composition point for callers who choose to build an app-core with persistence, not a completed migration or activation.",
+    "owner": {
+      "once": "Musteri app-core'u (createCustomerAppCore) ile P13'te eklenen gecis anahtari (cutover) birbirinden bagimsiz iki parcaydi; ikisini birlikte kuran hazir bir yol yoktu.",
+      "simdi": "Artik createCustomerAppCoreWithPersistence adinda tek bir fonksiyon var: once ayni guvenlik kontrollerini (dogru SDK, dogru yetki) yapiyor, sonra gercek P13 gecis kontrolcusunu kurup sonuca ekliyor. Varsayilan hala eski (legacy) yol; hicbir sey otomatik acilmiyor.",
+      "fark": "Once bu ikisini birlestirmek icin ayri ayri kod yazmak gerekirdi. Simdi tek cagriyla, ayni guvenlik kontrolleriyle, hazir bir gecis kontrolcusu tasiyan app-core elde ediliyor.",
+      "kullaniciYolculugu": "Bir CRM formu 'musteri kaydet' dedi -> bu paket hicbir canli akisa baglanmadigi icin kullanicinin gordugu davranis degismedi; sadece gelistiricinin, istedigi zaman gecis kontrolculu bir app-core kurabilecegi hazir bir yapi tasi eklendi.",
+      "kalanEngel": "P14: bu yeni kurulumun gercekten bir live entrypoint'e baglanmasi, audit/outbox/idempotency parity, ve Kernel tarafi cleanup."
+    },
+    "rollback": "git rm/revert on the three writer files plus the frozen test; no DB migration, no P12/P13 file touched."
+  },
+
+  "budget": {
+    "band": "default", "maxNet": 400, "maxFiles": 5,
+    "grossAdditions": 292, "grossDeletions": 0, "net": 292, "fileCount": 4,
+    "accounting": {
+      "tests/kernel-customer-app-core-cutover-p14a.test.mjs": { "additions": 195, "deletions": 0 },
+      "consumers/customer-app-core/customer-app-core.mjs": { "additions": 15, "deletions": 0 },
+      "planning/kernel-customer-app-core-cutover-p14a.json": { "additions": 74, "deletions": 0 },
+      "CHANGELOG.md": { "additions": 8, "deletions": 0 }
+    }
+  },
+
+  "qaBudget": { "fullQaExecutionsPerChangePackage": 2, "qa1": { "npmTest": "1525/1525 GREEN", "npmRunCheck": "GREEN" }, "qa2": "CI" },
+
+  "successMarker": "P14A_IMPL_GREEN_COMPLETE"
+}
