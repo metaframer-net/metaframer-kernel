@@ -1,0 +1,95 @@
+{
+  "phase": "P12",
+  "role": "ultra-fast-implementation-writer",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p12-app-owned-adapter-20260825",
+  "immutableBase": {
+    "commit": "1705be5b5372ed2fb689b7a8313241af1c0303f3",
+    "tree": "68e0012468f347a8668aacb6b5046aa062dbdad6"
+  },
+  "scopeHashes": {
+    "master": "3ab4d943418fcd6c8d5bc82a7d7e6a57935e8ea410e51ebd5f1f272aeb035d5a",
+    "blind": "5a39d5fb7eed002a9176bdfd1aced7ab02b19a5e548c00ed7821175b4351911c",
+    "synthesis": "5aad387548185849d67bb3337990bc36543c9c30e3a1fc0519c24598d4f15bd5"
+  },
+  "frozenTest": {
+    "path": "tests/kernel-customer-app-owned-adapter-p12.test.mjs",
+    "sha256": "d413e39d1f0afb7568952ad3623bc3de7f423abb2ec8ca09483565cd88790351",
+    "initialRed": "0/6",
+    "targetedGreen": "6/6, no correction wave needed"
+  },
+  "allowedFiles": [
+    "consumers/customer-app-core/customer-records-adapter.mjs",
+    "planning/kernel-customer-app-owned-adapter-p12.json",
+    "CHANGELOG.md",
+    "tests/kernel-customer-app-owned-adapter-p12.test.mjs"
+  ],
+  "nonGoals": [
+    "all other files",
+    "any pg/Pool/Client/connection or transaction begin/commit/rollback",
+    "any Kernel src/db/host import",
+    "migration/cutover/dual-write/P13/P14",
+    "CRUD read/update/delete on customer records",
+    "P10/P11 edits",
+    "roadmap current-truth/README/ROADMAP/counter",
+    "dependency/config/CI/generated/release/deploy/readiness/product change",
+    "commit/push"
+  ],
+  "externalBudgetPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "capabilityDelta": "APPLICATION_OWNED_CUSTOMER_RECORDS_QUERY_ADAPTER_ONLY",
+  "strongerFlags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false,
+    "persistenceCutover": false,
+    "kernelCleanup": false
+  },
+  "owner": {
+    "once": "Musteri kayitlari icin standart bir uygulama-sahipli adapter yoktu; P11'e kadar sadece gecici bir Kernel adapter'i vardi.",
+    "simdi": "Uygulama artik createCustomerRecordsAdapter({query}) ile P11 semasina uyan tek bir insert fonksiyonu kullanabiliyor; kayit once dogrulaniyor, tek parametreli INSERT calisiyor, donen satir dondurulup kilitleniyor.",
+    "fark": "Once gecici Kernel adapter'i vardi; simdi uygulamanin kendi sahip oldugu, test edilmis, donmus bir adapter fonksiyonu var. Henuz gercek bir veritabanina baglanmiyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form kaydedildiginde uygulama bu adapter'i cagirabilir; ancak gercek bir 'query' fonksiyonu (veritabani baglantisi) hala uygulama tarafindan saglanmali. Bu adet Kernel'den gercek bir Postgres baglantisi saglamiyor.",
+    "kalanEngel": "Gercek bir veritabani query fonksiyonu (pg Pool/Client) hic baglanmadi; migration/cutover/dual-write (P13/P14) hic yapilmadi; bu adet sadece cagirilabilir bir sozlesme."
+  },
+  "capability_delta": "APPLICATION_OWNED_CUSTOMER_RECORDS_QUERY_ADAPTER_ONLY",
+  "calistirilabilirlik": "not-runnable",
+  "rollback": "revert all four package files (consumers/customer-app-core/customer-records-adapter.mjs, planning/kernel-customer-app-owned-adapter-p12.json, CHANGELOG.md, tests/kernel-customer-app-owned-adapter-p12.test.mjs); no external state, migration, or persistence execution occurred",
+  "processTruth": {
+    "testWriter": "genuine RED 0/6 over the frozen test before any implementation existed",
+    "implementationWriter": "targeted GREEN 6/6 on first attempt, no correction wave",
+    "totalTargetedExecutionsAcrossPackage": 2,
+    "frozenTestProvenance": "unchanged since test-writer authorship; sha256 verified before and after implementation work and again at this correction"
+  },
+  "qa": {
+    "targetedCommand": "node --test tests/kernel-customer-app-owned-adapter-p12.test.mjs",
+    "targetedResult": "6 pass / 0 fail, no correction wave",
+    "fullQaBudget": { "total": 2, "spent": 1, "remaining": 1 },
+    "qa1": {
+      "npmTest": "1515 pass / 0 fail",
+      "npmRunCheck": "GREEN, no FAIL/DENY/BLOCKED verdict",
+      "timing": "QA1 ran after adapter behavior reached targeted GREEN but before the final evidence-only planning/CHANGELOG bookkeeping; no runtime or test behavior changed after QA1"
+    },
+    "qa2": "CI, pending, runs over the final snapshot"
+  },
+  "finalPackageTotals": {
+    "files": [
+      { "path": "tests/kernel-customer-app-owned-adapter-p12.test.mjs", "additions": 182, "deletions": 0, "lineCount": 182 },
+      { "path": "consumers/customer-app-core/customer-records-adapter.mjs", "additions": 61, "deletions": 0, "lineCount": 61 },
+      { "path": "planning/kernel-customer-app-owned-adapter-p12.json", "additions": 95, "deletions": 0 },
+      { "path": "CHANGELOG.md", "additions": 6, "deletions": 0 }
+    ],
+    "grossAdditions": 344,
+    "grossDeletions": 0,
+    "net": 344,
+    "fileCount": 4,
+    "defaultBand": "<=400 net, package within band"
+  },
+  "evidenceCorrectionNote": "P12_EVIDENCE_TRUTH_CORRECTION_1: this correction touched only the planning record (planning/kernel-customer-app-owned-adapter-p12.json); no adapter, frozen test, CHANGELOG, or other file was edited, and no test/QA was rerun.",
+  "ciStatus": "pending",
+  "checkpoint": "READY_FOR_REVIEW"
+}
