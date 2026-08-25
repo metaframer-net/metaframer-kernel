@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-clean-consumer-conformance-p09",
+  "base": { "commit": "b3243c93651c7ff9b5b05b707b98352ea769338e", "tree": "cb08313e24ffd4f3b1e7205ad5b5079772fdcb94" },
+  "scopeHashes": {
+    "master": "fe9a409fee5accedf74158bd3f818560d79e25da6960490401af074262c1b4ab",
+    "blind": "a8affef6c27b6c4c6de4bd46b188373374b4c0c2c974a6f5e7e2675c0144c6fc",
+    "synthesis": "b277e8e7bfe8d555c0c11eba60875d735bc7a8a361e008d93ab1e1d6103a104b"
+  },
+  "actionplanPin": "actionplan@c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3:src/data/standards/short-code.json#changePackageBudget",
+  "allowedFiles": [
+    "tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs",
+    "tests/fixtures/versioned-sdk-clean-consumer.mjs",
+    "planning/kernel-clean-consumer-conformance-p09.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no edit to tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs; frozen hash preserved",
+    "no source/tool/P08/current-truth/ROADMAP/README/package/CI/config/P10 surface change",
+    "no repo-relative or absolute repo import in the fixture; node: builtins only",
+    "no stage, commit, push, PR, publish, release, deploy, dependency addition or repo materialization",
+    "no version decision, readiness claim, or capability beyond clean-consumer conformance"
+  ],
+  "readOnlyHandoff": "tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs is a package file, authored by the prior test writer, frozen and handed off read-only to this implementation writer; it is part of the four-file atomic package but not authored or edited here",
+  "redGate": {
+    "command": "node --test tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs",
+    "result": "tests=3, pass=0, fail=3, reason: ENOENT — tests/fixtures/versioned-sdk-clean-consumer.mjs did not exist"
+  },
+  "greenGate": {
+    "command": "node --test tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs",
+    "result": "tests=3, pass=3, fail=0"
+  },
+  "fileHashesSha256": {
+    "tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs": "a7e77956331bd97e4dcd035dc3503e8c7f090bc96fb7639caf870dcf2bb427e5",
+    "tests/fixtures/versioned-sdk-clean-consumer.mjs": "393561fce6863d008839c657e29044edbfa64d72c57d44841dc8c9f0d1861c28"
+  },
+  "budget": {
+    "source": "actionplan@c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3:src/data/standards/short-code.json#changePackageBudget",
+    "class": "security-test-conformance",
+    "band": "default",
+    "maxNet": 400,
+    "maxChangedFiles": 20,
+    "files": {
+      "tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs": { "grossAdditions": 173, "grossDeletions": 0, "untracked": true, "note": "frozen, authored by prior test writer, not this package's own writing" },
+      "tests/fixtures/versioned-sdk-clean-consumer.mjs": { "grossAdditions": 121, "grossDeletions": 0, "untracked": true },
+      "planning/kernel-clean-consumer-conformance-p09.json": { "grossAdditions": 79, "grossDeletions": 0, "untracked": true, "note": "self-counted after final line layout; not self-hashed" },
+      "CHANGELOG.md": { "grossAdditions": 10, "grossDeletions": 0 }
+    },
+    "grossAdditions": 383,
+    "grossDeletions": 0,
+    "netLines": 383,
+    "changedFileCount": 4
+  },
+  "qa": { "fullQaExecutionsPerChangePackage": 2, "spent": 0, "qa1FullLocal": "pending", "qa2CI": "pending" },
+  "reviewer": "pending",
+  "rollback": "single atomic four-file package; revert tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs, tests/fixtures/versioned-sdk-clean-consumer.mjs, planning/kernel-clean-consumer-conformance-p09.json and the CHANGELOG.md Unreleased bullet together; no other repository state touched",
+  "packageState": "targeted-green-awaiting-candidate-commit-qa1-review-ci",
+  "readinessFlags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "capability_delta": "CLEAN_CONSUMER_CONFORMANCE_ONLY",
+  "roadmapProgress": { "completed": 8, "total": 25, "active": "P09" },
+  "ownerFacing": {
+    "once": "P08, SDK dagitim paketini (manifest + modul dosyalari) uretiyordu ama bu paketi gercekten baska, temiz bir sistemin — repo'nun geri kalanini gormeyen, sadece Node'un kendi standart kutuphanesini kullanan bagimsiz bir tuketicinin — guvenle acip calistirabildigi hic kanitlanmamisti.",
+    "simdi": "P09, P08 paketini gercek bir OS gecici klasorune kopyalayip, bos ortam degiskeniyle (env={}) ayri bir surecte calistiran, sadece Node yerlesiklerini kullanan bir 'temiz tuketici' (clean consumer) betigi ekliyor. Bu betik, modulu calistirmadan once surumu, dosya yolunun guvenli olup olmadigini, manifest bicimini, dosyanin var olup olmadigini ve tam SHA-256 butunluk baytlarini dogruluyor; herhangi biri uyusmazsa (orn. dosya kurcalanmissa) modul hicbir zaman calistirilmiyor.",
+    "fark": "Yeni tests/fixtures/versioned-sdk-clean-consumer.mjs betigi eklendi; hedefli 3/3 test kaniti (ENOENT nedenli kirmizidan yesile).",
+    "kullaniciYolculugu": "Henuz calistirilabilir urun degil: bu, P08 paketinin bagimsiz bir tuketici tarafindan guvenle acilabildigine dair bir kanit dosyasi, sunucuya veya musteri akisina baglanmis degil.",
+    "kalanEngel": "Tam yerel QA (QA1), CI QA2 ve bagimsiz reviewer onayi hala bekliyor; commit atilmadi.",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
