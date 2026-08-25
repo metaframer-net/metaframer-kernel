@@ -16,6 +16,18 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P14b `consumers/customer-app-core/customer-persistence-adapter.mjs` (`createCustomerPersistenceAdapter`,
+  `CustomerIdempotencyConflictError`): fail-closed validates tenantId/audit/transactionalOutbox/
+  idempotency metadata before any query, delegates the unchanged P12 `createCustomerRecordsAdapter`
+  for the canonical `customer_records` insert, then writes `audit_log` and `transactional_outbox`
+  with the same SQL/param shape as the Kernel's `postgres-write-envelope-write.mjs`, and maps the
+  one known pg 23505 `transactional_outbox_tenant_dedup_key` violation to the new
+  `CustomerIdempotencyConflictError` (retryable false) while every other error identity propagates
+  unchanged. The P13 application branch of `consumers/customer-app-core/customer-data-cutover.mjs`
+  now calls this adapter instead of the bare P12 one, filling in Kernel-parity default metadata
+  only when the caller supplies no metadata object at all; explicit metadata passes through
+  unchanged and partial explicit metadata is rejected. Legacy path and P12 source untouched; not
+  wired into any live entrypoint. See `planning/kernel-customer-app-persistence-parity-p14b.json`.
 - P14a `consumers/customer-app-core/customer-app-core.mjs` (`createCustomerAppCoreWithPersistence`):
   an explicit opt-in composition that reuses `createCustomerAppCore`'s public-SDK-contract and
   `customer:core` fail-closed validation unchanged, then constructs the real P13

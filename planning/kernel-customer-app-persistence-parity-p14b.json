@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-customer-app-persistence-parity-p14b-2026-08-26",
+  "packageKind": "implementation",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": { "commit": "8de8badeb7cc97ab77190e470371350135c4f049", "tree": "6fbb21d13926bb903bf984397264077f747dfba3" },
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p14b-persistence-parity-20260826",
+
+  "scopeHashes": {
+    "master": "7fc1e379b96d23e2ab707135d370b59b41c886929017ab764e93160f3f87be1e",
+    "blind": "eef1159e2a3f27e17355dbc598f51db42796c9f1d7329a6c2908afec37256ae6",
+    "synthesis": "ca908a86a9c9bff976be836847d3724f8b2c7c2c90b0ff1bb8f30ed8e6ff530e"
+  },
+
+  "allowedWriteFiles": [
+    "consumers/customer-app-core/customer-persistence-adapter.mjs",
+    "consumers/customer-app-core/customer-data-cutover.mjs",
+    "planning/kernel-customer-app-persistence-parity-p14b.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "test edits", "Kernel src/db/migrations/helpers", "P12", "ownership/current truth",
+    "real Postgres", "host/live/relay/cleanup", "P14 completion", "P15/P18",
+    "config/generated/CI", "commit/push/release/deploy/readiness"
+  ],
+
+  "testProvenance": {
+    "path": "tests/kernel-customer-app-persistence-parity-p14b.test.mjs",
+    "sha256": "6a9c71b101a1998bc8dd7953fae657854507026efa910a05f2cb78c60970b15b",
+    "note": "frozen, handed off pre-implementation; not edited by this writer",
+    "red": { "reason": "consumers/customer-app-core/customer-persistence-adapter.mjs absent", "tests": 4, "pass": 0, "fail": 4 },
+    "green": { "command": "node --test tests/kernel-customer-app-persistence-parity-p14b.test.mjs", "tests": 4, "pass": 4, "fail": 0 }
+  },
+
+  "unchangedTargetedEvidence": {
+    "p10": { "command": "node --test tests/kernel-customer-app-core-p10.test.mjs", "result": "GREEN" },
+    "p12": { "command": "node --test tests/kernel-customer-app-owned-adapter-p12.test.mjs", "result": "GREEN" },
+    "p13": { "command": "node --test tests/kernel-customer-data-cutover-p13.test.mjs", "result": "GREEN" },
+    "p14a": { "command": "node --test tests/kernel-customer-app-core-cutover-p14a.test.mjs", "result": "GREEN" },
+    "persistenceOwnershipChecker": { "command": "node tools/check-kernel-persistence-ownership.mjs", "result": "kernel persistence ownership: current checkout classifies cleanly (build-time guard only)." }
+  },
+
+  "capabilityDelta": {
+    "before": "The P13 application-cutover branch (`consumers/customer-app-core/customer-data-cutover.mjs`) delegated only to the unchanged P12 `createCustomerRecordsAdapter`: on cutover, an application-path insert wrote `customer_records` alone, inside the existing BEGIN/tenant-context/COMMIT transaction, with no audit_log or transactional_outbox parity against Kernel's own writer, and no idempotency-conflict mapping.",
+    "after": "A new app-owned `consumers/customer-app-core/customer-persistence-adapter.mjs` (`createCustomerPersistenceAdapter`) fail-closed validates tenantId/audit/transactionalOutbox/idempotency metadata before any query, delegates the unchanged P12 adapter for the canonical `customer_records` insert, then writes `audit_log` and `transactional_outbox` with the same SQL/param shape as the Kernel's own `postgres-write-envelope-write.mjs`, and maps the one known pg 23505 `transactional_outbox_tenant_dedup_key` violation to a new app-owned `CustomerIdempotencyConflictError` (code `IDEMPOTENCY_CONFLICT`, retryable false) while leaving every other error identity untouched. The P13 application branch now calls this adapter instead of the bare P12 one, filling in Kernel-parity default metadata (action/eventName = `customer.created`, correlationId/fingerprint = `record.id`) only when the caller supplies no metadata object at all; explicit objects pass through unchanged and partial explicit objects are rejected. The legacy branch and P12 source are untouched.",
+    "strongerFlags": {
+      "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false,
+      "deployAllowed": false, "productionAllowed": false, "gapClosed": false,
+      "oneGoldenSliceReady": false, "runnableProduct": false
+    },
+    "notRunnable": "Nothing in this package wires any live entrypoint, config, or bootstrap into the application cutover branch; there is still no real Postgres connection exercised and no automatic cutover trigger. This closes an internal persistence-parity gap inside an already-explicit opt-in composition point, not a completed migration or activation.",
+    "owner": {
+      "once": "Gecis anahtari (cutover) acildiginda musteri kaydi tabloya yaziliyordu ama Kernel'in kendi yazdigi iz kaydi (audit_log) ve mesaj kuyrugu (transactional_outbox) satirlari app tarafinda yazilmiyordu; ayrica ayni islemin iki kez tekrarlanmasini (idempotency) yakalayan bir hata yoktu.",
+      "simdi": "Artik app tarafindaki gecis kolu, musteri kaydini yazdiktan hemen sonra ayni islem icinde iz kaydini ve kuyruk satirini da Kernel ile ayni bicimde yaziyor; ayni islem tekrar denenirse app'e ozel, acik bir 'zaten yapildi' hatasi donuyor.",
+      "fark": "Once sadece musteri kaydi vardi, iz ve kuyruk kaydi eksikti. Simdi ucu de tek bir islemde, Kernel ile ayni sirada ve ayni parametrelerle yaziliyor; tekrarlanan istek sessizce hataya degil, aciklamali, tekrar denenmemesi gereken bir hataya donusuyor.",
+      "kullaniciYolculugu": "Bir CRM formu 'musteri kaydet' dedi -> bu paket hicbir canli akisa baglanmadigi icin kullanicinin gordugu davranis degismedi; sadece gecis anahtari acildiginda calisacak dahili yazma yolu, Kernel ile ayni izleri birakacak sekilde tamamlandi.",
+      "kalanEngel": "P14: bu yolun gercekten bir live entrypoint'e baglanmasi, gercek Postgres uzerinde dogrulama, ve Kernel tarafi cleanup/P15/P18."
+    },
+    "rollback": "git rm/revert covering all five package files: consumers/customer-app-core/customer-persistence-adapter.mjs (new), consumers/customer-app-core/customer-data-cutover.mjs (wiring edit), planning/kernel-customer-app-persistence-parity-p14b.json, CHANGELOG.md, and tests/kernel-customer-app-persistence-parity-p14b.test.mjs; no DB migration, no P12 file touched."
+  },
+
+  "budget": {
+    "band": "default", "maxNet": 400, "maxFiles": 5,
+    "grossAdditions": 401, "grossDeletions": 3, "net": 398, "fileCount": 5,
+    "accounting": {
+      "tests/kernel-customer-app-persistence-parity-p14b.test.mjs": { "additions": 182, "deletions": 0, "note": "untracked, frozen, not authored by this writer" },
+      "consumers/customer-app-core/customer-persistence-adapter.mjs": { "additions": 118, "deletions": 0 },
+      "consumers/customer-app-core/customer-data-cutover.mjs": { "additions": 11, "deletions": 3 },
+      "planning/kernel-customer-app-persistence-parity-p14b.json": { "additions": 78, "deletions": 0, "note": "self-final line count" },
+      "CHANGELOG.md": { "additions": 12, "deletions": 0 }
+    }
+  },
+
+  "qaBudget": { "fullQaExecutionsPerChangePackage": 2, "localFullExecutionCount": 2, "exceptionalRerunReason": "snapshot_changed_after_compatibility_failure", "qa1FirstRun": { "npmTest": "RED: unused audit/outbox RETURNING-row cardinality assertions broke unchanged P13/P14a fake-query contracts" }, "qa1SecondRunAfterSnapshotFix": { "npmTest": "1529/1529 GREEN", "npmRunCheck": "GREEN" }, "qa2": "CI, an additional allowed recovery-gated run" },
+
+  "successMarker": "P14B_IMPL_GREEN_COMPLETE"
+}

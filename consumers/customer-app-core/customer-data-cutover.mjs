@@ -1,5 +1,5 @@
 import pg from "pg";
-import { createCustomerRecordsAdapter } from "./customer-records-adapter.mjs";
+import { createCustomerPersistenceAdapter } from "./customer-persistence-adapter.mjs";
 
 const CUSTOMER_RECORDS_TABLE = "customer_records";
 
@@ -38,8 +38,16 @@ export function createCustomerDataCutover(options) {
     try {
       await client.query("BEGIN");
       await client.query("SELECT mfk_begin_tenant_context($1::uuid)", [insertOptions?.tenantId]);
-      const adapter = createCustomerRecordsAdapter({ query: (sql, params) => client.query(sql, params) });
-      const result = await adapter.insert(record, insertOptions);
+      const adapter = createCustomerPersistenceAdapter({ query: (sql, params) => client.query(sql, params) });
+      const recordId = record?.id;
+      const parityOptions = {
+        ...insertOptions,
+        audit: insertOptions?.audit ?? { action: "customer.created", type: "audit.append", correlationId: recordId },
+        transactionalOutbox:
+          insertOptions?.transactionalOutbox ?? { eventName: "customer.created", correlationId: recordId },
+        idempotency: insertOptions?.idempotency ?? { fingerprint: recordId },
+      };
+      const result = await adapter.insert(record, parityOptions);
       await client.query("COMMIT");
       return result;
     } catch (error) {
