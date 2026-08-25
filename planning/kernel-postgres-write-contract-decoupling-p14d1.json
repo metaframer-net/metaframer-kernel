@@ -41,17 +41,22 @@
     "postgresWriteEnvelopeWrite": "directly owns and exports IdempotencyConflictError, isDuplicateIdempotencyFingerprintError, checkPreparedChangeSet, checkTenantId plus their private constants (DEDUP_KEY_CONSTRAINT, POSTGRES_UNIQUE_VIOLATION, INTENT_KEYS) and helpers (isOrdinaryObject, isSafePlainRecord), moved verbatim from postgres-commit-adapter.mjs; no longer imports ./postgres-commit-adapter.mjs",
     "postgresCommitAdapter": "imports and re-exports the same four names from postgres-write-envelope-write.mjs; keeps its own local isOrdinaryObject copy for checkCustomerTenant; PostgresCommitAdapter class, SQL, transaction behavior, COMMITTED_INTENTS/DEFERRED_INTENTS unchanged"
   },
-  "candidateStatus": "AWAITING_CLEAN_COMMIT_LOCAL_FULL_QA",
+  "candidateStatus": "IMPLEMENTATION_GREEN_AWAITING_INDEPENDENT_REVIEW_AND_CI",
+  "cleanCheckpoint": {
+    "commit": "07a6463da4ee9b81b13d6452c09cbc807ae6f211",
+    "tree": "828ea0be77a90ac91815abd1e06f6d6ee69e82a4",
+    "note": "the accepted full-QA run below evaluated exactly the source/test/CHANGELOG bytes committed at this checkpoint; this planning JSON edit is evidence-only and is applied after that run, on top of the clean checkpoint"
+  },
   "budgetArithmetic": {
-    "scope": "five-file working-tree numstat: CHANGELOG.md, src/adapters/postgres-commit-adapter.mjs, src/adapters/postgres-write-envelope-write.mjs, tests/postgres-unit-of-work-write-envelope.test.mjs (frozen, byte-unedited by this package), planning/kernel-postgres-write-contract-decoupling-p14d1.json (this evidence file, new)",
-    "netLinesChanged": 178,
-    "insertions": 274,
+    "scope": "five-file package numstat against immutable base: CHANGELOG.md, src/adapters/postgres-commit-adapter.mjs, src/adapters/postgres-write-envelope-write.mjs, tests/postgres-unit-of-work-write-envelope.test.mjs (frozen, byte-unedited by the implementation writer), planning/kernel-postgres-write-contract-decoupling-p14d1.json (this evidence file, new)",
+    "netLinesChanged": 184,
+    "insertions": 280,
     "deletions": 96,
-    "grossLines": 370,
+    "grossLines": 376,
     "filesChanged": 5,
     "limits": { "netMax": 400, "filesMax": 20, "grossMax": 800 },
     "withinBudget": true,
-    "note": "figures include this evidence file's own final line count; recomputed after this file's last edit, not self-consistent to the byte on any further edit"
+    "note": "figures include this evidence file's own final line count; recomputed after this evidence-only edit against the immutable base, not self-consistent to the byte on any further edit"
   },
   "qaSlots": {
     "budget": 2,
@@ -62,19 +67,20 @@
       "focusedComposition": "GREEN: tests/kernel-create-customer-asgi-composition.test.mjs, tests/kernel-persistence-ownership.test.mjs, tests/repository-boundary.test.mjs (219 total, 219 pass, 0 fail)"
     },
     "fullQaWriterLocal": {
-      "slotUsed": 0,
-      "npmTestAttempts": [
-        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "completed run: 1535 total, 1525 pass, 10 fail — all 10 failures are unrelated historical kernel-python-host-*.test.mjs 'this package changes no forbidden files relative to HEAD' guards, which reject any src/** diff present in the uncommitted working tree relative to HEAD; not a P14D1 regression, but not a valid accepted-local result either" },
-        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "second completed run: identical outcome, same 10 pre-existing HEAD-guard failures, same root cause" },
-        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "third attempt interrupted by MASTER before completion" }
-      ],
-      "npmCheck": "GREEN (single execution; all check-*.mjs stages passed) — a GREEN check run alone is not a complete accepted-local full-QA bundle without a corresponding valid npm test result",
-      "acceptedLocal": 0,
-      "reason": "npm test cannot validly evaluate this package while the worktree is uncommitted, because unrelated historical tests assert no src/** diff exists relative to HEAD; a valid local full-QA run requires a clean committed candidate first"
+      "slotUsed": 1,
+      "acceptedLocal": 1,
+      "acceptedAt": { "commit": "07a6463da4ee9b81b13d6452c09cbc807ae6f211", "tree": "828ea0be77a90ac91815abd1e06f6d6ee69e82a4" },
+      "npmTest": "GREEN: 1535 total, 1535 pass, 0 fail, 0 cancelled, 0 skipped, 0 todo (single execution on the clean checkpoint, not retried)",
+      "npmCheck": "GREEN: single execution on the clean checkpoint, exit 0, all check-*.mjs stages (repository-boundary, control-plane-bootstrap, kernel-ai-development-readiness, kernel-runtime-substrate-s1, token-economy, p01-architecture-fitness, kernel-cem01-repo-handshake, kernel-persistence-ownership, versioning-changelog, kernel-runtime-pilot-consumer-sync) reported OK/GREEN, not retried",
+      "npmTestAttemptsHistorical": [
+        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "completed run on an earlier dirty worktree: 1535 total, 1525 pass, 10 fail — all 10 failures were unrelated historical kernel-python-host-*.test.mjs 'this package changes no forbidden files relative to HEAD' guards, which reject any src/** diff present in an uncommitted working tree relative to HEAD; not a P14D1 regression, and not a valid accepted-local result — superseded by the accepted run above on the clean checkpoint" },
+        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "second completed run on the same dirty worktree: identical outcome, same 10 pre-existing HEAD-guard failures, same root cause — superseded" },
+        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "third attempt on the same dirty worktree, interrupted by MASTER before completion — superseded" }
+      ]
     },
     "fullQaCi": {
       "slotUsed": 0,
-      "note": "CI is the second accepted slot; not run by this writer; remains available once a clean commit exists"
+      "note": "CI is the second accepted slot; not run by this writer; remains pending, along with independent review, before this package is fully accepted"
     }
   },
   "rollback": "revert all five package files: the two source-file edits (postgres-commit-adapter.mjs, postgres-write-envelope-write.mjs), the CHANGELOG bullet, this planning file, and the frozen test file (tests/postgres-unit-of-work-write-envelope.test.mjs) back to immutable-base content; the implementation writer did not edit the frozen test file's bytes at any point (SHA-256 remains d209f4f281da419a5846588062f1481332b8c07afe0fb64a062fecc8f787213e, authored by the closed test writer, not this writer)",
