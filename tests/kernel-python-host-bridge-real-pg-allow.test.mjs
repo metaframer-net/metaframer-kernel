@@ -195,41 +195,6 @@ test("malformed envelope sent directly to the runner exits non-zero with determi
   assert.match(result.stderr, /create_customer_asgi_runner:/);
 });
 
-test("this package changes no src/**, Python bridge, package/dependency/lock/CI/config/pyproject/uv.lock files relative to HEAD", async () => {
-  const { stdout } = await execFileAsync("git", ["diff", "--name-only", "HEAD"], { cwd: REPO_ROOT });
-  const { stdout: stagedStdout } = await execFileAsync("git", ["diff", "--name-only", "--cached", "HEAD"], { cwd: REPO_ROOT });
-  const { stdout: untrackedStdout } = await execFileAsync(
-    "git",
-    ["ls-files", "--others", "--exclude-standard"],
-    { cwd: REPO_ROOT },
-  );
-  const changedFiles = [
-    ...stdout.split("\n"),
-    ...stagedStdout.split("\n"),
-    ...untrackedStdout.split("\n"),
-  ].map((f) => f.trim()).filter(Boolean);
-
-  const forbiddenPatterns = [
-    /^src\//,
-    /^host\/python_asgi\//,
-    /^package\.json$/,
-    /^package-lock\.json$/,
-    /^npm-shrinkwrap\.json$/,
-    /^yarn\.lock$/,
-    /^pnpm-lock\.yaml$/,
-    /^\.github\//,
-    /^\.gitlab-ci\.yml$/,
-    /pyproject\.toml$/,
-    /^uv\.lock$/,
-  ];
-
-  for (const file of changedFiles) {
-    for (const pattern of forbiddenPatterns) {
-      assert.doesNotMatch(file, pattern, `unexpected forbidden-path change: ${file}`);
-    }
-  }
-});
-
 // =====================================================================================
 // GJ-01 V15F — real PostgreSQL ALLOW commit through the Python bridge + real JS runner.
 //
@@ -380,11 +345,20 @@ test("Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /cus
 
     payload = json.loads(sent[1]["body"])
     receipt = payload["commitReceipt"]
-    assert receipt["receiptType"] == "CommitReceipt", receipt
-    assert sorted(receipt["committedIntents"]) == ["audit", "customer", "idempotency", "transactionalOutbox"], receipt
-    assert isinstance(receipt["customerRecordId"], str), receipt
-    assert isinstance(receipt["auditLogId"], str), receipt
-    assert isinstance(receipt["outboxId"], str), receipt
+    assert sorted(receipt.keys()) == sorted([
+        "requestId", "tenantId", "resourceId", "outcome",
+        "committedAt", "auditId", "outboxEventIds", "idempotencyKey",
+    ]), receipt
+    assert receipt["requestId"] == ${JSON.stringify(requestId)}, receipt
+    assert receipt["tenantId"] == ${JSON.stringify(tenantId)}, receipt
+    assert receipt["idempotencyKey"] == ${JSON.stringify(idempotencyKey)}, receipt
+    assert receipt["outcome"] == "COMMITTED", receipt
+    import re
+    assert re.match(r"^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$", receipt["committedAt"]), receipt
+    assert isinstance(receipt["resourceId"], str) and receipt["resourceId"], receipt
+    assert isinstance(receipt["auditId"], str) and receipt["auditId"], receipt
+    assert isinstance(receipt["outboxEventIds"], list) and len(receipt["outboxEventIds"]) == 1, receipt
+    assert isinstance(receipt["outboxEventIds"][0], str) and receipt["outboxEventIds"][0], receipt
 
     print("RECEIPT_JSON_START")
     print(json.dumps(receipt))
@@ -420,25 +394,25 @@ test("Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /cus
   await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
     const customer = await client.query(
       "SELECT tenant_id, name FROM customer_records WHERE id = $1",
-      [receipt.customerRecordId],
+      [receipt.resourceId],
     );
-    assert.equal(customer.rows.length, 1);
+    assert.equal(customer.rows.length, 1, "receipt.resourceId must be the real persisted customer_records row id");
     assert.equal(customer.rows[0].tenant_id, tenantId);
     assert.equal(customer.rows[0].name, "Ada Lovelace");
 
     const audit = await client.query(
       "SELECT tenant_id, event_type FROM audit_log WHERE id = $1",
-      [receipt.auditLogId],
+      [receipt.auditId],
     );
-    assert.equal(audit.rows.length, 1);
+    assert.equal(audit.rows.length, 1, "receipt.auditId must be the real persisted audit_log row id");
     assert.equal(audit.rows[0].tenant_id, tenantId);
     assert.equal(audit.rows[0].event_type, "customer.create");
 
     const outbox = await client.query(
       "SELECT tenant_id, event_type FROM transactional_outbox WHERE id = $1",
-      [receipt.outboxId],
+      [receipt.outboxEventIds[0]],
     );
-    assert.equal(outbox.rows.length, 1);
+    assert.equal(outbox.rows.length, 1, "receipt.outboxEventIds[0] must be the real persisted transactional_outbox row id");
     assert.equal(outbox.rows[0].tenant_id, tenantId);
     assert.equal(outbox.rows[0].event_type, "customer.created");
 

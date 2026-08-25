@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P05e `src/delivery/create-customer-composition.mjs`: `createCustomerComposition`'s *use* of the
+  `PostgresCommitAdapter` collaborator (the adapter module itself is untouched) was removed and
+  replaced with one `createPostgresUnitOfWork` resource. The commit port is now a closure that, on
+  each invocation, constructs a fresh `UnitOfWork(resource.port)`, a fresh `createPostgresWrite`,
+  a fresh `WriteEnvelope`, and returns `envelope.commit(preparedChangeSet)`. `close` now closes the
+  `createPostgresUnitOfWork` resource. Constructor options and the public `{ handler, close }`
+  result shape are unchanged; per-request commit independence under concurrency, already proven by
+  the per-request-transaction design, is preserved (not newly introduced) by giving each
+  `ALLOW_COMMIT` request its own fresh `UnitOfWork` off the same shared `resource.port`, so no
+  shared `UnitOfWork` in-flight state is introduced. See
+  `planning/kernel-create-customer-composition-p05e.json`.
 - P05d `src/application/create-customer-commit-service.mjs`: on `ALLOW_COMMIT`, the service now
   builds one fresh, frozen ordinary context carrying exactly `requestId` (the validated pipeline
   outcome), `tenantId` (`preparedChangeSet.intents.customer.tenantId`) and `idempotencyKey` (the
