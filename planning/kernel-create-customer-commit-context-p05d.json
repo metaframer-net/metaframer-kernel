@@ -12,7 +12,7 @@
   "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374",
   "changePackageBudgetSource": "src/data/standards/short-code.json#changePackageBudget",
   "testHashes": {
-    "tests/kernel-create-customer-commit-service.test.mjs": "083740659a4fa73b812ef8f9c0e16f469f1c8e4226e0935289bac091c29a2748"
+    "tests/kernel-create-customer-commit-service.test.mjs": "9e09e42dc4ae1e3d77e1a7a20e73b5b35df9631e1b867c9b8909a5766b38902d"
   },
   "calistirilabilirlik": "not-runnable",
   "allowedFiles": [
@@ -41,16 +41,31 @@
     "command": "node --test tests/kernel-create-customer-commit-service.test.mjs",
     "result": "7/7 PASS, run once after the source change; not repeated"
   },
+  "toctouCorrection": {
+    "reason": "reviewer P1 TOCTOU finding: the raw idempotencyKey read for the ALLOW_COMMIT UnitOfWork context was read from actionSpec.idempotencyKey after the pipeline's awaited run(), so a caller mutation of actionSpec while the pipeline was suspended on its first await was observed by the commit context instead of the value admitted before suspension",
+    "fix": "src/application/create-customer-commit-service.mjs handle(actionSpec): capture idempotencyKey synchronously as the first statement, before the awaited this.#pipeline.run(actionSpec) call; the frozen ALLOW_COMMIT context reads idempotencyKey from that captured value instead of re-reading actionSpec.idempotencyKey after the await. No caller-side ActionSpec freeze is required. Constructor shape, non-ALLOW_COMMIT behavior, commit-once behavior and receipt identity pass-through are unchanged.",
+    "regressionFollowUp": "the first non-throwing-unaware version of this capture (`actionSpec.idempotencyKey` read directly, unguarded) could itself throw before the pipeline returned its existing frozen INVALID outcome for null/non-ordinary actionSpec input or a throwing idempotencyKey accessor, which would have regressed pre-existing INVALID/non-ALLOW behavior. Corrected to a non-throwing capture guarded by a typeof/null check, then MASTER-verified to require the module's own existing isOrdinaryObject(actionSpec) helper rather than a bare typeof check, so ordinary-object-ness is checked identically to the rest of the module; kept inside the same try/catch, defaulting to undefined on a throwing accessor, still used only on the ALLOW_COMMIT path, so this default never reaches a returned result. The targeted test file was rerun once after each of these two source corrections (8/8 PASS both times), most recently after the isOrdinaryObject substitution, because each source change followed the prior targeted run.",
+    "frozenTestFileUnchangedFromReviewHash": true,
+    "frozenTestFileSha256": "9e09e42dc4ae1e3d77e1a7a20e73b5b35df9631e1b867c9b8909a5766b38902d",
+    "addedScenario": "TOCTOU: the commit context carries the idempotencyKey captured before the pipeline's first await, not a value the ActionSpec is mutated to while the pipeline is suspended",
+    "changedTestFilesThisPackage": 1,
+    "totalChangedOrAddedScenariosP05d": 4
+  },
+  "targetedGreenAfterCorrection": {
+    "command": "node --test tests/kernel-create-customer-commit-service.test.mjs",
+    "result": "8/8 PASS, rerun once after the non-throwing capture correction, then rerun once more (8/8 PASS) after the isOrdinaryObject substitution, since that final source edit followed the prior targeted run"
+  },
   "budget": {
+    "note": "gross additions/deletions/net/changedFiles below are the full P05d package: base-to-final-working-tree against the immutable base commit 91e04d968938302972743b5bb7235c51f7c2ab67 (tree 73b3339c72b5dbf568c25982291768c99e79c610), computed with git diff --numstat across all four allowed files",
     "components": {
-      "CHANGELOG.md": { "additions": 13, "deletions": 0 },
-      "src/application/create-customer-commit-service.mjs": { "additions": 6, "deletions": 1 },
-      "tests/kernel-create-customer-commit-service.test.mjs": { "additions": 46, "deletions": 5, "note": "frozen, pre-existing modification, not authored by this writer" },
-      "planning/kernel-create-customer-commit-context-p05d.json": { "additions": 88, "deletions": 0 }
+      "CHANGELOG.md": { "additions": 48, "deletions": 0 },
+      "planning/kernel-create-customer-commit-context-p05d.json": { "additions": 113, "deletions": 0 },
+      "src/application/create-customer-commit-service.mjs": { "additions": 12, "deletions": 1 },
+      "tests/kernel-create-customer-commit-service.test.mjs": { "additions": 81, "deletions": 6, "note": "frozen; authored by the reviewer/test-writer stage, not this writer" }
     },
-    "grossAdditions": 153,
-    "grossDeletions": 6,
-    "net": 147,
+    "grossAdditions": 254,
+    "grossDeletions": 7,
+    "net": 247,
     "changedFiles": 4,
     "class": "default",
     "gate": "GREEN_NET_LE_400",
@@ -58,10 +73,20 @@
     "bands": { "default": "maxNet400", "conditional": "maxNet800", "waiver": "maxNet1200" }
   },
   "qa": {
+    "originalCleanCandidate": {
+      "commit": "742ed546cad02c4f945d1b1c927d48174d4fb18b",
+      "tree": "602c8b0ca4b9776cc1929ef5a9d03fd0d72a0229",
+      "npmTest": "1485/1485 PASS",
+      "npmRunCheck": "exit 0",
+      "status": "superseded for current-snapshot verdict only; snapshot has since changed under the reviewer P1 TOCTOU correction, valid as historical evidence of the pre-correction snapshot"
+    },
+    "validFullQa1Used": 1,
+    "currentSnapshotValidFullQa1Used": 0,
+    "additionalLocalFullQaAuthorizedReason": "SNAPSHOT_CHANGED_AFTER_REVIEW_CORRECTION",
     "qa1LocalFullRun": "pending",
     "ciFullRun": "pending",
     "fullQaExecutionsPerChangePackage": 2,
-    "spentThisPackage": 0
+    "spentThisPackage": 1
   },
   "rollback": "revert the eventual single atomic four-file package commit (source, frozen test, planning, CHANGELOG together) with one normal git revert of that commit; no migration or data cleanup is needed since no adapter, database, schema or persisted-data change is in scope.",
   "once": "CreateCustomerCommitService, ALLOW_COMMIT durumunda commit portuna sadece {tenantId} taşıyan donmamış bir bağlam gönderiyordu.",

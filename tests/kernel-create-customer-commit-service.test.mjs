@@ -5,7 +5,7 @@ import { CreateCustomerPipeline } from "../src/application/create-customer-pipel
 import { CreateCustomerCommitService } from "../src/application/create-customer-commit-service.mjs";
 import { Identity } from "../src/application/identity.mjs";
 import { PolicyDecisionPoint } from "../src/application/policy-decision-point.mjs";
-import { ActorId, Principal, TenantId } from "../src/domain/identity-primitives.mjs";
+import { ActorId, IdempotencyKey, Principal, TenantId } from "../src/domain/identity-primitives.mjs";
 
 const TENANT = "11111111-1111-4111-8111-111111111111";
 const REQUEST_ID = "33333333-3333-4333-8333-333333333333";
@@ -165,6 +165,40 @@ test("ALLOW_COMMIT: exact receipt identity passes through unchanged and the publ
 
   assert.equal(result.commitReceipt, FAKE_RECEIPT);
   assert.deepEqual(Object.keys(result).sort(), ["commitReceipt", "error", "outcome", "preparedChangeSet", "requestId"]);
+});
+
+test("TOCTOU: the commit context carries the idempotencyKey captured before the pipeline's first await, not a value the ActionSpec is mutated to while the pipeline is suspended", async () => {
+  const actionSpec = validActionSpec();
+  const originalIdempotencyKey = actionSpec.idempotencyKey;
+  let receivedChangeSet;
+  let receivedContext;
+
+  const suspendingIdentity = new Identity({
+    current: async () => {
+      actionSpec.idempotencyKey = "mutated-while-suspended";
+      return principalOf(TENANT, ACTOR);
+    },
+  });
+
+  const service = new CreateCustomerCommitService({
+    pipeline: new CreateCustomerPipeline({
+      identity: suspendingIdentity,
+      policyDecisionPoint: pdpAnswering([ALLOW_CANDIDATE]),
+      evaluateInvariants: alwaysValidInvariants,
+    }),
+    commit: async (preparedChangeSet, context) => {
+      receivedChangeSet = preparedChangeSet;
+      receivedContext = context;
+      return FAKE_RECEIPT;
+    },
+  });
+
+  const result = await service.handle(actionSpec);
+
+  const expectedFingerprint = new IdempotencyKey(originalIdempotencyKey).fingerprint;
+  assert.equal(receivedChangeSet.intents.idempotency.fingerprint, expectedFingerprint);
+  assert.equal(receivedContext.idempotencyKey, originalIdempotencyKey);
+  assert.equal(result.outcome, "COMMITTED");
 });
 
 test("service instance is frozen and carries a stable toStringTag", () => {

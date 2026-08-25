@@ -58,6 +58,12 @@ export class CreateCustomerCommitService {
    * committed exactly once, and the awaited CommitReceipt is returned as outcome "COMMITTED".
    */
   async handle(actionSpec) {
+    let capturedIdempotencyKey;
+    try {
+      capturedIdempotencyKey = isOrdinaryObject(actionSpec) ? actionSpec.idempotencyKey : undefined;
+    } catch {
+      capturedIdempotencyKey = undefined;
+    }
     const outcome = await this.#pipeline.run(actionSpec);
 
     if (outcome.outcome !== "ALLOW_COMMIT") {
@@ -73,7 +79,7 @@ export class CreateCustomerCommitService {
     const context = Object.freeze({
       requestId: outcome.requestId,
       tenantId: preparedChangeSet.intents.customer.tenantId,
-      idempotencyKey: actionSpec.idempotencyKey,
+      idempotencyKey: capturedIdempotencyKey,
     });
     const commitReceipt = await this.#commit(preparedChangeSet, context);
 

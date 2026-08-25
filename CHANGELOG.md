@@ -23,12 +23,47 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   context passed to the injected commit port; the port is still awaited exactly once as
   `commit(preparedChangeSet, context)` and its returned `CommitReceipt` still passes through by
   identity. Constructor options, non-`ALLOW_COMMIT` paths and public result shapes are unchanged.
-  Targeted `node --test tests/kernel-create-customer-commit-service.test.mjs`: 7/7 PASS. No
-  adapter, UnitOfWork, WriteEnvelope, CommitReceipt, composition, delivery, host, database or
-  schema change beyond this service commit-context seam; `createCustomerComposition`
-  is not yet wired to this service (deferred to P05e). `capability_delta` is `NONE`; every
-  readiness/product/release/deploy flag stays `false` and the product is not runnable from this
-  change alone.
+  **Reviewer P1 TOCTOU correction (same P05d package):** the raw `idempotencyKey` used to build
+  that ALLOW_COMMIT context was being read from `actionSpec.idempotencyKey` *after* the pipeline's
+  awaited `run()` returned, so a caller mutation of `actionSpec` while the pipeline was suspended
+  on its first internal `await` was observed by the commit context instead of the value admitted
+  before suspension. Fixed by capturing the idempotency key synchronously as the first statement of
+  `handle()`, before `await this.#pipeline.run(actionSpec)`, into a `let capturedIdempotencyKey`
+  wrapped in `try`/`catch`, guarded by the module's existing `isOrdinaryObject(actionSpec)` helper
+  (reading `actionSpec.idempotencyKey` only when `actionSpec` is an ordinary object, defaulting to
+  `undefined` when it is not or when the property read throws) so the capture is non-throwing and
+  cannot regress the pipeline's existing frozen `INVALID` outcome for null/non-ordinary/throwing
+  input; and building the frozen `ALLOW_COMMIT` context from that captured value instead of
+  re-reading `actionSpec.idempotencyKey` after the await. No caller-side `ActionSpec` freeze is
+  required. The frozen test file `tests/kernel-create-customer-commit-service.test.mjs`
+  (SHA-256 `9e09e42dc4ae1e3d77e1a7a20e73b5b35df9631e1b867c9b8909a5766b38902d`) gained one added TOCTOU
+  scenario for this; P05d now totals 4 changed/added scenarios across 1 changed test file. Targeted
+  `node --test tests/kernel-create-customer-commit-service.test.mjs` was run three times as the
+  capture was tightened: 8/8 PASS after the initial TOCTOU capture, 8/8 PASS after the follow-up
+  non-throwing guard, and 8/8 PASS after the final `isOrdinaryObject` substitution, each rerun
+  because the prior targeted run predated that source edit. Full-package base-to-working-tree
+  against the immutable base commit `91e04d968938302972743b5bb7235c51f7c2ab67` (tree
+  `73b3339c72b5dbf568c25982291768c99e79c610`) across all four allowed files:
+  `CHANGELOG.md` +48/-0,
+  `planning/kernel-create-customer-commit-context-p05d.json`
+  +113/-0,
+  `src/application/create-customer-commit-service.mjs`
+  +12/-1, and the frozen
+  `tests/kernel-create-customer-commit-service.test.mjs`
+  +81/-6 (not authored by this writer) — gross
+  +254/-7, net 247, 4 files, class `default`,
+  gate `GREEN_NET_LE_400`. The original clean candidate commit `742ed54`/tree `602c8b0`'s full
+  `npm test` (1485/1485 PASS) and `npm run check` (exit 0) count as this package's one used full
+  QA1 run (`validFullQa1Used: 1`), valid as historical evidence against that pre-correction
+  snapshot but not for the current, corrected snapshot (`currentSnapshotValidFullQa1Used: 0`): the
+  snapshot changed after that run under this reviewer correction, so one additional local full QA1
+  run against the current snapshot is pending, authorized only under reason
+  `SNAPSHOT_CHANGED_AFTER_REVIEW_CORRECTION`; CI remains QA2 pending. No adapter, UnitOfWork,
+  WriteEnvelope, CommitReceipt, composition, delivery, host, database or schema change beyond this
+  service commit-context seam; `createCustomerComposition` is not yet wired to this service
+  (deferred to P05e). `capability_delta` is `NONE`; every readiness/product/release/deploy flag
+  stays `false`, P05 stays active, and the P05e/P05f residual is unchanged; the product is not
+  runnable from this change alone.
 - P05c `src/adapters/postgres-unit-of-work.mjs`, `src/adapters/postgres-write-envelope-write.mjs`:
   a lazy `createPostgresUnitOfWork({connectionString})` owning one `pg.Pool`, returning a frozen
   `{port, close}` whose port is a frozen ordinary `{begin, commit, rollback}` (BEGIN/COMMIT with
