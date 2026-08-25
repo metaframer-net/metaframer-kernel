@@ -108,8 +108,11 @@ test('global readiness truth is all false and current truth names real existing 
   for (const term of ['app-owned customer schema', 'CUSTOMER_RECORDS_SCHEMA', 'canonicalizeCustomerRecord']) {
     assert.match(exists, new RegExp(term), `implementedPieces missing ${term}`);
   }
+  for (const term of ['consumers/customer-app-core/customer-records-adapter\\.mjs', 'createCustomerRecordsAdapter', 'app-owned.*adapter']) {
+    assert.match(exists, new RegExp(term), `implementedPieces missing ${term}`);
+  }
   const missing = t.notImplementedPieces.join(' | ');
-  for (const term of ['app-owned adapter', 'persistence', 'outbox relay', 'production proof']) {
+  for (const term of ['persistence', 'outbox relay', 'production proof']) {
     assert.match(missing, new RegExp(term), `notImplementedPieces missing ${term}`);
   }
   assert.doesNotMatch(missing, /clean consumer conformance/i);
@@ -118,7 +121,9 @@ test('global readiness truth is all false and current truth names real existing 
   assert.doesNotMatch(missing, /\(P10\)/);
   assert.doesNotMatch(missing, /\bapp-owned customer schema\b/i);
   assert.doesNotMatch(missing, /\(P11\)/);
-  assert.match(missing, /P12/);
+  assert.doesNotMatch(missing, /\bapp-owned adapter\b/i);
+  assert.doesNotMatch(missing, /\(P12\)/);
+  assert.match(missing, /P13/);
   assert.doesNotMatch(t.notRunnableProductClaim, /only the S1.*and isolated ASGI/i);
   assert.doesNotMatch(t.notRunnableProductClaim, /no SDK, app, module or delivery ring/i);
 });
@@ -204,18 +209,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 11/25 completed truth with P11 closed and P12 active', () => {
+test('roadmap.progress carries the exact 12/25 completed truth with P12 closed and P13 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, 11);
+  assert.equal(progress.completed, 12);
   assert.equal(progress.total, 25);
-  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11']);
+  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12']);
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, 'P12');
-  assert.equal(progress.asOfKernelMain, '26a3155b3722d077308fa0a5ba9ab1ed935f5aa8');
-  assert.equal(progress.statusLine, '11/25 tamamlandı, P12/25 aktif');
+  assert.equal(progress.activePackage, 'P13');
+  assert.equal(progress.asOfKernelMain, 'ff3bb16e4e7b2894d035e176a7ed105c6bc7d5f6');
+  assert.equal(progress.statusLine, '12/25 tamamlandı, P13/25 aktif');
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -229,33 +234,33 @@ test('roadmap.progress carries the exact 11/25 completed truth with P11 closed a
   }
 });
 
-test('currentTruth reflects P11 (app-owned customer schema contract) as implemented, anchored to real merged evidence, and P12 as the explicit next-missing piece, with all readiness flags false', () => {
+test('currentTruth reflects P12 (app-owned adapter) as implemented, anchored to real merged evidence, and P13 as the explicit next-missing piece, with all readiness flags false', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
 
   const implemented = t.implementedPieces.join(' | ');
-  assert.match(implemented, /app-owned customer schema/i);
-  assert.match(implemented, /CUSTOMER_RECORDS_SCHEMA|canonicalizeCustomerRecord/);
-  assert.match(implemented, /P11/);
+  assert.match(implemented, /app-owned.*adapter/i);
+  assert.match(implemented, /createCustomerRecordsAdapter/);
+  assert.match(implemented, /P12/);
 
   const missing = t.notImplementedPieces.join(' | ');
-  assert.doesNotMatch(missing, /\(P11\)/);
-  assert.match(missing, /app-owned adapter/i);
-  assert.match(missing, /P12/);
+  assert.doesNotMatch(missing, /\(P12\)/);
+  assert.match(missing, /data cutover and rollback/i);
+  assert.match(missing, /P13/);
 
-  const consumerFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-records-schema.mjs');
-  const planningFile = path.join(repoRoot, 'planning', 'kernel-customer-app-owned-schema-p11.json');
-  assert.ok(existsSync(consumerFile), 'consumers/customer-app-core/customer-records-schema.mjs must exist as P11 evidence');
-  assert.ok(existsSync(planningFile), 'planning/kernel-customer-app-owned-schema-p11.json must exist as P11 evidence');
+  const consumerFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-records-adapter.mjs');
+  const planningFile = path.join(repoRoot, 'planning', 'kernel-customer-app-owned-adapter-p12.json');
+  assert.ok(existsSync(consumerFile), 'consumers/customer-app-core/customer-records-adapter.mjs must exist as P12 evidence');
+  assert.ok(existsSync(planningFile), 'planning/kernel-customer-app-owned-adapter-p12.json must exist as P12 evidence');
 
   const consumerSource = readFileSync(consumerFile, 'utf8');
-  for (const token of ['CUSTOMER_RECORDS_SCHEMA', 'canonicalizeCustomerRecord']) {
+  for (const token of ['createCustomerRecordsAdapter']) {
     assert.ok(consumerSource.includes(token), `consumer source missing ${token}`);
   }
 
   const planningRecord = JSON.parse(readFileSync(planningFile, 'utf8'));
-  assert.equal(planningRecord.capabilityDelta, 'APP_OWNED_CUSTOMER_SCHEMA_CONTRACT_ONLY');
-  for (const key of ['fullGreen', 'readiness', 'productClaim', 'persistenceCutover', 'kernelCleanup']) {
+  assert.equal(planningRecord.capabilityDelta, 'APPLICATION_OWNED_CUSTOMER_RECORDS_QUERY_ADAPTER_ONLY');
+  for (const key of ['persistenceCutover', 'kernelCleanup']) {
     assert.equal(planningRecord.strongerFlags[key], false, `planning stronger flag ${key} must be false`);
   }
 
@@ -270,26 +275,26 @@ test('currentTruth reflects P11 (app-owned customer schema contract) as implemen
   assert.equal(o.capability_delta, 'NONE');
   assert.equal(o.calistirilabilirlik, 'not-runnable');
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /11\/25/);
-  assert.match(ownerText, /P12/);
+  assert.match(ownerText, /12\/25/);
+  assert.match(ownerText, /P13/);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 });
 
-test('ROADMAP.md, README.md and CHANGELOG.md project P11 closed / P12 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter', () => {
+test('ROADMAP.md, README.md and CHANGELOG.md project P12 closed / P13 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.match(roadmap, /11\/25 tamamlandı, P12\/25 aktif/);
-  assert.match(roadmap, /P11/);
+  assert.match(roadmap, /12\/25 tamamlandı, P13\/25 aktif/);
   assert.match(roadmap, /P12/);
+  assert.match(roadmap, /P13/);
 
   const readme = readText('README.md');
-  assert.match(readme, /11\/25 tamamlandı, P12\/25 aktif/);
+  assert.match(readme, /12\/25 tamamlandı, P13\/25 aktif/);
 
   const changelog = readText('CHANGELOG.md');
   const unreleasedIdx = changelog.indexOf('## [Unreleased]');
   const unreleased = changelog.slice(unreleasedIdx);
-  assert.match(unreleased, /P11/);
+  assert.match(unreleased, /P12/);
   assert.match(unreleased, /roadmap-v1-current-truth\.json/);
-  assert.match(unreleased, /11\/25 tamamlandı, P12\/25 aktif/);
+  assert.match(unreleased, /12\/25 tamamlandı, P13\/25 aktif/);
 
   const compositionText = readText('src/delivery/create-customer-asgi-composition.mjs');
   assert.doesNotMatch(compositionText, /underlying PostgresCommitAdapter/i);
