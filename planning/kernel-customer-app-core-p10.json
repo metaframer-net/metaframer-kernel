@@ -1,0 +1,64 @@
+{
+  "package": "P10-customer-app-core",
+  "base": {
+    "commit": "b37ce904770568f072505e5ce3dacfa83078a0fe",
+    "tree": "be647d684c499ae2aaecda7e078842ca4fa9a181"
+  },
+  "scopeHashes": {
+    "blind": "d714861e4caa5590def93c9d7663a2c1d6da19e2cf5ec8f32547bea7cbc31e66",
+    "master": "f09131dbe9af7fe846a12cdb52990bbdc048f1df85f17f38fd7605104e14c8a9",
+    "synthesis": "1101205f56fc2a8df49d17a0904c80a968b8c3dc8ae2d26082e78bbe33fc348f"
+  },
+  "actionplanPin": "actionplan@c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3:src/data/standards/short-code.json#changePackageBudget",
+  "frozenTest": {
+    "path": "tests/kernel-customer-app-core-p10.test.mjs",
+    "sha256": "a51c08ce1113bb51bec2a22161121a98327bf759f84891412912ba2029c5e3fc",
+    "redEvidence": { "failed": 5, "passed": 0, "skipped": 0, "cancelled": 0 },
+    "greenEvidence": { "failed": 0, "passed": 5, "skipped": 0, "cancelled": 0 }
+  },
+  "allowedFiles": [
+    "consumers/customer-app-core/customer-app-core.mjs",
+    "planning/kernel-customer-app-core-p10.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "editing the frozen test",
+    "editing any Kernel src/tool/config/generated/CI file",
+    "creating root apps/packages",
+    "schema, persistence adapter, CRUD, route, Surface/UI, host, release, deploy, readiness",
+    "current-truth counter update",
+    "claiming a runnable product",
+    "commit/push",
+    "full QA execution"
+  ],
+  "changedFilesAccounting": {
+    "count": 4,
+    "files": [
+      "tests/kernel-customer-app-core-p10.test.mjs",
+      "consumers/customer-app-core/customer-app-core.mjs",
+      "planning/kernel-customer-app-core-p10.json",
+      "CHANGELOG.md"
+    ]
+  },
+  "packageClass": "small",
+  "budgetVerdict": "within budget",
+  "capabilityDelta": "CUSTOMER_APP_CORE_BOUNDARY_ONLY",
+  "runnableProduct": false,
+  "flags": {
+    "schema": false,
+    "adapter": false,
+    "crud": false,
+    "ui": false,
+    "host": false,
+    "release": false,
+    "deploy": false,
+    "readiness": false
+  },
+  "qa": {
+    "qa1": "pending",
+    "reviewer": "pending",
+    "ci": "pending"
+  },
+  "rollback": "remove/revert the three implementation writes (consumers/customer-app-core/customer-app-core.mjs, this planning record, the CHANGELOG entry) plus the frozen test package",
+  "currentTruth": "closes only the P10 implementation candidate; does not close the P10 program counter or roadmap current-truth"
+}

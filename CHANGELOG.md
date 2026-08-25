@@ -16,6 +16,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P10 `consumers/customer-app-core/customer-app-core.mjs`: an app-owned Customer app-core
+  public-SDK consumer boundary (`CUSTOMER_APP_CORE_MANIFEST` plus `createCustomerAppCore`)
+  that composes a P08-generated public action SDK module only through its public contract
+  surface, fails closed on a missing/malformed/wrong-coordinate SDK or a missing/near-match
+  `customer:core` capability grant, and exposes no schema/adapter/CRUD/Surface/UI/host/
+  release/readiness behavior. This is an implementation candidate only: not wired to any
+  route, host, or release path, and not a runnable product.
 - P09b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
   `planning/kernel-p09-current-truth-closure-p09b.json`): synced the roadmap current-truth
   artifact to P09's real evidence — the standalone clean consumer fixture
