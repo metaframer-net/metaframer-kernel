@@ -31,13 +31,15 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`9/25 tamamlandı, P10/25 aktif` (`roadmap.progress` in
+`10/25 tamamlandı, P11/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
-packages: P01, P02, P03, P04, P05, P06, P07, P08, P09. P09 (clean consumer conformance) is
-closed — a standalone, builtins-only clean consumer fixture copies P08's real versioned SDK
-distribution payload into a temp directory, empties the environment, and validates version,
-path, manifest and file existence plus the recomputed SHA-256 before import; test-verified,
-with no npm publish/release. P10 (app-core) is the active package and the next explicit gap;
+packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10. P10 (app-core) is
+closed — an app-owned Customer app-core public-SDK consumer boundary
+(`consumers/customer-app-core/customer-app-core.mjs`) composes a P08-generated public action SDK
+module only through its public contract surface at an exact SDK-derived coordinate, fails closed
+on a missing/malformed/wrong-coordinate SDK or a missing/near-match `customer:core` capability
+grant, and exposes no schema/adapter/CRUD/Surface/UI/host/release/readiness behavior;
+test-verified. P11 (app-owned customer schema) is the active package and the next explicit gap;
 none of this moves any readiness flag under [README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG

@@ -562,7 +562,13 @@ clean consumer fixture that copies P08's real versioned SDK distribution payload
 directory, empties the environment, and validates version/path/manifest/file existence and the
 recomputed SHA-256 before import, test-verified, no npm publish/release) with P10 (app-core) as
 the active package; that sync also adds no runtime capability and moves no flag under **Current
-status**.
+status**. A further roadmap current-truth package has since synced the counter again to
+`10/25 tamamlandı, P11/25 aktif`, closing P10 (an app-owned Customer app-core public-SDK
+consumer boundary — `consumers/customer-app-core/customer-app-core.mjs`, composing a
+P08-generated public action SDK module only through its public contract surface at an exact
+SDK-derived coordinate, default-deny on a missing/near-match `customer:core` capability grant,
+test-verified) with P11 (app-owned customer schema) as the active package; that sync also adds
+no runtime capability and moves no flag under **Current status**.
 
 ## Authorized order and what remains closed
 
@@ -582,9 +588,12 @@ test-verified. P08 — versioned SDK distribution (`renderVersionedActionSdkDist
 P07's generator with a caller-supplied Kernel distribution version) — is now also merged and
 test-verified. P09 — clean consumer conformance, proving P08's versioned SDK distribution output
 is actually consumable as a real SDK via a standalone clean-consumer fixture — is now also merged
-and test-verified. What that stage still lacks is P10 — app-core — the active next package.
-app-core, application-owned persistence, the product Surface and every later readiness/promotion
-gate remain closed and unstarted, and nothing here may be read as opening them.
+and test-verified. P10 — app-core, an app-owned Customer app-core public-SDK consumer boundary
+composing a P08-generated public action SDK module only through its public contract surface —
+is now also merged and test-verified. What that stage still lacks is P11 — app-owned customer
+schema — the active next package. Application-owned persistence, the product Surface and every
+later readiness/promotion gate remain closed and unstarted, and nothing here may be read as
+opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
