@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P09b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p09-current-truth-closure-p09b.json`): synced the roadmap current-truth
+  artifact to P09's real evidence — the standalone clean consumer fixture
+  (`tests/fixtures/versioned-sdk-clean-consumer.mjs`) copying P08's real versioned SDK
+  distribution payload into a temp directory, emptying the environment and validating
+  version/path/manifest/file existence and the recomputed SHA-256 before import — is now
+  recorded as implemented, removing the prior "clean consumer conformance (P09)... not yet"
+  claim and replacing it with P10 (app-core) as the explicit next-missing piece. Progress moves
+  from `8/25 tamamlandı, P09/25 aktif` to `9/25 tamamlandı, P10/25 aktif` (completed: P01–P09;
+  active: P10, app-core), with every readiness flag (`kernelReady`, `sdkReady`, `appBuildable`,
+  `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`, `oneGoldenSliceReady`,
+  `runnableProduct`) held `false` and `capability_delta: NONE`. This is a
+  documentation/current-truth sync only; it adds no runtime capability and moves no readiness
+  flag. No npm release.
 - P09 `tests/fixtures/versioned-sdk-clean-consumer.mjs`: a standalone, builtins-only clean
   consumer fixture for the P08 versioned SDK distribution payload. Run as
   `node consumer.mjs EXPECTED_DISTRIBUTION_VERSION` with `cwd` inside a materialized temp

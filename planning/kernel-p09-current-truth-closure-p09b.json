@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-p09-current-truth-closure-p09b-2026-08-25",
+  "packageKind": "current-truth-closure",
+  "type": "roadmap-current-truth-sync",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": {
+    "commit": "a50ebf049dca6c4ad1421de1dc3ed9d822624981",
+    "tree": "282d207316475fcb3685f9cf73a17ada77263e94"
+  },
+
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p09-current-truth-closure-20260825",
+
+  "scopeHashes": {
+    "master": "fbfa9a47f899f352bd3630b1ce83752e1c07b64aeb0eb6944670cb38f575f8ad",
+    "blind": "7a5d1987fdf445db7c17f5961dfb7f32c4deaa373877082b826e84aab367af54",
+    "synthesis": "c5bd48ddbc82102a02c2c021f10ebd15f2851e89795de01cfd227a051af7f3d9"
+  },
+
+  "actionplanBudgetPin": {
+    "sha": "c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3",
+    "role": "change-package budget/class definitions source for this package",
+    "location": "src/data/standards/short-code.json#changePackageBudget"
+  },
+
+  "testProvenance": {
+    "path": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "note": "test file authored exclusively by the separate, already-completed test writer role; this implementation writer preserved it byte-for-byte and made no edit to it",
+    "handoff": {
+      "sha256": "a0e82a302417522e215cbc6d378a8b35e5079dfbf65f0c07567dedcb2a84b2f5"
+    },
+    "red": { "tests": 16, "pass": 12, "fail": 4 },
+    "final": {
+      "sha256": "a0e82a302417522e215cbc6d378a8b35e5079dfbf65f0c07567dedcb2a84b2f5",
+      "targetedGreenResult": { "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0 }
+    }
+  },
+
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p09-current-truth-closure-p09b.json",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+
+  "nonGoals": [
+    "no runtime/src/tool change",
+    "no P09 evidence file change (planning/kernel-clean-consumer-conformance-p09.json and tests/fixtures/versioned-sdk-clean-consumer.mjs untouched)",
+    "no dependency DAG, family, package name, or version change",
+    "no package.json, lockfile, CI/workflow/config change",
+    "no P10 implementation",
+    "no release, deploy or readiness flag change (all remain false)",
+    "no staging, commit, or push performed by this package",
+    "no full npm test / npm run check run in this step beyond the targeted command below",
+    "no self-delegation by any worker"
+  ],
+
+  "evidence": {
+    "red": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16,
+      "pass": 12,
+      "fail": 4,
+      "note": "4 scenarios (progress counter, P09 current-truth, ROADMAP/README/CHANGELOG P09/P10 projection, and the global missing-pieces invariant expecting P10 rather than P09) failed against pre-sync state; 12 unchanged scenarios already passed"
+    },
+    "targetedGreen": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "testSha256": "a0e82a302417522e215cbc6d378a8b35e5079dfbf65f0c07567dedcb2a84b2f5"
+    },
+    "changedScenarios": [
+      "roadmap.progress carries the exact 9/25 completed truth with P09 closed and P10 active",
+      "currentTruth reflects P09 (clean SDK consumer conformance) as implemented and P10 as the explicit next-missing piece, with all readiness flags false",
+      "ROADMAP.md, README.md and CHANGELOG.md project P09 closed / P10 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter",
+      "the older global missing-pieces invariant now expects P10 app-core rather than completed P09, since P09 is closed and the next-missing piece has shifted"
+    ],
+    "fullPackageGate": {
+      "note": "honest full-package numstat/default-band gate: this is a small, additive documentation/current-truth-only change (6 files touched, no runtime/src change); QA1 (full local QA) and CI full QA remain pending per the two-full-QA-run budget",
+      "qa1": "pending",
+      "ci": "pending",
+      "fullQaBudget": { "total": 2, "spent": 0, "remaining": 2 }
+    },
+    "lineCounts": {
+      "changelogMd": { "additions": 14, "deletions": 0 },
+      "readmeMd": { "additions": 12, "deletions": 4 },
+      "roadmapMd": { "additions": 6, "deletions": 5 },
+      "currentTruthJson": { "additions": 13, "deletions": 13 },
+      "testFile": { "additions": 24, "deletions": 23 },
+      "thisPlanningRecord": { "additions": 121, "deletions": 0 },
+      "grossAdditions": 190,
+      "grossDeletions": 45,
+      "net": 145,
+      "filesChanged": 6,
+      "defaultBand": "GREEN_NET_LE_400"
+    }
+  },
+
+  "processTruth": {
+    "delegation": "single implementation writer role, no self-delegation; test file was already authored and completed by a separate prior test writer",
+    "stagingEvent": "no staging, commit or push performed by this package"
+  },
+
+  "rollback": "one normal git revert of the eventual atomic six-file commit (planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md, planning/kernel-p09-current-truth-closure-p09b.json, tests/kernel-roadmap-v1-current-truth.test.mjs); the test file's content within that commit remains solely the separate test writer's authored/handed-off provenance (sha256 a0e82a302417522e215cbc6d378a8b35e5079dfbf65f0c07567dedcb2a84b2f5), unedited by this implementation writer; no migration or data cleanup required",
+
+  "ownerFacing": {
+    "once": "Once P09'un temiz tuketici (clean consumer) uygunluk kaniti P08'in gercek versiyonlu SDK dagitim paketi uzerinde test-verified olarak var olmustu ama roadmap sayaci bunu hala yansitmiyordu.",
+    "simdi": "Simdi tek kaynak dosya + ROADMAP.md + README + CHANGELOG ayni 9/25 tamamlandi, P10/25 aktif durumunu projekte ediyor; hicbir calisma zamani davranisi degismedi.",
+    "fark": "Once sayac 8/25'te kalmisti; simdi P09 kapali, P10 (app-core) aktif olarak dogru senkronize.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor.",
+    "kalanEngel": "P10 (app-core) dahil F3-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz.",
+    "capability_delta": "NONE",
+    "calistirilabilirlik": "not-runnable"
+  }
+}

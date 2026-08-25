@@ -106,9 +106,11 @@ test('global readiness truth is all false and current truth names real existing 
     assert.match(exists, new RegExp(term), `implementedPieces missing ${term}`);
   }
   const missing = t.notImplementedPieces.join(' | ');
-  for (const term of ['clean consumer conformance', 'app-core', 'outbox relay', 'production proof']) {
+  for (const term of ['app-core', 'outbox relay', 'production proof']) {
     assert.match(missing, new RegExp(term), `notImplementedPieces missing ${term}`);
   }
+  assert.doesNotMatch(missing, /clean consumer conformance/i);
+  assert.doesNotMatch(missing, /\(P09\)/);
   assert.doesNotMatch(t.notRunnableProductClaim, /only the S1.*and isolated ASGI/i);
   assert.doesNotMatch(t.notRunnableProductClaim, /no SDK, app, module or delivery ring/i);
 });
@@ -194,18 +196,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 8/25 completed truth with P08 closed and P09 active', () => {
+test('roadmap.progress carries the exact 9/25 completed truth with P09 closed and P10 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, 8);
+  assert.equal(progress.completed, 9);
   assert.equal(progress.total, 25);
-  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08']);
+  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09']);
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, 'P09');
-  assert.equal(progress.asOfKernelMain, 'b43e88c515167e470072919e0ddf4f56f4ab6e19');
-  assert.equal(progress.statusLine, '8/25 tamamlandı, P09/25 aktif');
+  assert.equal(progress.activePackage, 'P10');
+  assert.equal(progress.asOfKernelMain, 'a50ebf049dca6c4ad1421de1dc3ed9d822624981');
+  assert.equal(progress.statusLine, '9/25 tamamlandı, P10/25 aktif');
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -219,20 +221,19 @@ test('roadmap.progress carries the exact 8/25 completed truth with P08 closed an
   }
 });
 
-test('currentTruth reflects P08 (versioned SDK distribution) as implemented and P09 as the explicit next-missing piece, with all readiness flags false', () => {
+test('currentTruth reflects P09 (clean SDK consumer conformance) as implemented and P10 as the explicit next-missing piece, with all readiness flags false', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
 
   const implemented = t.implementedPieces.join(' | ');
-  assert.match(implemented, /versioned/i);
-  assert.match(implemented, /SDK/);
-  assert.match(implemented, /distribution/i);
-  assert.match(implemented, /P08/);
+  assert.match(implemented, /clean/i);
+  assert.match(implemented, /consumer conformance/i);
+  assert.match(implemented, /P09/);
 
   const missing = t.notImplementedPieces.join(' | ');
-  assert.doesNotMatch(missing, /\(P08\)/);
-  assert.match(missing, /clean consumer conformance/i);
-  assert.match(missing, /P09/);
+  assert.doesNotMatch(missing, /\(P09\)/);
+  assert.match(missing, /app-core/i);
+  assert.match(missing, /P10/);
 
   for (const key of ['kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed', 'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct']) {
     assert.equal(t[key], false, `${key} must remain false`);
@@ -245,26 +246,26 @@ test('currentTruth reflects P08 (versioned SDK distribution) as implemented and 
   assert.equal(o.capability_delta, 'NONE');
   assert.equal(o.calistirilabilirlik, 'not-runnable');
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /8\/25/);
-  assert.match(ownerText, /P09/);
+  assert.match(ownerText, /9\/25/);
+  assert.match(ownerText, /P10/);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 });
 
-test('ROADMAP.md, README.md and CHANGELOG.md project P08 closed / P09 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter', () => {
+test('ROADMAP.md, README.md and CHANGELOG.md project P09 closed / P10 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.match(roadmap, /8\/25 tamamlandı, P09\/25 aktif/);
-  assert.match(roadmap, /P08/);
+  assert.match(roadmap, /9\/25 tamamlandı, P10\/25 aktif/);
   assert.match(roadmap, /P09/);
+  assert.match(roadmap, /P10/);
 
   const readme = readText('README.md');
-  assert.match(readme, /8\/25 tamamlandı, P09\/25 aktif/);
+  assert.match(readme, /9\/25 tamamlandı, P10\/25 aktif/);
 
   const changelog = readText('CHANGELOG.md');
   const unreleasedIdx = changelog.indexOf('## [Unreleased]');
   const unreleased = changelog.slice(unreleasedIdx);
-  assert.match(unreleased, /P08/);
+  assert.match(unreleased, /P09/);
   assert.match(unreleased, /roadmap-v1-current-truth\.json/);
-  assert.match(unreleased, /8\/25 tamamlandı, P09\/25 aktif/);
+  assert.match(unreleased, /9\/25 tamamlandı, P10\/25 aktif/);
 
   const compositionText = readText('src/delivery/create-customer-asgi-composition.mjs');
   assert.doesNotMatch(compositionText, /underlying PostgresCommitAdapter/i);
