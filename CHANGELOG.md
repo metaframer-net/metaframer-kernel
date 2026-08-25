@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P08b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p08-current-truth-closure-p08b.json`): synced the roadmap current-truth
+  artifact to P08's real evidence — the versioned SDK distribution wrapper
+  `renderVersionedActionSdkDistribution(contract, distributionVersion)`
+  (`tools/generate-versioned-action-sdk-distribution.mjs`) is now recorded as implemented,
+  removing the prior "versioned SDK distribution (P08)... not yet" claim and replacing it with
+  P09 (clean consumer conformance) as the explicit next-missing piece. Progress moves from
+  `7/25 tamamlandı, P08/25 aktif` to `8/25 tamamlandı, P09/25 aktif` (completed: P01–P08; active:
+  P09, clean consumer conformance), with every readiness flag (`kernelReady`, `sdkReady`,
+  `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`,
+  `oneGoldenSliceReady`, `runnableProduct`) held `false` and `capability_delta: NONE`. This is a
+  documentation/current-truth sync only; it adds no runtime capability and moves no readiness
+  flag.
 - P08 `tools/generate-versioned-action-sdk-distribution.mjs`
   (`renderVersionedActionSdkDistribution(contract, distributionVersion)`): wraps P07's
   `renderActionSdk` with a caller-supplied version into a coordinate-addressed, integrity-checked

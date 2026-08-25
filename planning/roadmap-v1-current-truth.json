@@ -47,15 +47,16 @@
       "Python host app factory and optional Uvicorn/Hypercorn host runners with explicit CLI selection (host/python_asgi, not src/delivery)",
       "PostgreSQL-backed transaction/outbox/audit substrate test-verified in isolation",
       "P04 policy-as-data candidate resolution, sequential batch evaluation and a decision-log adapter, composed end to end with a real PostgreSQL decision-log (chain-hashed, tenant-attested) via policyDecisionLogComposition, test-verified against PostgreSQL 16",
-      "P05 UoW (UnitOfWork), canonical CommitReceipt and the write envelope wiring the unit-of-work port to a real commit boundary, composed end to end into the CreateCustomer commit-boundary composition chain, test-verified"
+      "P05 UoW (UnitOfWork), canonical CommitReceipt and the write envelope wiring the unit-of-work port to a real commit boundary, composed end to end into the CreateCustomer commit-boundary composition chain, test-verified",
+      "P08 versioned SDK distribution: tools/generate-versioned-action-sdk-distribution.mjs (renderVersionedActionSdkDistribution(contract, distributionVersion)) wraps P07's renderActionSdk with a caller-supplied Kernel distribution version, distinct from the action's own contract version, into a coordinate-addressed, integrity-checked manifest+module file set; test-verified, targeted 27/27 GREEN, no npm publish/release"
     ],
     "notImplementedPieces": [
-      "versioned SDK distribution (P08) packaging the P07 generic generator's output as a consumable versioned SDK distribution surface; npm publish/release remains forbidden",
+      "clean consumer conformance (P09) proving P08's versioned SDK distribution output is actually consumable as a real SDK; npm publish/release remains forbidden",
       "app-core (P10) and a real application built on the Kernel, beyond the CreateCustomer golden slice",
       "outbox relay lifecycle (P18) actually delivering events out of the transactional outbox",
       "production proof: no HA/DR, security, performance or promotion gate evidence exists yet (P19-P25)"
     ],
-    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, and P07's generic renderActionSdk generator now exists over the exact P02 ActionContract, but no versioned SDK distribution, application-owned persistence or product Surface exists to make it runnable as a real product."
+    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, and P07's generic renderActionSdk generator plus P08's versioned SDK distribution wrapper now exist over the exact P02 ActionContract, but no clean-consumer conformance proof, application-owned persistence or product Surface exists to make it runnable as a real product."
   },
   "roadmap": {
     "version": "v1",
@@ -98,12 +99,12 @@
       { "id": "P25", "name": "promotion gates", "family": "F7", "dodRef": "F7", "dependsOn": ["P20", "P21", "P23", "P24"] }
     ],
     "progress": {
-      "completed": 7,
+      "completed": 8,
       "total": 25,
-      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07"],
-      "activePackage": "P08",
-      "asOfKernelMain": "08d9c6281b6a82a2a6d54e13cade031f994bcf2b",
-      "statusLine": "7/25 tamamlandı, P08/25 aktif"
+      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08"],
+      "activePackage": "P09",
+      "asOfKernelMain": "b43e88c515167e470072919e0ddf4f56f4ab6e19",
+      "statusLine": "8/25 tamamlandı, P09/25 aktif"
     }
   },
   "execution": {
@@ -129,11 +130,11 @@
     }
   },
   "ownerFacing": {
-    "once": "Once P07'nin genel renderActionSdk ureticisi (tools/generate-action-sdk.mjs) gercek P02 ActionContract uzerinde test-verified olarak var olmustu ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
-    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 7/25 tamamlandi, P08 aktif: bu paket sadece o roadmap gercegini P07'nin gercek renderActionSdk/ActionContract kanitiyla senkronlar, hicbir calisma zamani davranisi degistirmez.",
-    "fark": "Once P07 tamamlanmisti ama sayac 6/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 7/25 tamamlandi, P08/25 aktif durumunu projekte ediyor.",
-    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P08'in versiyonlu SDK dagitimi ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
-    "kalanEngel": "P08 (versiyonlu SDK dagitimi) dahil F2-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+    "once": "Once P08'in versiyonlu SDK dagitim sarmalayicisi (tools/generate-versioned-action-sdk-distribution.mjs) gercek P02 ActionContract uzerinde test-verified olarak var olmustu ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
+    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 8/25 tamamlandi, P09 aktif: bu paket sadece o roadmap gercegini P08'in gercek renderVersionedActionSdkDistribution kanitiyla senkronlar, hicbir calisma zamani davranisi degistirmez.",
+    "fark": "Once P08 tamamlanmisti ama sayac 7/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 8/25 tamamlandi, P09/25 aktif durumunu projekte ediyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P09'daki temiz tuketici (clean consumer) uygunluk kaniti ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
+    "kalanEngel": "P09 (temiz tuketici uygunlugu) dahil F2-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
     "capability_delta": "NONE",
     "calistirilabilirlik": "not-runnable"
   }
