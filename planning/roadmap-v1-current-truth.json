@@ -41,7 +41,8 @@
       "Adapters layer (src/adapters) — a Postgres commit adapter over the S1 Postgres/RLS/transaction/outbox/audit substrate",
       "Delivery layer (src/delivery) — framework-neutral ASGI host-boundary primitives and standard router composition",
       "CreateCustomer-specific golden-slice composition chain (HTTP message adapter, pipeline, request handler, ASGI composition) test-verified end to end at the primitive layer",
-      "src/sdk — a CreateCustomer-specific generated client, not yet a generic contract-to-SDK generator",
+      "src/sdk — a CreateCustomer-specific generated client",
+      "P07 generic renderActionSdk(contract) generator (tools/generate-action-sdk.mjs) consuming an exact P02 ActionContract instance, rendering a framework-neutral, import-free ESM SDK module for arbitrary action contracts, test-verified",
       "ASGI host-boundary profile (core profile, conformance, scope/encoder rules) test-verified",
       "Python host app factory and optional Uvicorn/Hypercorn host runners with explicit CLI selection (host/python_asgi, not src/delivery)",
       "PostgreSQL-backed transaction/outbox/audit substrate test-verified in isolation",
@@ -49,12 +50,12 @@
       "P05 UoW (UnitOfWork), canonical CommitReceipt and the write envelope wiring the unit-of-work port to a real commit boundary, composed end to end into the CreateCustomer commit-boundary composition chain, test-verified"
     ],
     "notImplementedPieces": [
-      "generic contract-to-SDK generator (P07/P08) producing a versioned SDK for arbitrary action contracts",
+      "versioned SDK distribution (P08) packaging the P07 generic generator's output as a consumable versioned SDK distribution surface; npm publish/release remains forbidden",
       "app-core (P10) and a real application built on the Kernel, beyond the CreateCustomer golden slice",
       "outbox relay lifecycle (P18) actually delivering events out of the transactional outbox",
       "production proof: no HA/DR, security, performance or promotion gate evidence exists yet (P19-P25)"
     ],
-    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, but no generic SDK, application-owned persistence or product Surface exists to make it runnable as a real product."
+    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, and P07's generic renderActionSdk generator now exists over the exact P02 ActionContract, but no versioned SDK distribution, application-owned persistence or product Surface exists to make it runnable as a real product."
   },
   "roadmap": {
     "version": "v1",
@@ -97,12 +98,12 @@
       { "id": "P25", "name": "promotion gates", "family": "F7", "dodRef": "F7", "dependsOn": ["P20", "P21", "P23", "P24"] }
     ],
     "progress": {
-      "completed": 6,
+      "completed": 7,
       "total": 25,
-      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06"],
-      "activePackage": "P07",
-      "asOfKernelMain": "d11b17ccfb4d53d6a0b138bf8ff07bcdefebb3e0",
-      "statusLine": "6/25 tamamlandı, P07/25 aktif"
+      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07"],
+      "activePackage": "P08",
+      "asOfKernelMain": "08d9c6281b6a82a2a6d54e13cade031f994bcf2b",
+      "statusLine": "7/25 tamamlandı, P08/25 aktif"
     }
   },
   "execution": {
@@ -128,11 +129,11 @@
     }
   },
   "ownerFacing": {
-    "once": "Once P05'in UoW, CommitReceipt ve write envelope kaniti gercek commit-boundary kompozisyonuna baglanmisti ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
-    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 6/25 tamamlandi, P07 aktif: bu paket (P05f) sadece o roadmap gercegini P05'in gercek UoW/CommitReceipt/write envelope kanitiyla senkronlar, hicbir calisma zamani davranisi degistirmez.",
-    "fark": "Once P05 tamamlanmisti ama sayac 5/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 6/25 tamamlandi, P07/25 aktif durumunu projekte ediyor.",
-    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P07'nin genel contract-to-SDK ureticisi ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
-    "kalanEngel": "P07 (genel contract-to-SDK ureticisi) dahil F2-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+    "once": "Once P07'nin genel renderActionSdk ureticisi (tools/generate-action-sdk.mjs) gercek P02 ActionContract uzerinde test-verified olarak var olmustu ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
+    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 7/25 tamamlandi, P08 aktif: bu paket sadece o roadmap gercegini P07'nin gercek renderActionSdk/ActionContract kanitiyla senkronlar, hicbir calisma zamani davranisi degistirmez.",
+    "fark": "Once P07 tamamlanmisti ama sayac 6/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 7/25 tamamlandi, P08/25 aktif durumunu projekte ediyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P08'in versiyonlu SDK dagitimi ve sonraki tum urun katmanlari eksik oldukca hicbir gercek yolculuk calismaz.",
+    "kalanEngel": "P08 (versiyonlu SDK dagitimi) dahil F2-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
     "capability_delta": "NONE",
     "calistirilabilirlik": "not-runnable"
   }

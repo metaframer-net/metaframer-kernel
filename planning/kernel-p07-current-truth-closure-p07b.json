@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-p07-current-truth-closure-p07b-2026-08-25",
+  "packageKind": "current-truth-closure",
+  "type": "roadmap-current-truth-sync",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": {
+    "commit": "08d9c6281b6a82a2a6d54e13cade031f994bcf2b",
+    "tree": "30d525a03ad052e488513ace4a7bfdd22fb022f1"
+  },
+
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p07-current-truth-closure-20260825",
+
+  "scopeHashes": {
+    "master": "aba6955f200cb5c05cef58e26cd1e24a31b287182d7b21299de61f70e1878f28",
+    "blind": "0c164c8199b73c6bc873e1fbd8e6a4b558d3ddfac8b3da2bae11daf97d6f6392",
+    "synthesis": "256e0ad6b12f21af0e807ee04399342de39f580d4506e4140e16e041d7440148"
+  },
+
+  "actionplanBudgetPin": {
+    "sha": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+    "role": "change-package budget/class definitions source for this package",
+    "location": "src/data/standards/short-code.json#changePackageBudget"
+  },
+
+  "testProvenance": {
+    "path": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "note": "test file authored and corrected exclusively by separate test writer roles; implementation writers never edited this file",
+    "initialHandoff": {
+      "sha256": "3b4b5b956aad0205fa597ff220e1b7539f29e2f1f50654d9901b46502050b6f1",
+      "changedBlocks": 3,
+      "redResult": { "tests": 16, "pass": 13, "fail": 3 }
+    },
+    "correction": {
+      "reason": "implementation exposed one pre-existing shared invariant conflict against an older test block; implementation writer honestly paused at 15/16 rather than editing the test",
+      "changedBlocks": 1,
+      "changedByWriter": "separate test correction writer (not the implementation writer)"
+    },
+    "totalChangedBlocks": 4,
+    "final": {
+      "sha256": "db0021e8b14be03dac15014ec58cd4f34e786021da000de542508414b561d7d5",
+      "targetedGreenResult": { "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0 }
+    }
+  },
+
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "planning/kernel-p07-current-truth-closure-p07b.json"
+  ],
+
+  "nonGoals": [
+    "no runtime/generator code change",
+    "no P07 evidence file change (planning/kernel-generic-generator-p07.json untouched)",
+    "no dependency DAG, family, package name, or version change",
+    "no CI/workflow/config change",
+    "no staging, commit, or push performed by this package beyond the reversed measurement index mutation recorded in processTruth below",
+    "no full npm test / npm run check run in this step beyond the targeted command below",
+    "no self-delegation by any worker",
+    "no readiness flag change (all remain false)",
+    "no production, release, or deploy claim"
+  ],
+
+  "evidence": {
+    "red": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16,
+      "pass": 13,
+      "fail": 3,
+      "note": "3 changed test scenarios (progress counter/current-truth/ROADMAP-README-CHANGELOG projection) failed against pre-sync state at initial test SHA 3b4b5b956aad0205fa597ff220e1b7539f29e2f1f50654d9901b46502050b6f1; 13 unchanged scenarios already passed"
+    },
+    "implementationPause": {
+      "note": "implementation writer reached 15/16 targeted and honestly paused on one pre-existing shared invariant conflict against an older test block rather than editing the test file",
+      "tests": 16,
+      "pass": 15,
+      "fail": 1
+    },
+    "targetedGreen": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "testSha256": "db0021e8b14be03dac15014ec58cd4f34e786021da000de542508414b561d7d5"
+    },
+    "changedScenarios": [
+      "roadmap.progress carries the exact 7/25 completed truth with P07 closed and P08 active",
+      "currentTruth reflects P07 (generic renderActionSdk over ActionContract) as implemented and P08 as the explicit next-missing piece, with all readiness flags false",
+      "ROADMAP.md, README.md and CHANGELOG.md project P07 closed / P08 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter",
+      "the older global missing-pieces invariant now expects P08 versioned SDK distribution rather than completed P07, since P07 is closed and the next-missing piece has shifted"
+    ],
+    "fullPackageGate": {
+      "note": "honest full-package numstat/default-band gate: this is a small, additive documentation/current-truth-only change (6 files touched, no runtime/src change); QA1 (full local QA) and CI full QA remain pending per the two-full-QA-run budget",
+      "qa1": "pending",
+      "ci": "pending",
+      "fullQaBudget": { "total": 2, "spent": 0, "remaining": 2 }
+    },
+    "lineCounts": {
+      "changelogMd": { "additions": 11, "deletions": 0 },
+      "readmeMd": { "additions": 13, "deletions": 8 },
+      "roadmapMd": { "additions": 6, "deletions": 6 },
+      "currentTruthJson": { "additions": 14, "deletions": 13 },
+      "testFile": { "additions": 25, "deletions": 26 },
+      "thisPlanningRecord": { "additions": 134, "deletions": 0 },
+      "grossAdditions": 203,
+      "grossDeletions": 53,
+      "net": 150,
+      "filesChanged": 6,
+      "defaultBand": "GREEN_NET_LE_400"
+    }
+  },
+
+  "processTruth": {
+    "delegation": "workers never self-delegated; MASTER performed serial handoffs between test-authoring, implementation and correction roles",
+    "stagingEvent": "one temporary git-add index mutation for measurement occurred during the implementation handoff; it was immediately reversed under MASTER correction; the index is now empty; no commit or push occurred and no byte drift resulted from the reversal"
+  },
+
+  "rollback": "one normal git revert of the eventual atomic six-file commit (planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md, tests/kernel-roadmap-v1-current-truth.test.mjs, planning/kernel-p07-current-truth-closure-p07b.json); no migration or data cleanup required",
+
+  "ownerFacing": {
+    "once": "Once P07'nin genel renderActionSdk ureticisi gercek P02 ActionContract uzerinde test-verified olarak var olmustu ama roadmap sayaci bunu hala yansitmiyordu.",
+    "simdi": "Simdi tek kaynak dosya + ROADMAP.md + README + CHANGELOG + duzeltilmis test dosyasi ayni 7/25 tamamlandi, P08/25 aktif durumunu projekte ediyor; hicbir calisma zamani davranisi degismedi.",
+    "fark": "Once sayac 6/25'te kalmisti; simdi P07 kapali, P08 (versiyonlu SDK dagitimi) aktif olarak dogru senkronize.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor.",
+    "kalanEngel": "P08 (versiyonlu SDK dagitimi) dahil F2-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz.",
+    "capability_delta": "NONE",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
