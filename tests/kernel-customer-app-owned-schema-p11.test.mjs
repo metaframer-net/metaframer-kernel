@@ -111,15 +111,17 @@ test("missing/extra/wrong-type/blank-name/non-object payloads fail closed", asyn
   assert.throws(() => canonicalizeCustomerRecord({ ...valid, name: 42 }));
 });
 
-test("descriptor agrees with the persistence-ownership record and the transitional 0002_customer_records shape", async () => {
+test("descriptor agrees with the persistence-ownership record and the historical application-owned 0002_customer_records shape", async () => {
   const { CUSTOMER_RECORDS_SCHEMA } = await loadSchemaModule();
   const ownership = await readJson("planning/kernel-persistence-ownership.json");
 
-  const transitional = ownership.transitionalInKernel.find((e) => e.table === "customer_records");
-  assert.ok(transitional, "transitionalInKernel must list customer_records");
-  assert.equal(transitional.targetOwner, "application");
-  assert.equal(transitional.retirementPath, "P11-P14");
-  assert.equal(transitional.migrationFile, "0002_customer_records.py");
+  const historical = ownership.applicationOwnedHistoricalMigrations.find((e) => e.table === "customer_records");
+  assert.ok(historical, "applicationOwnedHistoricalMigrations must list customer_records");
+  assert.equal(historical.status, "historical-application-migration");
+  assert.equal(historical.targetOwner, "application");
+  assert.equal(historical.preserveInPlace, true);
+  assert.equal(historical.requiredByRevision, "0003_policy_decision_log.py");
+  assert.equal(historical.migrationFile, "0002_customer_records.py");
 
   assert.equal(CUSTOMER_RECORDS_SCHEMA.targetOwner, "application");
   assert.equal(CUSTOMER_RECORDS_SCHEMA.retirementPath, "P11-P14");

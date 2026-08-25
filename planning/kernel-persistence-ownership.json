@@ -23,14 +23,22 @@
   "kernelOwnedRuntimeTables": ["mfk_context_key", "transactional_outbox", "audit_log"],
   "kernelOwnedAdapterFiles": [],
   "p05CompositionAdapterFiles": ["postgres-unit-of-work.mjs", "postgres-write-envelope-write.mjs"],
-  "transitionalInKernel": [
+  "applicationOwnedHistoricalMigrations": [
     {
       "migrationFile": "0002_customer_records.py",
       "table": "customer_records",
-      "adapterFile": "postgres-commit-adapter.mjs",
-      "status": "transitional-in-kernel",
+      "status": "historical-application-migration",
       "targetOwner": "application",
-      "retirementPath": "P11-P14",
+      "preserveInPlace": true,
+      "requiredByRevision": "0003_policy_decision_log.py"
+    }
+  ],
+  "transitionalKernelAdapters": [
+    {
+      "adapterFile": "postgres-commit-adapter.mjs",
+      "status": "retirement-pending",
+      "targetOwner": "application",
+      "retirementPath": "P14",
       "removalIsConvergence": true
     }
   ]

@@ -32,6 +32,26 @@ def upgrade():
     op.execute(f"CREATE TABLE {CUSTOMER_TABLE} (id uuid)")
 `;
 
+// P14c split ownership contract: applicationOwnedHistoricalMigrations replaces the migration
+// half of the retired combined transitionalInKernel record, and transitionalKernelAdapters
+// replaces the adapter half. transitionalInKernel itself is retired in the P14c real contract.
+const P14C_HISTORICAL_MIGRATION = {
+  migrationFile: "0002_customer_records.py",
+  table: "customer_records",
+  status: "historical-application-migration",
+  targetOwner: "application",
+  preserveInPlace: true,
+  requiredByRevision: "0003_policy_decision_log.py",
+};
+
+const P14C_TRANSITIONAL_ADAPTER = {
+  adapterFile: "postgres-commit-adapter.mjs",
+  status: "retirement-pending",
+  targetOwner: "application",
+  retirementPath: "P14",
+  removalIsConvergence: true,
+};
+
 const DEFAULT_MANIFEST = {
   packageState: "writer-candidate-awaiting-external-gates",
   capabilityDelta: "NONE",
@@ -46,17 +66,8 @@ const DEFAULT_MANIFEST = {
   ],
   kernelOwnedRuntimeTables: ["mfk_context_key", "transactional_outbox", "audit_log"],
   kernelOwnedAdapterFiles: [],
-  transitionalInKernel: [
-    {
-      migrationFile: "0002_customer_records.py",
-      table: "customer_records",
-      adapterFile: "postgres-commit-adapter.mjs",
-      status: "transitional-in-kernel",
-      targetOwner: "application",
-      retirementPath: "P11-P14",
-      removalIsConvergence: true,
-    },
-  ],
+  applicationOwnedHistoricalMigrations: [P14C_HISTORICAL_MIGRATION],
+  transitionalKernelAdapters: [P14C_TRANSITIONAL_ADAPTER],
 };
 
 const CANONICAL_SURFACE = {
@@ -109,16 +120,6 @@ test("real repository checkout classifies cleanly", () => {
   assertClean(evaluatePersistenceOwnership({ manifest, repoRoot: root }));
 });
 
-test("real manifest declares customer_records as transitional-in-kernel with application target owner and P11-P14 retirement", () => {
-  const manifest = loadManifest(path.join(root, MANIFEST_PATH));
-  const entry = manifest.transitionalInKernel.find((e) => e.table === "customer_records");
-  assert.ok(entry, "customer_records must be declared transitional");
-  assert.equal(entry.status, "transitional-in-kernel");
-  assert.equal(entry.targetOwner, "application");
-  assert.equal(entry.retirementPath, "P11-P14");
-  assert.notEqual(entry.status, "kernel-owned");
-});
-
 test("clean declared tree passes with no violations", () => {
   assertClean(evalTree(baseTree));
 });
@@ -147,20 +148,8 @@ test("a new undeclared adapter file is denied", () => {
   assertDenied(result, "mystery-adapter.mjs");
 });
 
-test("the exact current transitional customer_records exception passes", () => {
+test("the exact current historical application-owned customer_records exception passes", () => {
   assertClean(evalTree(baseTree));
-});
-
-test("removing the transitional customer_records migration entry, adapter entry, and their physical files is admissible convergence", () => {
-  const result = evalTree(
-    (d) => {
-      mkdirSync(path.join(d, "migrations"), { recursive: true });
-      mkdirSync(path.join(d, "adapters"), { recursive: true });
-      writeFileSync(path.join(d, "migrations", "0001_runtime_substrate.py"), BASELINE_0001);
-    },
-    { transitionalInKernel: [] },
-  );
-  assertClean(result);
 });
 
 test("case-variant table name against declaration is denied", () => {
@@ -240,7 +229,6 @@ test("the real 0001/0002 ALTER TABLE ENABLE/FORCE ROW LEVEL SECURITY statements 
 test("editing the manifest alone to relabel customer_records as kernel-owned cannot self-authorize growth", () => {
   const result = evalTree(baseTree, {
     kernelOwnedRuntimeTables: ["mfk_context_key", "transactional_outbox", "audit_log", "customer_records"],
-    transitionalInKernel: [],
   });
   assertDenied(result, "customer_records");
 });
@@ -251,7 +239,6 @@ test("moving the real 0002_customer_records.py/table into kernelOwnedMigrations 
       { file: "0001_runtime_substrate.py", tables: ["mfk_context_key", "transactional_outbox", "audit_log"] },
       { file: "0002_customer_records.py", tables: ["customer_records"] },
     ],
-    transitionalInKernel: [],
   });
   assertDenied(result, "frozen closed kernel-owned migration set");
 });
@@ -264,11 +251,6 @@ test("a kernelOwnedMigrations entry for a file/table that does not exist on disk
     ],
   });
   assertDenied(result, "frozen closed kernel-owned migration set");
-});
-
-test("dropping the manifest transitional record while the physical migration/adapter still exist is denied", () => {
-  const result = evalTree(baseTree, { transitionalInKernel: [] });
-  assertDenied(result, "physical migration still present");
 });
 
 for (const [label, dirKey, override] of [
@@ -331,8 +313,34 @@ test("a manifest-only fake fullGreen/readiness claim is denied", () => {
   assertDenied(evalTree(baseTree, { fullGreen: "claimed" }), "fullGreen");
 });
 
-test("a non-array transitionalInKernel is denied rather than treated as absent", () => {
-  assertDenied(evalTree(baseTree, { transitionalInKernel: { table: "customer_records" } }), "must be an array");
+test("P14c a manifest still declaring the legacy retired transitionalInKernel field is denied, not silently accepted alongside the split contract", () => {
+  assertDenied(
+    evalTree(baseTree, {
+      transitionalInKernel: [
+        {
+          migrationFile: "0002_customer_records.py",
+          table: "customer_records",
+          adapterFile: "postgres-commit-adapter.mjs",
+          status: "transitional-in-kernel",
+          targetOwner: "application",
+          retirementPath: "P11-P14",
+          removalIsConvergence: true,
+        },
+      ],
+    }),
+    "transitionalInKernel",
+  );
+});
+
+test("P14c a manifest with an own transitionalInKernel property whose value is undefined is denied, not treated as absent", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "kernel-persistence-ownership-"));
+  writeCanonicalSurface(dir);
+  baseTree(dir);
+  const manifest = { ...DEFAULT_MANIFEST };
+  manifest.transitionalInKernel = undefined;
+  const result = evaluatePersistenceOwnership({ manifest, repoRoot: dir });
+  rmSync(dir, { recursive: true, force: true });
+  assertDenied(result, "transitionalInKernel");
 });
 
 test("an intermediate symlink resolving back inside repoRoot is denied as ambiguous, not silently accepted", () => {
@@ -353,6 +361,88 @@ test("an intermediate symlink resolving back inside repoRoot is denied as ambigu
     rmSync(dir, { recursive: true, force: true });
   }
   assertDenied(result, "resolves ambiguously");
+});
+
+test("P14c real manifest freezes the split ownership contract (one applicationOwnedHistoricalMigrations record, one transitionalKernelAdapters record, legacy transitionalInKernel retired) and the 0002-to-0003 migration history stays intact", () => {
+  const manifest = loadManifest(path.join(root, MANIFEST_PATH));
+  assert.equal(manifest.transitionalInKernel, undefined, "legacy combined transitionalInKernel must be retired in the P14c real contract");
+
+  assert.ok(Array.isArray(manifest.applicationOwnedHistoricalMigrations), "applicationOwnedHistoricalMigrations must be an array");
+  assert.equal(manifest.applicationOwnedHistoricalMigrations.length, 1);
+  assert.deepEqual(manifest.applicationOwnedHistoricalMigrations[0], P14C_HISTORICAL_MIGRATION);
+
+  assert.ok(Array.isArray(manifest.transitionalKernelAdapters), "transitionalKernelAdapters must be an array");
+  assert.equal(manifest.transitionalKernelAdapters.length, 1);
+  assert.deepEqual(manifest.transitionalKernelAdapters[0], P14C_TRANSITIONAL_ADAPTER);
+
+  const migrationsDir = path.join(root, "db/metaframer_kernel_db/alembic/versions");
+  const rev0002 = readFileSync(path.join(migrationsDir, "0002_customer_records.py"), "utf8");
+  const rev0003 = readFileSync(path.join(migrationsDir, "0003_policy_decision_log.py"), "utf8");
+  assert.match(rev0002, /revision\s*=\s*"0002_customer_records"/);
+  assert.match(rev0002, /down_revision\s*=\s*"0001_runtime_substrate"/);
+  assert.match(rev0003, /revision\s*=\s*"0003_policy_decision_log"/);
+  assert.match(rev0003, /down_revision\s*=\s*"0002_customer_records"/);
+});
+
+test("P14c a tree declared under the split contract (historical migration record + transitional adapter record, no legacy transitionalInKernel) is admissible", () => {
+  const result = evalTree(baseTree, {
+    applicationOwnedHistoricalMigrations: [P14C_HISTORICAL_MIGRATION],
+    transitionalKernelAdapters: [P14C_TRANSITIONAL_ADAPTER],
+  });
+  assertClean(result);
+});
+
+test("P14c a missing, relabelled, or grown applicationOwnedHistoricalMigrations record while the physical 0002 migration remains is denied in every case", () => {
+  for (const [label, historical] of [
+    ["a missing applicationOwnedHistoricalMigrations record", []],
+    ["a relabelled applicationOwnedHistoricalMigrations status", [{ ...P14C_HISTORICAL_MIGRATION, status: "kernel-owned" }]],
+    [
+      "a grown applicationOwnedHistoricalMigrations set",
+      [P14C_HISTORICAL_MIGRATION, { ...P14C_HISTORICAL_MIGRATION, migrationFile: "0099_ghost.py", table: "ghost_table" }],
+    ],
+  ]) {
+    const result = evalTree(baseTree, {
+      applicationOwnedHistoricalMigrations: historical,
+      transitionalKernelAdapters: [P14C_TRANSITIONAL_ADAPTER],
+    });
+    assertDenied(result);
+    assert.ok(result.violations.length > 0, `expected denial violations for ${label}`);
+  }
+});
+
+test("P14c removing the transitionalKernelAdapters declaration while the physical adapter file remains is denied", () => {
+  const result = evalTree(baseTree, {
+    applicationOwnedHistoricalMigrations: [P14C_HISTORICAL_MIGRATION],
+    transitionalKernelAdapters: [],
+  });
+  assertDenied(result);
+});
+
+test("P14c removing both the transitionalKernelAdapters declaration and the physical adapter file is admissible convergence while the 0002 historical migration record remains", () => {
+  const result = evalTree(
+    (d) => {
+      mkdirSync(path.join(d, "migrations"), { recursive: true });
+      mkdirSync(path.join(d, "adapters"), { recursive: true });
+      writeFileSync(path.join(d, "migrations", "0001_runtime_substrate.py"), BASELINE_0001);
+      writeFileSync(path.join(d, "migrations", "0002_customer_records.py"), TRANSITIONAL_0002);
+    },
+    {
+      applicationOwnedHistoricalMigrations: [P14C_HISTORICAL_MIGRATION],
+      transitionalKernelAdapters: [],
+    },
+  );
+  assertClean(result);
+});
+
+test("P14c an unknown adapter added to transitionalKernelAdapters is denied, not treated as growth admission", () => {
+  const result = evalTree(baseTree, {
+    applicationOwnedHistoricalMigrations: [P14C_HISTORICAL_MIGRATION],
+    transitionalKernelAdapters: [
+      P14C_TRANSITIONAL_ADAPTER,
+      { adapterFile: "mystery-adapter.mjs", status: "retirement-pending", targetOwner: "application", retirementPath: "P14", removalIsConvergence: true },
+    ],
+  });
+  assertDenied(result, "mystery-adapter.mjs");
 });
 
 test("import is side-effect-free: loading the module performs no filesystem writes or process exit", async () => {
