@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-p13-current-truth-closure-p13b-2026-08-25",
+  "packageKind": "current-truth-closure",
+  "type": "roadmap-current-truth-sync",
+  "packageState": "writer-complete-awaiting-review-and-ci",
+
+  "base": {
+    "commit": "ef9a0b92e40e554decaae0295e588dea58efd5df",
+    "tree": "3880c2950f52bda90846f20cae517349fa7bcc70"
+  },
+
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p13-current-truth-20260825",
+
+  "scopeHashes": {
+    "master": "1fd6d7d5899d71ba906b24b4ddfb9b4a6f49d16debff3d303c6b6205622cb7a0",
+    "blind": "4f1fe2e1be571eb182c10047cad73341ef849b35e0347a88f78ee07089bcc986",
+    "synthesis": "31675936ccb21dfe86a975fe24a008a24a73e1e78e55975f7d37f5ef228ac76e"
+  },
+
+  "actionplanBudgetPin": {
+    "sha": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+    "role": "change-package budget/class definitions source for this package",
+    "location": "src/data/standards/short-code.json#changePackageBudget",
+    "defaults": { "maxNet": 400, "maxFiles": 20 }
+  },
+
+  "recoveryNote": "P13B_IMPLEMENTATION_RECOVERY: a prior implementation panel started 'npm test' but its Pane session terminated (initialized=false) before any result was retrievable; no QA process survived to report a verdict. That attempt is classified as environment-invalid evidence, not a valid QA budget spend, and is not counted against fullQaBudget. This recovery writer resumed from the same immutable base/tree with the implementation edits already present in the working tree, first repaired this record's truth (scope hashes, honest execution history), then ran the recovery-valid writer-local QA1 exactly once (npm test, then npm run check), each command executed a single time and not rerun.",
+
+  "testProvenance": {
+    "path": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "note": "test file authored exclusively by the separate, already-completed test writer role; this implementation writer preserved it byte-for-byte and made no edit to it",
+    "sha256": "0996351b54a0430e488454e4e4fea976ba565ef2324b4df67cbc11ffc03db128",
+    "red": { "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs", "tests": 16, "pass": 12, "fail": 4 },
+    "final": {
+      "sha256": "0996351b54a0430e488454e4e4fea976ba565ef2324b4df67cbc11ffc03db128",
+      "targetedGreenResult": { "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0 }
+    },
+    "executionHistory": {
+      "frozenPreImplementationRed": {
+        "note": "frozen pre-implementation RED truth: 16 total, 12 pass, 4 fail, across four scenarios: global implemented/missing truth; exact progress 13/P14; P13 currentTruth/P14 missing; ROADMAP/README/CHANGELOG projection.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 12, "fail": 4
+      },
+      "intermediateImplementationRun": {
+        "note": "an intermediate implementation run reached 15/16 pass, 1 remaining fail, before the last projection detail was corrected.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 15, "fail": 1
+      },
+      "targetedGreenRun": {
+        "note": "targeted run reached 16/16 GREEN after all four scenarios were corrected; test file stayed byte-identical throughout.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0
+      },
+      "confirmationGreenRun": {
+        "note": "confirmation run re-verified 16/16 GREEN; test file remained byte-identical.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0
+      },
+      "priorPanelNpmTestAttempt": {
+        "note": "predecessor implementation panel invoked 'npm test' but the panel terminated (initialized=false) before any result was retrievable; classified as environment-invalid evidence, excluded from the QA budget, and superseded by this recovery writer's own recovery-valid QA1 run below.",
+        "command": "npm test",
+        "result": "UNRETRIEVABLE_ENVIRONMENT_INVALID"
+      }
+    }
+  },
+
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p13-current-truth-closure-p13b.json"
+  ],
+
+  "nonGoals": [
+    "no runtime/src/db/host/tool/config/generated/CI/dependency/version change",
+    "no P13 implementation/evidence file change (consumers/customer-app-core/customer-data-cutover.mjs and planning/kernel-customer-data-cutover-p13.json untouched)",
+    "no P14 implementation",
+    "no dependency DAG, family, package name, or version change",
+    "no package.json, lockfile, CI/workflow/config change",
+    "no release, deploy or readiness flag change (all remain false)",
+    "no staging, commit, or push performed by this package",
+    "no test edit; tests/kernel-roadmap-v1-current-truth.test.mjs remains byte-identical",
+    "no self-delegation by any worker"
+  ],
+
+  "evidence": {
+    "red": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16, "pass": 12, "fail": 4,
+      "note": "frozen pre-implementation RED: four scenarios failed (global implemented/missing truth; exact progress 13/P14; P13 currentTruth/P14 missing; ROADMAP/README/CHANGELOG projection); 12 unchanged scenarios already passed"
+    },
+    "targetedGreen": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0,
+      "testSha256": "0996351b54a0430e488454e4e4fea976ba565ef2324b4df67cbc11ffc03db128"
+    },
+    "changedScenarios": [
+      "roadmap.progress carries the exact 13/25 completed truth with P13 closed and P14 (Kernel cleanup and parity) active",
+      "currentTruth reflects P13 (data cutover and rollback) as implemented, anchored to real merged evidence, and P14 as the explicit next-missing piece, with all readiness flags false",
+      "ROADMAP.md, README.md and CHANGELOG.md project P13 closed / P14 active",
+      "the global implemented/missing invariant now expects P14 (Kernel cleanup and parity) rather than completed P13, since P13 is closed and the next-missing piece has shifted"
+    ],
+    "fullPackageGate": {
+      "note": "recovery-valid writer-local QA1, executed exactly once each after the prior panel's unretrievable npm test attempt was excluded from the budget",
+      "qa1": "GREEN",
+      "qa1Evidence": {
+        "npmTest": { "tests": 1521, "pass": 1521, "fail": 0, "cancelled": 0, "skipped": 0 },
+        "npmRunCheck": "exit 0, all gates GREEN/OK"
+      },
+      "ci": "pending",
+      "fullQaBudget": { "total": 2, "spent": 1, "remaining": 1 }
+    },
+    "externalBudgetPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "lineCounts": {
+      "changelogMd": { "additions": 12, "deletions": 0 },
+      "readmeMd": { "additions": 15, "deletions": 5 },
+      "roadmapMd": { "additions": 6, "deletions": 5 },
+      "currentTruthJson": { "additions": 14, "deletions": 14 },
+      "testFile": { "additions": 36, "deletions": 31, "note": "separate test-writer file, byte-identical to the frozen sha256 handoff; already present in the working tree from the completed prior test-writer role, not edited by this writer" },
+      "thisPlanningRecordJson": { "additions": 151, "deletions": 0, "note": "new file; included in the package truth, not excluded; final stable line count after this recovery correction" },
+      "grossAdditions": 234,
+      "grossDeletions": 55,
+      "net": 179,
+      "filesChanged": 6,
+      "defaultBand": "GREEN_NET_LE_400"
+    },
+    "readinessProductFlags": { "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false, "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false, "capabilityDelta": "NONE", "calistirilabilirlik": "not-runnable" }
+  },
+
+  "processTruth": {
+    "delegation": "single implementation-recovery writer role, no self-delegation; test file was already authored and completed by a separate prior test writer",
+    "stagingEvent": "no staging, commit or push performed by this package",
+    "implementationTargetedExecutionCount": 4,
+    "targetedExecutionNote": "the targeted test command was run four times across the implementation history: one frozen RED confirmation (12/16), one intermediate correction run (15/16), one targeted GREEN run (16/16), and one confirmation GREEN run (16/16); the predecessor panel's separate 'npm test' attempt is recorded above as environment-invalid and excluded from this count and from the QA budget.",
+    "fullQaExecutionCount": 1
+  },
+
+  "rollback": "one normal git revert of the eventual atomic package covering planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md, planning/kernel-p13-current-truth-closure-p13b.json, and tests/kernel-roadmap-v1-current-truth.test.mjs; the test file's content within that commit remains solely the separate test writer's authored/handed-off provenance (sha256 0996351b54a0430e488454e4e4fea976ba565ef2324b4df67cbc11ffc03db128), unedited by this implementation writer; no migration or data cleanup required",
+
+  "ownerFacing": {
+    "once": "Once P13'un dondurulmus, geri-alinabilir (reversible) musteri veri gecis/rollback kanit dosyasi main'e mergelenmisti ama roadmap sayaci ve bu kayit hala eksik/dogrulanmamis haldeydi; onceki uygulama paneli 'npm test' calistirmayi baslatti ama Pane oturumu sonuc gelmeden sonlandi.",
+    "simdi": "Simdi tek kaynak dosya + ROADMAP.md + README + CHANGELOG ayni 13/25 tamamlandi, P14 (Kernel temizligi ve parite) aktif durumunu projekte ediyor; bu kurtarma yazicisi kayittaki kapsam hash'lerini ve gercek calistirma gecmisini onardi, ardindan tek seferlik gecerli QA1'i (npm test + npm run check) calistirdi ve GREEN aldi; hicbir calisma zamani davranisi degismedi.",
+    "fark": "Once sayac 12/25'te kalmisti ve kayit dogrulanmamisti; simdi P13 kapali, P14 aktif olarak dogru senkronize ve kayit gercek kanitla eslesiyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor.",
+    "kalanEngel": "P14 (Kernel temizligi ve parite) dahil F3-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz.",
+    "capability_delta": "NONE",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
