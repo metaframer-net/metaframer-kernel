@@ -5,7 +5,7 @@ import { CreateCustomerPipeline } from "../src/application/create-customer-pipel
 import { CreateCustomerCommitService } from "../src/application/create-customer-commit-service.mjs";
 import { Identity } from "../src/application/identity.mjs";
 import { PolicyDecisionPoint } from "../src/application/policy-decision-point.mjs";
-import { ActorId, Principal, TenantId } from "../src/domain/identity-primitives.mjs";
+import { ActorId, IdempotencyKey, Principal, TenantId } from "../src/domain/identity-primitives.mjs";
 
 const TENANT = "11111111-1111-4111-8111-111111111111";
 const REQUEST_ID = "33333333-3333-4333-8333-333333333333";
@@ -98,16 +98,16 @@ test("non-allow outcome: INVALID is returned frozen, preserved, with commitRecei
   assert.ok(Object.isFrozen(result));
 });
 
-test("ALLOW_COMMIT: commit is called exactly once with preparedChangeSet and tenantId, and result is COMMITTED", async () => {
+test("ALLOW_COMMIT: commit is called exactly once with preparedChangeSet and a fresh frozen ordinary context carrying exactly requestId, tenantId, idempotencyKey", async () => {
   let callCount = 0;
   let receivedChangeSet;
-  let receivedOptions;
+  let receivedContext;
   const service = new CreateCustomerCommitService({
     pipeline: pipelineOf(),
-    commit: async (preparedChangeSet, options) => {
+    commit: async (preparedChangeSet, context) => {
       callCount += 1;
       receivedChangeSet = preparedChangeSet;
-      receivedOptions = options;
+      receivedContext = context;
       return FAKE_RECEIPT;
     },
   });
@@ -116,7 +116,14 @@ test("ALLOW_COMMIT: commit is called exactly once with preparedChangeSet and ten
 
   assert.equal(callCount, 1);
   assert.equal(receivedChangeSet.persistenceState, "pending");
-  assert.deepEqual(receivedOptions, { tenantId: TENANT });
+  assert.equal(Object.getPrototypeOf(receivedContext), Object.prototype);
+  assert.ok(Object.isFrozen(receivedContext));
+  assert.deepEqual(Object.keys(receivedContext).sort(), ["idempotencyKey", "requestId", "tenantId"]);
+  assert.deepEqual(receivedContext, {
+    requestId: REQUEST_ID,
+    tenantId: TENANT,
+    idempotencyKey: "order-42",
+  });
 
   assert.equal(result.outcome, "COMMITTED");
   assert.equal(result.requestId, REQUEST_ID);
@@ -124,6 +131,74 @@ test("ALLOW_COMMIT: commit is called exactly once with preparedChangeSet and ten
   assert.equal(result.preparedChangeSet, null);
   assert.equal(result.commitReceipt, FAKE_RECEIPT);
   assert.ok(Object.isFrozen(result));
+});
+
+test("ALLOW_COMMIT: two allowed requests do not share or leak context objects", async () => {
+  const receivedContexts = [];
+  const service = new CreateCustomerCommitService({
+    pipeline: pipelineOf(),
+    commit: async (preparedChangeSet, context) => {
+      receivedContexts.push(context);
+      return FAKE_RECEIPT;
+    },
+  });
+
+  const REQUEST_ID_2 = "44444444-4444-4444-8444-444444444444";
+  await service.handle(validActionSpec());
+  await service.handle(validActionSpec({ requestId: REQUEST_ID_2, idempotencyKey: "order-43" }));
+
+  assert.equal(receivedContexts.length, 2);
+  assert.notEqual(receivedContexts[0], receivedContexts[1]);
+  assert.equal(receivedContexts[0].requestId, REQUEST_ID);
+  assert.equal(receivedContexts[0].idempotencyKey, "order-42");
+  assert.equal(receivedContexts[1].requestId, REQUEST_ID_2);
+  assert.equal(receivedContexts[1].idempotencyKey, "order-43");
+});
+
+test("ALLOW_COMMIT: exact receipt identity passes through unchanged and the public COMMITTED result shape stays unchanged", async () => {
+  const service = new CreateCustomerCommitService({
+    pipeline: pipelineOf(),
+    commit: async () => FAKE_RECEIPT,
+  });
+
+  const result = await service.handle(validActionSpec());
+
+  assert.equal(result.commitReceipt, FAKE_RECEIPT);
+  assert.deepEqual(Object.keys(result).sort(), ["commitReceipt", "error", "outcome", "preparedChangeSet", "requestId"]);
+});
+
+test("TOCTOU: the commit context carries the idempotencyKey captured before the pipeline's first await, not a value the ActionSpec is mutated to while the pipeline is suspended", async () => {
+  const actionSpec = validActionSpec();
+  const originalIdempotencyKey = actionSpec.idempotencyKey;
+  let receivedChangeSet;
+  let receivedContext;
+
+  const suspendingIdentity = new Identity({
+    current: async () => {
+      actionSpec.idempotencyKey = "mutated-while-suspended";
+      return principalOf(TENANT, ACTOR);
+    },
+  });
+
+  const service = new CreateCustomerCommitService({
+    pipeline: new CreateCustomerPipeline({
+      identity: suspendingIdentity,
+      policyDecisionPoint: pdpAnswering([ALLOW_CANDIDATE]),
+      evaluateInvariants: alwaysValidInvariants,
+    }),
+    commit: async (preparedChangeSet, context) => {
+      receivedChangeSet = preparedChangeSet;
+      receivedContext = context;
+      return FAKE_RECEIPT;
+    },
+  });
+
+  const result = await service.handle(actionSpec);
+
+  const expectedFingerprint = new IdempotencyKey(originalIdempotencyKey).fingerprint;
+  assert.equal(receivedChangeSet.intents.idempotency.fingerprint, expectedFingerprint);
+  assert.equal(receivedContext.idempotencyKey, originalIdempotencyKey);
+  assert.equal(result.outcome, "COMMITTED");
 });
 
 test("service instance is frozen and carries a stable toStringTag", () => {
