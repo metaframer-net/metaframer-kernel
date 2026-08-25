@@ -552,7 +552,10 @@ to end into the CreateCustomer commit-boundary composition chain and test-verifi
 (generic generator) as the active package. A further roadmap current-truth package has since
 synced the counter again to `7/25 tamamlandı, P08/25 aktif`, closing P07 (the generic
 `renderActionSdk` generator over an exact P02 `ActionContract`, test-verified) with P08
-(versioned SDK distribution) as the active package; that later sync also adds no runtime
+(versioned SDK distribution) as the active package. A subsequent roadmap current-truth package
+has since synced the counter again to `8/25 tamamlandı, P09/25 aktif`, closing P08 (the
+`renderVersionedActionSdkDistribution` wrapper over P07's generator, test-verified) with P09
+(clean consumer conformance) as the active package; that later sync also adds no runtime
 capability and moves no flag under **Current status**.
 
 ## Authorized order and what remains closed
@@ -569,7 +572,9 @@ sequential batch evaluation and PostgreSQL-backed decision-log composition
 composition, `CommitReceipt` and the write envelope wiring the unit-of-work port to a real
 commit boundary — is now also merged and test-verified. P07 — the generic contract-to-SDK
 generator (`renderActionSdk` over an exact P02 `ActionContract`) — is now also merged and
-test-verified. What that stage still lacks is P08 — versioned SDK distribution — the active next
+test-verified. P08 — versioned SDK distribution (`renderVersionedActionSdkDistribution` wrapping
+P07's generator with a caller-supplied Kernel distribution version) — is now also merged and
+test-verified. What that stage still lacks is P09 — clean consumer conformance — the active next
 package. app-core, the product Surface and every later readiness/promotion gate remain closed and
 unstarted, and nothing here may be read as opening them.
 
