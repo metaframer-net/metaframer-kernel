@@ -27,6 +27,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`,
   `oneGoldenSliceReady`, `runnableProduct`) stays `false`; `capability_delta:
   GENERIC_SDK_GENERATOR_ONLY`.
+- P07b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p07-current-truth-closure-p07b.json`): synced the roadmap current-truth
+  artifact to P07's real evidence — the generic `renderActionSdk(contract)` generator
+  (`tools/generate-action-sdk.mjs`), consuming an exact P02 `ActionContract` instance, is now
+  recorded as implemented, removing the prior "generic contract-to-SDK generator... not yet"
+  claim. Progress moves from `6/25 tamamlandı, P07/25 aktif` to
+  `7/25 tamamlandı, P08/25 aktif` (completed: P01–P07; active: P08, versioned SDK distribution),
+  with every readiness flag (`kernelReady`, `sdkReady`, `appBuildable`, `releaseAllowed`,
+  `deployAllowed`, `productionAllowed`, `gapClosed`, `oneGoldenSliceReady`, `runnableProduct`)
+  held `false` and `capability_delta: NONE`. This is a documentation/current-truth sync only; it
+  adds no runtime capability and moves no readiness flag.
 - P05f `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections):
   synced the roadmap current-truth artifact to P05's real evidence — `UnitOfWork` (UoW), the
   canonical `CommitReceipt` and the write envelope are now recorded as implemented and composed

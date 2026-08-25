@@ -31,13 +31,13 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`6/25 tamamlandı, P07/25 aktif` (`roadmap.progress` in
+`7/25 tamamlandı, P08/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
-packages: P01, P02, P03, P04, P05, P06. P05 (UoW, CommitReceipt and write envelope) is
-closed — its `UnitOfWork`, canonical `CommitReceipt` and write envelope are composed end to end
-into the CreateCustomer commit-boundary composition chain and test-verified. P07 (generic
-generator) is the active package and the next explicit gap; none of this moves any readiness
-flag under [README.md](README.md) `## Current status`.
+packages: P01, P02, P03, P04, P05, P06, P07. P07 (generic generator) is closed — its
+`renderActionSdk` generator (`tools/generate-action-sdk.mjs`) consumes an exact P02
+`ActionContract` instance and is test-verified. P08 (versioned SDK distribution) is the active
+package and the next explicit gap; none of this moves any readiness flag under
+[README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG
 

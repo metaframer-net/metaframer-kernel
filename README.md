@@ -139,7 +139,8 @@ module imports outward. `src/adapters`, `src/delivery` and `src/sdk` exist as se
 authorized, permitted-but-not-required boundaries under
 [`tools/check-repository-boundary.mjs`](tools/check-repository-boundary.mjs); each currently
 holds only the CreateCustomer-specific golden-slice pieces (a Postgres commit adapter, ASGI
-host-boundary composition, and a generated client), not a generic ring. `src/application` is
+host-boundary composition, and a generated client), not a generic ring. A generic
+contract-to-SDK generator now exists at `tools/generate-action-sdk.mjs` (P07), outside `src/`. `src/application` is
 the permitted Application ring of the onion, not an end-user app and not a delivery surface.
 
 **M1-01 — identity primitives.**
@@ -545,11 +546,14 @@ ROADMAP/README/CHANGELOG record within its own separately frozen scope) has now 
 roadmap counter to this evidence: `5/25 tamamlandı, P05/25 aktif`. P04 (policy-as-data, batch
 and decision-log adapter) is closed; P05 (UoW, CommitReceipt and write envelope) is the active
 package. This truth-sync adds no runtime capability and moves no flag under **Current status**.
-The subsequent P05f roadmap current-truth package has since synced the counter again to
+The subsequent P05f roadmap current-truth package synced the counter to
 `6/25 tamamlandı, P07/25 aktif`, closing P05 (UoW, CommitReceipt and write envelope, composed end
 to end into the CreateCustomer commit-boundary composition chain and test-verified) with P07
-(generic generator) as the active package; that later sync also adds no runtime capability and
-moves no flag under **Current status**.
+(generic generator) as the active package. A further roadmap current-truth package has since
+synced the counter again to `7/25 tamamlandı, P08/25 aktif`, closing P07 (the generic
+`renderActionSdk` generator over an exact P02 `ActionContract`, test-verified) with P08
+(versioned SDK distribution) as the active package; that later sync also adds no runtime
+capability and moves no flag under **Current status**.
 
 ## Authorized order and what remains closed
 
@@ -563,10 +567,11 @@ the ports, the PolicyDecision protocol values, the candidate-outcome combining r
 sequential batch evaluation and PostgreSQL-backed decision-log composition
 (`policyDecisionLogComposition`) are merged and test-verified on `main`. P05 — the UoW
 composition, `CommitReceipt` and the write envelope wiring the unit-of-work port to a real
-commit boundary — is now also merged and test-verified. What that stage still lacks is P07 — the
-generic contract-to-SDK generator — the active next package. app-core, the product Surface and
-every later readiness/promotion gate remain closed and unstarted, and nothing here may be read as
-opening them.
+commit boundary — is now also merged and test-verified. P07 — the generic contract-to-SDK
+generator (`renderActionSdk` over an exact P02 `ActionContract`) — is now also merged and
+test-verified. What that stage still lacks is P08 — versioned SDK distribution — the active next
+package. app-core, the product Surface and every later readiness/promotion gate remain closed and
+unstarted, and nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
