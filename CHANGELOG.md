@@ -16,6 +16,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P09 `tests/fixtures/versioned-sdk-clean-consumer.mjs`: a standalone, builtins-only clean
+  consumer fixture for the P08 versioned SDK distribution payload. Run as
+  `node consumer.mjs EXPECTED_DISTRIBUTION_VERSION` with `cwd` inside a materialized temp
+  payload and `env={}`, it validates expected distribution version, a safe contained
+  `modulePath`, manifest shape, module file existence, and exact recomputed P08 SHA-256
+  integrity bytes before ever dynamically importing the generated module, failing closed with
+  deterministic `CLEAN_CONSUMER_ERROR:{VERSION_MISMATCH,UNSAFE_PATH,MALFORMED_MANIFEST,
+  MISSING_FILE,INTEGRITY_MISMATCH}` codes. See
+  `planning/kernel-clean-consumer-conformance-p09.json`; targeted 3/3 GREEN, full QA/CI/reviewer
+  pending, all readiness flags `false`.
 - P08b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
   `planning/kernel-p08-current-truth-closure-p08b.json`): synced the roadmap current-truth
   artifact to P08's real evidence — the versioned SDK distribution wrapper
