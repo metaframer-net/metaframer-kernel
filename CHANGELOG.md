@@ -16,6 +16,12 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P13 `consumers/customer-app-core/customer-data-cutover.mjs` (`createCustomerDataCutover`):
+  a frozen, legacy-default controller with a gated `cutover()` (verifies compatibility against
+  a real pg client before switching `activeWriter` to `application`), a single-transaction
+  application insert path (BEGIN / `mfk_begin_tenant_context` / P12 adapter insert / COMMIT,
+  rollback-on-failure), and `rollback()`/`close()`. No live traffic moved; not yet wired into
+  app-core. See `planning/kernel-customer-data-cutover-p13.json`.
 - P12b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
   `planning/kernel-p12-current-truth-closure-p12b.json`): synced the roadmap current-truth
   artifact to P12's real merged evidence — the application-owned, query-injected
