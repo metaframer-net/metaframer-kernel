@@ -16,6 +16,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P14d1 `src/adapters/postgres-write-envelope-write.mjs` directly owns and exports
+  `IdempotencyConflictError`, `isDuplicateIdempotencyFingerprintError`, `checkPreparedChangeSet`
+  and `checkTenantId`, along with their private constants and validation helpers, moved verbatim
+  (unchanged error messages, frozen shapes, SQL, `createPostgresWrite` behavior and CommitReceipt
+  behavior) out of the transitional `src/adapters/postgres-commit-adapter.mjs`. The surviving
+  write module no longer imports the transitional adapter. `postgres-commit-adapter.mjs` now
+  imports and re-exports those same four names from the surviving module so its own public
+  API/identity, `PostgresCommitAdapter`'s SQL/transaction behavior and the unchanged
+  `tests/postgres-commit-adapter.test.mjs` stay compatible; the transitional adapter still exists
+  and is not physically removed. See
+  `planning/kernel-postgres-write-contract-decoupling-p14d1.json`.
 - P14c `tools/check-kernel-persistence-ownership.mjs`: retires the combined `transitionalInKernel`
   manifest record (its presence, correct or not, now denies fail-closed) and replaces it with two
   independently frozen facts checked in code, not merely restated in the manifest. The migration

@@ -1,0 +1,112 @@
+{
+  "package": "P14D1",
+  "title": "postgres write contract decoupling: surviving module owns its exports",
+  "role": "sole Claude implementation/evidence writer",
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p14d1-contract-decoupling-20260826",
+  "immutableBase": {
+    "commit": "e3521ebd9b3626c46d9b37577b68c76dbfc8143c",
+    "tree": "03c0eb006462931ac1709e382b4df9ec602273ba"
+  },
+  "scopeHashes": {
+    "master": "1af86688137b13142253edd5bdc4cac2fd928cf1b5741051d20b09d967564022",
+    "blind": "eb478b88660cd87dd6621565b197fa76797acacb0a0646b0ec605407add5bb8a",
+    "synthesis": "e0b3176b13a4cc3f9a5ee27803d813ef423839865224d8f0cbfb6fefd00207ef"
+  },
+  "allowedFiles": [
+    "src/adapters/postgres-commit-adapter.mjs",
+    "src/adapters/postgres-write-envelope-write.mjs",
+    "tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "planning/kernel-postgres-write-contract-decoupling-p14d1.json",
+    "CHANGELOG.md"
+  ],
+  "testProvenance": {
+    "frozenTestFile": "tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "sha256": "d209f4f281da419a5846588062f1481332b8c07afe0fb64a062fecc8f787213e",
+    "authoredBy": "closed test writer",
+    "editedByImplementationWriter": false
+  },
+  "nonGoals": [
+    "no manifest, repository-boundary, other-test, runtime/delivery/consumer, migration/schema, dependency/config/current-truth, or unlisted file edits",
+    "no physical removal of postgres-commit-adapter.mjs (deferred to P14D2)",
+    "no stage, commit or push",
+    "no new module or topology expansion",
+    "no change to PostgresCommitAdapter SQL/transaction behavior or its committed/deferred constants",
+    "no change to createPostgresWrite behavior or CommitReceipt behavior"
+  ],
+  "redGreen": {
+    "redConfirmedByMaster": "node --test tests/postgres-unit-of-work-write-envelope.test.mjs = 6 total, 3 pass, 3 fail (missing surviving-module exports, surviving source still imports old adapter, duplicate-fingerprint scenario cannot use missing surviving error class)",
+    "greenAfterImplementation": "node --test tests/postgres-unit-of-work-write-envelope.test.mjs = 6 total, 6 pass, 0 fail"
+  },
+  "implementation": {
+    "postgresWriteEnvelopeWrite": "directly owns and exports IdempotencyConflictError, isDuplicateIdempotencyFingerprintError, checkPreparedChangeSet, checkTenantId plus their private constants (DEDUP_KEY_CONSTRAINT, POSTGRES_UNIQUE_VIOLATION, INTENT_KEYS) and helpers (isOrdinaryObject, isSafePlainRecord), moved verbatim from postgres-commit-adapter.mjs; no longer imports ./postgres-commit-adapter.mjs",
+    "postgresCommitAdapter": "imports and re-exports the same four names from postgres-write-envelope-write.mjs; keeps its own local isOrdinaryObject copy for checkCustomerTenant; PostgresCommitAdapter class, SQL, transaction behavior, COMMITTED_INTENTS/DEFERRED_INTENTS unchanged"
+  },
+  "candidateStatus": "IMPLEMENTATION_GREEN_AWAITING_INDEPENDENT_REVIEW_AND_CI",
+  "cleanCheckpoint": {
+    "commit": "07a6463da4ee9b81b13d6452c09cbc807ae6f211",
+    "tree": "828ea0be77a90ac91815abd1e06f6d6ee69e82a4",
+    "note": "the accepted full-QA run below evaluated exactly the source/test/CHANGELOG bytes committed at this checkpoint; this planning JSON edit is evidence-only and is applied after that run, on top of the clean checkpoint"
+  },
+  "budgetArithmetic": {
+    "scope": "five-file package numstat against immutable base: CHANGELOG.md, src/adapters/postgres-commit-adapter.mjs, src/adapters/postgres-write-envelope-write.mjs, tests/postgres-unit-of-work-write-envelope.test.mjs (frozen, byte-unedited by the implementation writer), planning/kernel-postgres-write-contract-decoupling-p14d1.json (this evidence file, new)",
+    "netLinesChanged": 184,
+    "insertions": 280,
+    "deletions": 96,
+    "grossLines": 376,
+    "filesChanged": 5,
+    "limits": { "netMax": 400, "filesMax": 20, "grossMax": 800 },
+    "withinBudget": true,
+    "note": "figures include this evidence file's own final line count; recomputed after this evidence-only edit against the immutable base, not self-consistent to the byte on any further edit"
+  },
+  "qaSlots": {
+    "budget": 2,
+    "targeted": {
+      "frozenTestFile": "GREEN 6/6",
+      "postgresCommitAdapterTest": "GREEN 10/10 (unchanged)",
+      "checkKernelPersistenceOwnership": "GREEN (current checkout classifies cleanly)",
+      "focusedComposition": "GREEN: tests/kernel-create-customer-asgi-composition.test.mjs, tests/kernel-persistence-ownership.test.mjs, tests/repository-boundary.test.mjs (219 total, 219 pass, 0 fail)"
+    },
+    "fullQaWriterLocal": {
+      "slotUsed": 1,
+      "acceptedLocal": 1,
+      "acceptedAt": { "commit": "07a6463da4ee9b81b13d6452c09cbc807ae6f211", "tree": "828ea0be77a90ac91815abd1e06f6d6ee69e82a4" },
+      "npmTest": "GREEN: 1535 total, 1535 pass, 0 fail, 0 cancelled, 0 skipped, 0 todo (single execution on the clean checkpoint, not retried)",
+      "npmCheck": "GREEN: single execution on the clean checkpoint, exit 0, all check-*.mjs stages (repository-boundary, control-plane-bootstrap, kernel-ai-development-readiness, kernel-runtime-substrate-s1, token-economy, p01-architecture-fitness, kernel-cem01-repo-handshake, kernel-persistence-ownership, versioning-changelog, kernel-runtime-pilot-consumer-sync) reported OK/GREEN, not retried",
+      "npmTestAttemptsHistorical": [
+        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "completed run on an earlier dirty worktree: 1535 total, 1525 pass, 10 fail — all 10 failures were unrelated historical kernel-python-host-*.test.mjs 'this package changes no forbidden files relative to HEAD' guards, which reject any src/** diff present in an uncommitted working tree relative to HEAD; not a P14D1 regression, and not a valid accepted-local result — superseded by the accepted run above on the clean checkpoint" },
+        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "second completed run on the same dirty worktree: identical outcome, same 10 pre-existing HEAD-guard failures, same root cause — superseded" },
+        { "outcome": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD", "note": "third attempt on the same dirty worktree, interrupted by MASTER before completion — superseded" }
+      ]
+    },
+    "fullQaCi": {
+      "slotUsed": 0,
+      "note": "CI is the second accepted slot; not run by this writer; remains pending, along with independent review, before this package is fully accepted"
+    }
+  },
+  "rollback": "revert all five package files: the two source-file edits (postgres-commit-adapter.mjs, postgres-write-envelope-write.mjs), the CHANGELOG bullet, this planning file, and the frozen test file (tests/postgres-unit-of-work-write-envelope.test.mjs) back to immutable-base content; the implementation writer did not edit the frozen test file's bytes at any point (SHA-256 remains d209f4f281da419a5846588062f1481332b8c07afe0fb64a062fecc8f787213e, authored by the closed test writer, not this writer)",
+  "ownerFacing": {
+    "once": "Gecici PostgresCommitAdapter dosyasi bu dort kontrolun (musteri/denetim/kuyruk/tekillestirme dogrulamasi) tek sahibiydi; yeni postgres-write-envelope-write.mjs modulu bu dort kontrole ihtiyac duydugunda gecici adaptore bagimliydi.",
+    "simdi": "Dogrulama kontrollerinin gercek sahibi artik postgres-write-envelope-write.mjs; gecici postgres-commit-adapter.mjs dosyasi artik bu sahibe bagimli olarak ayni dort ismi ice aktarip disari veriyor, kendi SQL/islem davranisini degistirmeden.",
+    "fark": "Bagimlilik yonu tersine dondu ve sahiplik netlesti; disaridan gorunen davranis (musteri kaydi, denetim kaydi, kuyruk kaydi, tekrar eden istek reddi) testlerle dogrulanmis sekilde degismedi.",
+    "kullaniciYolculugu": "Bir CRM/HRMS musteri olusturma formu gonderilip kaydedildiginde veya ayni istek tekrar gonderildiginde (tekillestirme reddi) sistem test kanitiyla dogrulanmis sekilde eskisi gibi davranir; degisen sadece kod ici sahiplik yonu, disaridan gorunen davranis degil.",
+    "kalanEngel": "Gecici postgres-commit-adapter.mjs dosyasi fiziksel olarak hala duruyor; P14D2 bu dosyayi fiziksel olarak kaldirmadan P14 tamamlanmis sayilmaz."
+  },
+  "capability_delta": "No new runtime capability. Internal module ownership/dependency direction moved from the surviving write module depending on the transitional adapter, to the transitional adapter depending on the surviving write module; externally observable behavior (commit outcomes, error identities, SQL, receipts) is unchanged and test-verified, not claimed byte-for-byte unchanged.",
+  "strongerFlags": {
+    "runnable": false,
+    "readiness": false,
+    "release": false,
+    "deploy": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "p14Status": "incomplete",
+  "nextStep": "P14D2: physically remove src/adapters/postgres-commit-adapter.mjs once no consumer imports it directly, converging planning/kernel-persistence-ownership.json's transitionalKernelAdapters array to the empty array, as enforced by tools/check-kernel-persistence-ownership.mjs"
+}
