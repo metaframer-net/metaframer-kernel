@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-versioned-sdk-distribution-p08",
+  "base": { "commit": "d28c07a3b082d93c6a129ce8840523b8f16c2673", "tree": "6996a2e443fd83549f18a0cec19fa54cf85938f2" },
+  "scopeHashes": {
+    "master": "3784f9e9e9349e6300647e4eb275cbdbd03181f79162085a6f741ad890fc9603",
+    "blind": "40dd52e8e8a64b7cf1cd88b0f5665d0274a0f5844752f7bdc31fc5ccd7382c20",
+    "synthesis": "71430c0b839ca19be55ee5ea67ecabfb4e1b66421a4568968f0b9927da5ba30f"
+  },
+  "allowedFiles": [
+    "tests/kernel-versioned-action-sdk-distribution.test.mjs",
+    "tools/generate-versioned-action-sdk-distribution.mjs",
+    "planning/kernel-versioned-sdk-distribution-p08.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no I/O/network/env/clock/random/subprocess in the implementation",
+    "no package/version SemVer literal authored here",
+    "no P09 clean-consumer conformance or materialization",
+    "no src/, package.json, lockfile, versioning-policy.json, dependency, CI or config change",
+    "no current-truth, ROADMAP.md or README.md change",
+    "no version decision, write, publish, tag, release or deploy",
+    "no readiness claim",
+    "no commit, push or merge by Claude"
+  ],
+  "distributionVersionSource": "caller-supplied from versioning-policy read-only, not hardcoded",
+  "readOnlyHandoff": "tests/kernel-versioned-action-sdk-distribution.test.mjs is a package file, frozen and handed off read-only",
+  "redGate": {
+    "command": "node --test tests/kernel-versioned-action-sdk-distribution.test.mjs",
+    "result": "tests=6, pass=0, fail=6, reason: implementation module tools/generate-versioned-action-sdk-distribution.mjs did not exist, import failed"
+  },
+  "greenGate": {
+    "command": "node --test tests/kernel-versioned-action-sdk-distribution.test.mjs",
+    "result": "tests=6, pass=6, fail=0"
+  },
+  "targetedCombinedGate": {
+    "command": "node --test tests/kernel-versioned-action-sdk-distribution.test.mjs tests/kernel-generic-action-sdk-generator.test.mjs tests/kernel-action-contract.test.mjs",
+    "result": "tests=27, pass=27, fail=0",
+    "snapshotReuse": "unchanged snapshot; not rerun for this finalization"
+  },
+  "fileHashesSha256": {
+    "tests/kernel-versioned-action-sdk-distribution.test.mjs": "8317f4598bd7e67c1ee02b63818dc947ad0278d25f5501f307126080506e123c",
+    "tools/generate-versioned-action-sdk-distribution.mjs": "5218cd717caa5fc96b0fef6223d11cc3aeb0bcfad521ac069a8330e7a06b85c1"
+  },
+  "budget": {
+    "source": "actionplan@c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3:src/data/standards/short-code.json#changePackageBudget",
+    "class": "production",
+    "band": "default",
+    "maxNet": 400,
+    "maxChangedFiles": 20,
+    "files": {
+      "tests/kernel-versioned-action-sdk-distribution.test.mjs": { "grossAdditions": 180, "grossDeletions": 0 },
+      "tools/generate-versioned-action-sdk-distribution.mjs": { "grossAdditions": 53, "grossDeletions": 0 },
+      "planning/kernel-versioned-sdk-distribution-p08.json": { "grossAdditions": 87, "grossDeletions": 0, "note": "self-reference recorded post-write; planning cannot self-hash" },
+      "CHANGELOG.md": { "grossAdditions": 5, "grossDeletions": 0 }
+    },
+    "grossAdditions": 325,
+    "grossDeletions": 0,
+    "netLines": 325,
+    "changedFileCount": 4
+  },
+  "qa": { "fullQaExecutionsPerChangePackage": 2, "spent": 0, "qa1FullLocal": "pending", "qa2CI": "pending" },
+  "reviewer": "pending",
+  "rollback": "single atomic four-file package; revert tests/kernel-versioned-action-sdk-distribution.test.mjs, tools/generate-versioned-action-sdk-distribution.mjs, planning/kernel-versioned-sdk-distribution-p08.json and the CHANGELOG.md Unreleased bullet together; no other repository state touched",
+  "packageState": "targeted-green-awaiting-candidate-commit-qa1-review-ci",
+  "readinessFlags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "roadmapProgress": { "completed": 7, "total": 25, "active": "P08" },
+  "ownerFacing": {
+    "once": "SDK dosyalari uretiliyordu ama iki ayri surum kavrami birbirine karisik degildi: kontrattaki eylem surumu (orn. widget.create versiyon 1) ile dagitim paketinin kendi surumu ayni sey degildir ve P07 bunu ayirt etmiyordu.",
+    "simdi": "P07, sadece SDK modul kaynak kodunu donduruyordu. P08 artik cagiran tarafindan verilen (versioning-policy'den okunan) kanonik Kernel dagitim surumunu, eylemin kendi kontrat surumundan bagimsiz bir eksen olarak ele aliyor ve gercekten diske yazilabilir manifest+modul bayt icerigini, butunluk (integrity) imzasiyla birlikte donduruyor.",
+    "fark": "Yeni renderVersionedActionSdkDistribution fonksiyonu P07'yi degistirmeden sarar; hedefli 27/27 test kaniti (bu turda yeniden calistirilmadi, degismeyen anlik goruntu kaniti tekrar kullanildi).",
+    "kullaniciYolculugu": "Henuz calistirilabilir urun degil: bu sadece dagitim paketi uretim mantigi; sunucuya, paket yoneticisine veya musteri akisina baglanmis degil. P09'daki 'temiz tuketici' (clean-consumer) kanitina kadar bu ciktilarin gercekten calisan bir SDK olarak tuketilebilecegi hala ispatlanmadi.",
+    "kalanEngel": "Tam yerel QA (QA1), CI QA2 ve bagimsiz reviewer onayi hala bekliyor; commit atilmadi; P09 tuketici uygunluk kaniti eksik.",
+    "capability_delta": "VERSIONED_SDK_DISTRIBUTION_PAYLOAD_ONLY",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
