@@ -11,7 +11,7 @@ import { AsgiCoreProfileAdapter } from "./asgi-core-profile.mjs";
 // POST /customers) and a real AsgiCoreProfileAdapter. It constructs all four from exactly the
 // same caller-supplied collaborators createCustomerComposition already accepts, and hands back
 // exactly one frozen { asgi, router, app, close } object — never the handler, the http message
-// adapter, or the underlying PostgresCommitAdapter. `app` is the smallest framework-neutral
+// adapter, or the underlying UnitOfWork-backed commit resource. `app` is the smallest framework-neutral
 // ASGI-shaped async (scope, receive, send) callable, delegating to asgi.callFromReceive with a
 // default JSON body decoder: it is host-adapter-ready at the protocol boundary (its call shape
 // matches what ASGI servers such as Uvicorn or Hypercorn invoke), but this package is JavaScript,
@@ -106,7 +106,7 @@ function checkOptions(options) {
  * `{ asgi, router, app, close }` object; `app` is an async (scope, receive, send) ASGI-shaped
  * callable, host-adapter-ready at the protocol boundary but not directly callable by Uvicorn or
  * Hypercorn without a separate Python host bridge/shim outside this package, and `close` closes
- * the composed PostgresCommitAdapter.
+ * the composed UnitOfWork-backed commit resource.
  */
 export function createCustomerAsgiComposition(options) {
   const { connectionString, current, candidatesFor, evaluateInvariants, maxBodyBytes } = checkOptions(options);

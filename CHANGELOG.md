@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P05f `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections):
+  synced the roadmap current-truth artifact to P05's real evidence — `UnitOfWork` (UoW), the
+  canonical `CommitReceipt` and the write envelope are now recorded as implemented and composed
+  end to end into the CreateCustomer commit-boundary composition chain, removing the prior "P05
+  UoW composition... missing" claim. Progress moves from `5/25 tamamlandı, P05/25 aktif` to
+  `6/25 tamamlandı, P07/25 aktif` (completed: P01–P06; active: P07, the generic generator), with
+  every readiness flag (`kernelReady`, `sdkReady`, `appBuildable`, `releaseAllowed`,
+  `deployAllowed`, `productionAllowed`, `gapClosed`, `oneGoldenSliceReady`, `runnableProduct`)
+  held `false` and `capability_delta: NONE`. Also corrects two stale comments in
+  `src/delivery/create-customer-asgi-composition.mjs` that described the commit boundary as "the
+  underlying PostgresCommitAdapter" / "the composed PostgresCommitAdapter" — now described as the
+  UnitOfWork-backed commit resource actually wired since P05e — with zero runtime behavior
+  change. This is a documentation/current-truth sync only; it adds no runtime capability and
+  moves no readiness flag.
 - P05e `src/delivery/create-customer-composition.mjs`: `createCustomerComposition`'s *use* of the
   `PostgresCommitAdapter` collaborator (the adapter module itself is untouched) was removed and
   replaced with one `createPostgresUnitOfWork` resource. The commit port is now a closure that, on
