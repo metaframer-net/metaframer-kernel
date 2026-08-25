@@ -556,7 +556,13 @@ synced the counter again to `7/25 tamamlandı, P08/25 aktif`, closing P07 (the g
 has since synced the counter again to `8/25 tamamlandı, P09/25 aktif`, closing P08 (the
 `renderVersionedActionSdkDistribution` wrapper over P07's generator, test-verified) with P09
 (clean consumer conformance) as the active package; that later sync also adds no runtime
-capability and moves no flag under **Current status**.
+capability and moves no flag under **Current status**. A further roadmap current-truth package
+has since synced the counter again to `9/25 tamamlandı, P10/25 aktif`, closing P09 (a standalone
+clean consumer fixture that copies P08's real versioned SDK distribution payload into a temp
+directory, empties the environment, and validates version/path/manifest/file existence and the
+recomputed SHA-256 before import, test-verified, no npm publish/release) with P10 (app-core) as
+the active package; that sync also adds no runtime capability and moves no flag under **Current
+status**.
 
 ## Authorized order and what remains closed
 
@@ -574,9 +580,11 @@ commit boundary — is now also merged and test-verified. P07 — the generic co
 generator (`renderActionSdk` over an exact P02 `ActionContract`) — is now also merged and
 test-verified. P08 — versioned SDK distribution (`renderVersionedActionSdkDistribution` wrapping
 P07's generator with a caller-supplied Kernel distribution version) — is now also merged and
-test-verified. What that stage still lacks is P09 — clean consumer conformance — the active next
-package. app-core, the product Surface and every later readiness/promotion gate remain closed and
-unstarted, and nothing here may be read as opening them.
+test-verified. P09 — clean consumer conformance, proving P08's versioned SDK distribution output
+is actually consumable as a real SDK via a standalone clean-consumer fixture — is now also merged
+and test-verified. What that stage still lacks is P10 — app-core — the active next package.
+app-core, application-owned persistence, the product Surface and every later readiness/promotion
+gate remain closed and unstarted, and nothing here may be read as opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is
