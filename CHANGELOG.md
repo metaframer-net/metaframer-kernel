@@ -16,6 +16,11 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P08 `tools/generate-versioned-action-sdk-distribution.mjs`
+  (`renderVersionedActionSdkDistribution(contract, distributionVersion)`): wraps P07's
+  `renderActionSdk` with a caller-supplied version into a coordinate-addressed, integrity-checked
+  manifest+module file set. See `planning/kernel-versioned-sdk-distribution-p08.json`; targeted
+  27/27 GREEN, full QA/CI pending, all readiness flags `false`.
 - P07 `tools/generate-action-sdk.mjs` (generic `renderActionSdk(contract)`) plus
   `tests/kernel-generic-action-sdk-generator.test.mjs`: a pure, capability-free generator that
   renders a framework-neutral, import-free ESM SDK module from an arbitrary P02 `ActionContract`
