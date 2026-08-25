@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-customer-data-cutover-p13-2026-08-25",
+  "packageKind": "implementation",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": { "commit": "760da083166d445644aa01e0daf7e05c0879ad01", "tree": "6cbce6732e28290230f2c68c97126431eed24e34" },
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p13-data-cutover-20260825",
+
+  "scopeHashes": {
+    "master": "6263beaf75c9cd9649d2a757d26f5ec744244188652fabb52c644da0b13604ae",
+    "blind": "3d6e18863b9aac33ffa2dc2583625722d75860c95d708e8fb812ba79db64baef",
+    "synthesis": "459105a3d2c947c3b7cee1da97b8a1d0423befa3460fcdbe6f2708c20e2ee32c"
+  },
+
+  "allowedWriteFiles": [
+    "consumers/customer-app-core/customer-data-cutover.mjs",
+    "planning/kernel-customer-data-cutover-p13.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "P12 edits", "Kernel src/db/migrations/adapters/delivery/current-truth/README/ROADMAP",
+    "app-core live wiring", "audit/outbox/idempotency parity", "P14 cleanup",
+    "second table, copy/backfill, dual-write, delete", "dependency/config/CI/generated",
+    "commit/push/release/deploy/readiness"
+  ],
+
+  "testProvenance": {
+    "path": "tests/kernel-customer-data-cutover-p13.test.mjs",
+    "sha256": "7781ae805380429588a6a2d77b03f0b64924db2104839d1311fffa968a7a4c9c",
+    "note": "frozen, handed off; not edited by this writer",
+    "red": { "reason": "ERR_MODULE_NOT_FOUND", "tests": 6, "pass": 0, "fail": 6 },
+    "green": { "command": "node --test tests/kernel-customer-data-cutover-p13.test.mjs", "tests": 6, "pass": 6, "fail": 0 }
+  },
+
+  "capabilityDelta": {
+    "before": "customer_records write path is legacy-only; P12 adapter exists but is not reachable via any cutover control",
+    "after": "consumers/customer-app-core/customer-data-cutover.mjs adds createCustomerDataCutover: a frozen controller defaulting to legacy, gated cutover() that verifies compatibility via a real pg client before switching activeWriter to 'application', application-path insert wrapped in one BEGIN/mfk_begin_tenant_context/P12-adapter-insert/COMMIT transaction with rollback-on-failure, and rollback()/close() for reverting and pool teardown",
+    "strongerFlags": {
+      "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false,
+      "deployAllowed": false, "productionAllowed": false, "gapClosed": false,
+      "oneGoldenSliceReady": false, "runnableProduct": false
+    },
+    "notRunnable": "No live CreateCustomer traffic has moved; nothing wires customer-data-cutover.mjs into app-core yet, and the default pg.Pool path is untested against a real database in this package. This is executable cutover capability, not a completed migration.",
+    "owner": {
+      "once": "Musteri kaydi her zaman eski (legacy) yoldan yaziliyordu, degistirme imkani yoktu.",
+      "simdi": "Artik bir 'cutover' anahtari var: kapaliyken hala eski yoldan yaziyor, acilinca (once uyumluluk kontrolu gecerse) yeni P12 yoluna, tek islemli (transaction) guvenli kayda geciyor; sorun olursa geri alinip (rollback) tekrar eskiye donulebiliyor.",
+      "fark": "Once tek secenek vardi (eski yol). Simdi kontrollu, geri alinabilir bir gecis mekanizmasi var ama hala hicbir yerde acik olarak kullanilmiyor.",
+      "kullaniciYolculugu": "Bir CRM formu 'musteri kaydet' dedi -> once dogrudan eski tabloya yaziliyordu -> simdi ayni akis, ama gelecekte bu anahtar acilirsa kayit, AYNI mevcut customer_records tablosuna, kiracı (tenant) baglami kurulmus tek bir islemde yazilabilecek; su an anahtar hicbir yerde acilmadigi icin kullanicinin gordugu davranis degismedi.",
+      "kalanEngel": "P14: audit/outbox/idempotency parity, bu kontrolcunun app-core icinde gercekten baglanmasi (live composition), ve gecis-donemi Kernel tarafi temizlik."
+    },
+    "rollback": "git rm/revert on all four package files (three writer files plus the frozen test); no DB migration, no adapter, no config touched."
+  },
+
+  "budget": {
+    "band": "default", "maxNet": 400, "maxFiles": 20,
+    "frozenTestNet": 219,
+    "productionModuleLines": 92,
+    "planningJsonLines": 66,
+    "changelogLines": 6,
+    "fileCount": 4,
+    "packageNet": 383
+  },
+
+  "qaBudget": { "fullQaExecutionsPerChangePackage": 2, "qa1": { "npmTest": "1521/1521 GREEN", "npmRunCheck": "GREEN" }, "qa2": "CI" }
+}
