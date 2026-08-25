@@ -1,0 +1,62 @@
+{
+  "id": "kernel-write-envelope-uow-p05b",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "immutableBase": {
+    "commit": "0cb08c088c9372891710c613becb4bb773065faa",
+    "tree": "3c8b52e5dab4d732553484d7c97619465b5fa226"
+  },
+  "blindScopeHash": "e8a09b18ecea760eb2abe5a65d53475d35e38cc516601d2a3ecfbf92e312d506",
+  "masterScopeHash": "78e65610e73b0ecdd456d034ffa6a2ac3d0e7942a0852f3069591de01c533e75",
+  "synthesisHash": "7cc6b0d7f9aefc268498b636652bae17f05964e7486e7cdf8ffffa700a73211b",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+  "changePackageBudgetSource": "src/data/standards/short-code.json#changePackageBudget",
+  "allowedFiles": [
+    "tests/kernel-write-envelope.test.mjs",
+    "src/application/write-envelope.mjs",
+    "tests/repository-boundary.test.mjs",
+    "planning/kernel-write-envelope-uow-p05b.json",
+    "CHANGELOG.md"
+  ],
+  "nonGoals": [
+    "no UnitOfWork changes", "no CommitReceipt changes", "no CreateCustomer",
+    "no adapters/database/SDK/delivery/current-truth", "no CI/config/readiness/release/deploy claim"
+  ],
+  "scope": "src/application/write-envelope.mjs: generic Application-ring WriteEnvelope running one write through a UnitOfWork, answering with the exact CommitReceipt from the frozen five-scenario contract in tests/kernel-write-envelope.test.mjs. Registers write-envelope.mjs in the closed src/application RING_MODULE_MANIFEST.",
+  "red": {
+    "command": "node --test tests/kernel-write-envelope.test.mjs",
+    "result": "5/5 scenarios FAIL: src/application/write-envelope.mjs did not exist."
+  },
+  "green": {
+    "command": "node --test tests/kernel-write-envelope.test.mjs tests/repository-boundary.test.mjs",
+    "result": "post-MASTER-review writer-corrected targeted GREEN: 177/177 PASS (5 kernel-write-envelope + 172 repository-boundary), both run together in this single combined command on the corrected snapshot.",
+    "supersededHistory": [
+      "preliminary isolated 5/5 GREEN (kernel-write-envelope.test.mjs alone) — superseded, not the required combined command",
+      "pre-correction 177/177 GREEN on the exact-prototype defect state — superseded by this writer correction"
+    ],
+    "note": "neither the preliminary isolated run nor the pre-correction combined run is full QA"
+  },
+  "budget": {
+    "class": "default",
+    "grossAdditions": 313,
+    "grossDeletions": 1,
+    "net": 312,
+    "changedFiles": 5,
+    "gate": "GREEN_NET_LE_400",
+    "targetedEvidence": "177/177 GREEN",
+    "fullQaExecutionsPerChangePackage": 2,
+    "validUsedAtCandidateFreeze": 0,
+    "note": "CI full QA remains pending after PR"
+  },
+  "rollback": "revert the eventual atomic package commit; new untracked paths (src/application/write-envelope.mjs, tests/kernel-write-envelope.test.mjs, this file) cannot be rolled back by git checkout alone.",
+  "once": "src/application had a UnitOfWork port and a CommitReceipt value but nothing composing them into one write.",
+  "simdi": "WriteEnvelope var: bir yazma islemini UnitOfWork uzerinden calistirip donuk bir CommitReceipt ile cevap veriyor, henuz hicbir gercek adapter'a bagli degil.",
+  "fark": "Bir sonraki paket (P05c adapter alignment) artik bu sabit kompozisyonu gercek bir adapter'a baglayabilir; henuz hicbir akis calismiyor.",
+  "kullaniciYolculugu": "Hicbir kullanici yolculugu calismiyor: adapter, delivery ve gercek veritabani baglantisi yok.",
+  "kalanEngel": "P05 aktif kalmaya devam ediyor; P05c adapter alignment henuz yapilmadi.",
+  "capability_delta": "NONE",
+  "flags": {
+    "kernelReady": false, "sdkReady": false, "appBuildable": false,
+    "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false,
+    "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false
+  }
+}
