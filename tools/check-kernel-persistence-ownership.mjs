@@ -47,6 +47,17 @@ const FROZEN_KERNEL_CAPABILITY_MIGRATIONS = [
 export const KERNEL_CAPABILITY_ADAPTER_MANIFEST_FIELD = "kernelCapabilityAdapterFiles";
 const FROZEN_KERNEL_CAPABILITY_ADAPTER_FILES = ["postgres-decision-log-adapter.mjs"];
 
+// P05c's two composition adapter files (UnitOfWork port + WriteEnvelope write collaborator).
+// Frozen in code, activated only when the manifest opts in via the exact field named by
+// P05_COMPOSITION_ADAPTER_MANIFEST_FIELD, and only when the declared value exactly equals this
+// frozen sorted list — no growth, no drift, no relabeling. Manifest absence of this field leaves
+// existing fixtures valid, unchanged. This is inventory admission for P05 composition only: it
+// grants no persistence ownership, capability, readiness, release, or promotion; it does not
+// touch, widen, or narrow the one frozen transitional record — customer_records stays
+// transitional-in-kernel with application target owner and P11-P14 retirement, exactly as before.
+export const P05_COMPOSITION_ADAPTER_MANIFEST_FIELD = "p05CompositionAdapterFiles";
+const FROZEN_P05_COMPOSITION_ADAPTER_FILES = ["postgres-unit-of-work.mjs", "postgres-write-envelope-write.mjs"];
+
 // The one closed transitional-in-kernel fact. Present exactly as-is, or wholly absent once its
 // physical migration and adapter are also gone — never edited into something else.
 const FROZEN_TRANSITIONAL = {
@@ -302,6 +313,19 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
     );
   }
 
+  // P05 composition adapter files: inventory admission only, activated only on an exact
+  // frozen-list match — never persistence ownership, capability, readiness, release or promotion.
+  const p05CompositionDeclared = Object.prototype.hasOwnProperty.call(manifest, P05_COMPOSITION_ADAPTER_MANIFEST_FIELD);
+  const p05CompositionActivated = p05CompositionDeclared && deepEqual(
+    manifest[P05_COMPOSITION_ADAPTER_MANIFEST_FIELD],
+    FROZEN_P05_COMPOSITION_ADAPTER_FILES,
+  );
+  if (p05CompositionDeclared && !p05CompositionActivated) {
+    violations.push(
+      `${P05_COMPOSITION_ADAPTER_MANIFEST_FIELD} does not match the frozen P05 composition adapter declaration`,
+    );
+  }
+
   let declaredTransitional = manifest.transitionalInKernel;
   if (!Array.isArray(declaredTransitional)) {
     violations.push("transitionalInKernel must be an array");
@@ -327,6 +351,9 @@ export function evaluatePersistenceOwnership({ manifest, repoRoot }) {
   for (const file of FROZEN_KERNEL_ADAPTER_FILES) declaredAdapterFiles.set(file, "kernel");
   if (capabilityAdapterActivated) {
     for (const file of FROZEN_KERNEL_CAPABILITY_ADAPTER_FILES) declaredAdapterFiles.set(file, "kernel");
+  }
+  if (p05CompositionActivated) {
+    for (const file of FROZEN_P05_COMPOSITION_ADAPTER_FILES) declaredAdapterFiles.set(file, "composition");
   }
   if (transitionalPresent) {
     declaredMigrations.set(FROZEN_TRANSITIONAL.migrationFile, {

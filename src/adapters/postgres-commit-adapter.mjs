@@ -55,7 +55,7 @@ Object.freeze(IdempotencyConflictError.prototype);
 Object.freeze(IdempotencyConflictError);
 
 /** True only for the exact, known duplicate-idempotency-fingerprint unique violation. */
-function isDuplicateIdempotencyFingerprintError(error) {
+export function isDuplicateIdempotencyFingerprintError(error) {
   return error != null
     && error.code === POSTGRES_UNIQUE_VIOLATION
     && error.constraint === DEDUP_KEY_CONSTRAINT;
@@ -75,7 +75,7 @@ const isSafePlainRecord = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value)
   && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 
-function checkPreparedChangeSet(preparedChangeSet) {
+export function checkPreparedChangeSet(preparedChangeSet) {
   if (!isOrdinaryObject(preparedChangeSet)) {
     throw new TypeError("PostgresCommitAdapter.commit needs an ordinary preparedChangeSet object");
   }
@@ -111,7 +111,7 @@ function checkPreparedChangeSet(preparedChangeSet) {
   return { customer, audit, transactionalOutbox, idempotency };
 }
 
-function checkTenantId(tenantId) {
+export function checkTenantId(tenantId) {
   if (typeof tenantId !== "string" || !tenantId) {
     throw new TypeError("commit needs an options.tenantId string");
   }

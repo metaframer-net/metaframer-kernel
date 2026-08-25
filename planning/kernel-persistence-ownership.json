@@ -22,6 +22,7 @@
   "kernelCapabilityAdapterFiles": ["postgres-decision-log-adapter.mjs"],
   "kernelOwnedRuntimeTables": ["mfk_context_key", "transactional_outbox", "audit_log"],
   "kernelOwnedAdapterFiles": [],
+  "p05CompositionAdapterFiles": ["postgres-unit-of-work.mjs", "postgres-write-envelope-write.mjs"],
   "transitionalInKernel": [
     {
       "migrationFile": "0002_customer_records.py",
