@@ -1,0 +1,99 @@
+{
+  "id": "kernel-p05-current-truth-closure-p05f",
+  "packageState": "writer-candidate-awaiting-external-gates",
+  "immutableBase": {
+    "commit": "d11b17ccfb4d53d6a0b138bf8ff07bcdefebb3e0",
+    "tree": "e4f75ba5e3a6a31a8ea77e682d731364098b8c4d"
+  },
+  "branch": "kernel-roadmap-v1-p05f-current-truth-20260825",
+  "blindScopeHash": "2364a9cc5f610a394576db536d88dd4cbb12e60b26df78de3ba325d2ff70fb86",
+  "masterScopeHash": "667b416ad95016c90d54cec64561289741dc3555296efc6dec7710e2b7b62da7",
+  "synthesisHash": "8dfdf0d8b408170acf3fdbdbda10a542afe0834b847ea0ef60f628e36f603bfb",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374",
+  "changePackageBudgetSource": "src/data/standards/short-code.json#changePackageBudget",
+  "testHashes": {
+    "tests/kernel-roadmap-v1-current-truth.test.mjs": "6f645888e208f289cc3660f9b9efa599f10407331ea51ceb60b4b062efed1965"
+  },
+  "calistirilabilirlik": "not-runnable",
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "src/delivery/create-customer-asgi-composition.mjs",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "planning/kernel-p05-current-truth-closure-p05f.json"
+  ],
+  "nonGoals": [
+    "no runtime behavior change in src/delivery/create-customer-asgi-composition.mjs beyond correcting two stale comments; the composition, its exports and its public { asgi, router, app, close } result shape are untouched",
+    "test authoring boundary: tests/kernel-roadmap-v1-current-truth.test.mjs was authored and edited only by a separate test-writer handoff (4 targeted scenarios in that one file); it was never edited by this implementation/evidence-finalizer writer, and this writer makes no edit to that file",
+    "no readiness flag flipped: kernelReady, sdkReady, appBuildable, releaseAllowed, deployAllowed, productionAllowed, gapClosed, oneGoldenSliceReady and runnableProduct all remain false",
+    "no rewrite of legitimate historical CHANGELOG evidence (P05e/P05d and earlier Unreleased entries are preserved verbatim); only a new Unreleased entry is added",
+    "no full QA run in this handoff (repository guards are HEAD-relative; MASTER creates the clean candidate commit first)",
+    "no staging, commit, push, PR, review, release or deploy performed by this writer"
+  ],
+  "scope": "Close the P05 current-truth gap in the roadmap artifact: move P05 (UnitOfWork, canonical CommitReceipt, WriteEnvelope, real commit-boundary composition) from notImplementedPieces into implementedPieces, keep P07 (generic contract-to-SDK generator) as the explicit next-missing piece, and advance roadmap.progress from 5/25 (P05 active) to 6/25 (P01-P06 completed, P07 active), asOfKernelMain d11b17ccfb4d53d6a0b138bf8ff07bcdefebb3e0, statusLine '6/25 tamamlandı, P07/25 aktif'. Project the same corrected structure into ROADMAP.md and README.md without rewriting prior historical CHANGELOG evidence, and add a new Unreleased CHANGELOG entry recording the sync. Correct exactly two stale comments in src/delivery/create-customer-asgi-composition.mjs that still described the commit boundary as 'the underlying PostgresCommitAdapter' / 'the composed PostgresCommitAdapter' (stale since P05e's UnitOfWork/WriteEnvelope wiring), with zero runtime behavior change.",
+  "redEvidence": {
+    "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "resultBeforeChange": "16 total, 13 pass, 3 fail solely because the roadmap artifact/projections still carried progress 5/25 (P05 active) and still listed P05 (UoW/CommitReceipt/write envelope) under notImplementedPieces instead of implementedPieces",
+    "failingScenarios": [
+      "roadmap.progress carries the exact 6/25 completed truth with P05 closed and P07 active",
+      "currentTruth reflects P05 (UoW, CommitReceipt, WriteEnvelope, commit-boundary composition) as implemented and P07 as the explicit next-missing piece, with all readiness flags false",
+      "ROADMAP.md, README.md and CHANGELOG.md project P05 closed / P07 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter"
+    ]
+  },
+  "changedScenariosThisPackage": [
+    "roadmap.progress.completed=6, completedPackages=[P01..P06], activePackage=P07, asOfKernelMain=d11b17c, statusLine='6/25 tamamlandı, P07/25 aktif'",
+    "currentTruth.implementedPieces now names UoW/UnitOfWork, CommitReceipt, write envelope and commit-boundary composition under P05; notImplementedPieces no longer names any of those terms and instead names P07's generic contract-to-SDK generator as the next gap",
+    "ROADMAP.md/README.md/CHANGELOG.md project the same 6/25 / P07-active structure; CHANGELOG gains one new Unreleased entry, prior entries unchanged",
+    "src/delivery/create-customer-asgi-composition.mjs: two comments corrected from PostgresCommitAdapter language to UnitOfWork-backed commit resource language; source logic, exports and behavior unchanged"
+  ],
+  "testCorrection": {
+    "writer": "separate test-writer handoff, not this evidence-finalizer",
+    "scope": "tests/kernel-roadmap-v1-current-truth.test.mjs only, 4 targeted scenarios in that single file",
+    "sequence": [
+      "initial RED: 13/16 pass, the 3 intended P05f scenarios failing as recorded in redEvidence",
+      "first implementation run: made the 3 intended scenarios GREEN but exposed a conflict with one old generic assertion that still enumerated an obsolete UnitOfWork term inside the remaining-gap list, yielding 15/16",
+      "test correction (single run, not a repeated full QA): removed only the obsolete UoW reference from the remaining-gap term list in that one old assertion; no other assertion, scenario or file touched; result 16/16 GREEN"
+    ],
+    "budgetTreatment": "this correction is one targeted run inside the existing RED-to-GREEN sequence for this package, not a second full QA execution; qa.fullQaExecutionsPerChangePackage stays budgeted at 2 with qa.spentThisPackage still 0"
+  },
+  "targetedGreen": {
+    "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "result": "16/16",
+    "history": "13/16 (initial RED) -> 15/16 (after first implementation run; 3 intended scenarios GREEN, 1 old generic assertion newly conflicting) -> 16/16 (after the separate test-writer's single correction removing the obsolete UoW term from the remaining-gap list)"
+  },
+  "budget": {
+    "note": "gross additions/deletions/net/changedFiles below are the full P05f package: working tree against the immutable P05f base commit d11b17ccfb4d53d6a0b138bf8ff07bcdefebb3e0, computed with git diff --numstat across all allowed files actually changed plus the tracked test-file diff and this untracked planning record itself",
+    "components": {
+      "CHANGELOG.md": { "additions": 14, "deletions": 0 },
+      "README.md": { "additions": 11, "deletions": 5 },
+      "ROADMAP.md": { "additions": 6, "deletions": 6 },
+      "planning/roadmap-v1-current-truth.json": { "additions": 12, "deletions": 12 },
+      "src/delivery/create-customer-asgi-composition.mjs": { "additions": 2, "deletions": 2 },
+      "tests/kernel-roadmap-v1-current-truth.test.mjs": { "additions": 30, "deletions": 29 },
+      "planning/kernel-p05-current-truth-closure-p05f.json": { "additions": 99, "deletions": 0, "note": "new untracked file; this package's own planning record, additions equal its final line count" }
+    },
+    "grossAdditions": 174,
+    "grossDeletions": 54,
+    "net": 120,
+    "changedFiles": 7,
+    "class": "default",
+    "gate": "GREEN_NET_LE_400",
+    "bandsSource": "src/data/standards/short-code.json#changePackageBudget",
+    "bands": { "default": "maxNet400", "conditional": "maxNet800", "waiver": "maxNet1200" }
+  },
+  "qa": {
+    "qa1LocalFullRun": "pending",
+    "ciFullRun": "pending",
+    "fullQaExecutionsPerChangePackage": 2,
+    "spentThisPackage": 0
+  },
+  "rollback": "revert the eventual single atomic package commit (planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md, src/delivery/create-customer-asgi-composition.mjs, tests/kernel-roadmap-v1-current-truth.test.mjs and this planning record together) with one normal git revert of that commit; no migration or data cleanup is needed since no schema or persisted-data shape changed and no runtime behavior changed.",
+  "once": "P05'in gercek kaniti (UnitOfWork, canonical CommitReceipt, WriteEnvelope, gercek commit-boundary kompozisyonu) P05e ile mevcuttu ama roadmap sayaci ve iki eski yorum bunu hala yansitmiyordu; kanit vardi, tek kaynak metin ve iki yorum satiri geri kalmisti.",
+  "simdi": "Simdi tek kaynak dosya + ROADMAP.md + README.md + CHANGELOG.md ayni 6/25 tamamlandi, P07/25 aktif durumunu projekte ediyor; P05 implementedPieces'e tasindi, P07 (genel contract-to-SDK ureticisi) sonraki acik bosluk olarak kaldi. src/delivery/create-customer-asgi-composition.mjs'deki iki eski PostgresCommitAdapter yorumu UnitOfWork-backed commit resource olarak duzeltildi, calisma zamani davranisi degismedi. Ayri bir test-writer el degistirmesi, frozen test dosyasindaki 4 hedefli senaryoyu tek seferde duzeltti; 13/16 RED'den 15/16'ya, oradan tek bir duzeltmeyle 16/16 GREEN'e gecildi.",
+  "fark": "Once sayac 5/25'te (P05 aktif) kalmisti ve P05 hala notImplementedPieces'teydi; simdi 6/25 tamamlandi, P07/25 aktif ve P05 implementedPieces altinda P07 acik sonraki bosluk olarak isaretli.",
+  "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; bu paket sadece dokumantasyon/roadmap dogrulugu senkronize eder, hicbir yeni yetenek eklemez.",
+  "kalanEngel": "P07 (genel contract-to-SDK ureticisi) dahil F2-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+  "capability_delta": "NONE"
+}

@@ -106,7 +106,7 @@ test('global readiness truth is all false and current truth names real existing 
     assert.match(exists, new RegExp(term), `implementedPieces missing ${term}`);
   }
   const missing = t.notImplementedPieces.join(' | ');
-  for (const term of ['generic contract-to-SDK', 'app-core', 'UoW', 'outbox relay', 'production proof']) {
+  for (const term of ['generic contract-to-SDK', 'app-core', 'outbox relay', 'production proof']) {
     assert.match(missing, new RegExp(term), `notImplementedPieces missing ${term}`);
   }
   assert.doesNotMatch(t.notRunnableProductClaim, /only the S1.*and isolated ASGI/i);
@@ -194,18 +194,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 5/25 completed truth with P04 closed and P05 active', () => {
+test('roadmap.progress carries the exact 6/25 completed truth with P05 closed and P07 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, 5);
+  assert.equal(progress.completed, 6);
   assert.equal(progress.total, 25);
-  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P06']);
+  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06']);
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, 'P05');
-  assert.equal(progress.asOfKernelMain, '10d078df1d9baac3d67c26fc8f89af07503b64f8');
-  assert.equal(progress.statusLine, '5/25 tamamlandı, P05/25 aktif');
+  assert.equal(progress.activePackage, 'P07');
+  assert.equal(progress.asOfKernelMain, 'd11b17ccfb4d53d6a0b138bf8ff07bcdefebb3e0');
+  assert.equal(progress.statusLine, '6/25 tamamlandı, P07/25 aktif');
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -219,23 +219,24 @@ test('roadmap.progress carries the exact 5/25 completed truth with P04 closed an
   }
 });
 
-test('currentTruth reflects P04 as implemented and P05 as the explicit next-missing piece, with all readiness flags false', () => {
+test('currentTruth reflects P05 (UoW, CommitReceipt, WriteEnvelope, commit-boundary composition) as implemented and P07 as the explicit next-missing piece, with all readiness flags false', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
 
   const implemented = t.implementedPieces.join(' | ');
-  assert.match(implemented, /policy-as-data/i);
-  assert.match(implemented, /batch/i);
-  assert.match(implemented, /decision-log adapter/i);
-  assert.match(implemented, /PostgreSQL/);
-  assert.match(implemented, /P04/);
+  assert.match(implemented, /UoW|UnitOfWork/);
+  assert.match(implemented, /CommitReceipt/);
+  assert.match(implemented, /write envelope/i);
+  assert.match(implemented, /commit.boundary composition/i);
+  assert.match(implemented, /P05/);
 
   const missing = t.notImplementedPieces.join(' | ');
-  assert.doesNotMatch(missing, /policy-as-data batch and decision-log adapter.*\(P04\)/i);
-  assert.match(missing, /UoW/);
-  assert.match(missing, /CommitReceipt/);
-  assert.match(missing, /write envelope/i);
-  assert.match(missing, /P05/);
+  assert.doesNotMatch(missing, /UoW/);
+  assert.doesNotMatch(missing, /CommitReceipt/);
+  assert.doesNotMatch(missing, /write envelope/i);
+  assert.doesNotMatch(missing, /\(P05\)/);
+  assert.match(missing, /generic contract-to-SDK/);
+  assert.match(missing, /P07/);
 
   for (const key of ['kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed', 'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct']) {
     assert.equal(t[key], false, `${key} must remain false`);
@@ -248,27 +249,27 @@ test('currentTruth reflects P04 as implemented and P05 as the explicit next-miss
   assert.equal(o.capability_delta, 'NONE');
   assert.equal(o.calistirilabilirlik, 'not-runnable');
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /5\/25/);
-  assert.match(ownerText, /P05/);
+  assert.match(ownerText, /6\/25/);
+  assert.match(ownerText, /P07/);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 });
 
-test('ROADMAP.md, README.md and CHANGELOG.md project P04 closed / P05 active and drop stale P04-missing claims', () => {
+test('ROADMAP.md, README.md and CHANGELOG.md project P05 closed / P07 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.match(roadmap, /5\/25 tamamlandı, P05\/25 aktif/);
-  assert.match(roadmap, /P04/);
+  assert.match(roadmap, /6\/25 tamamlandı, P07\/25 aktif/);
   assert.match(roadmap, /P05/);
+  assert.match(roadmap, /P07/);
 
   const readme = readText('README.md');
-  assert.match(readme, /5\/25 tamamlandı, P05\/25 aktif/);
-  assert.doesNotMatch(readme, /can move the roadmap counter from 4\/25 to 5\/25/i);
-  assert.doesNotMatch(readme, /what that stage still lacks is the piece that scopes candidates/i);
-  assert.doesNotMatch(readme, /Rule\/candidate derivation and RLS integration remain unimplemented/i);
-  assert.doesNotMatch(readme, /What has landed is implementation evidence on a branch/i);
+  assert.match(readme, /6\/25 tamamlandı, P07\/25 aktif/);
 
   const changelog = readText('CHANGELOG.md');
   const unreleasedIdx = changelog.indexOf('## [Unreleased]');
   const unreleased = changelog.slice(unreleasedIdx);
-  assert.match(unreleased, /P04h/);
+  assert.match(unreleased, /P05/);
   assert.match(unreleased, /roadmap-v1-current-truth\.json/);
+
+  const compositionText = readText('src/delivery/create-customer-asgi-composition.mjs');
+  assert.doesNotMatch(compositionText, /underlying PostgresCommitAdapter/i);
+  assert.doesNotMatch(compositionText, /the composed PostgresCommitAdapter/i);
 });
