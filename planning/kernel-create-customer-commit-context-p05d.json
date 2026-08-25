@@ -56,16 +56,16 @@
     "result": "8/8 PASS, rerun once after the non-throwing capture correction, then rerun once more (8/8 PASS) after the isOrdinaryObject substitution, since that final source edit followed the prior targeted run"
   },
   "budget": {
-    "note": "gross additions/deletions/net/changedFiles below are the full P05d package: base-to-final-working-tree against the immutable base commit 91e04d968938302972743b5bb7235c51f7c2ab67 (tree 73b3339c72b5dbf568c25982291768c99e79c610), computed with git diff --numstat across all four allowed files",
+    "note": "gross additions/deletions/net/changedFiles below are the full P05d package: base-to-final-working-tree against the immutable P05d base snapshot, computed with git diff --numstat across all four allowed files",
     "components": {
       "CHANGELOG.md": { "additions": 48, "deletions": 0 },
-      "planning/kernel-create-customer-commit-context-p05d.json": { "additions": 113, "deletions": 0 },
+      "planning/kernel-create-customer-commit-context-p05d.json": { "additions": 117, "deletions": 0 },
       "src/application/create-customer-commit-service.mjs": { "additions": 12, "deletions": 1 },
       "tests/kernel-create-customer-commit-service.test.mjs": { "additions": 81, "deletions": 6, "note": "frozen; authored by the reviewer/test-writer stage, not this writer" }
     },
-    "grossAdditions": 254,
+    "grossAdditions": 258,
     "grossDeletions": 7,
-    "net": 247,
+    "net": 251,
     "changedFiles": 4,
     "class": "default",
     "gate": "GREEN_NET_LE_400",
@@ -74,19 +74,23 @@
   },
   "qa": {
     "originalCleanCandidate": {
-      "commit": "742ed546cad02c4f945d1b1c927d48174d4fb18b",
-      "tree": "602c8b0ca4b9776cc1929ef5a9d03fd0d72a0229",
+      "status": "original clean candidate snapshot; superseded for current-snapshot verdict only; snapshot has since changed under the reviewer P1 TOCTOU correction and the subsequent targeted QA-governance correction, valid as historical evidence of the pre-correction snapshot",
       "npmTest": "1485/1485 PASS",
-      "npmRunCheck": "exit 0",
-      "status": "superseded for current-snapshot verdict only; snapshot has since changed under the reviewer P1 TOCTOU correction, valid as historical evidence of the pre-correction snapshot"
+      "npmRunCheck": "exit 0"
     },
     "validFullQa1Used": 1,
     "currentSnapshotValidFullQa1Used": 0,
-    "additionalLocalFullQaAuthorizedReason": "SNAPSHOT_CHANGED_AFTER_REVIEW_CORRECTION",
+    "additionalLocalFullQaAuthorizedReason": "SNAPSHOT_CHANGED_AFTER_TARGETED_CORRECTION",
+    "failedCurrentSnapshotFullQaAttempt": {
+      "reason": "targeted QA-governance correction removed raw commit/tree hex tokens from CHANGELOG.md; the current-snapshot attempt below ran against the pre-correction snapshot and failed",
+      "npmTest": "exit 1; 1486 total, 1474 pass, 12 fail, 0 cancelled/skipped/todo, duration 24695.34ms",
+      "npmRunCheck": "exit 1",
+      "snapshotProof": "HEAD 1ac7548be75705a6c27a688ca4a654787cbcc568, tree b51f44347832bbf5d0002c0ebc65e4511999690f, working tree clean before and after this attempt"
+    },
     "qa1LocalFullRun": "pending",
     "ciFullRun": "pending",
     "fullQaExecutionsPerChangePackage": 2,
-    "spentThisPackage": 1
+    "spentThisPackage": 2
   },
   "rollback": "revert the eventual single atomic four-file package commit (source, frozen test, planning, CHANGELOG together) with one normal git revert of that commit; no migration or data cleanup is needed since no adapter, database, schema or persisted-data change is in scope.",
   "once": "CreateCustomerCommitService, ALLOW_COMMIT durumunda commit portuna sadece {tenantId} taşıyan donmamış bir bağlam gönderiyordu.",

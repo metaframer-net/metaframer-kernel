@@ -42,23 +42,23 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   capture was tightened: 8/8 PASS after the initial TOCTOU capture, 8/8 PASS after the follow-up
   non-throwing guard, and 8/8 PASS after the final `isOrdinaryObject` substitution, each rerun
   because the prior targeted run predated that source edit. Full-package base-to-working-tree
-  against the immutable base commit `91e04d968938302972743b5bb7235c51f7c2ab67` (tree
-  `73b3339c72b5dbf568c25982291768c99e79c610`) across all four allowed files:
+  against the immutable P05d base snapshot across all four allowed files:
   `CHANGELOG.md` +48/-0,
   `planning/kernel-create-customer-commit-context-p05d.json`
-  +113/-0,
+  +117/-0,
   `src/application/create-customer-commit-service.mjs`
   +12/-1, and the frozen
   `tests/kernel-create-customer-commit-service.test.mjs`
   +81/-6 (not authored by this writer) — gross
-  +254/-7, net 247, 4 files, class `default`,
-  gate `GREEN_NET_LE_400`. The original clean candidate commit `742ed54`/tree `602c8b0`'s full
+  +258/-7, net 251, 4 files, class `default`,
+  gate `GREEN_NET_LE_400`. The original clean candidate snapshot's full
   `npm test` (1485/1485 PASS) and `npm run check` (exit 0) count as this package's one used full
   QA1 run (`validFullQa1Used: 1`), valid as historical evidence against that pre-correction
   snapshot but not for the current, corrected snapshot (`currentSnapshotValidFullQa1Used: 0`): the
-  snapshot changed after that run under this reviewer correction, so one additional local full QA1
-  run against the current snapshot is pending, authorized only under reason
-  `SNAPSHOT_CHANGED_AFTER_REVIEW_CORRECTION`; CI remains QA2 pending. No adapter, UnitOfWork,
+  snapshot changed after that run under this reviewer correction, and again under this targeted
+  QA-governance correction, so one additional local full QA1 run against the current snapshot is
+  pending, authorized only under reason `SNAPSHOT_CHANGED_AFTER_TARGETED_CORRECTION`; CI remains
+  QA2 pending. No adapter, UnitOfWork,
   WriteEnvelope, CommitReceipt, composition, delivery, host, database or schema change beyond this
   service commit-context seam; `createCustomerComposition` is not yet wired to this service
   (deferred to P05e). `capability_delta` is `NONE`; every readiness/product/release/deploy flag
