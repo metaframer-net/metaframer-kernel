@@ -16,6 +16,18 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P10b `planning/roadmap-v1-current-truth.json` (plus its ROADMAP.md/README.md projections and
+  `planning/kernel-p10-current-truth-closure-p10b.json`): synced the roadmap current-truth
+  artifact to P10's real merged evidence — the app-owned Customer app-core public-SDK consumer
+  boundary (`consumers/customer-app-core/customer-app-core.mjs`) — is now recorded as
+  implemented, removing the prior "app-core (P10)... not yet" claim and replacing it with P11
+  (app-owned customer schema) as the explicit next-missing piece. Progress moves from
+  `9/25 tamamlandı, P10/25 aktif` to `10/25 tamamlandı, P11/25 aktif` (completed: P01–P10;
+  active: P11, app-owned customer schema), with every readiness flag (`kernelReady`, `sdkReady`,
+  `appBuildable`, `releaseAllowed`, `deployAllowed`, `productionAllowed`, `gapClosed`,
+  `oneGoldenSliceReady`, `runnableProduct`) held `false` and `capability_delta: NONE`. This is a
+  documentation/current-truth sync only; it adds no runtime capability and moves no readiness
+  flag. No npm release.
 - P10 `consumers/customer-app-core/customer-app-core.mjs`: an app-owned Customer app-core
   public-SDK consumer boundary (`CUSTOMER_APP_CORE_MANIFEST` plus `createCustomerAppCore`)
   that composes a P08-generated public action SDK module only through its public contract

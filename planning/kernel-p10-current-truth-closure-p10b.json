@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-p10-current-truth-closure-p10b-2026-08-25",
+  "packageKind": "current-truth-closure",
+  "type": "roadmap-current-truth-sync",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": {
+    "commit": "0f1fb371524f6455417026ac3816bc3ebc56b641",
+    "tree": "bd2871a4f626c21398c2a5abc6e32b97dbe9343c"
+  },
+
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p10-current-truth-20260825",
+
+  "scopeHashes": {
+    "master": "6b4fd9b10e97ed93e74abd3a03e1c7b8265bee144ad741631b9da54e58298ba6",
+    "blind": "076550829a225541cfa1fe55b6fca31f4bc3a3b0911f573e7055e0fddefc9c1a",
+    "synthesis": "d7abe812b8f40ea609834a00a62e4c7ebed0790e63ee7b138d142a81176f1146"
+  },
+
+  "actionplanBudgetPin": {
+    "sha": "c3d9e47ececdf1092c36c1a6bf5f7a8ec098aaf3",
+    "role": "change-package budget/class definitions source for this package",
+    "location": "src/data/standards/short-code.json#changePackageBudget"
+  },
+
+  "testProvenance": {
+    "path": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "note": "test file authored exclusively by the separate, already-completed test writer role; this implementation writer preserved it byte-for-byte and made no edit to it",
+    "handoff": {
+      "sha256": "19da3448a434714a9087470a921c7664ae2eb7d31ce12fdfcd9b8eb1ce061065"
+    },
+    "red": { "tests": 16, "pass": 12, "fail": 4 },
+    "final": {
+      "sha256": "19da3448a434714a9087470a921c7664ae2eb7d31ce12fdfcd9b8eb1ce061065",
+      "targetedGreenResult": { "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0 }
+    },
+    "executionCount": 2,
+    "executionHistory": {
+      "attempt1": {
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16,
+        "pass": 15,
+        "fail": 1,
+        "failingTest": "global readiness truth is all false and current truth names real existing and missing pieces",
+        "failureCause": "the first snapshot of currentTruth.notImplementedPieces still carried \"app-core\" wording inside the P11 missing-piece string (\"...beyond the P10 app-core boundary\"), which the invariant `assert.doesNotMatch(missing, /app-core/i)` correctly rejects"
+      },
+      "attempt2": {
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16,
+        "pass": 16,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "note": "final attempt, run after reworking only that missing-piece string to \"beyond the P10 public-SDK consumer boundary\"; no other file changed between attempt1 and attempt2"
+      },
+      "justification": "targeted retry after a snapshot correction to the same currentTruth string; this is a targeted RED-to-GREEN iteration, not a full QA run, and did not spend any of the fullQaBudget below"
+    }
+  },
+
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p10-current-truth-closure-p10b.json",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+
+  "nonGoals": [
+    "no runtime/src/tool change",
+    "no P10 implementation/evidence file change (consumers/customer-app-core/customer-app-core.mjs and planning/kernel-customer-app-core-p10.json untouched)",
+    "no dependency DAG, family, package name, or version change",
+    "no package.json, lockfile, CI/workflow/config change",
+    "no P11 implementation",
+    "no release, deploy or readiness flag change (all remain false)",
+    "no staging, commit, or push performed by this package",
+    "no full npm test / npm run check run in this step beyond the targeted command below",
+    "no self-delegation by any worker"
+  ],
+
+  "evidence": {
+    "red": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16,
+      "pass": 12,
+      "fail": 4,
+      "note": "4 scenarios (progress counter, P10 current-truth, ROADMAP/README/CHANGELOG P10/P11 projection, and the global missing-pieces invariant expecting P11 rather than P10) failed against pre-sync state; 12 unchanged scenarios already passed"
+    },
+    "targetedGreen": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "testSha256": "19da3448a434714a9087470a921c7664ae2eb7d31ce12fdfcd9b8eb1ce061065"
+    },
+    "changedScenarios": [
+      "roadmap.progress carries the exact 10/25 completed truth with P10 closed and P11 active",
+      "currentTruth reflects P10 (app-core/public-SDK/capability boundary) as implemented, anchored to real merged evidence, and P11 as the explicit next-missing piece, with all readiness flags false",
+      "ROADMAP.md, README.md and CHANGELOG.md project P10 closed / P11 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter",
+      "the older global missing-pieces invariant now expects P11 app-owned customer schema rather than completed P10, since P10 is closed and the next-missing piece has shifted"
+    ],
+    "fullPackageGate": {
+      "note": "honest full-package numstat/default-band gate: this is a small, additive documentation/current-truth-only change (6 files touched, no runtime/src change); QA1 (full local QA) and CI full QA remain pending per the two-full-QA-run budget",
+      "qa1": "pending",
+      "ci": "pending",
+      "fullQaBudget": { "total": 2, "spent": 0, "remaining": 2 }
+    },
+    "lineCounts": {
+      "changelogMd": { "additions": 12, "deletions": 0 },
+      "readmeMd": { "additions": 13, "deletions": 4 },
+      "roadmapMd": { "additions": 8, "deletions": 6 },
+      "currentTruthJson": { "additions": 14, "deletions": 13 },
+      "testFile": { "additions": 43, "deletions": 24 },
+      "thisPlanningRecord": { "additions": 147, "deletions": 0 },
+      "grossAdditions": 237,
+      "grossDeletions": 47,
+      "net": 190,
+      "filesChanged": 6,
+      "defaultBand": "GREEN_NET_LE_400"
+    }
+  },
+
+  "processTruth": {
+    "delegation": "single implementation writer role, no self-delegation; test file was already authored and completed by a separate prior test writer",
+    "stagingEvent": "no staging, commit or push performed by this package",
+    "implementationTargetedExecutionCount": 2,
+    "targetedExecutionNote": "the targeted test command was run twice: attempt1 was genuinely RED (1/16 failing) against a currentTruth snapshot that still used app-core wording in the P11 missing-piece string; only that string was corrected between attempts, then attempt2 ran and was 16/16 GREEN. This was a justified targeted RED-to-GREEN retry on an unchanged scope; it spent none of the fullQaBudget.",
+    "testWriterTargetedExecutionCount": 2,
+    "testWriterTargetedExecutionNote": "first frozen candidate SHA 51399be8a81f780361ec940c65460cf38880b7d77c65ec771e08bba68f1e5f5c ran 12/4; after bounded evidence-anchor hardening the final frozen SHA 19da3448a434714a9087470a921c7664ae2eb7d31ce12fdfcd9b8eb1ce061065 ran 12/4; both were targeted RED and spent zero full-QA budget.",
+    "totalTargetedExecutionsAcrossPackage": 4
+  },
+
+  "rollback": "one normal git revert of the eventual atomic six-file commit (planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md, planning/kernel-p10-current-truth-closure-p10b.json, tests/kernel-roadmap-v1-current-truth.test.mjs); the test file's content within that commit remains solely the separate test writer's authored/handed-off provenance (sha256 19da3448a434714a9087470a921c7664ae2eb7d31ce12fdfcd9b8eb1ce061065), unedited by this implementation writer; no migration or data cleanup required",
+
+  "ownerFacing": {
+    "once": "Once P10'un app-core sinir kaniti (consumers/customer-app-core) main'e mergelenmisti ama roadmap sayaci bunu hala yansitmiyordu.",
+    "simdi": "Simdi tek kaynak dosya + ROADMAP.md + README + CHANGELOG ayni 10/25 tamamlandi, P11/25 aktif durumunu projekte ediyor; hicbir calisma zamani davranisi degismedi.",
+    "fark": "Once sayac 9/25'te kalmisti; simdi P10 kapali, P11 (app-owned customer schema) aktif olarak dogru senkronize.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor.",
+    "kalanEngel": "P11 (app-owned customer schema) dahil F3-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz.",
+    "capability_delta": "NONE",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
