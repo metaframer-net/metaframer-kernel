@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,7 +19,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const uowPath = "src/adapters/postgres-unit-of-work.mjs";
 const writePath = "src/adapters/postgres-write-envelope-write.mjs";
-const commitAdapterPath = "src/adapters/postgres-commit-adapter.mjs";
 const uowModulePath = "src/application/unit-of-work.mjs";
 const writeEnvelopeModulePath = "src/application/write-envelope.mjs";
 const commitReceiptModulePath = "src/application/commit-receipt.mjs";
@@ -238,8 +238,7 @@ test("a write/body failure inside the real UnitOfWork rolls back, preserves the 
 
 test("a repeated preparedChangeSet fingerprint through WriteEnvelope rejects with IdempotencyConflictError and leaves exactly one row per table", async () => {
   const { createPostgresUnitOfWork } = await import(pathToFileURL(path.join(root, uowPath)).href);
-  const { createPostgresWrite } = await import(pathToFileURL(path.join(root, writePath)).href);
-  const { IdempotencyConflictError } = await import(pathToFileURL(path.join(root, commitAdapterPath)).href);
+  const { createPostgresWrite, IdempotencyConflictError } = await import(pathToFileURL(path.join(root, writePath)).href);
   const { UnitOfWork } = await import(pathToFileURL(path.join(root, uowModulePath)).href);
   const { WriteEnvelope } = await import(pathToFileURL(path.join(root, writeEnvelopeModulePath)).href);
 
@@ -274,4 +273,56 @@ test("a repeated preparedChangeSet fingerprint through WriteEnvelope rejects wit
   } finally {
     await resource.close();
   }
+});
+
+test("postgres-write-envelope-write.mjs directly exports IdempotencyConflictError, checkPreparedChangeSet, checkTenantId and isDuplicateIdempotencyFingerprintError with the deterministic, unchanged shape", async () => {
+  const mod = await import(pathToFileURL(path.join(root, writePath)).href);
+  const { IdempotencyConflictError, checkPreparedChangeSet, checkTenantId, isDuplicateIdempotencyFingerprintError } = mod;
+
+  assert.equal(typeof IdempotencyConflictError, "function");
+  assert.equal(typeof checkPreparedChangeSet, "function");
+  assert.equal(typeof checkTenantId, "function");
+  assert.equal(typeof isDuplicateIdempotencyFingerprintError, "function");
+
+  assert.ok(Object.isFrozen(IdempotencyConflictError));
+  assert.ok(Object.isFrozen(IdempotencyConflictError.prototype));
+
+  const tenantId = crypto.randomUUID();
+  const fingerprint = `fp-${crypto.randomUUID()}`;
+  const error = new IdempotencyConflictError(tenantId, fingerprint);
+  assert.ok(error instanceof Error);
+  assert.equal(error.name, "IdempotencyConflictError");
+  assert.equal(error.code, "IDEMPOTENCY_CONFLICT");
+  assert.equal(error.retryable, false);
+  assert.equal(error.tenantId, tenantId);
+  assert.equal(error.fingerprint, fingerprint);
+  assert.equal(error.message, `duplicate idempotency fingerprint for tenant ${tenantId}`);
+
+  assert.equal(checkTenantId(tenantId), tenantId);
+  assert.throws(() => checkTenantId(""), TypeError);
+  assert.throws(() => checkTenantId(undefined), TypeError);
+
+  const validPreparedChangeSet = Object.freeze({
+    persistenceState: "pending",
+    intents: Object.freeze(validIntentsForTenant(tenantId)),
+  });
+  const checked = checkPreparedChangeSet(validPreparedChangeSet);
+  assert.deepEqual(Reflect.ownKeys(checked).sort(), ["audit", "customer", "idempotency", "transactionalOutbox"]);
+  assert.throws(() => checkPreparedChangeSet({ persistenceState: "pending", intents: {} }), TypeError);
+  assert.throws(() => checkPreparedChangeSet(null), TypeError);
+
+  assert.equal(isDuplicateIdempotencyFingerprintError(null), false);
+  assert.equal(
+    isDuplicateIdempotencyFingerprintError({ code: "23505", constraint: "transactional_outbox_tenant_dedup_key" }),
+    true,
+  );
+  assert.equal(isDuplicateIdempotencyFingerprintError({ code: "23505", constraint: "some_other_constraint" }), false);
+});
+
+test("postgres-write-envelope-write.mjs no longer imports from postgres-commit-adapter.mjs", () => {
+  const source = readFileSync(path.join(root, writePath), "utf8");
+  assert.ok(
+    !source.includes("./postgres-commit-adapter.mjs"),
+    "postgres-write-envelope-write.mjs must not import the old commit-adapter module",
+  );
 });
