@@ -1,0 +1,195 @@
+{
+  "schemaVersion": "1.0.0",
+  "package": "P21F-audited-host-runner",
+  "generatedAt": "2026-08-27",
+  "base": "d8055e33980de6c0b5a5170ed3d88a1fbdd161ef",
+  "baseTree": "c8c184f34bf70ec497ae3b8601dec0b884a8a3d7",
+  "goal": "Carry the boundary's decision audit onto the one path a real Python ASGI host actually drives. P21C made every authorization decision durably auditable, P21D carried that audit to the ASGI callable and P21E closed the identity-guard silence — but host/js_asgi/create_customer_asgi_runner.mjs, the process the Python StdioJsAsgiBridge spawns per request, still composed the unaudited createCustomerAsgiComposition, so a request that arrives the way it will really arrive committed with no decision on record. This package adds exactly one additive, explicit, value-bearing --audit on|off runner argument whose default is off. Only an explicit --audit on, and only together with an explicit --policy allow, selects createAuditedCustomerAsgiComposition; the host then supplies the two collaborators that composition deliberately does not own — a dependency-free canonical Crockford-base32 ULID generator whose 48-bit millisecond prefix is this process's own clock reading and whose 80 random bits come from node:crypto, and a real UTC-millisecond instant. Neither the id nor the instant can be injected through a CLI argument. An omitted --audit and an explicit --audit off are the same runner: the no-args default, --policy deny and unaudited --policy allow compose exactly what they composed before. The fixed expectations stay owned by the frozen test file; this manifest describes the scenarios, binds the provenance and gates the run, and supplies no expected value back to any assertion.",
+  "packageClass": "security-test-conformance",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "budget": {
+    "band": "conditional",
+    "bandMaxNet": 800,
+    "classCeilingKind": "justified",
+    "classMaxNet": 800,
+    "maxChangedFiles": 20,
+    "measuredBy": "codex-desktop-master",
+    "actual": { "grossAdditions": 796, "grossDeletions": 9, "net": 787, "changedFiles": 3 },
+    "note": "The default band is NOT claimed. The writer's measurement over all three files, the two untracked new ones included, is recorded above and is subject to the MASTER's own measurement on the clean package commit; it is above the default band ceiling and inside the canonical conditional band (net <= 800) and the security-test-conformance justified class ceiling (net <= 800), with three changed files against the 20-file ceiling. The conditional band is therefore drawn on deliberately and its seven delivery gates are recorded below.",
+    "conditionalDeliveryGates": [
+      {
+        "gate": "single-narrow-problem",
+        "status": "met",
+        "evidence": "One problem only: the runner a real Python host drives committed unaudited. Every changed line serves that one problem — one value-bearing CLI argument with its own closed validation, one composition selection, the two audit collaborators the audited factory does not own, one manifest, one frozen test. No unrelated refactor, rename or cleanup rides along."
+      },
+      {
+        "gate": "bounded-file-set",
+        "status": "met",
+        "evidence": "Exactly the three files named in allowedFiles were touched, declared up front and unchanged since: git status shows one modified source and two new files and nothing else. No src/** file, no Python file and no prior P21 evidence artifact is touched."
+      },
+      {
+        "gate": "no-redundant-repetition",
+        "status": "met",
+        "evidence": "The audited branch reuses createAuditedCustomerAsgiComposition, the existing ALLOW_CANDIDATE, the existing trusted-identity principal construction, the existing envelope decode and the existing stdout event encoding unchanged; --audit is parsed by the same positional value-bearing loop the four existing arguments already use, and refused through the same single fail() exit. Nothing about hashing, chaining, evaluation or persistence is reimplemented here, and no new module, dependency, framework or host was introduced — the ULID and the instant are twenty lines of Node standard library, not a package."
+      },
+      {
+        "gate": "no-quality-tradeoff",
+        "status": "met",
+        "evidence": "No test was weakened, skipped or made conditional; the frozen test was never edited and its sha256 is unchanged from the handoff snapshot. The --audit value is mandatory and closed: a missing value, a following flag read as a value, an unknown value and a case-shifted value are each a deterministic non-zero exit with an empty stdout, taken before stdin is read and before any database is contacted, and --audit on outside --policy allow is refused the same way. The audit is opt-in and is never switched on behind the caller. A decision that cannot be recorded propagates out of app and the process exits non-zero with nothing on stdout, so an unrecordable decision can never answer an unaudited 2xx at the host boundary."
+      },
+      {
+        "gate": "full-green",
+        "status": "met-targeted-pending-qa",
+        "evidence": "node --check GREEN on the changed runner, JSON parse GREEN on this manifest, git diff --check clean, frozen test sha256 unchanged, one targeted node --test tests/kernel-audited-host-runner-p21f.test.mjs GREEN against a real PostgreSQL 16 container driven through the real Python StdioJsAsgiBridge, and one narrow existing regression run of tests/kernel-python-host-bridge-real-pg-allow.test.mjs GREEN. The two-execution full QA budget in greenEvidence.fullQaBudget is still unspent: QA1 and QA2 remain outstanding and this gate is not closed until they are."
+      },
+      {
+        "gate": "fresh-reviewer-accept",
+        "status": "pending",
+        "evidence": "Not met at this authoring checkpoint and not claimable by this writer. A separate read-only Claude reviewer session on the same immutable snapshot must accept the package; this writer authored it and may not review it."
+      },
+      {
+        "gate": "explicit-rollback",
+        "status": "met",
+        "evidence": "The rollback block below names the mechanism, the blast radius and the three files, records that the unaudited composition selection, the Python bridge, the schema and the dependency set are unchanged by this package, and states compensatingStepRequired false with the reason."
+      }
+    ]
+  },
+  "provenance": {
+    "scopeSynthesisSha256": "c798c7f514781ec5c75ba75f6c0aa2fc45a71fc0609048967045fadcd7db8610",
+    "masterScopeSha256": "cde37304c623aada74b828d8018f0241cff8ec1ef9a7bbb22cbdf540fc465cf5",
+    "blindScopeSha256": "cca20c7b4d621f33e716135fc81dc44ec0c702e1e2cd8320b519653a645ce942",
+    "blindScopeDetermination": true,
+    "writer": "claude-implementation-writer",
+    "singleWriter": true,
+    "reviewerMustBeSeparateSession": true,
+    "testAuthoring": "claude-only",
+    "note": "Blind scope determination: the MASTER scope and the Claude scope were frozen and hashed independently, neither side seeing the other, and were then reconciled by the MASTER into the recorded synthesis. This implementation writer received the three hashes and the frozen test only, authored no test file, and may not review this package."
+  },
+  "frozenTestPath": "tests/kernel-audited-host-runner-p21f.test.mjs",
+  "frozenTestSha256": "06de7a1a7e0a441ce2ac422b1af90fd555cb409e6781aece57a9145acccb7fca",
+  "allowedFiles": [
+    "planning/kernel-audited-host-runner-p21f.json",
+    "tests/kernel-audited-host-runner-p21f.test.mjs",
+    "host/js_asgi/create_customer_asgi_runner.mjs"
+  ],
+  "writeTables": ["customer_records", "audit_log", "transactional_outbox"],
+  "auditedHostRunnerContract": {
+    "substrate": "one migrated real PostgreSQL 16 container, driven only through the real Python StdioJsAsgiBridge into separate JS runner processes, shared by P21F-1 through P21F-4 within a single test",
+    "explicitValueBearingArgument": "--audit takes exactly the value on or off. A bare --audit with no value at all, a --audit whose value is the next flag, an unknown value and a case-shifted value are each a fail-closed malformed-CLI-args exit that names the exact malformed input, writes no ASGI response event and contacts no database.",
+    "defaultOff": "an omitted --audit and an explicit --audit off are the same runner. The no-args default, --policy deny, --policy deny --audit off, --audit off with no --policy, and an unaudited --policy allow all compose createCustomerAsgiComposition from exactly the collaborators they composed it from at this base.",
+    "allowOnly": "--audit on is admissible only together with --policy allow, because deny mode never reaches a database and so has no decision worth a durable record; turning the audit explicitly off there is not an error. Neither --audit value relaxes allow mode's existing --connection-string, --trusted-tenant-id and --trusted-actor-id requirements: each refusal still arrives deterministically, before any composition and before any database contact.",
+    "hostSuppliedCollaborators": "the audited composition mints no id and reads no clock of its own, so the host process supplies both, from the Node standard library alone — no ULID package, no date library, no dependency change. The ULID is canonical Crockford base32, twenty-six uppercase characters, ten of them this reading of the clock as a 48-bit big-endian millisecond count and sixteen of them the low five bits of sixteen node:crypto bytes, exactly uniform because 256 is a whole multiple of 32. The instant is the same process's own reading in the canonical UTC millisecond form the Clock port admits. Neither may be named by a CLI argument: a host that let a caller supply the id or the time of its own audit row would be recording the caller's claim rather than what happened.",
+    "identityUnchanged": "the audited allow takes its authenticated identity from the same two trusted CLI inputs of this process and from nothing else. The request's own x-tenant-id / x-actor-id headers stay claims the composition compares, so a claimed foreign tenant or actor keeps its exact existing 403 and its refusal is filed under the trusted identity, never the claimed one.",
+    "failClosed": "with the decision log's INSERT grant revoked on the live substrate the append refuses, the refusal propagates out of app, the runner process exits non-zero with nothing on stdout, and the Python bridge answers its own 502 subprocess_failed. No 2xx, no CommitReceipt, no business row and no decision row appears.",
+    "provingMethod": "whole-database count(*) over each write table as the superuser, with no tenant filter and no row-level predicate, so no write can hide behind a scope; and every column of every row of all four tables projected to text through to_jsonb and searched for each attacker-claimed value, so a claimed tenant or actor cannot survive anywhere the test never thought to read.",
+    "expectedValuesOwnedBy": "the frozen test file only: the argument spelling, every refusal message, status, outcome, error code, decision payload fields, chain linkage, ULID and instant forms and the bracket arithmetic are all asserted there and are never read back out of this manifest.",
+    "manifestRole": "the manifest is a load-bearing gate: the frozen test refuses to run any P21F scenario unless this file exists and declares exactly the five scenario ids in order."
+  },
+  "acceptanceScenarios": [
+    {
+      "id": "P21F-1",
+      "name": "--audit is an explicit value-bearing choice defaulting to off, and everything that is not an explicit --audit on stays exactly as it was",
+      "given": "the runner at this base, invoked with a bare --audit, with a --audit whose value is the next flag, with an unknown and a case-shifted value, with --audit on outside --policy allow, with an audited and an explicitly unaudited allow missing each existing allow requirement in turn, and finally through the real Python bridge with no args, with --policy deny, with --policy deny --audit off and with --audit off alone",
+      "then": "every malformed or inadmissible invocation exits non-zero naming the exact input, writes no ASGI response event and shows no trace of a PostgreSQL contact attempt, and all four bridge-driven paths still answer the unchanged two-event 403 POLICY_DENY tracing the boundary request id"
+    },
+    {
+      "id": "P21F-2",
+      "name": "an audited allow commits unchanged and the decision that authorized it becomes this tenant's verifiable chain genesis",
+      "given": "one migrated real PostgreSQL 16 substrate, one request driven through the real Python StdioJsAsgiBridge into a separate runner process launched with --policy allow --audit on and the two trusted identity inputs, preceded on the same substrate by one allow with --audit omitted and one with an explicit --audit off",
+      "then": "both unaudited allows commit exactly as before and leave the decision log completely empty, and the audited allow returns the same CommitReceipt shape bound to this exact HTTP request, writes exactly one further row per business table, and records exactly one decision row that verifies independently from its own persisted payload under the runner's trusted tenant, carrying the matched allow policy, its resolved layer, the boundary request id and the requested action"
+    },
+    {
+      "id": "P21F-3",
+      "name": "every identity-guard refusal the bridge can carry is audited into the same chain, under the trusted identity and never the claimed one",
+      "given": "the same audited runner invocation driven twice more through the real Python bridge, once claiming a foreign tenant in the forwarded headers and once claiming a foreign actor",
+      "then": "both keep their exact existing 403 CROSS_TENANT_DENY and 403 IDENTITY_MISMATCH refusals with no receipt, each appends exactly one decision row matching no policy and resolving no layer while tracing its own request id, the two refusals carry distinct non-empty reasons and chain onto the genesis and onto each other in the order they happened, neither writes a business row, and no row of any of the four tables carries either attacker-claimed value anywhere"
+    },
+    {
+      "id": "P21F-4",
+      "name": "the ids and instants are the host's own per process, and a decision that cannot be recorded stops the request",
+      "given": "the three rows written so far by three separate runner processes, then the decision log's INSERT grant revoked from the runtime role and a fresh audited allow sent, then the grant restored and one further audited allow sent",
+      "then": "every id is a distinct canonical ULID whose own millisecond prefix and whose row instant fall inside the bracket around their own invocation and whose value binds to its row's id column; the unrecordable attempt surfaces as the bridge's own 502 subprocess_failed with no CommitReceipt, no business row and no decision row; and the restored run commits again, appending exactly one further decision row that chains onto the last refusal with no gap and traces its own request id"
+    },
+    {
+      "id": "P21F-5",
+      "name": "the planning manifest binds this package, this base, this frozen test and its three allowed files, and claims no hosted readiness",
+      "given": "this manifest read from disk alongside the frozen test file's own content hash",
+      "then": "the package name, base commit, base tree, scope synthesis hash, single-writer and separate-reviewer provenance, Actionplan pin, frozen test path and hash, the exactly three allowed files, the three write tables, the capability delta prefix, the five ordered scenarios with their name/given/then, the six false readiness flags, the five Turkish user-journey fields and the required non-goals are all present and hold"
+    }
+  ],
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-audited-host-runner-p21f.test.mjs",
+    "narrowRegression": "node --test tests/kernel-python-host-bridge-real-pg-allow.test.mjs",
+    "syntaxCheck": "node --check host/js_asgi/create_customer_asgi_runner.mjs",
+    "jsonParseCheck": "node -e \"JSON.parse(require('fs').readFileSync('planning/kernel-audited-host-runner-p21f.json','utf8'))\"",
+    "whitespaceCheck": "git diff --check",
+    "frozenTestUnchanged": "sha256 of tests/kernel-audited-host-runner-p21f.test.mjs equals frozenTestSha256, unchanged from the handoff snapshot and never edited by this writer",
+    "targetedGreen": "3/3 subtests GREEN against a real PostgreSQL 16 container driven through the real Python StdioJsAsgiBridge",
+    "fullQaBudget": "two full QA executions for this change package, fixed and immutable: QA1 is the implementation writer's one local full QA on the clean package commit and QA2 is the required CI full QA. Both are still PENDING at this authoring checkpoint. The targeted syntax, JSON, whitespace, frozen-test and two node --test runs above are targeted RED-to-GREEN checks and spend none of that budget; beyond the two QA executions no third full QA run, bespoke probe, router-evidence script, self-verifier or repeated evidence package may be produced.",
+    "dockerDependentScenarios": "P21F-2, P21F-3 and P21F-4 need a local Docker daemon, a local python3 and the db package's uv environment; the absence of any of them is an environment failure, reported separately, and never an audited-host-runner capability gap"
+  },
+  "rollback": {
+    "mechanism": "git revert of this package's single atomic commit after delivery: one targeted, recoverable, non-destructive revert command, needing no database, no migration and no coordination with any other package.",
+    "blastRadius": "this planning artifact, the frozen test file, and one additive CLI argument with its two host collaborators and one composition selection inside host/js_asgi/create_customer_asgi_runner.mjs. Nothing under src/**, no Python file, no schema, no data, no dependency and no CI surface is reachable from this revert.",
+    "unauditedRunnerPreserved": true,
+    "pythonHostUntouched": true,
+    "srcUntouched": true,
+    "schemaUntouched": true,
+    "dataUntouched": true,
+    "ciUntouched": true,
+    "dependenciesUntouched": true,
+    "note": "Reverting removes the --audit argument, the ULID generator, the clock collaborator and the audited branch, leaving the runner composing createCustomerAsgiComposition exactly as it does at this base. Decision rows written while the audit was on remain valid, self-verifying historical evidence and are not deleted, migrated or compensated: the revert removes a capability, it does not unwrite a record.",
+    "compensatingStepRequired": false
+  },
+  "capabilityDelta": "AUDITED_HOST_RUNNER_IS_OPT_IN: the one path a real Python ASGI host actually drives can now be asked, explicitly, to record what it decided. Launched with --policy allow --audit on, the runner process composes the audited boundary, mints its own canonical ULIDs and its own UTC-millisecond instants, and appends every policy decision and every identity-guard refusal it reaches to the append-only, hash-chained policy_decision_log before the invariant stage or any commit — and refuses to answer at all when it cannot record. Launched any other way, including with --audit omitted or explicitly off, it is byte-for-behaviour the runner it was at this base and records nothing. This is a boundary and database capability reached through a real Python bridge; it is not a hosted product, not a selected host server, not a network listener and not a release.",
+  "readinessFlags": {
+    "kernelReady": false,
+    "releaseAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "deployAllowed": false,
+    "hostSelected": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "gapClosed": false,
+    "p21Complete": false
+  },
+  "nonGoals": [
+    "no hosted readiness, no hosted journey, no host selection, no host server, no network listener and no hosted deployment claim of any kind: this is a per-request subprocess a bridge spawns, not a server",
+    "no release, deploy, production, or runnable product claim",
+    "no new dependency, no new module, no package.json, lockfile, pyproject or uv.lock change, and no secret or dependency scan is performed or claimed by this package",
+    "no src/** change: createCustomerAsgiComposition, createAuditedCustomerAsgiComposition, the audited and unaudited composition roots, the pipeline, the decision log adapter and every value type are reused exactly as they are at this base",
+    "no python host change: host/python_asgi/** and the StdioJsAsgiBridge are read-only here, and no Python file is written, generated or regenerated by this package",
+    "no schema, migration, RLS or data projection change: the policy_decision_log table, its constraints and the three business write tables all already existed at this base",
+    "no change to the unaudited selection: the no-args default, --policy deny and an allow with --audit omitted or explicitly off compose exactly what they composed before, from exactly the same collaborators",
+    "no CLI surface for the audit id or the audit instant, and no environment read: the connection string, both trusted identity inputs and the audit switch come only from explicit CLI args",
+    "no policy rule, role model, session, login or credential surface: the runner still takes its policy candidate and its trusted identity as explicit test-runner inputs and authenticates nobody",
+    "no decision-log query, reporting, retention or export surface",
+    "no CI, workflow or config change",
+    "no edit to any P21A, P21B, P21C, P21D or P21E evidence, to the frozen P21F test, or to the managed policy source",
+    "no roadmap, current-truth or changelog edit",
+    "no full QA beyond the fixed two-execution budget recorded in greenEvidence.fullQaBudget: QA1 is the implementation writer's one local full QA on the clean package commit and QA2 is the required CI full QA, and beyond those two no third full QA run, bespoke probe, self-verifier or repeated evidence package may be produced",
+    "no P21 completion claim: P21 remains incomplete and this package is P21F only",
+    "no commit, push, merge, child agent or network mutation performed by this package"
+  ],
+  "residuals": [
+    "Host and runner: the runner is still a per-request subprocess a bridge spawns. No host server is selected, no network listener exists and no production ASGI application is served, so no hosted user journey is runnable. Out of scope here, left to a later package.",
+    "The audit is opt-in by construction. A host that forgets --audit on gets the unaudited runner and no warning, because making it default-on would change the existing default path this package is required to preserve. Making the audit mandatory is a later, separate decision.",
+    "The runner authenticates nobody: the trusted tenant and actor are explicit process inputs, so who the authenticated principal is remains the host's claim to make. Decision-log query, reporting, retention and export are still absent — the chain can be verified row by row but nothing reads it back as a product surface.",
+    "The ULID's randomness is 80 bits drawn per call with no monotonic counter, so two ids minted inside one millisecond are unordered relative to each other; ordering within a millisecond comes from the chain, not from the id.",
+    "Secret and dependency scanning: not performed and not claimed by this package. Roadmap, current-truth and changelog are not updated here; recording P21F against the roadmap is the MASTER's separate step.",
+    "P21 completion: not claimed. P21F closes only the unaudited-host-runner gap."
+  ],
+  "userJourney": {
+    "once": "CRM formundan gelen bir kayıt isteği, gerçek yolundan — Python köprüsü üzerinden ayrı bir çalıştırıcı sürecine — geldiğinde veritabanına yazılıyordu ama bu yazmaya kimin, hangi kurala dayanarak izin verdiği hiçbir yere kaydedilmiyordu. Defter JS tarafında vardı, ama ürünün gerçekte kullandığı yol o defteri hiç açmıyordu.",
+    "simdi": "Çalıştırıcı açıkça --audit on ile başlatıldığında, aynı istek aynı şekilde işleniyor; farkı, verilen izin kararının ve reddedilen her kimlik denemesinin, yazma işleminden önce zincirli ve yalnızca-ekleme yapılan deftere düşmesi. Karar deftere yazılamıyorsa istek hiç cevaplanmıyor.",
+    "fark": "Kayıt ile kaydın gerekçesi artık aynı yoldan geçiyor. Kimlik numaralarını ve zamanı çalıştırıcı sürecin kendisi üretiyor; dışarıdan kimse 'şu saatte, şu numarayla yaz' diyemiyor. --audit yazılmazsa ya da off yazılırsa sistem tamamen eskisi gibi davranıyor; kimse habersiz izlenmiş olmuyor.",
+    "kullaniciYolculugu": "CRM formu gönder → istek Python köprüsünden girer → köprü ayrı bir çalıştırıcı süreç başlatır → --audit on ise: karar önce deftere yazılır, yazma başarısızsa istek durur ve 502 döner; başarılıysa müşteri kaydı, denetim kaydı ve giden kutusu satırları tek işlemde yazılır ve makbuz döner. Başka bir şirket adına deneme yapılırsa: 403 döner, hiçbir iş satırı yazılmaz, ama ret deftere düşer ve iddia edilen sahte kimlik hiçbir satıra sızmaz.",
+    "kalanEngel": "Bu hâlâ bir sınır, köprü ve veritabanı kanıtıdır; barındırılan bir ürün değildir. Seçilmiş bir sunucu, ağ dinleyicisi, gerçek oturum açma ve defteri okuyup raporlayan bir ekran yok. Ayrıca denetim isteğe bağlıdır: --audit on yazılmazsa kayıt tutulmaz.",
+    "notlar": "Bu paket yalnızca kayıt tutar; kimseye yeni bir yetki vermez ve mevcut hiçbir reddi gevşetmez."
+  },
+  "productClaim": {
+    "runnable": "The frozen P21F test path is runnable: against a real migrated PostgreSQL 16 container, driven only through the real Python StdioJsAsgiBridge into separate node runner processes, an explicitly audited allow commits with a verifiable decision genesis, every identity-guard refusal is chained into the same log under the trusted identity, every id and instant is the host's own and bracketed to its invocation, an unrecordable decision stops the request at 502 with nothing written, and the unaudited default is proven to record nothing.",
+    "notRunnable": "No hosted product journey is runnable. There is no selected host server, no network listener, no production ASGI application, no real authentication, session or login surface, and no decision-log read, query or reporting surface. Governance gates turning GREEN is not product readiness and is not presented as such."
+  }
+}

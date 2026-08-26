@@ -1,4 +1,8 @@
-import { createCustomerAsgiComposition } from "../../src/delivery/create-customer-asgi-composition.mjs";
+import { randomBytes } from "node:crypto";
+import {
+  createAuditedCustomerAsgiComposition,
+  createCustomerAsgiComposition,
+} from "../../src/delivery/create-customer-asgi-composition.mjs";
 import { ActorId, Principal, TenantId } from "../../src/domain/identity-primitives.mjs";
 
 // =====================================================================================
@@ -35,6 +39,37 @@ import { ActorId, Principal, TenantId } from "../../src/domain/identity-primitiv
 // identity-injection contract only: not production authentication, no session, no credential
 // check, no token, no hosted-readiness claim.
 //
+// P21F adds the audited host runner. P21C/P21D/P21E made every boundary decision durably
+// auditable in JS, but this runner — the one path a real Python ASGI host actually drives — still
+// composed the unaudited createCustomerAsgiComposition, so a request that arrives the way it will
+// really arrive committed with no decision on record. One additive, explicit, value-bearing
+// argument closes exactly that gap:
+//   --audit on|off  (default off): the value is mandatory and closed; a missing value, a value
+//                                  that is the next flag, and any value that is not exactly "on"
+//                                  or "off" are deterministic malformed-CLI-args exits before
+//                                  stdin is read and before any database is contacted.
+//   --audit on                     is admissible only together with --policy allow: deny mode
+//                                  never reaches a database, so there is no decision worth a
+//                                  durable record and asking for one there fails closed.
+//   --audit on --policy allow      selects createAuditedCustomerAsgiComposition, so every policy
+//                                  decision and every identity-guard refusal this process reaches
+//                                  is appended to the append-only, hash-chained policy_decision_log
+//                                  before the invariant stage or any commit, and a decision that
+//                                  cannot be recorded stops the request: the runner exits non-zero
+//                                  with nothing on stdout rather than answering an unaudited 2xx.
+// An omitted --audit and an explicit --audit off are the same runner: the no-args default,
+// --policy deny and unaudited --policy allow keep composing createCustomerAsgiComposition from
+// exactly the collaborators they composed it from before. The audit is opt-in and is never
+// switched on behind the caller.
+//
+// The audited composition's `idGenerator` and `now` are collaborators it does not own, so the host
+// supplies them here — this is the ring where a capability belongs. Both are dependency-free and
+// built from the Node standard library alone: canonical Crockford-base32 ULIDs whose 48-bit
+// millisecond prefix is this process's own reading of the clock and whose 80 random bits come from
+// node:crypto, and a real UTC-millisecond instant. Neither the id nor the instant can be injected
+// through a CLI argument: a host that let a caller name the time or the id of its own audit row
+// would be recording the caller's claim rather than what happened.
+//
 // No env read: the connection string and both trusted identity inputs come only from explicit
 // CLI args, never from process.env. No network listener, no HTTP/ASGI server import, no host
 // server selection.
@@ -45,6 +80,50 @@ const FALLBACK_TENANT = "22222222-2222-4222-8222-222222222222";
 const FALLBACK_ACTOR = "js-boundary-runner";
 const DENY_CANDIDATE = Object.freeze({ policyId: "deny.everything", effect: "deny", applies: true });
 const ALLOW_CANDIDATE = Object.freeze({ policyId: "allow.everything", effect: "allow", applies: true });
+const [AUDIT_ON, AUDIT_OFF] = ["on", "off"];
+
+// -------------------------------------------------------------------------------------
+// The host's two audit collaborators
+//
+// The audited composition mints no id and reads no clock of its own, on purpose: those are
+// capabilities, and a composition root is the wrong ring to hold one. This runner is a host
+// process, so it is the right ring, and it builds both from the Node standard library alone —
+// no ULID package, no date library, no new dependency.
+// -------------------------------------------------------------------------------------
+
+// Crockford base32, the alphabet a canonical ULID is spelled in: ten digits and twenty-two
+// letters, with I, L, O and U left out so a transcribed id cannot be misread.
+const CROCKFORD_BASE32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const ULID_TIME_LENGTH = 10;
+const ULID_RANDOM_LENGTH = 16;
+
+/**
+ * One canonical uppercase 26-character ULID: ten characters carrying this reading of the clock as
+ * a 48-bit big-endian millisecond count, then sixteen characters of randomness.
+ *
+ * Each random character takes the low five bits of its own byte from node:crypto. That is exactly
+ * uniform rather than merely close to it, because 256 is a whole multiple of 32, so no value of
+ * the alphabet is reached more often than any other and no rejection loop is needed.
+ */
+function mintUlid() {
+  let remaining = Date.now();
+  let time = "";
+  for (let position = 0; position < ULID_TIME_LENGTH; position += 1) {
+    time = CROCKFORD_BASE32[remaining % 32] + time;
+    remaining = Math.floor(remaining / 32);
+  }
+  let random = "";
+  for (const byte of randomBytes(ULID_RANDOM_LENGTH)) {
+    random += CROCKFORD_BASE32[byte % 32];
+  }
+  return time + random;
+}
+
+/** This process's own reading of the wall clock, in the canonical UTC millisecond form the Clock
+ * port admits — the same instant the ULID above carries, spelled the way the log stores it. */
+function utcMillisecondInstant() {
+  return new Date().toISOString();
+}
 
 // Reads x-tenant-id/x-actor-id straight out of the scope headers (if present) so the runner's
 // deterministic principal matches the request's own ActionSpec tenant/actor, instead of forcing
@@ -89,7 +168,10 @@ function checkTrustedActorId(value) {
 }
 
 function parseArgs(argv) {
-  const args = { policy: "deny", connectionString: undefined, trustedTenantId: undefined, trustedActorId: undefined };
+  const args = {
+    policy: "deny", connectionString: undefined, trustedTenantId: undefined, trustedActorId: undefined,
+    audit: AUDIT_OFF,
+  };
   let i = 0;
   while (i < argv.length) {
     const flag = argv[i];
@@ -127,7 +209,25 @@ function parseArgs(argv) {
       i += 2;
       continue;
     }
+    if (flag === "--audit") {
+      // The value is mandatory and closed. It is read positionally, so a following flag is taken
+      // as the value and refused as one rather than silently turning the audit on.
+      const value = argv[i + 1];
+      if (value === undefined) return { error: "--audit requires a value" };
+      if (value !== AUDIT_ON && value !== AUDIT_OFF) {
+        return { error: `--audit must be "${AUDIT_ON}" or "${AUDIT_OFF}", got ${JSON.stringify(value)}` };
+      }
+      args.audit = value;
+      i += 2;
+      continue;
+    }
     return { error: `unrecognized argument: ${flag}` };
+  }
+  // Deny mode and the no-args default never reach a database, so there is no decision worth a
+  // durable record: asking to audit one is refused here, before the composition exists. Turning
+  // the audit explicitly off is never an error, because that is what this runner already was.
+  if (args.audit === AUDIT_ON && args.policy !== "allow") {
+    return { error: `--audit ${AUDIT_ON} requires --policy allow` };
   }
   if (args.policy === "allow") {
     if (args.connectionString === undefined) {
@@ -209,7 +309,7 @@ async function main() {
     fail(`malformed CLI args: ${parsed.error}`);
     return;
   }
-  const { policy, connectionString, trustedTenantId, trustedActorId } = parsed.args;
+  const { policy, connectionString, trustedTenantId, trustedActorId, audit } = parsed.args;
 
   const raw = await readStdin();
 
@@ -239,12 +339,25 @@ async function main() {
     ? trustedActorId
     : headerValue(scope.headers, "x-actor-id") || FALLBACK_ACTOR;
 
-  const composition = createCustomerAsgiComposition({
-    connectionString: policy === "allow" ? connectionString : NEVER_CONNECTED_CONNECTION_STRING,
-    current: async () => new Principal(new TenantId(tenant), new ActorId(actor)),
-    candidatesFor: async () => [policy === "allow" ? ALLOW_CANDIDATE : DENY_CANDIDATE],
-    evaluateInvariants: async () => ({ ok: true }),
-  });
+  // The only difference an audited run makes to the four collaborators below is that two more
+  // join them: the same connection string, the same trusted principal, the same candidate and the
+  // same invariant stage reach the audited factory, so what the boundary decides does not change —
+  // only whether the decision is written down before it is acted on.
+  const composition = policy === "allow" && audit === AUDIT_ON
+    ? createAuditedCustomerAsgiComposition({
+      connectionString,
+      current: async () => new Principal(new TenantId(tenant), new ActorId(actor)),
+      candidatesFor: async () => [ALLOW_CANDIDATE],
+      evaluateInvariants: async () => ({ ok: true }),
+      idGenerator: async () => mintUlid(),
+      now: async () => utcMillisecondInstant(),
+    })
+    : createCustomerAsgiComposition({
+      connectionString: policy === "allow" ? connectionString : NEVER_CONNECTED_CONNECTION_STRING,
+      current: async () => new Principal(new TenantId(tenant), new ActorId(actor)),
+      candidatesFor: async () => [policy === "allow" ? ALLOW_CANDIDATE : DENY_CANDIDATE],
+      evaluateInvariants: async () => ({ ok: true }),
+    });
 
   try {
     let bodyDelivered = false;
