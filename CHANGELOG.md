@@ -16,6 +16,21 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P15 `consumers/customer-app-core/customer-module-api.mjs`: typed customer-module-api boundary
+  reusing `createCustomerAppCoreWithPersistence` (P14a), `sdk.buildActionSpec` (P08) and
+  `canonicalizeCustomerRecord` (P11). Manifest carries frozen `actionCoordinate: customer.create@1`
+  and frozen `operations: ["recordCustomer"]`; factory rejects unless sdk is exactly that
+  coordinate. `recordCustomer` requires exactly `{actionSpec, record, insertOptions}` with
+  `insertOptions.audit`/`transactionalOutbox`/`idempotency` each an ordinary object, fails closed
+  before touching `legacyInsert` on a tenant mismatch (built/canonical/insertOptions), any empty
+  `audit.action`/`audit.correlationId`/`transactionalOutbox.eventName`/`transactionalOutbox.correlationId`/
+  `idempotency.fingerprint` (so two missing correlation ids can never pass as undefined==undefined),
+  or an audit/outbox correlation-id mismatch; inserts the canonical record exactly once; returns
+  frozen `{ok:true, record: canonical}`; propagates a rejection by
+  identity. Residual: built `requestId` is not equated to the correlation ids — the frozen test's
+  fixture (UUID requestId vs literal `"corr-1"`) would fail that check; deliberate, known gap. No
+  Surface/host/relay/DB/readiness change; no runnable/readiness claim. See
+  `planning/kernel-customer-module-typed-api-p15.json`.
 - P14f `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `14/25 tamamlandı, P15/25 aktif`, closing P14 (Kernel
   cleanup and parity) with real merged evidence from its five sub-packages — P14a app-core
