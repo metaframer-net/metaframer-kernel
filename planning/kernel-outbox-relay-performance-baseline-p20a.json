@@ -1,0 +1,44 @@
+{
+  "package": "P20A-outbox-relay-performance-baseline",
+  "base": "5ae615c7deabc119ab3455363a179084332c8662",
+  "baseTree": "fdd582cd98706c504f7b14999cf3cb49f16e7307",
+  "provenance": {
+    "scopeSynthesisSha256": "23b66a6d0cf453d4c0cb51c9572d18bb3ff243a9553fff4f90b617f6cc252518"
+  },
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "frozenTestPath": "db/tests/test_outbox_relay_performance_baseline.py",
+  "frozenTestSha256": "96c83c648bd74f2e5183a0c28d94e5edaa297b672dbc1f01364b6720529b602c",
+  "testHashUnchanged": true,
+  "allowedFiles": ["db/metaframer_kernel_db/performance.py", "planning/kernel-outbox-relay-performance-baseline-p20a.json"],
+  "roleOwnedTest": "db/tests/test_outbox_relay_performance_baseline.py",
+  "implementation": "performance.py adds frozen RelayPerformanceSample (validated tenant_id/duration_seconds/published_count/failed_count), frozen TenantP95Row, frozen RelayPerformanceBaseline, and summarize_relay_performance(samples): pure reduction over a nonempty sequence of exact RelayPerformanceSample values, never mutates input, uses no ambient clock/database/logging; nearest-rank percentile ceil(q*n); wall_clock_seconds is the sum of already-measured sample durations, seconds_per_published is that sum divided by published_total (0.0 when published_total is zero); per_tenant_p95 is an immutable tuple sorted by tenant_id; fairness_ratio is measured-only min(per-tenant p95)/max(per-tenant p95), 1.0 when the maximum is zero",
+  "scenarios": "hostile pure percentile/validation contract on 20 synthetic samples; clean-then-empty observed relay pass sequence [5,0,0] yields honest measured aggregates; identity-level tenant ID allow-set isolation over interleaved two-tenant progress [3,3,3,3] reports a measured fairness ratio; no concurrency, noisy-neighbor, or SLA claim is made",
+  "scope": "one pure, additive performance-summary module over already-measured RelayPerformanceSample readings",
+  "nonGoals": "no scheduler, retry, DLQ, exporter, dashboard, alert, live host, optimizer, load generator, dollar cost, noisy-neighbor or SLA/readiness claim; no change to P18/P19 modules or exports",
+  "readinessFlags": {"kernelReady": false, "releaseAllowed": false, "productionAllowed": false, "runnableProduct": false},
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget: production class, default band, max400 net/800 gross/files20",
+    "perFile": {
+      "db/tests/test_outbox_relay_performance_baseline.py": {"additions": 220, "deletions": 0},
+      "db/metaframer_kernel_db/performance.py": {"additions": 104, "deletions": 0},
+      "planning/kernel-outbox-relay-performance-baseline-p20a.json": {"additions": 44, "deletions": 0}
+    },
+    "grossAdditions": 368, "grossDeletions": 0, "netLines": 368, "fileCount": 3,
+    "class": "production", "band": "default", "noFalseDefaultClaim": true
+  },
+  "qa": {
+    "targeted": "uv run pytest tests/test_outbox_relay_performance_baseline.py -q (from db/) — 3/3 pass on frozen bytes, ruff-formatted performance.py",
+    "ruff": "ruff check db/metaframer_kernel_db/performance.py db/tests/test_outbox_relay_performance_baseline.py — clean; ruff format --check on both — already formatted",
+    "fullQaExecutionsPerChangePackage": 2,
+    "notRun": "full repo QA, git, roadmap current-truth, changelog, release/deploy — out of this slice"
+  },
+  "checkpoint": "20m targeted-QA checkpoint",
+  "once": "P19 gözlemlenen relay pass'i tek tek ölçülüyordu ama bu ölçümleri p95/p99, toplam ve tenant bazlı özet bir tabana indirgeyen katman yoktu.",
+  "simdi": "Artık ölçülmüş RelayPerformanceSample kayıtları summarize_relay_performance ile deterministik, saf bir RelayPerformanceBaseline'a indirgeniyor: nearest-rank p95/p99, tenant bazlı p95 ve ölçülmüş fairness_ratio.",
+  "fark": "Yeni additive modül performance.py eklendi; P18/P19 davranışı değişmedi, hiçbir saat/veritabanı/log kullanılmadı.",
+  "kullaniciYolculugu": "Operasyon artık birden çok relay pass'inin süre dağılımını ve tenant'lar arası ölçülmüş adaleti tek özet nesneden okuyabilir; hiçbir SLA/eşik iddiası yapılmaz.",
+  "kalanEngel": "Scheduler, exporter, dashboard, alert, canlı host hâlâ yok; full QA/CI/current-truth kapanışı bu paketin dışında.",
+  "capability_delta": "OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY",
+  "notRunnable": "Bu paket hiçbir servis/dinleyici/zamanlayıcı başlatmaz; yalnızca önceden ölçülmüş örnekleri saf biçimde özetler.",
+  "rollback": "revert all three package files — db/metaframer_kernel_db/performance.py, planning/kernel-outbox-relay-performance-baseline-p20a.json, and the role-owned db/tests/test_outbox_relay_performance_baseline.py; no other file touched"
+}
