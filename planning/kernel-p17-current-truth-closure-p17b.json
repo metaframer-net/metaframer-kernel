@@ -1,0 +1,75 @@
+{
+  "package": "P17b-current-truth-closure",
+  "base": "9f770d6b708d6dfe32772202bf9dc15fd18eeb02",
+  "baseTree": "49cc3b56579be415402c3551a505c6eab8c6377d",
+  "masterScope": "fd85d749099881d1e8f093466a5b235e5814e741db68ebf4f2eac286773bfcd1",
+  "blindScope": "69edfe384470d4b018ba5dfe30fdac5ea866951444a57f935e1d2731794502eb",
+  "synthesisScope": "417cd95664adf083945b544323dd8faf544adab0b9af3ebdc8ae907632398a03",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p17-current-truth-closure-p17b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p17-current-truth-closure-p17b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p17-current-truth-closure-p17b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "180d6b211301c0a82975a442209af15266ae7db7291547086db6ca8b7ea69661",
+  "testHashUnchanged": true,
+  "excludes": ["runtime", "DAG structure", "readiness flags", "commit", "push", "AGENTS.md", "P18", "P19-P25"],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE",
+    "notRunnable": "This truth-sync wires no live entrypoint, host or relay; it only projects P17's already-merged installable-ASGI-package evidence (PR #120) into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. A hosted product remains not-runnable; calistirilabilirlik is installable-adapter-only-hosted-product-not-runnable."
+  },
+  "syncSummary": "Advances roadmap.progress from 16/25 (P17 active) to 17/25 (P18 active); adds P17's merged host/pyproject.toml + host/python_asgi/__init__.py packaging evidence to currentTruth.implementedPieces; removes P17 from notImplementedPieces, replacing the removed line with an explicit live-entrypoint/host-wiring gap that stays open; retains P18 (outbox relay lifecycle) and P19-P25 (production proof) as the explicit next-missing pieces; all nine stronger readiness flags remain false; ownerFacing capability_delta becomes PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE and calistirilabilirlik becomes installable-adapter-only-hosted-product-not-runnable.",
+  "budget": {
+    "canonicalSource": "external actionplan-repository pin f25018d937557381cf8f8dd1012c29a2e48ba374#changePackageBudget",
+    "measurement": {
+      "files": 6,
+      "grossAdditions": 165,
+      "grossDeletions": 70,
+      "net": 95,
+      "gross": 235
+    },
+    "class": "DEFAULT_BAND",
+    "verdict": "COMPLIANT: net 95 (<=400) and gross 235 fit DEFAULT_BAND with no named-condition requires."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — GREEN after this package's edits, no test file edit by the implementation writer",
+    "fullQaBudget": "accepted budget remains QA1 final local + QA2 CI",
+    "invalidatedBatches": [],
+    "acceptedRerun": "QA1 acceptance (final local full run: npm test + npm run check, one time each) is determined by the implementation QA worker on the immutable candidate commit, outside this self-describing record; QA2 is the required CI run. This record does not itself assert a post-commit result — it only names which worker, on which commit, runs which commands, and defers the outcome to that run.",
+    "rollback": "revert planning/roadmap-v1-current-truth.json, this file, ROADMAP.md, README.md and CHANGELOG.md to the pre-package commit; no runtime, host, AGENTS.md, P18 or P19-P25 file touched by this package"
+  }
+}

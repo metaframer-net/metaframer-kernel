@@ -613,7 +613,16 @@ Surface/UI projection) — `consumers/customer-app-core/customer-surface.mjs`
 (PR #118 with a passing CI run) — with P17 (installable ASGI host adapters) as the active
 package; this closes the in-process Customer Surface capability
 (`CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY`) but a hosted product remains not-runnable and
-no global readiness flag under **Current status** moves.
+no global readiness flag under **Current status** moves. A further roadmap current-truth package
+has since synced the counter again to `17/25 tamamlandı, P18/25 aktif`, closing P17 (installable
+ASGI host adapters) — `host/pyproject.toml` making `host/` an installable, offline-buildable
+pure-Python distribution via `uv_build` (package `metaframer-kernel-asgi-host`, version `0.1.0a1`,
+no dependencies), with `host/python_asgi/__init__.py` publicly re-exporting exactly three names
+(`StdioJsAsgiBridge`, `create_customer_app`, `run_create_customer_host`), test-verified 3/3
+(PR #120 with a passing CI run) — with P18 (outbox relay lifecycle) as the active package; this
+adds the `PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE` packaging/installability-only capability
+delta, wires no live entrypoint/host, and a hosted product remains not-runnable with no global
+readiness flag under **Current status** moved.
 
 ## Authorized order and what remains closed
 
