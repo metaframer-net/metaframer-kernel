@@ -1292,6 +1292,13 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   at 0.1.0-alpha.1. This is a train entry, not a release.
 
 ### Removed
+- P14D2B deletes the transitional `src/adapters/postgres-commit-adapter.mjs` (133 lines) now that
+  `postgres-write-envelope-write.mjs` owns its API directly; `planning/kernel-persistence-ownership.json`'s
+  `transitionalKernelAdapters` is now the empty array, the adapters ring module manifest in
+  `tests/repository-boundary.test.mjs` drops the retired filename, and the one remaining
+  current-filename backlink comment in `postgres-write-envelope-write.mjs` is corrected (comment
+  only; no runtime/error-message byte changed). See
+  `planning/kernel-postgres-adapter-retirement-p14d2b.json`.
 - P14d2a deletes the legacy `tests/postgres-commit-adapter.test.mjs` (343 lines, 10 test cases).
   `tests/postgres-unit-of-work-write-envelope.test.mjs` (authored by closed test writer; not
   edited by implementation writer) retains key

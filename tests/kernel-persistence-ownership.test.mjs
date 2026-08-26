@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtempSync, writeFileSync, mkdirSync, symlinkSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, symlinkSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -363,7 +363,7 @@ test("an intermediate symlink resolving back inside repoRoot is denied as ambigu
   assertDenied(result, "resolves ambiguously");
 });
 
-test("P14c real manifest freezes the split ownership contract (one applicationOwnedHistoricalMigrations record, one transitionalKernelAdapters record, legacy transitionalInKernel retired) and the 0002-to-0003 migration history stays intact", () => {
+test("P14D2B real manifest freezes the converged ownership contract (applicationOwnedHistoricalMigrations preserved, transitionalKernelAdapters empty, legacy transitionalInKernel retired, legacy adapter physically absent)", () => {
   const manifest = loadManifest(path.join(root, MANIFEST_PATH));
   assert.equal(manifest.transitionalInKernel, undefined, "legacy combined transitionalInKernel must be retired in the P14c real contract");
 
@@ -372,16 +372,12 @@ test("P14c real manifest freezes the split ownership contract (one applicationOw
   assert.deepEqual(manifest.applicationOwnedHistoricalMigrations[0], P14C_HISTORICAL_MIGRATION);
 
   assert.ok(Array.isArray(manifest.transitionalKernelAdapters), "transitionalKernelAdapters must be an array");
-  assert.equal(manifest.transitionalKernelAdapters.length, 1);
-  assert.deepEqual(manifest.transitionalKernelAdapters[0], P14C_TRANSITIONAL_ADAPTER);
+  assert.equal(manifest.transitionalKernelAdapters.length, 0, "transitionalKernelAdapters must be empty once the postgres adapter retirement converges");
 
-  const migrationsDir = path.join(root, "db/metaframer_kernel_db/alembic/versions");
-  const rev0002 = readFileSync(path.join(migrationsDir, "0002_customer_records.py"), "utf8");
-  const rev0003 = readFileSync(path.join(migrationsDir, "0003_policy_decision_log.py"), "utf8");
-  assert.match(rev0002, /revision\s*=\s*"0002_customer_records"/);
-  assert.match(rev0002, /down_revision\s*=\s*"0001_runtime_substrate"/);
-  assert.match(rev0003, /revision\s*=\s*"0003_policy_decision_log"/);
-  assert.match(rev0003, /down_revision\s*=\s*"0002_customer_records"/);
+  const legacyAdapterPath = path.join(root, manifest.adaptersDir, "postgres-commit-adapter.mjs");
+  assert.equal(existsSync(legacyAdapterPath), false, "the legacy postgres-commit-adapter.mjs must be physically removed from the repository");
+
+  assertClean(evaluatePersistenceOwnership({ manifest, repoRoot: root }));
 });
 
 test("P14c a tree declared under the split contract (historical migration record + transitional adapter record, no legacy transitionalInKernel) is admissible", () => {
@@ -443,6 +439,22 @@ test("P14c an unknown adapter added to transitionalKernelAdapters is denied, not
     ],
   });
   assertDenied(result, "mystery-adapter.mjs");
+});
+
+test("P14D2B the 0002-to-0003 historical migration lineage stays intact after the postgres adapter retirement converges", () => {
+  const manifest = loadManifest(path.join(root, MANIFEST_PATH));
+
+  const migrationsDir = path.join(root, "db/metaframer_kernel_db/alembic/versions");
+  const rev0002 = readFileSync(path.join(migrationsDir, "0002_customer_records.py"), "utf8");
+  const rev0003 = readFileSync(path.join(migrationsDir, "0003_policy_decision_log.py"), "utf8");
+  assert.match(rev0002, /revision\s*=\s*"0002_customer_records"/);
+  assert.match(rev0002, /down_revision\s*=\s*"0001_runtime_substrate"/);
+  assert.match(rev0003, /revision\s*=\s*"0003_policy_decision_log"/);
+  assert.match(rev0003, /down_revision\s*=\s*"0002_customer_records"/);
+
+  assert.ok(Array.isArray(manifest.applicationOwnedHistoricalMigrations), "applicationOwnedHistoricalMigrations must be an array");
+  assert.equal(manifest.applicationOwnedHistoricalMigrations.length, 1);
+  assert.deepEqual(manifest.applicationOwnedHistoricalMigrations[0], P14C_HISTORICAL_MIGRATION);
 });
 
 test("import is side-effect-free: loading the module performs no filesystem writes or process exit", async () => {

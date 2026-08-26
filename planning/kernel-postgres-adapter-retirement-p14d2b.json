@@ -1,0 +1,192 @@
+{
+  "package": "P14D2B",
+  "title": "Retire the transitional postgres-commit-adapter.mjs now that postgres-write-envelope-write.mjs owns its API directly",
+  "role": "implementation-writer-after-explicit-test-writer-handoff",
+  "baseCommit": "8b13884b587c762b150b8d9dba1494ec0279bb0a",
+  "baseTree": "e5aad2cc610782fddc9a8629e60b9204aeb011d7",
+  "scopeHashes": {
+    "master": "d555e8cae6fbdc5da70bb71b748316eb91eed84ddc8af00afe0c9f980d80854f",
+    "blindClaude": "d96f8a7a811fbb4094e8abffcf58a1078175f6297a02518a3d1660f89ad9dd13",
+    "synthesis": "dafa286966fa66a5cbcd780e0d5ff4f98e92899a3e4359a840ed904f6ffd8e38"
+  },
+  "packageFiles": [
+    {
+      "path": "CHANGELOG.md",
+      "role": "edited by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 7, "deletions": 0 }
+    },
+    {
+      "path": "planning/kernel-persistence-ownership.json",
+      "role": "edited by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 1, "deletions": 9 }
+    },
+    {
+      "path": "planning/kernel-postgres-adapter-retirement-p14d2b.json",
+      "role": "added by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 192, "deletions": 0 }
+    },
+    {
+      "path": "src/adapters/postgres-commit-adapter.mjs",
+      "role": "deleted by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 0, "deletions": 133 }
+    },
+    {
+      "path": "src/adapters/postgres-write-envelope-write.mjs",
+      "role": "edited by this implementation writer (comments only; no runtime/error-message byte changed)",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 2, "deletions": 3 }
+    },
+    {
+      "path": "tests/kernel-persistence-ownership.test.mjs",
+      "role": "frozen, authored by test writer; read-only for this implementation writer",
+      "editedByImplementationWriter": false,
+      "frozenSha256": "3f1d233068780be58899ce14fe1716e462e57b642167e976fa99d4f8bcbf5445",
+      "numstat": { "additions": 23, "deletions": 11 }
+    },
+    {
+      "path": "tests/repository-boundary.test.mjs",
+      "role": "frozen, authored by test writer; read-only for this implementation writer",
+      "editedByImplementationWriter": false,
+      "frozenSha256": "22ecc00cb87a565ce7763576d0dc9efcc6f78b5d4f8a3c3a9cf4a4be292b3128",
+      "numstat": { "additions": 24, "deletions": 1 }
+    }
+  ],
+  "allowedWrites": [
+    "CHANGELOG.md (edit)",
+    "planning/kernel-persistence-ownership.json (edit)",
+    "planning/kernel-postgres-adapter-retirement-p14d2b.json (add)",
+    "src/adapters/postgres-commit-adapter.mjs (delete)",
+    "src/adapters/postgres-write-envelope-write.mjs (comments only)"
+  ],
+  "frozenTests": [
+    "tests/kernel-persistence-ownership.test.mjs",
+    "tests/repository-boundary.test.mjs"
+  ],
+  "nonGoals": [
+    "no other file, stage, commit or push",
+    "no runtime/error-message byte change in postgres-write-envelope-write.mjs",
+    "no edit to either frozen test file",
+    "no proof of real-Postgres composition beyond what the two frozen test files already assert",
+    "no current-truth (ROADMAP/README) closure for P14 in this package"
+  ],
+  "scenarios": [
+    "the legacy postgres-commit-adapter.mjs is physically deleted from src/adapters and transitionalKernelAdapters converges to the empty array in planning/kernel-persistence-ownership.json, admissible under evaluatePersistenceOwnership",
+    "the 0002-to-0003 historical migration lineage and applicationOwnedHistoricalMigrations stay intact after the retirement converges",
+    "the adapters ring's exact module manifest excludes the retired postgres-commit-adapter.mjs, the file is physically absent from src/adapters, and postgres-write-envelope-write.mjs carries no current-filename backlink comment naming it"
+  ],
+  "redGreen": {
+    "targetedCommand": "node --test tests/kernel-persistence-ownership.test.mjs tests/repository-boundary.test.mjs",
+    "red": {
+      "beforeImplementation": true,
+      "result": "203/206 pass, 3 fail",
+      "failingTests": [
+        "P14D2B real manifest freezes the converged ownership contract (applicationOwnedHistoricalMigrations preserved, transitionalKernelAdapters empty, legacy transitionalInKernel retired, legacy adapter physically absent)",
+        "P14D2B the 0002-to-0003 historical migration lineage stays intact after the postgres adapter retirement converges",
+        "P14D2B the adapters ring's exact module manifest excludes the retired postgres-commit-adapter.mjs, and the surviving postgres-write-envelope-write.mjs carries no current-filename backlink to it"
+      ]
+    },
+    "invalidPreGreenAttempts": [
+      {
+        "command": "npm test",
+        "classification": "INVALID_PRE_GREEN",
+        "reason": "original first-writer attempt, run prematurely against the partial mid-implementation tree before the targeted RED-to-GREEN sequence completed; consumed no accepted full-QA slot",
+        "consumedFullQaSlot": false
+      },
+      {
+        "command": "npm test",
+        "classification": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD",
+        "reason": "a completed run made after targeted GREEN, but against an uncommitted worktree that had not yet converged on this package's checkpoint HEAD; carried ten historical kernel-python-host HEAD-relative failures unrelated to this package's scope; consumed no accepted full-QA slot",
+        "consumedFullQaSlot": false
+      },
+      {
+        "command": "npm test",
+        "classification": "INVALID_DUPLICATE_DIRTY_RUN_INTERRUPTED",
+        "reason": "a duplicate extraction attempt against a dirty tree, interrupted/rejected mid-run and produced no usable pass/fail count; consumed no accepted full-QA slot",
+        "consumedFullQaSlot": false
+      }
+    ],
+    "green": {
+      "afterImplementation": true,
+      "result": "205/205 pass",
+      "note": "205 is the corrected total scenario count for these two files after this package's edits (203 prior passing + 3 newly-satisfied targeted scenarios - 1 scenario the frozen test writer replaced in place rather than added net-new)."
+    }
+  },
+  "fullSuiteEvidence": {
+    "npmTest": "GREEN: 1530 total, 1530 pass, 0 fail (log: /tmp/p14d2b-e818d7ca-npm-test.log)",
+    "npmRunCheck": "GREEN: exit 0 (log: /tmp/p14d2b-e818d7ca-npm-check.log)"
+  },
+  "acceptedAt": {
+    "commit": "e818d7cacd880194c00f024cd9c1e5462cc2f140",
+    "tree": "c194fff91f9a53dd5b548e48373ff19c8947ceb6",
+    "npmTest": { "total": 1530, "pass": 1530, "fail": 0 },
+    "npmRunCheck": { "result": "GREEN", "exitCode": 0 }
+  },
+  "qaSlots": {
+    "budget": 2,
+    "acceptedLocalUsed": 1,
+    "acceptedCiUsed": 0,
+    "invalidAttemptsDoNotConsume": true,
+    "ciOwed": true
+  },
+  "numstat": {
+    "additions": 249,
+    "deletions": 157,
+    "net": 92,
+    "gross": 406,
+    "files": 7,
+    "grossCeiling": 800,
+    "withinCeiling": true,
+    "class": "small-with-deletion, requires independent review",
+    "evidence": "targeted RED-to-GREEN (203/206 -> 205/205) plus one accepted writer-local full QA run (npm test 1530/1530 pass, npm run check GREEN exit 0)",
+    "gate": "implementation-green-awaiting-independent-review-and-ci"
+  },
+  "rollback": {
+    "action": "revert all seven package files to their state at this package's immutable base commit 8b13884b587c762b150b8d9dba1494ec0279bb0a (a normal revert of the package's changes; restoring src/adapters/postgres-commit-adapter.mjs from that commit for the one file this package deletes)",
+    "filesInScope": [
+      "CHANGELOG.md",
+      "planning/kernel-persistence-ownership.json",
+      "planning/kernel-postgres-adapter-retirement-p14d2b.json",
+      "src/adapters/postgres-commit-adapter.mjs",
+      "src/adapters/postgres-write-envelope-write.mjs",
+      "tests/kernel-persistence-ownership.test.mjs",
+      "tests/repository-boundary.test.mjs"
+    ]
+  },
+  "strongerFlags": {
+    "productCodeChanged": true,
+    "testCoverageIncreased": false,
+    "behaviorChanged": false,
+    "scopeWidened": false,
+    "fullyReviewed": false,
+    "ciVerified": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "candidateStatus": "implementation-green-awaiting-independent-review-and-ci",
+  "p14Status": "incomplete",
+  "remainingWork": [
+    "further real-Postgres composition proof beyond what these two frozen test files assert",
+    "P14 current-truth closure (ROADMAP.md/README.md/CHANGELOG.md project state)"
+  ],
+  "reviewStatus": "candidate awaiting independent review and CI; not yet merged/promoted",
+  "ownerFacing": {
+    "once": "Sistemde geçici bir postgres-commit-adapter.mjs dosyası vardı; asıl işi zaten postgres-write-envelope-write.mjs yapıyordu ama envanterde bu geçici dosya hâlâ 'kullanımda' olarak işaretliydi ve dosyanın kendisi de fiziksel olarak duruyordu.",
+    "simdi": "Geçici postgres-commit-adapter.mjs dosyası tamamen silindi, envanterdeki transitionalKernelAdapters listesi boşaldı ve adapters halkasının modül listesi bu silinen dosyayı artık anmıyor. postgres-write-envelope-write.mjs'deki eski dosya adına yapılan yorum satırı düzeltildi; çalışma zamanı davranışı ve hata mesajları hiç değişmedi.",
+    "fark": "Kod envanteri artık gerçek dosya durumuyla birebir uyumlu; müşteri kayıt/onay/reddet akışında hiçbir davranış değişmedi.",
+    "kullaniciYolculugu": "Değişmedi — bir müşteri kaydı gönderip onay/red/tekrar-deneme akışını yaşıyorsa, bu paket o akışta hiçbir farklılık yaratmaz.",
+    "kalanEngel": "P14 hâlâ tamamlanmadı: gerçek Postgres kompozisyon kanıtı ve P14 current-truth kapanışı (ROADMAP/README/CHANGELOG proje durumu) hâlâ bekliyor. Bağımsız inceleme ve CI tam QA turu da henüz yapılmadı.",
+    "capability_delta": "NONE",
+    "runnableClaim": "Not runnable as a product change — this package only retires a transitional adapter file and corrects inventory/comment bookkeeping; no user-facing flow, form, or API surface changed, and P14 remains open pending independent review, CI, and further composition/closure work."
+  }
+}

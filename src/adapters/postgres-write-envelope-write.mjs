@@ -6,11 +6,10 @@ import { CommitReceipt } from "../application/commit-receipt.mjs";
 // Builds the `write(scope, preparedChangeSet)` collaborator WriteEnvelope
 // (src/application/write-envelope.mjs) needs: given the transactional client UnitOfWork.begin
 // already opened (`scope`), inserts all four intents of an ALLOW_COMMIT preparedChangeSet against
-// the same S1 substrate PostgresCommitAdapter targets, and resolves to a canonical CommitReceipt.
+// the same S1 substrate targets, and resolves to a canonical CommitReceipt.
 // The SQL COMMIT/ROLLBACK itself stays with the UnitOfWork port; this collaborator only writes
 // rows inside the scope it is handed. This module directly owns preparedChangeSet/tenantId
-// validation and duplicate-fingerprint recognition; postgres-commit-adapter.mjs imports and
-// re-exports these same names for its own transitional API.
+// validation and duplicate-fingerprint recognition.
 // =====================================================================================
 
 // The substrate's own per-tenant unique index name, from
