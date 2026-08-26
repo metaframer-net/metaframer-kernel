@@ -125,6 +125,8 @@ test('global readiness truth is all false and current truth names real existing 
   for (const term of ['live entrypoint|host', 'outbox relay', 'production proof']) {
     assert.match(missing, new RegExp(term), `notImplementedPieces missing ${term}`);
   }
+  assert.doesNotMatch(missing, /\binstallable ASGI host adapters\b/i);
+  assert.doesNotMatch(missing, /\(P17\)/);
   assert.doesNotMatch(missing, /clean consumer conformance/i);
   assert.doesNotMatch(missing, /\(P09\)/);
   assert.doesNotMatch(missing, /app-core/i);
@@ -140,8 +142,6 @@ test('global readiness truth is all false and current truth names real existing 
   assert.doesNotMatch(missing, /Customer module typed API/i);
   assert.doesNotMatch(missing, /\(P16\)/);
   assert.doesNotMatch(missing, /separate Surface\/UI projection/i);
-  assert.match(missing, /P17/);
-  assert.match(missing, /installable ASGI host adapters|host adapter/i);
   assert.match(missing, /P18/);
   assert.match(missing, /P19-P25|P19–P25/);
   assert.doesNotMatch(t.notRunnableProductClaim, /only the S1.*and isolated ASGI/i);
@@ -196,14 +196,14 @@ test('execution model caps writer lanes at 3 and declares shared locks', () => {
   assert.ok(Array.isArray(doc.execution.sharedLocks) && doc.execution.sharedLocks.length > 0);
 });
 
-test('owner-facing fields declare capability_delta CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY and in-process-only, hosted SaaS still not-runnable', () => {
+test('owner-facing fields declare capability_delta PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE, hosted SaaS still not-runnable', () => {
   const doc = loadRoadmap();
   const o = doc.ownerFacing;
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, 'CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY');
-  assert.equal(o.calistirilabilirlik, 'in-process-only');
+  assert.equal(o.capability_delta, 'PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE');
+  assert.equal(o.calistirilabilirlik, 'installable-adapter-only-hosted-product-not-runnable');
   const ownerText = JSON.stringify(o);
   assert.match(ownerText, /hosted/i);
   assert.match(ownerText, /not-runnable|calismaz|calismiyor/i);
@@ -232,18 +232,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 16/25 completed truth with P16 closed and P17 active', () => {
+test('roadmap.progress carries the exact 17/25 completed truth with P17 closed and P18 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, 16);
+  assert.equal(progress.completed, 17);
   assert.equal(progress.total, 25);
-  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16']);
+  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16', 'P17']);
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, 'P17');
-  assert.equal(progress.asOfKernelMain, '3f929f0168da98aafeaa41e1ed209ea17b68c9ad');
-  assert.equal(progress.statusLine, '16/25 tamamlandı, P17/25 aktif');
+  assert.equal(progress.activePackage, 'P18');
+  assert.equal(progress.asOfKernelMain, '9f770d6b708d6dfe32772202bf9dc15fd18eeb02');
+  assert.equal(progress.statusLine, '17/25 tamamlandı, P18/25 aktif');
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -257,47 +257,46 @@ test('roadmap.progress carries the exact 16/25 completed truth with P16 closed a
   }
 });
 
-test('currentTruth reflects P16 (Customer Surface/UI projection) as implemented, anchored to real merged evidence, and P17 as the explicit next-missing piece, with P18 relay and P19-P25 proof also missing, all readiness flags false, and hosted SaaS still not-runnable', () => {
+test('currentTruth reflects P17 (installable ASGI host adapters) as implemented, anchored to real merged evidence, and P18 (outbox relay) as the explicit next-missing piece, with P19-P25 proof also missing, all readiness flags false, and hosted SaaS still not-runnable', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
 
   const implemented = t.implementedPieces.join(' | ');
-  assert.match(implemented, /customer-surface/i);
-  assert.match(implemented, /createCustomerSurface/);
-  assert.match(implemented, /CUSTOMER_SURFACE_MANIFEST/);
-  assert.match(implemented, /submit|retry/i);
-  assert.match(implemented, /P16/);
+  assert.match(implemented, /host\/pyproject\.toml|uv_build/i);
+  assert.match(implemented, /StdioJsAsgiBridge/);
+  assert.match(implemented, /create_customer_app/);
+  assert.match(implemented, /run_create_customer_host/);
+  assert.match(implemented, /P17/);
 
   const missing = t.notImplementedPieces.join(' | ');
-  assert.doesNotMatch(missing, /\(P16\)/);
-  assert.doesNotMatch(missing, /separate Surface\/UI projection/i);
-  assert.match(missing, /P17/);
-  assert.match(missing, /installable ASGI host adapters|live entrypoint|host/i);
+  assert.doesNotMatch(missing, /\(P17\)/);
+  assert.doesNotMatch(missing, /installable ASGI host adapters/i);
   assert.match(missing, /outbox relay/i);
   assert.match(missing, /P18/);
   assert.match(missing, /production proof/i);
   assert.match(missing, /P19-P25|P19–P25/);
 
-  const surfaceFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-surface.mjs');
-  const planningFile = path.join(repoRoot, 'planning', 'kernel-customer-surface-ui-projection-p16.json');
-  const frozenTestFile = path.join(repoRoot, 'tests', 'kernel-customer-surface-p16.test.mjs');
-  assert.ok(existsSync(surfaceFile), 'consumers/customer-app-core/customer-surface.mjs must exist as P16 evidence');
-  assert.ok(existsSync(planningFile), 'planning/kernel-customer-surface-ui-projection-p16.json must exist as P16 evidence');
-  assert.ok(existsSync(frozenTestFile), 'tests/kernel-customer-surface-p16.test.mjs must exist as P16 frozen evidence');
+  const pyprojectFile = path.join(repoRoot, 'host', 'pyproject.toml');
+  const initFile = path.join(repoRoot, 'host', 'python_asgi', '__init__.py');
+  const planningFile = path.join(repoRoot, 'planning', 'kernel-installable-asgi-host-adapters-p17.json');
+  const frozenTestFile = path.join(repoRoot, 'tests', 'kernel-python-asgi-installable-package-p17.test.mjs');
+  assert.ok(existsSync(pyprojectFile), 'host/pyproject.toml must exist as P17 evidence');
+  assert.ok(existsSync(initFile), 'host/python_asgi/__init__.py must exist as P17 evidence');
+  assert.ok(existsSync(planningFile), 'planning/kernel-installable-asgi-host-adapters-p17.json must exist as P17 evidence');
+  assert.ok(existsSync(frozenTestFile), 'tests/kernel-python-asgi-installable-package-p17.test.mjs must exist as P17 frozen evidence');
 
-  const surfaceSource = readFileSync(surfaceFile, 'utf8');
-  for (const token of ['createCustomerSurface', 'CUSTOMER_SURFACE_MANIFEST']) {
-    assert.ok(surfaceSource.includes(token), `customer-surface source missing ${token}`);
+  const initSource = readFileSync(initFile, 'utf8');
+  for (const token of ['StdioJsAsgiBridge', 'create_customer_app', 'run_create_customer_host']) {
+    assert.ok(initSource.includes(token), `host/python_asgi/__init__.py source missing ${token}`);
   }
 
   const frozenTestSource = readFileSync(frozenTestFile, 'utf8');
   const frozenTestCount = (frozenTestSource.match(/^test\(/gm) || []).length;
-  assert.equal(frozenTestCount, 4, 'P16 frozen test file must carry exactly 4 test() scenarios');
+  assert.equal(frozenTestCount, 3, 'P17 frozen test file must carry exactly 3 test() scenarios');
 
   const planningRecord = JSON.parse(readFileSync(planningFile, 'utf8'));
-  assert.equal(planningRecord.frozenTestPath, 'tests/kernel-customer-surface-p16.test.mjs');
+  assert.equal(planningRecord.frozenTestPath, 'tests/kernel-python-asgi-installable-package-p17.test.mjs');
   assert.ok(typeof planningRecord.frozenTestSha256 === 'string' && planningRecord.frozenTestSha256.length > 0, 'planning frozenTestSha256 missing');
-  assert.equal(planningRecord.capability_delta, 'CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY');
 
   for (const key of ['kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed', 'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct']) {
     assert.equal(t[key], false, `${key} must remain false`);
@@ -307,11 +306,11 @@ test('currentTruth reflects P16 (Customer Surface/UI projection) as implemented,
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, 'CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY');
-  assert.equal(o.calistirilabilirlik, 'in-process-only');
+  assert.equal(o.capability_delta, 'PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE');
+  assert.equal(o.calistirilabilirlik, 'installable-adapter-only-hosted-product-not-runnable');
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /16\/25/);
-  assert.match(ownerText, /P17/);
+  assert.match(ownerText, /17\/25/);
+  assert.match(ownerText, /P18/);
   assert.match(ownerText, /hosted/i);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 
@@ -319,22 +318,22 @@ test('currentTruth reflects P16 (Customer Surface/UI projection) as implemented,
   assert.match(t.notRunnableProductClaim, /No SaaS user journey.*runnable end-to-end/is);
 });
 
-test('ROADMAP.md, README.md and CHANGELOG.md project P16 closed / P17 active, with no runnable or readiness overclaim', () => {
+test('ROADMAP.md, README.md and CHANGELOG.md project P17 closed / P18 active, with no runnable or readiness overclaim', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.match(roadmap, /16\/25 tamamlandı, P17\/25 aktif/);
-  assert.match(roadmap, /P16/);
+  assert.match(roadmap, /17\/25 tamamlandı, P18\/25 aktif/);
   assert.match(roadmap, /P17/);
+  assert.match(roadmap, /P18/);
   assert.doesNotMatch(roadmap, /\bis runnable\b/i);
 
   const readme = readText('README.md');
-  assert.match(readme, /16\/25 tamamlandı, P17\/25 aktif/);
+  assert.match(readme, /17\/25 tamamlandı, P18\/25 aktif/);
   assert.doesNotMatch(readme, /\bis runnable\b/i);
 
   const changelog = readText('CHANGELOG.md');
   const unreleasedIdx = changelog.indexOf('## [Unreleased]');
   const unreleased = changelog.slice(unreleasedIdx);
-  assert.match(unreleased, /P16/);
+  assert.match(unreleased, /P17/);
   assert.match(unreleased, /roadmap-v1-current-truth\.json/);
-  assert.match(unreleased, /16\/25 tamamlandı, P17\/25 aktif/);
+  assert.match(unreleased, /17\/25 tamamlandı, P18\/25 aktif/);
   assert.doesNotMatch(unreleased, /\bis runnable\b/i);
 });

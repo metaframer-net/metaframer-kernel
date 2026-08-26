@@ -57,6 +57,17 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   outside the `"rejected"` state or while a submit is in flight, otherwise resubmits the exact
   prior args. No DOM/host/DB/relay/deps/cache/readiness-flag change; no runnable/readiness claim.
   See `planning/kernel-customer-surface-ui-projection-p16.json`.
+- P17b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `17/25 tamamlandı, P18/25 aktif`, closing P17 (installable
+  ASGI host adapters) with real merged evidence — `host/pyproject.toml` (`uv_build`, package
+  `metaframer-kernel-asgi-host`, version `0.1.0a1`, no dependencies), `host/python_asgi/__init__.py`
+  publicly re-exporting `StdioJsAsgiBridge`/`create_customer_app`/`run_create_customer_host`,
+  frozen `tests/kernel-python-asgi-installable-package-p17.test.mjs` (3/3 GREEN), merged via
+  PR #120 with a passing CI run — with P18 (outbox relay lifecycle) and P19-P25 production proof
+  all still named as the explicit next-missing pieces. This truth-sync adds the
+  `PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE` packaging/installability-only capability delta,
+  wires no live entrypoint, and moves no global readiness flag; a hosted product remains
+  not-runnable. See `planning/kernel-p17-current-truth-closure-p17b.json`.
 - P16b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `16/25 tamamlandı, P17/25 aktif`, closing P16 (separate
   Surface/UI projection) with real merged evidence — `consumers/customer-app-core/customer-surface.mjs`
