@@ -1,6 +1,7 @@
 import { Command, KernelError } from "./action-primitives.mjs";
 import { Identity } from "./identity.mjs";
 import { PolicyDecisionPoint } from "./policy-decision-point.mjs";
+import { DecisionLoggingPolicyDecisionPoint } from "./decision-logging-policy-decision-point.mjs";
 import { PolicyRequest } from "./policy-decision.mjs";
 import { ActorId, CorrelationId, IdempotencyKey, TenantId } from "../domain/identity-primitives.mjs";
 
@@ -36,6 +37,31 @@ const isOrdinaryObject = (value) =>
 const isExactly = (value, type) =>
   value !== null && typeof value === "object" && Object.getPrototypeOf(value) === type.prototype;
 
+// The two genuine decision points this pipeline admits, and no third. Both answer the same one
+// question — `decide(request)` — and the audited one additionally appends the decision it just made
+// to an append-only log before it hands that decision back, which is exactly why the policy stage
+// below needs no knowledge of which of the two it is holding. Nothing here duck-types: an object is
+// admitted because its prototype is one of these two, never because it happens to carry a `decide`.
+const DECISION_POINT_TYPES = Object.freeze([PolicyDecisionPoint, DecisionLoggingPolicyDecisionPoint]);
+
+/**
+ * Whether a value is a genuine instance of exactly one of the two admitted decision points.
+ *
+ * Prototype identity is the first half and refuses a subclass, a facade and an ordinary object. It
+ * is not the whole answer, because `Object.create(SomePoint.prototype)` wears the right prototype
+ * with no constructor ever run and no collaborator installed. Both admitted constructors finish by
+ * freezing the instance they built, and neither leaves an own property on it, so the second half is
+ * that structural brand: a hollow impostor is still extensible and is refused here.
+ *
+ * What this cannot do is stated rather than implied: a caller that deliberately freezes a hollow
+ * object built on one of these prototypes satisfies the brand, and a transparent proxy over a
+ * genuine instance answers exactly as its target does. Neither is detectable from here, and no
+ * detection is claimed.
+ */
+const isGenuineDecisionPoint = (value) =>
+  DECISION_POINT_TYPES.some((type) => isExactly(value, type))
+  && Object.isFrozen(value) && Reflect.ownKeys(value).length === 0;
+
 const ACTION_SPEC_KEYS = ["requestId", "actorId", "tenantId", "payload", "idempotencyKey"];
 
 const OPTIONS_KEYS = ["identity", "policyDecisionPoint", "evaluateInvariants"];
@@ -52,8 +78,8 @@ function checkOptions(options) {
   if (!isExactly(identity, Identity)) {
     throw new TypeError("CreateCustomerPipeline identity must be an exact Identity instance");
   }
-  if (!isExactly(policyDecisionPoint, PolicyDecisionPoint)) {
-    throw new TypeError("CreateCustomerPipeline policyDecisionPoint must be an exact PolicyDecisionPoint instance");
+  if (!isGenuineDecisionPoint(policyDecisionPoint)) {
+    throw new TypeError("CreateCustomerPipeline policyDecisionPoint must be an exact genuine PolicyDecisionPoint or DecisionLoggingPolicyDecisionPoint instance");
   }
   if (typeof evaluateInvariants !== "function") {
     throw new TypeError("CreateCustomerPipeline evaluateInvariants must be a function");
