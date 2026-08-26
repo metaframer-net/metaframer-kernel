@@ -17,6 +17,7 @@ reached and healthy first, then fails for exactly one reason: the module or its 
 from __future__ import annotations
 
 import json
+from collections import namedtuple
 
 import pytest
 import sqlalchemy
@@ -30,7 +31,11 @@ pytestmark = [pytest.mark.substrate, pytest.mark.outbox]
 TENANT_A = "11111111-1111-1111-1111-111111111111"
 
 # Must never appear in the emitted JSON line: tenant payload, actor/claim internals, exceptions.
-FORBIDDEN = ("poison", "clean-", "good-", "slow-", "claim_token", "delivery blew up", "RuntimeError", "Traceback")
+_PAYLOAD_MARKERS = ("poison", "clean-", "good-", "slow-", "claim_token")
+_LEAK_MARKERS = ("delivery blew up", "RuntimeError", "Traceback")
+FORBIDDEN = _PAYLOAD_MARKERS + _LEAK_MARKERS
+
+_Moment = namedtuple("_Moment", "readings timestamp correlation_id")
 
 
 def _setup(substrate):
@@ -98,7 +103,11 @@ class _RecordingSink:
         self.lines.append(line)
 
 
-def _run(observability, url, tenant, deliver, *, slo, readings, timestamp, correlation_id):
+def _verdict(x):
+    return (x.latency_met, x.failure_rate_met, x.within_slo)
+
+
+def _run(observability, url, tenant, deliver, slo, moment):
     sink = _RecordingSink()
     result = observability.run_observed_outbox_relay_once(
         url,
@@ -108,26 +117,26 @@ def _run(observability, url, tenant, deliver, *, slo, readings, timestamp, corre
         lease_seconds=300,
         slo=slo,
         sink=sink,
-        clock=_FakeClock(readings),
-        timestamp=timestamp,
+        clock=_FakeClock(moment.readings),
+        timestamp=moment.timestamp,
         service="metaframer-kernel-db",
         env="test",
-        correlation_id=correlation_id,
+        correlation_id=moment.correlation_id,
     )
     assert len(sink.lines) == 1, "exactly one structured JSON line must be emitted per pass"
     line = sink.lines[0]
     assert "\n" not in line, "the emitted line must be single-line JSON"
     for forbidden in FORBIDDEN:
         assert forbidden not in line, f"emitted log line must never contain {forbidden!r}"
-    assert '"event":"outbox_relay.batch_completed"' in line, "the event field must be readable, not escaped"
-    assert json.dumps(correlation_id, ensure_ascii=False) in line, "the correlation_id field must be readable, not escaped"
+    assert '"event":"outbox_relay.batch_completed"' in line, "event field not escaped"
+    assert json.dumps(moment.correlation_id) in line, "correlation_id field not escaped"
     payload = json.loads(line)
     assert payload["event"] == "outbox_relay.batch_completed"
     assert payload["service"] == "metaframer-kernel-db"
     assert payload["env"] == "test"
-    assert payload["timestamp"] == timestamp
+    assert payload["timestamp"] == moment.timestamp
     assert payload["tenant_id"] == tenant
-    assert payload["correlation_id"] == correlation_id
+    assert payload["correlation_id"] == moment.correlation_id
     return result, payload
 
 
@@ -147,10 +156,8 @@ def test_a_clean_drain_and_a_second_empty_pass_are_both_slo_green(substrate):
     observability = _observability(substrate)
     slo = observability.RelaySlo(max_duration_seconds=5.0, max_failure_rate=0.0)
 
-    first, payload = _run(
-        observability, url, TENANT_A, deliver, slo=slo, readings=[100.0, 100.25],
-        timestamp="2026-08-26T00:00:00Z", correlation_id="corr-001",
-    )
+    moment = _Moment([100.0, 100.25], "2026-08-26T00:00:00Z", "corr-001")
+    first, payload = _run(observability, url, TENANT_A, deliver, slo, moment)
 
     assert set(delivered) == enqueued
     assert set(first.relay.published) == enqueued
@@ -160,25 +167,29 @@ def test_a_clean_drain_and_a_second_empty_pass_are_both_slo_green(substrate):
 
     assert first.slo.duration_seconds == pytest.approx(0.25)
     assert first.slo.failure_rate == pytest.approx(0.0)
-    assert (first.slo.latency_met, first.slo.failure_rate_met, first.slo.within_slo) == (True, True, True)
+    assert _verdict(first.slo) == (True, True, True)
     assert payload["published_count"] == len(enqueued)
     assert payload["failed_count"] == 0
     assert payload["within_slo"] is True
 
     delivered_again: list = []
-    second, second_payload = _run(
-        observability, url, TENANT_A, lambda row: (delivered_again.append(row[names.id_column]) or True),
-        slo=slo, readings=[200.0, 200.1], timestamp="2026-08-26T00:05:00Z",
-        correlation_id="corr-002",
-    )
 
-    assert delivered_again == [], "an already-published row must never be offered to delivery again"
+    def deliver_again(row):
+        delivered_again.append(row[names.id_column])
+        return True
+
+    moment = _Moment([200.0, 200.1], "2026-08-26T00:05:00Z", "corr-002")
+    second, second_payload = _run(observability, url, TENANT_A, deliver_again, slo, moment)
+
+    assert delivered_again == [], "an already-published row must never be re-delivered"
     assert (second.relay.published, second.relay.failed) == ((), ())
-    assert (second.slo.latency_met, second.slo.failure_rate_met, second.slo.within_slo) == (True, True, True)
+    assert _verdict(second.slo) == (True, True, True)
     assert (second_payload["published_count"], second_payload["failed_count"]) == (0, 0)
 
 
-def test_a_partial_failure_preserves_p18_outcomes_and_goes_failure_rate_red_without_leaking(substrate):
+def test_a_partial_failure_preserves_p18_outcomes_and_goes_failure_rate_red_without_leaking(
+    substrate,
+):
     prove_database_reached(substrate)
     url, tenant_transaction, names = _setup(substrate)
 
@@ -194,15 +205,13 @@ def test_a_partial_failure_preserves_p18_outcomes_and_goes_failure_rate_red_with
     observability = _observability(substrate)
     slo = observability.RelaySlo(max_duration_seconds=5.0, max_failure_rate=0.1)
 
-    result, payload = _run(
-        observability, url, TENANT_A, deliver, slo=slo, readings=[500.0, 500.1],
-        timestamp="2026-08-26T00:10:00Z", correlation_id="corr-003",
-    )
+    moment = _Moment([500.0, 500.1], "2026-08-26T00:10:00Z", "corr-003")
+    result, payload = _run(observability, url, TENANT_A, deliver, slo, moment)
 
     assert set(result.relay.published) == good
     assert result.relay.failed == (bad,)
     assert result.slo.failure_rate == pytest.approx(0.25)
-    assert (result.slo.latency_met, result.slo.failure_rate_met, result.slo.within_slo) == (True, False, False)
+    assert _verdict(result.slo) == (True, False, False)
     assert (payload["published_count"], payload["failed_count"]) == (len(good), 1)
     assert payload["failure_rate"] == pytest.approx(0.25)
     assert payload["within_slo"] is False
@@ -219,15 +228,13 @@ def test_a_deterministically_slow_but_fully_successful_drain_is_only_latency_red
     observability = _observability(substrate)
     slo = observability.RelaySlo(max_duration_seconds=1.0, max_failure_rate=0.0)
 
-    result, payload = _run(
-        observability, url, TENANT_A, lambda row: True, slo=slo,
-        readings=[1000.0, 1010.0],  # a scripted 10-second pass, well past the 1s ceiling
-        timestamp="2026-08-26T00:20:00Z", correlation_id="corr-004",
-    )
+    # a scripted 10-second pass, well past the 1s ceiling
+    moment = _Moment([1000.0, 1010.0], "2026-08-26T00:20:00Z", "corr-004")
+    result, payload = _run(observability, url, TENANT_A, lambda row: True, slo, moment)
 
     assert set(result.relay.published) == enqueued
     assert result.relay.failed == ()
     assert result.slo.duration_seconds == pytest.approx(10.0)
-    assert (result.slo.latency_met, result.slo.failure_rate_met, result.slo.within_slo) == (False, True, False)
+    assert _verdict(result.slo) == (False, True, False)
     assert payload["duration_seconds"] == pytest.approx(10.0)
     assert payload["within_slo"] is False

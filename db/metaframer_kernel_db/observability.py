@@ -59,7 +59,9 @@ def run_observed_outbox_relay_once(
 ) -> ObservedOutboxRelayResult:
     """Run one P18 relay pass, measure it against ``slo``, and emit one JSON summary line."""
     started = clock()
-    relay = run_outbox_relay_once(sqlalchemy_url, tenant_id, deliver, limit=limit, lease_seconds=lease_seconds)
+    relay = run_outbox_relay_once(
+        sqlalchemy_url, tenant_id, deliver, limit=limit, lease_seconds=lease_seconds
+    )
     duration_seconds = clock() - started
 
     published_count = len(relay.published)
