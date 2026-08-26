@@ -26,7 +26,7 @@
       "path": "planning/kernel-postgres-adapter-retirement-p14d2b.json",
       "role": "added by this implementation writer",
       "editedByImplementationWriter": true,
-      "numstat": { "additions": 173, "deletions": 0 }
+      "numstat": { "additions": 192, "deletions": 0 }
     },
     {
       "path": "src/adapters/postgres-commit-adapter.mjs",
@@ -93,13 +93,19 @@
       {
         "command": "npm test",
         "classification": "INVALID_PRE_GREEN",
-        "reason": "run prematurely against the partial mid-implementation tree before the targeted RED-to-GREEN sequence completed; consumed no accepted full-QA slot",
+        "reason": "original first-writer attempt, run prematurely against the partial mid-implementation tree before the targeted RED-to-GREEN sequence completed; consumed no accepted full-QA slot",
         "consumedFullQaSlot": false
       },
       {
         "command": "npm test",
-        "classification": "INVALID_PRE_GREEN",
-        "reason": "a second npm test attempt, made after targeted GREEN but before this checkpoint, was interrupted/rejected mid-run (tool call rejected) and produced no usable pass/fail count; consumed no accepted full-QA slot. The single accepted writer-local full QA run (npm test then npm run check) remains owed and must be run clean, once.",
+        "classification": "INVALID_UNCOMMITTED_WORKTREE_HEAD_GUARD",
+        "reason": "a completed run made after targeted GREEN, but against an uncommitted worktree that had not yet converged on this package's checkpoint HEAD; carried ten historical kernel-python-host HEAD-relative failures unrelated to this package's scope; consumed no accepted full-QA slot",
+        "consumedFullQaSlot": false
+      },
+      {
+        "command": "npm test",
+        "classification": "INVALID_DUPLICATE_DIRTY_RUN_INTERRUPTED",
+        "reason": "a duplicate extraction attempt against a dirty tree, interrupted/rejected mid-run and produced no usable pass/fail count; consumed no accepted full-QA slot",
         "consumedFullQaSlot": false
       }
     ],
@@ -110,20 +116,33 @@
     }
   },
   "fullSuiteEvidence": {
-    "npmTest": "NOT_YET_RUN_CLEAN: an earlier npm test invocation was interrupted/rejected mid-run and produced no usable pass/fail count; that attempt consumed no accepted full-QA slot. A single clean run is still owed.",
-    "npmRunCheck": "NOT_YET_RUN: pending the clean npm test run above"
+    "npmTest": "GREEN: 1530 total, 1530 pass, 0 fail (log: /tmp/p14d2b-e818d7ca-npm-test.log)",
+    "npmRunCheck": "GREEN: exit 0 (log: /tmp/p14d2b-e818d7ca-npm-check.log)"
+  },
+  "acceptedAt": {
+    "commit": "e818d7cacd880194c00f024cd9c1e5462cc2f140",
+    "tree": "c194fff91f9a53dd5b548e48373ff19c8947ceb6",
+    "npmTest": { "total": 1530, "pass": 1530, "fail": 0 },
+    "npmRunCheck": { "result": "GREEN", "exitCode": 0 }
+  },
+  "qaSlots": {
+    "budget": 2,
+    "acceptedLocalUsed": 1,
+    "acceptedCiUsed": 0,
+    "invalidAttemptsDoNotConsume": true,
+    "ciOwed": true
   },
   "numstat": {
-    "additions": 230,
+    "additions": 249,
     "deletions": 157,
-    "net": 73,
-    "gross": 387,
+    "net": 92,
+    "gross": 406,
     "files": 7,
     "grossCeiling": 800,
     "withinCeiling": true,
     "class": "small-with-deletion, requires independent review",
-    "evidence": "targeted RED-to-GREEN (203/206 -> 205/205) plus one writer-local full QA slot (npm test + npm run check)",
-    "gate": "candidate-green-awaiting-independent-review-and-ci"
+    "evidence": "targeted RED-to-GREEN (203/206 -> 205/205) plus one accepted writer-local full QA run (npm test 1530/1530 pass, npm run check GREEN exit 0)",
+    "gate": "implementation-green-awaiting-independent-review-and-ci"
   },
   "rollback": {
     "action": "revert all seven package files to their state at this package's immutable base commit 8b13884b587c762b150b8d9dba1494ec0279bb0a (a normal revert of the package's changes; restoring src/adapters/postgres-commit-adapter.mjs from that commit for the one file this package deletes)",
@@ -154,7 +173,7 @@
     "oneGoldenSliceReady": false,
     "runnableProduct": false
   },
-  "candidateStatus": "targeted-green-awaiting-clean-checkpoint-full-qa",
+  "candidateStatus": "implementation-green-awaiting-independent-review-and-ci",
   "p14Status": "incomplete",
   "remainingWork": [
     "further real-Postgres composition proof beyond what these two frozen test files assert",
