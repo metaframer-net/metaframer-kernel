@@ -633,7 +633,9 @@ const RING_MODULE_MANIFEST = [
   ["domain", ["identity-primitives.mjs"]],
   ["application", ["action-contract.mjs", "action-primitives.mjs", "authorization-evaluator.mjs", "clock.mjs", "commit-receipt.mjs", "create-customer-commit-service.mjs", "create-customer-pipeline.mjs", "decision-log-entry.mjs", "decision-log-port.mjs", "decision-logging-policy-decision-point.mjs", "identity.mjs", "policy-batch-evaluator.mjs", "policy-candidate-resolver.mjs", "policy-decision-point.mjs", "policy-decision.mjs", "policy-statement.mjs", "policy.mjs", "unit-of-work.mjs", "use-case.mjs", "write-envelope.mjs"]],
   ["sdk", ["create-customer.mjs"]],
-  ["adapters", ["postgres-commit-adapter.mjs", "postgres-decision-log-adapter.mjs", "postgres-unit-of-work.mjs", "postgres-write-envelope-write.mjs"]],
+  // P14D2B retires postgres-commit-adapter.mjs from the ring: postgres-write-envelope-write.mjs
+  // absorbed its transitional API and the ring's exhaustive manifest must drop the retired name.
+  ["adapters", ["postgres-decision-log-adapter.mjs", "postgres-unit-of-work.mjs", "postgres-write-envelope-write.mjs"]],
   ["delivery", ["asgi-core-profile.mjs", "create-customer-asgi-composition.mjs", "create-customer-composition.mjs", "create-customer-http-message-adapter.mjs", "create-customer-request-handler.mjs", "policy-decision-log-composition.mjs", "standard-router.mjs"]],
 ];
 const sortedNames = (values) => [...(values ?? [])].sort();
@@ -811,4 +813,25 @@ test("a real tree reaches the same verdict, and this checkout materializes domai
   // The four protected roots are untouched by the materialization.
   for (const absent of ABSENT_ROOTS) assert.equal(existsSync(path.join(root, absent)), false, `${absent} must stay absent`);
   assertRow(checkRootTopology(root), [], "the real checkout");
+});
+
+test("P14D2B the adapters ring's exact module manifest excludes the retired postgres-commit-adapter.mjs, and the surviving postgres-write-envelope-write.mjs carries no current-filename backlink to it", async () => {
+  const [, adaptersManifest] = RING_MODULE_MANIFEST.find(([ring]) => ring === "adapters");
+  assert.ok(
+    !adaptersManifest.includes("postgres-commit-adapter.mjs"),
+    "the adapters ring's exhaustive module manifest must no longer name the retired postgres-commit-adapter.mjs",
+  );
+
+  const adaptersDir = path.join(root, "src", "adapters");
+  assert.equal(
+    existsSync(path.join(adaptersDir, "postgres-commit-adapter.mjs")),
+    false,
+    "postgres-commit-adapter.mjs must be physically absent from src/adapters",
+  );
+
+  const survivingSource = await readFile(path.join(adaptersDir, "postgres-write-envelope-write.mjs"), "utf8");
+  assert.ok(
+    !survivingSource.includes("postgres-commit-adapter.mjs"),
+    "postgres-write-envelope-write.mjs must carry no backlink comment naming the retired postgres-commit-adapter.mjs filename",
+  );
 });

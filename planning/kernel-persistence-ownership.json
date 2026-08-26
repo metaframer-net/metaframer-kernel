@@ -33,13 +33,5 @@
       "requiredByRevision": "0003_policy_decision_log.py"
     }
   ],
-  "transitionalKernelAdapters": [
-    {
-      "adapterFile": "postgres-commit-adapter.mjs",
-      "status": "retirement-pending",
-      "targetOwner": "application",
-      "retirementPath": "P14",
-      "removalIsConvergence": true
-    }
-  ]
+  "transitionalKernelAdapters": []
 }
