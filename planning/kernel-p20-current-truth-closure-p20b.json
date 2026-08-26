@@ -1,0 +1,85 @@
+{
+  "package": "P20b-current-truth-closure",
+  "base": "ab1b0146b11e2ad1a775a8936c81d72062f5a439",
+  "baseTree": "7e16d632fdeeb207cea2ec5d36c30164bafc1885",
+  "masterScope": "71e672722948f1d3ba98342065f1badc326bb811070a00022e5283b0d013620a",
+  "blindScope": "2c6f068b68d7efaeb53e49ca0b230972eca88e29e3c0239b6576b5bf5479c97c",
+  "synthesisScope": "c434b14c7f20340760153b1a50df045a5611dcfff8d35e8ea5e05f4eafa7957e",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p20-current-truth-closure-p20b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p20-current-truth-closure-p20b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p20-current-truth-closure-p20b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "1e875bed055707e2492e9c17790ac04ff73437358a31ee2b4293230a7108b3da",
+  "testHashUnchanged": true,
+  "excludes": ["runtime", "DAG structure", "readiness flags", "commit", "push", "AGENTS.md", "P21-P25 implementation", "P20A runtime/evidence surfaces"],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY",
+    "notRunnable": "This truth-sync wires no calibrated SLA/threshold, sustained load/concurrency/noisy-neighbor proof, dollar-cost/optimizer proof, exporter, dashboard, alert transport, scheduler, retry policy, DLQ or live entrypoint/host; it only projects P20's already-merged pure performance-baseline summarizer evidence (PR #126, CI run 32982906594) into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. A hosted product remains not-runnable; calistirilabilirlik is outbox-relay-performance-baseline-hosted-product-not-runnable."
+  },
+  "p20Evidence": {
+    "sourcePath": "db/metaframer_kernel_db/performance.py",
+    "sourceSha256": "98b9fea17cd1084c8756d83eb0c83bec641be830637c646d76ad76ed177e33b6",
+    "testPath": "db/tests/test_outbox_relay_performance_baseline.py",
+    "testSha256": "96c83c648bd74f2e5183a0c28d94e5edaa297b672dbc1f01364b6720529b602c",
+    "scenarios": 3,
+    "pr": 126,
+    "ciRun": 32982906594,
+    "mergeCommit": "ab1b0146b11e2ad1a775a8936c81d72062f5a439",
+    "signature": "summarize_relay_performance(samples) computes a deterministic RelayPerformanceBaseline — nearest-rank p95/p99 duration, published/failed totals, a measured seconds-per-published proxy, sorted per-tenant p95 and a measured fairness ratio",
+    "note": "pure, ambient-clock-free summarization only; no calibrated SLA/threshold, sustained load/concurrency/noisy-neighbor proof, dollar-cost/optimizer proof, scheduler, exporter, dashboard, alert transport or live host wiring; no production/release claim."
+  },
+  "syncSummary": "Advances roadmap.progress from 19/25 (P20 active) to 20/25 (P21 active); adds P20's merged db/metaframer_kernel_db/performance.py summarize_relay_performance/RelayPerformanceBaseline evidence to currentTruth.implementedPieces; removes P20 (performance) from notImplementedPieces, replacing it with explicit calibrated-SLA/threshold, sustained-load/concurrency/noisy-neighbor and dollar-cost/optimizer gaps plus P21-P25 production proof; all nine stronger readiness flags remain false; ownerFacing capability_delta becomes OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY and calistirilabilirlik becomes outbox-relay-performance-baseline-hosted-product-not-runnable.",
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "measurement": {
+      "changedFileCount": 6,
+      "grossAdditions": 182,
+      "grossDeletions": 62,
+      "measuredNet": 120,
+      "grossChurn": 244
+    },
+    "class": "production", "band": "default", "noFalseDefaultClaim": true, "waiver": false,
+    "verdict": "COMPLIANT: measured at report time via git diff --numstat against base ab1b0146b11e2ad1a775a8936c81d72062f5a439 across the five tracked atomicPackageFiles, per actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget — CHANGELOG.md +14/-0, README.md +11/-0, ROADMAP.md +10/-9, planning/roadmap-v1-current-truth.json +17/-15, tests/kernel-roadmap-v1-current-truth.test.mjs +45/-38 (final accepted test-handoff diff, not edited by this package), and the untracked planning/kernel-p20-current-truth-closure-p20b.json counted as +85/-0 (line count via wc -l, counted as additions). files=6, grossAdditions=182, grossDeletions=62, measuredNet=120. Net<=400, additions<=800, files<=20: DEFAULT_BAND, no named-condition required."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — GREEN after this package's edits, no test file edit by the implementation writer",
+    "fullQaBudget": "not spent by this package; deferred to the implementation QA worker on a new immutable snapshot commit (QA1 final local run) and required CI (QA2)",
+    "rollback": "revert planning/roadmap-v1-current-truth.json, planning/kernel-p20-current-truth-closure-p20b.json, ROADMAP.md, README.md, CHANGELOG.md and tests/kernel-roadmap-v1-current-truth.test.mjs to the pre-package commit; P20A runtime/evidence (db/metaframer_kernel_db/performance.py, db/tests/test_outbox_relay_performance_baseline.py, PR #126) stays untouched by this package"
+  }
+}

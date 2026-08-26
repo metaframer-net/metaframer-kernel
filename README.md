@@ -640,6 +640,17 @@ a duration/failure-rate verdict, test-verified against real PostgreSQL 16 across
 adds the `OUTBOX_RELAY_OBSERVED_SLO_SINGLE_PASS` capability delta, wires no exporter, dashboard,
 alert transport, scheduler/loop, retry policy, dead-letter queue or live entrypoint/host, and a
 hosted product remains not-runnable with no global readiness flag under **Current status** moved.
+A further roadmap current-truth package has since synced the counter again to
+`20/25 tamamlandı, P21/25 aktif`, closing P20 (performance) — `db/metaframer_kernel_db/performance.py`'s
+`summarize_relay_performance` computing a deterministic `RelayPerformanceBaseline` (nearest-rank
+p95/p99 duration, published/failed totals, a measured seconds-per-published proxy, sorted
+per-tenant p95 and a measured fairness ratio) over caller-supplied relay samples, test-verified
+against real PostgreSQL 16 across 3 scenarios (PR #126 with a passing CI run 32982906594) — with
+P21 (security) as the active package; this adds the `OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY`
+capability delta, wires no calibrated SLA/threshold, sustained load/concurrency/noisy-neighbor
+proof, dollar-cost/optimizer proof, exporter, dashboard, alert transport, scheduler/loop or live
+entrypoint/host, and a hosted product remains not-runnable with no global readiness flag under
+**Current status** moved.
 
 ## Authorized order and what remains closed
 
