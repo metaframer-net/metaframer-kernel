@@ -22,8 +22,8 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   `run_observed_outbox_relay_once`, wrapping P18's `run_outbox_relay_once` with a `RelaySlo`
   threshold and emitting exactly one structured `outbox_relay.batch_completed` event per call
   carrying a duration/failure-rate verdict, test-verified against real PostgreSQL 16 across 3
-  scenarios (`db/tests/test_outbox_relay_observability_slo.py`, PR #124 with a passing CI run
-  32970268485) — with P20 (performance) and P21-P25 production proof all still named as the
+  scenarios (`db/tests/test_outbox_relay_observability_slo.py`, PR #124 with a passing CI run)
+  — with P20 (performance) and P21-P25 production proof all still named as the
   explicit next-missing pieces. This truth-sync adds the `OUTBOX_RELAY_OBSERVED_SLO_SINGLE_PASS`
   capability delta, wires no exporter, dashboard, alert transport, scheduler/loop, retry policy,
   dead-letter queue or live entrypoint, and moves no global readiness flag; a hosted product
