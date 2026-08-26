@@ -585,7 +585,18 @@ further roadmap current-truth package has since synced the counter again to
 — gating a compatibility-checked switch to the P12 adapter behind one
 BEGIN/tenant-context/insert/COMMIT transaction with rollback, test-verified) with P14 (Kernel
 cleanup and parity) as the active package; that sync also adds no runtime capability and moves no
-flag under **Current status**.
+flag under **Current status**. A further roadmap current-truth package has since synced the
+counter again to `14/25 tamamlandı, P15/25 aktif`, closing P14 (Kernel cleanup and parity) —
+`createCustomerAppCoreWithPersistence` composing the real P13 cutover controller into app-core
+(P14a); `createCustomerPersistenceAdapter` writing `audit_log` and `transactional_outbox` with
+Kernel-parity SQL/param shape and mapping the pg `23505`
+`transactional_outbox_tenant_dedup_key` violation to `CustomerIdempotencyConflictError` (P14b/
+P14e); transitional Kernel persistence-ownership cleanup and the physical retirement of the
+transitional `src/adapters/postgres-commit-adapter.mjs` (P14c/P14d1/P14d2a/P14d2b); and an
+isolated real PostgreSQL 16 proof across three strong scenarios, test-verified, wiring no live
+entrypoint, host, Surface, relay, release or deploy — with P15 (Customer module typed API) as
+the active package; that sync also adds no runtime capability and moves no flag under **Current
+status**.
 
 ## Authorized order and what remains closed
 
@@ -613,10 +624,13 @@ and test-verified. P12 — an application-owned, query-injected `customer_record
 (`createCustomerRecordsAdapter`) — is now also merged and test-verified. P13 — a frozen,
 default-legacy data cutover/rollback controller (`createCustomerDataCutover`) gating a
 compatibility-checked switch to the P12 adapter behind one transaction with rollback — is now
-also merged and test-verified. What that stage still lacks is P14 — Kernel cleanup and
-parity — the active next package. Live application persistence integration, audit/outbox/
-idempotency parity, live composition, the product Surface and every later readiness/promotion
-gate remain closed and unstarted, and nothing here may be read as opening them.
+also merged and test-verified. P14 — Kernel cleanup and parity, spanning app-core cutover
+composition, app-owned persistence parity, transitional Kernel ownership cleanup and legacy
+adapter retirement, and an isolated real PostgreSQL 16 proof — is now also merged and
+test-verified. What that stage still lacks is P15 — Customer module typed API — the active
+next package. Live entrypoint wiring, the product Surface, outbox relay delivery and every
+later readiness/promotion gate remain closed and unstarted, and nothing here may be read as
+opening them.
 
 Each stage needs its own separately scoped, test-first, single-writer change package with its
 own RED/GREEN, rollback and exit criteria; runtime code written outside such a package is

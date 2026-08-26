@@ -31,15 +31,16 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`13/25 tamamlandı, P14/25 aktif` (`roadmap.progress` in
+`14/25 tamamlandı, P15/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
-packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13. P13 (data cutover and
-rollback) is closed — a frozen, default-legacy `createCustomerDataCutover` controller
-(`consumers/customer-app-core/customer-data-cutover.mjs`) that gates a compatibility-checked
-switch to the P12 adapter behind one BEGIN/tenant-context/insert/COMMIT transaction with
-rollback, test-verified. P14 (Kernel cleanup and parity) is the active package and the
-next explicit gap; none of this moves any readiness flag under [README.md](README.md)
-`## Current status`.
+packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14. P14 (Kernel
+cleanup and parity) is closed — five merged sub-packages: app-core cutover composition
+(`createCustomerAppCoreWithPersistence`), app-owned persistence parity
+(`createCustomerPersistenceAdapter`, audit/outbox/idempotency writes), transitional Kernel
+ownership cleanup, retirement of the transitional `src/adapters/postgres-commit-adapter.mjs`,
+and an isolated real-PostgreSQL-16 proof — all test-verified, with no live entrypoint, host or
+Surface wiring. P15 (Customer module typed API) is the active package and the next explicit
+gap; none of this moves any readiness flag under [README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG
 
