@@ -31,6 +31,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   fixture (UUID requestId vs literal `"corr-1"`) would fail that check; deliberate, known gap. No
   Surface/host/relay/DB/readiness change; no runnable/readiness claim. See
   `planning/kernel-customer-module-typed-api-p15.json`.
+- P16 `consumers/customer-app-core/customer-surface.mjs`: customer surface UI projection wrapping
+  a pre-built, ready P15 `customerModuleApi` handle in a frozen `{manifest,project,submit,retry}`
+  handle. `CUSTOMER_SURFACE_MANIFEST` is frozen with states `["idle","submitting","saved",
+  "rejected"]`; the factory refuses unless the handle is `status:"ready"`, carries
+  `manifest.actionCoordinate === "customer.create@1"`, and exposes a `recordCustomer` function.
+  Every projection exposes `state` plus `submitEnabled`/`retryVisible` (initial:
+  `{state:"idle", submitEnabled:true, retryVisible:false}`). `submit({actionSpec, record,
+  insertOptions})` passes the exact given args to `recordCustomer`, is single-flight (refuses a
+  second concurrent submit), resolves a frozen `{state:"saved", submitEnabled:false,
+  retryVisible:false, record}` carrying the P15 canonical record on success, and on failure
+  resolves (never rejects) a frozen `{state:"rejected", submitEnabled:false, retryVisible:true,
+  alertCode:"CUSTOMER_SURFACE_SUBMIT_REJECTED"}` — a stable alert code only, never
+  reason/message/stack/Error — while remembering the exact args for `retry()`. `retry()` refuses
+  outside the `"rejected"` state or while a submit is in flight, otherwise resubmits the exact
+  prior args. No DOM/host/DB/relay/deps/cache/readiness-flag change; no runnable/readiness claim.
+  See `planning/kernel-customer-surface-ui-projection-p16.json`.
 - P15b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `15/25 tamamlandı, P16/25 aktif`, closing P15 (Customer
   module typed API) with real merged evidence — `consumers/customer-app-core/customer-module-api.mjs`

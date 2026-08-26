@@ -1,0 +1,58 @@
+{
+  "package": "P16-customer-surface-ui-projection",
+  "base": "2628e5d4",
+  "masterScope": "e342f401",
+  "blindScope": "d28de52f",
+  "synthesis": "fb1260e7",
+  "frozenTestPath": "tests/kernel-customer-surface-p16.test.mjs",
+  "frozenTestSha256": "2e1bc0b577ed02bd88a1f008b3a44b24654cf90c3d457acfa34c045fe7822f86",
+  "actionplanPin": "f25018d9#changePackageBudget",
+  "allowedFiles": [
+    "consumers/customer-app-core/customer-surface.mjs",
+    "planning/kernel-customer-surface-ui-projection-p16.json",
+    "CHANGELOG.md",
+    "tests/kernel-customer-surface-p16.test.mjs"
+  ],
+  "implementation": {
+    "manifest": "CUSTOMER_SURFACE_MANIFEST (frozen): states [\"idle\",\"submitting\",\"saved\",\"rejected\"]",
+    "factory": "createCustomerSurface({customerModuleApi}) refuses unless customerModuleApi is a frozen, ready P15 handle: Object.isFrozen(customerModuleApi) and Object.isFrozen(customerModuleApi.manifest), status===\"ready\", manifest.actionCoordinate===\"customer.create@1\", recordCustomer a function; returns a frozen surface handle carrying manifest/project/submit/retry",
+    "project": "returns the current frozen projection; every projection exposes state plus submitEnabled/retryVisible; initial projection is {state:\"idle\", submitEnabled:true, retryVisible:false}",
+    "submit": "requires exactly {actionSpec, record, insertOptions}; refuses (throws) while a submit is already in flight (single-flight); otherwise calls customerModuleApi.recordCustomer(args) with the exact given args; on success resolves a frozen {state:\"saved\", submitEnabled:false, retryVisible:false, record} projection carrying the P15 canonical record; on failure resolves (does not reject) a frozen {state:\"rejected\", submitEnabled:false, retryVisible:true, alertCode:\"CUSTOMER_SURFACE_SUBMIT_REJECTED\"} projection — a stable alert code only, never reason/message/stack/Error — remembering the exact args for retry",
+    "retry": "refuses (throws) while a submit is in flight or when the current projection is not \"rejected\" (including no prior submit); otherwise resubmits with the exact prior args"
+  },
+  "excludes": ["DOM", "host", "DB", "relay", "deps", "cache", "readiness flags"],
+  "readinessClaim": "bounded in-process Surface capability only; hosted product and every global readiness flag stay unchanged",
+  "rollback": "revert all 4 allowedFiles; no other file touched",
+  "budget": {
+    "canonicalSource": "external actionplan-repository pin f25018d9#changePackageBudget: maxChangedFiles 20; default band maxNet 400, requires []; conditional band maxNet 800, requires the seven named conditions below",
+    "measurement": {
+      "changedFileCount": 4,
+      "grossAdditions": 449,
+      "grossDeletions": 0,
+      "netLines": 449
+    },
+    "class": "production",
+    "band": "conditional",
+    "conditionalBand": { "maxNet": 800, "maxChangedFiles": 20 },
+    "conditionalEvidence": {
+      "single-narrow-problem": "one frozen contract implemented: a presentation-only {manifest,project,submit,retry} projection over an already-built P15 customerModuleApi handle; no unrelated change",
+      "bounded-file-set": "exactly the 4 allowedFiles above; no file outside that set touched",
+      "no-redundant-repetition": "no duplicate implementation path; the frozen test file (259 lines) and the exact-hash-verified new production module (116 lines) account for the bulk of the net, not repetition",
+      "no-quality-tradeoff": "frozen shape checks (Object.isFrozen on the handle and its manifest), sanitized rejection (stable alertCode only, no message/stack/Error), and single-flight submit/retry are all enforced, not deferred",
+      "full-green": "targeted suite 4/4 GREEN on final bytes; whole-repo npm test and npm run check each run exactly once (QA1) on final bytes, both accepted GREEN",
+      "fresh-reviewer-accept": "pending — independent review outside this writer's own package, per the immutable CLAUDE-ONLY writer lock",
+      "explicit-rollback": "see rollback field above: revert all 4 allowedFiles, no other file touched"
+    },
+    "noFalseDefaultClaim": true,
+    "waiver": false
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-customer-surface-p16.test.mjs — 4/4 pass, run after every byte change",
+    "invalidatedRuns": [
+      "pre-correction npm test run: GREEN (1541 pass/1 skip/0 fail), invalidated by the subsequent frozen-handle-check and budget-classification correction, not accepted"
+    ],
+    "acceptedFinalSnapshotBatch": "npm test + npm run check run exactly once each (QA1) after all 4 files reached final byte content, no edits after"
+  },
+  "testHashUnchanged": true,
+  "capability_delta": "CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY"
+}
