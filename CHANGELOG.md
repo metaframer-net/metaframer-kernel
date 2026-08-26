@@ -23,7 +23,7 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   the existing `claim_batch`/`publish_claim`/`release_claim` substrate primitives into one
   single-pass, fenced drain returning a frozen `OutboxRelayResult(published, failed)`,
   test-verified against real PostgreSQL 16 across 3
-  scenarios (`db/tests/test_outbox_relay_lifecycle.py`, PR #122, CI run 32960181093, passing) —
+  scenarios (`db/tests/test_outbox_relay_lifecycle.py`, PR #122 with a passing CI run) —
   with P19
   (observability/SLO) and P20-P25 production proof all still named as the explicit next-missing
   pieces. This truth-sync adds the `POSTGRES_OUTBOX_RELAY_FENCED_RUN_ONCE`

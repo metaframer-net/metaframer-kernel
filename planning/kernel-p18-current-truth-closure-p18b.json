@@ -68,19 +68,34 @@
     "canonicalSource": "external actionplan-repository pin f25018d937557381cf8f8dd1012c29a2e48ba374#changePackageBudget",
     "measurement": {
       "files": 6,
-      "grossAdditions": 183,
+      "grossAdditions": 198,
       "grossDeletions": 77,
-      "net": 106,
-      "gross": 260
+      "net": 121,
+      "gross": 275
     },
     "class": "DEFAULT_BAND",
-    "verdict": "COMPLIANT: net 106 (<=400) and gross 260 fit DEFAULT_BAND with no named-condition requires. Measured across the full six-file atomic package (planning/roadmap-v1-current-truth.json, this file (new), ROADMAP.md, README.md, CHANGELOG.md, tests/kernel-roadmap-v1-current-truth.test.mjs); the implementation writer authored none of the test file's own diff, which was already present and frozen at handoff."
+    "verdict": "COMPLIANT: net 121 (<=400) and gross 275 fit DEFAULT_BAND with no named-condition requires. Recalculated across the full six-file atomic package against original base 2af79e462e5dca60cb55475747566285bf29f323 (planning/roadmap-v1-current-truth.json, this file (new), ROADMAP.md, README.md, CHANGELOG.md, tests/kernel-roadmap-v1-current-truth.test.mjs), including this gate-correction wave's CHANGELOG.md wording fix and this file's qa.invalidatedBatches/acceptedRerun update; the frozen test file's diff is unchanged from the prior measurement."
   },
   "qa": {
     "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — GREEN after this package's edits, no test file edit by the implementation writer",
     "fullQaBudget": "accepted budget remains QA1 final local + QA2 CI",
-    "invalidatedBatches": [],
-    "acceptedRerun": "QA1 acceptance (final local full run: npm test + npm run check, one time each) is determined by the implementation QA worker on the immutable candidate commit, outside this self-describing record; QA2 is the required CI run. This record does not itself assert a post-commit result — it only names which worker, on which commit, runs which commands, and defers the outcome to that run.",
+    "invalidatedBatches": [
+      {
+        "candidateHead": "689156a07542ec6d00f22af7ede95b6eaf6de3c4",
+        "candidateTree": "2e7be7703e841a81d94e97444100cca7778a5a63",
+        "command": "npm run check",
+        "outcome": "RED — stopped at node tools/check-versioning-changelog.mjs with changelog-raw-commit-hash:32960181093 (CHANGELOG.md named a raw CI run number, a hex-shaped token)",
+        "accepted": false
+      },
+      {
+        "candidateHead": "689156a07542ec6d00f22af7ede95b6eaf6de3c4",
+        "candidateTree": "2e7be7703e841a81d94e97444100cca7778a5a63",
+        "command": "npm test",
+        "outcome": "environment-invalid — Docker socket absent locally, no rerun attempted",
+        "accepted": false
+      }
+    ],
+    "acceptedRerun": "Both QA1 outcomes above are invalidated (RED versioning-checker finding and an invalid local test environment) against the pre-correction candidate; neither is an accepted claim. QA1 acceptance (final local full run: npm test + npm run check, one time each) is deferred prospectively to a new immutable snapshot commit that includes this gate correction, to be run by the implementation QA worker once that snapshot exists; QA2 is the required CI run on that same new snapshot. This record does not itself assert a post-commit result — it only names which worker, on which commit, runs which commands, and defers the outcome to that run.",
     "rollback": "revert planning/roadmap-v1-current-truth.json, this file, ROADMAP.md, README.md and CHANGELOG.md to the pre-package commit; no runtime, host, AGENTS.md, DAG, flags or P18 evidence file touched by this package"
   }
 }
