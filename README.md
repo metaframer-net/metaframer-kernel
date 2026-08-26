@@ -630,7 +630,16 @@ drain that returns a frozen `OutboxRelayResult`, test-verified against real Post
 3 scenarios (PR #122 with a passing CI run) — with P19 (observability/SLO) as the active package;
 this adds the `POSTGRES_OUTBOX_RELAY_FENCED_RUN_ONCE` run-once-only capability delta, wires no
 scheduler/loop, retry policy, dead-letter queue or live entrypoint/host, and a hosted product
-remains not-runnable with no global readiness flag under **Current status** moved.
+remains not-runnable with no global readiness flag under **Current status** moved. A further
+roadmap current-truth package has since synced the counter again to
+`19/25 tamamlandı, P20/25 aktif`, closing P19 (observability/SLO) — `db/metaframer_kernel_db/observability.py`'s
+`run_observed_outbox_relay_once` wrapping P18's `run_outbox_relay_once` with a `RelaySlo`
+threshold, emitting exactly one structured `outbox_relay.batch_completed` event per call carrying
+a duration/failure-rate verdict, test-verified against real PostgreSQL 16 across 3 scenarios
+(PR #124 with a passing CI run 32970268485) — with P20 (performance) as the active package; this
+adds the `OUTBOX_RELAY_OBSERVED_SLO_SINGLE_PASS` capability delta, wires no exporter, dashboard,
+alert transport, scheduler/loop, retry policy, dead-letter queue or live entrypoint/host, and a
+hosted product remains not-runnable with no global readiness flag under **Current status** moved.
 
 ## Authorized order and what remains closed
 
