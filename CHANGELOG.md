@@ -16,6 +16,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P17 `host/pyproject.toml`: makes `host/` an installable, offline-buildable pure-Python
+  distribution via `uv_build` (`module-root=""`, `module-name="python_asgi"`).
+  Package `metaframer-kernel-asgi-host`, version `0.1.0a1`, `requires-python >= 3.12`, no
+  dependencies; console-script `metaframer-kernel-customer-host =
+  python_asgi.create_customer_host_cli:main`. `host/python_asgi/__init__.py` now publicly
+  re-exports exactly three names — `StdioJsAsgiBridge`, `create_customer_app`,
+  `run_create_customer_host` — importable from outside the checkout with no
+  uvicorn/hypercorn/fastapi/django installed or imported. Packaging/installability contract
+  only: no Python bridge/server behavior change, no listener started, no production, deploy
+  or release claim.
 - P15 `consumers/customer-app-core/customer-module-api.mjs`: typed customer-module-api boundary
   reusing `createCustomerAppCoreWithPersistence` (P14a), `sdk.buildActionSpec` (P08) and
   `canonicalizeCustomerRecord` (P11). Manifest carries frozen `actionCoordinate: customer.create@1`

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["uv_build>=0.11.1,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "metaframer-kernel-asgi-host"
+version = "0.1.0a1"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+metaframer-kernel-customer-host = "python_asgi.create_customer_host_cli:main"
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "python_asgi"

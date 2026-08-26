@@ -1,0 +1,88 @@
+{
+  "package": "P17-installable-asgi-host-adapters",
+  "base": "53d86d11c682f4f1ec45eaff92f525ef9e137bb0",
+  "provenance": {
+    "masterSha256": "27ee3319adbdb6ff3e48b913eee6a30cf27f58e263f9a0857554f194821c7699",
+    "blindSha256": "c95ea7330429a74c6c2f3818a0f29e79f5c2210b8c162ed52d44d8c3d85f6a20",
+    "synthesisV1Sha256": "fd77902c4f4dbe6301f35d6f1f0231ff2f28ea49753425209e192ca8d239f2d9",
+    "synthesisV2Sha256": "8057a10a9151d49d71dd2b06911be16ac38a64e950fa26f93ee3b1076b85335f",
+    "initialFrozenTestSha256": "a6691163a1efa78e0093e45dd9c10ed2a64ae9244013430c9e0dbdfeb60a85b7",
+    "note": "initial RED/frozen hash a6691163... captured before a local realpath correction (TMPDIR symlink artifact on macOS /tmp -> /private/tmp) was applied to the test harness; final bytes below re-hashed after that correction"
+  },
+  "synthesis": "8057a10a9151d49d71dd2b06911be16ac38a64e950fa26f93ee3b1076b85335",
+  "frozenTestPath": "tests/kernel-python-asgi-installable-package-p17.test.mjs",
+  "frozenTestSha256": "fca20848b287007582c7a215a54a318cb94fc798dec5007c6ed406dcb9c3174f",
+  "allowedFiles": [
+    "host/pyproject.toml",
+    "host/python_asgi/__init__.py",
+    "planning/kernel-installable-asgi-host-adapters-p17.json",
+    "CHANGELOG.md",
+    "tests/kernel-python-asgi-installable-package-p17.test.mjs"
+  ],
+  "implementation": {
+    "buildBackend": "uv_build>=0.11.1,<0.12, pure Python, module-root=\"\", module-name=\"python_asgi\"",
+    "packageMetadata": "name metaframer-kernel-asgi-host, version 0.1.0a1, requires-python >=3.12, dependencies []",
+    "consoleScript": "metaframer-kernel-customer-host = python_asgi.create_customer_host_cli:main",
+    "publicExports": "python_asgi/__init__.py now re-exports exactly three names: StdioJsAsgiBridge (existing), create_customer_app, and run_create_customer_host — both added imports are stdlib-only at module import time; the ASGI-optional uvicorn/hypercorn imports stay lazily deferred inside the sibling runner modules"
+  },
+  "excludes": [
+    "no Python bridge/server behavior change",
+    "no listener started, no server bound",
+    "no uvicorn/hypercorn/fastapi/django dependency added or imported at package-import time",
+    "no git operation, no full-suite run, no current-truth closure, no release/deploy/publish"
+  ],
+  "readinessClaim": "packaging/installability contract only: host/ is now a buildable, installable Python distribution exposing three public host-adapter entry points and one console-script CLI; no production, deploy or release claim",
+  "readinessFlags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "packageState": "targeted-green-awaiting-candidate-commit-qa1-review-ci",
+  "calistirilabilirlik": "installable-adapter-only-hosted-product-not-runnable",
+  "once": "host/ önceden buildable/installable bir Python paketi değildi; dışarıdan pip install ile kurulamıyordu, üç host-adapter giriş noktası (StdioJsAsgiBridge, create_customer_app, run_create_customer_host) ve konsol komutu dışarıya açık bir paket olarak mevcut değildi.",
+  "simdi": "host/ artık uv_build ile offline build edilebilen, wheel'e paketlenebilen ve izole bir venv'e kurulabilen bir Python dağıtımı; kurulum sonrası üç adet public export dışarıdan import edilebiliyor ve metaframer-kernel-customer-host konsol komutu --help'e yanıt veriyor.",
+  "fark": "host/pyproject.toml eklendi (uv_build backend + paket metadata + konsol script), host/python_asgi/__init__.py iki yeni stdlib-only import ile üç public export'a genişletildi; hiçbir bridge/server davranışı, hiçbir bağımlılık (uvicorn/hypercorn/fastapi/django) eklenmedi.",
+  "kullaniciYolculugu": "Bir entegrasyoncü artık host/ dizinini pip ile kurup CLI'dan --help alabilir ve üç adaptörü kendi kodunda import edebilir; CLI, ayrıca kurulmuş Uvicorn veya Hypercorn'u yalnızca açıkça belirtilen bir runner ve JS komutuyla başlatabilir — varsayılan veya otomatik bir dinleme/deploy yok, hosted bir ürün yok; bu paket yalnızca 'kurulabilir' olmayı sağlıyor, 'çalışan/host edilen sunucu' olmayı değil.",
+  "kalanEngel": "runner'lar (Uvicorn/Hypercorn entegrasyonu) zaten mevcut — eksik olan bu değil; opsiyonel sunucular hâlâ paket bağımlılığı değil ve açık bir live JS app komutuyla gerçek bir dinleme/deploy hâlâ başlatılmadı. Ayrıca: full repo test suite / npm run check, git commit/push, current-truth kapanışı ve QA1 sonrası CI QA2 + bağımsız reviewer GREEN'i hâlâ kapanmadı — bunlar bu paketin dışında.",
+  "notRunnable": "Bu paket hiçbir servis çalıştırmaz, hiçbir port dinlemez; sadece host/ dizinini kurulabilir hale getirir. Üretimde çalışan bir ASGI sunucusu iddiası yoktur.",
+  "rollback": "revert all 5 allowedFiles; no other file touched",
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget — DEFAULT max400 files20; production class, default band, no false-default claim",
+    "measurement": {
+      "measuredAcross": "all tracked + untracked changes relative to base 53d86d11c682f4f1ec45eaff92f525ef9e137bb0",
+      "changedFileCount": 5,
+      "perFile": {
+        "CHANGELOG.md": { "additions": 10, "deletions": 0 },
+        "host/python_asgi/__init__.py": { "additions": 3, "deletions": 1 },
+        "host/pyproject.toml": { "additions": 16, "deletions": 0 },
+        "planning/kernel-installable-asgi-host-adapters-p17.json": { "additions": 88, "deletions": 0 },
+        "tests/kernel-python-asgi-installable-package-p17.test.mjs": { "additions": 243, "deletions": 0 }
+      },
+      "grossAdditions": 360,
+      "grossDeletions": 1,
+      "netLines": 359,
+      "note": "planning/kernel-installable-asgi-host-adapters-p17.json line count is this file's own final byte length as measured after this evidence-finalization edit"
+    },
+    "class": "production",
+    "band": "default",
+    "noFalseDefaultClaim": true,
+    "waiver": false
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-python-asgi-installable-package-p17.test.mjs, default TMPDIR (no override) — 3/3 pass on final frozen bytes (sha256 fca20848b287007582c7a215a54a318cb94fc798dec5007c6ed406dcb9c3174f)",
+    "nearbyHostSuites": "node --test tests/kernel-asgi-core-profile.test.mjs tests/kernel-asgi-host-boundary-truth.test.mjs tests/kernel-create-customer-asgi-composition.test.mjs — 81/81 pass",
+    "notRun": "full repo test suite / npm run check — pending until candidate commit; not run on the uncommitted diff because legacy tests inspect git diff",
+    "qa1FullLocalQA": "pending — required after this candidate commit; deferred because targeted diff-sensitive legacy tests need re-checking against the candidate commit's exact bytes before a full local QA run is meaningful",
+    "ciQa2": "pending — required CI full QA run",
+    "independentReview": "pending — separate reviewer on this immutable snapshot, not yet performed"
+  },
+  "testHashUnchanged": false,
+  "testHashNote": "frozenTestSha256 changed from the initial RED/frozen a6691163... to final fca20848... after a realpath correction (see provenance.note); test content intent unchanged, bytes changed",
+  "capability_delta": "PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE"
+}
