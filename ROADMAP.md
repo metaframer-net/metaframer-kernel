@@ -31,16 +31,16 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`15/25 tamamlandı, P16/25 aktif` (`roadmap.progress` in
+`16/25 tamamlandı, P17/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
-packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15. P15
-(Customer module typed API) is closed — `consumers/customer-app-core/customer-module-api.mjs`
-(`createCustomerModuleApi`, `CUSTOMER_MODULE_API_MANIFEST`) composes the P14 persistence-aware
-app-core behind a frozen `customer.create@1` manifest, and `recordCustomer` validates the SDK
-action spec, canonicalizes the record, cross-checks tenant/audit/outbox correlation and delegates
-to the injected insert exactly once — test-verified 5/5 (PR #116 with a passing CI run), with no
-live entrypoint, host or Surface wiring. P16 (separate Surface/UI projection) is the active
-package and the next explicit gap; none of this moves any readiness flag under
+packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15, P16. P16
+(separate Surface/UI projection) is closed — `consumers/customer-app-core/customer-surface.mjs`
+(`createCustomerSurface`, `CUSTOMER_SURFACE_MANIFEST`) composes a real, ready P15
+`customerModuleApi` handle behind a frozen idle/submitting/saved/rejected UI projection, exposing
+`submit`/`retry` with single-flight submission and sanitized rejection — test-verified 4/4
+(PR #118 with a passing CI run), with no DOM, host, DB, relay or readiness-flag change. P17
+(installable ASGI host adapters) is the active package and the next explicit gap; none of this
+makes a hosted product runnable and none of it moves any global readiness flag under
 [README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG

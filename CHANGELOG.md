@@ -47,6 +47,16 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   outside the `"rejected"` state or while a submit is in flight, otherwise resubmits the exact
   prior args. No DOM/host/DB/relay/deps/cache/readiness-flag change; no runnable/readiness claim.
   See `planning/kernel-customer-surface-ui-projection-p16.json`.
+- P16b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `16/25 tamamlandı, P17/25 aktif`, closing P16 (separate
+  Surface/UI projection) with real merged evidence — `consumers/customer-app-core/customer-surface.mjs`
+  (`createCustomerSurface`, `CUSTOMER_SURFACE_MANIFEST`), frozen
+  `tests/kernel-customer-surface-p16.test.mjs` (4/4 GREEN), merged via PR #118 with a passing CI
+  run — with P17 (installable ASGI host adapters), P18 (outbox relay lifecycle) and P19-P25
+  production proof all still named as the explicit next-missing pieces. This truth-sync adds the
+  `CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY` in-process-only capability delta, wires no
+  live entrypoint, and moves no global readiness flag; a hosted product remains not-runnable.
+  See `planning/kernel-p16-current-truth-closure-p16b.json`.
 - P15b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `15/25 tamamlandı, P16/25 aktif`, closing P15 (Customer
   module typed API) with real merged evidence — `consumers/customer-app-core/customer-module-api.mjs`

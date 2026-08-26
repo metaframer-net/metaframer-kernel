@@ -604,7 +604,16 @@ status**. A further roadmap current-truth package has since synced the counter a
 SDK, canonicalizing the record via P11, cross-checking tenant/audit/outbox correlation before
 ever touching the injected insert, test-verified 5/5 (PR #116 with a passing CI run) — with P16
 (separate Surface/UI projection) as the active package; that sync also adds no runtime
-capability and moves no flag under **Current status**.
+capability and moves no flag under **Current status**. A further roadmap current-truth package
+has since synced the counter again to `16/25 tamamlandı, P17/25 aktif`, closing P16 (separate
+Surface/UI projection) — `consumers/customer-app-core/customer-surface.mjs`
+(`createCustomerSurface`, `CUSTOMER_SURFACE_MANIFEST`) composing a real, ready P15
+`customerModuleApi` handle behind a frozen idle/submitting/saved/rejected UI projection, with
+`submit`/`retry` driving single-flight submission and sanitized rejection, test-verified 4/4
+(PR #118 with a passing CI run) — with P17 (installable ASGI host adapters) as the active
+package; this closes the in-process Customer Surface capability
+(`CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY`) but a hosted product remains not-runnable and
+no global readiness flag under **Current status** moves.
 
 ## Authorized order and what remains closed
 

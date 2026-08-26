@@ -1,0 +1,77 @@
+{
+  "package": "P16b-current-truth-closure",
+  "base": "3f929f0168da98aafeaa41e1ed209ea17b68c9ad",
+  "baseTree": "8a80bf8dcd959b7d7219660a9b183eb31dd3ccbf",
+  "masterScope": "b1f421618f396e982596f759290368bae532379e8d4d3e3deeb7149706e816c6",
+  "blindScope": "cda50065e05500a7d74428159724f6dc203bce4f87d5c6edaf589767dc5ad5da",
+  "synthesisScope": "01e744effb6b1885ca8bd79282c9f50242f6752f02840139cede9d9067789986",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p16-current-truth-closure-p16b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p16-current-truth-closure-p16b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p16-current-truth-closure-p16b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "608ae6083501d0eb6205aeaecefcee6c601089c74063046e4aadc671a6d3b11c",
+  "testHashUnchanged": true,
+  "excludes": ["runtime", "DAG structure", "readiness flags", "commit", "push", "AGENTS.md", "P17", "P18"],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY",
+    "notRunnable": "This truth-sync wires no live entrypoint, host or relay; it only projects P16's already-merged Surface evidence (PR #118) into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. A hosted product remains not-runnable; calistirilabilirlik is in-process-only."
+  },
+  "syncSummary": "Advances roadmap.progress from 15/25 (P16 active) to 16/25 (P17 active); adds P16's merged customer-surface evidence to currentTruth.implementedPieces; removes P16 from notImplementedPieces, replacing it with P17 (installable ASGI host adapters); retains P18 (outbox relay lifecycle) and P19-P25 (production proof) as the explicit next-missing pieces; all nine stronger readiness flags remain false; ownerFacing capability_delta becomes CUSTOMER_SURFACE_IN_PROCESS_SUBMIT_REJECT_RETRY and calistirilabilirlik becomes in-process-only.",
+  "budget": {
+    "canonicalSource": "external actionplan-repository pin f25018d937557381cf8f8dd1012c29a2e48ba374#changePackageBudget",
+    "measurement": {
+      "files": 6,
+      "grossAdditions": 175,
+      "grossDeletions": 74,
+      "net": 101,
+      "gross": 249
+    },
+    "class": "DEFAULT_BAND",
+    "verdict": "COMPLIANT: net 101 (<=400) and gross 249 fit DEFAULT_BAND with no named-condition requires."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — 16/16 GREEN after this package's edits", "fullQaBudget": "accepted budget remains QA1 final local + QA2 CI; invalidated local runs are snapshot-changed exceptions, not accepted budget slots",
+    "invalidatedBatches": [
+      "batch1 (pre-correction): npm test 1542/1542 GREEN + npm run check GREEN was reached, but planning/kernel-p16-current-truth-closure-p16b.json was missing baseTree/masterScope/blindScope/synthesisScope/testWriterAllowedFiles/frozenTest completeness/measured budget fields, so that snapshot is invalidated, not accepted as evidence",
+      "batch2 (post-field-correction, snapshot-changed exception): npm test + npm run check were rerun after completing the evidence fields, but the qa accounting wording (fullQaBudget/invalidatedBatches/acceptedRerun labeling) itself required this further correction, so that snapshot is also invalidated, not accepted as evidence"
+    ],
+    "acceptedRerun": "batch3 (final accepted local QA1, snapshot-changed exception after this wording correction): targeted 16/16 GREEN reverified, frozenTestSha256 reverified byte-identical, then npm test + npm run check rerun once against this corrected snapshot and accepted as QA1 final local; QA2 remains the required CI run",
+    "rollback": "revert planning/roadmap-v1-current-truth.json, this file, ROADMAP.md, README.md and CHANGELOG.md to the pre-package commit; no runtime, host, AGENTS.md, P17 or P18 file touched by this package"
+  }
+}
