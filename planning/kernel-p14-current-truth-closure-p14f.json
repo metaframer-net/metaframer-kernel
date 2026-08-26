@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-p14-current-truth-closure-p14f-2026-08-26",
+  "packageKind": "current-truth-closure",
+  "type": "roadmap-current-truth-sync",
+  "packageState": "writer-complete-awaiting-review-and-ci",
+
+  "base": {
+    "commit": "c881565a7b609caa08f36dda6a9b07453e13c9bb",
+    "tree": "2dd854a6a98030e1484be07f36aae99dead56416"
+  },
+
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p14f-current-truth-closure-20260826",
+
+  "scopeHashes": {
+    "master": "d29fa524598b7f3986aac329bd8b97391d5f517d9763345468f59c9f26ac08a46",
+    "blind": "fbf45651c9bdd4b1b801ec39caba40bf0fbc34aa034ef23df9a79cd0431e8648",
+    "synthesis": "92facfa6dfdb6d4c26427ac8e325f99727d87e4e8700e6e08eeceed767083736",
+    "note": "MASTER hash corrected mid-turn by the orchestrator to d29fa524598b7f3986aac329bd8b97391d5f517d9763345468f59c9f26ac08a46, superseding a malformed value in the original task prompt; blind and synthesized hashes unchanged."
+  },
+
+  "actionplanBudgetPin": {
+    "location": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "note": "external actionplan-repository pin (not a local Kernel path); verdict derived from this canonical field's classes: default band max net 400/max files 20; conditional band max net 800; gross guard 800 plus independent review",
+    "defaultBand": { "maxNet": 400, "maxFiles": 20 },
+    "conditionalBand": { "maxNet": 800 },
+    "grossGuard": { "maxGross": 800, "requiresIndependentReview": true }
+  },
+
+  "recoveryNote": null,
+
+  "testProvenance": {
+    "path": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "note": "test file authored by the separate test-design writer role across two stages: an initial handoff, and one narrow post-discovery correction after this implementation writer's targeted run exposed two same-class negation/word-order test-design defects. This implementation writer made no edit to the test file itself at either stage.",
+    "initialSha256": "fee7f624afc1f93f77cfd96e0f8689c33450e7df9d4c8eff65c8b042c5ba00f4",
+    "finalSha256": "b941e6225cf276dfeca9482aa9d0ca679e39bb7be186342f6a75a83147e5886b",
+    "red": { "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs", "tests": 16, "pass": 12, "fail": 4 },
+    "final": {
+      "sha256": "b941e6225cf276dfeca9482aa9d0ca679e39bb7be186342f6a75a83147e5886b",
+      "targetedGreenResult": { "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0 }
+    },
+    "executionHistory": {
+      "frozenPreImplementationRed": {
+        "note": "honest frozen pre-implementation RED as handed off by the test writer role, sha256 fee7f624...: 16 total, 12 pass, 4 fail. The test author's targeted-run plus one diagnostic TAP rerun to obtain this exact count is accepted as the authoritative RED and did not spend this writer's full-QA budget.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 12, "fail": 4
+      },
+      "targetedRunAfterAllowedFileEdits": {
+        "note": "after editing this writer's five allowed implementation/projection files to their final intended bytes, against the initial test sha fee7f624..., a targeted run reached 15/16 pass, 1 remaining fail. The one remaining failure was in the test titled 'currentTruth reflects P14 ... with all readiness flags false and isolated proof distinguished from a real user journey', specifically two same-class negation/word-order test-design defects: (1) a regex expecting /no.*wir|not.*wir/i against planning/kernel-app-postgres-composition-p14e.json's capabilityDelta.notRunnable text, whose merged wording is 'It wires no live entrypoint...' (i.e. 'wir' precedes 'no', so neither ordering matched), and (2) a related assertion that did not distinguish a required negated 'No SaaS user journey ... is runnable end-to-end' phrase from an affirmative readiness claim. Both are test-design defects, not implementation defects, and out of this writer's allowed-file scope to fix.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 15, "fail": 1, "cancelled": 0, "skipped": 0
+      },
+      "testDesignCorrection": {
+        "note": "the separate test-design writer role corrected only tests/kernel-roadmap-v1-current-truth.test.mjs: line 287 now positively requires /wires? no live entrypoint/i; line 304 distinguishes the required negated 'No SaaS user journey ... is runnable end-to-end' phrase from an affirmative readiness claim. This is a narrow correction, not a byte-identical file at either stage. The test-design writer used a temporary local stash/apply/drop diagnostic while preserving all bytes; the stash list is empty and worktree files were independently verified after the correction.",
+        "finalSha256": "b941e6225cf276dfeca9482aa9d0ca679e39bb7be186342f6a75a83147e5886b"
+      },
+      "finalTargetedRun": {
+        "note": "targeted run against the corrected final test sha b941e622...: 16 total, 16 pass, 0 fail. No implementation-file edit was required or made to reach this result; only the test-design correction changed.",
+        "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+        "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0
+      }
+    }
+  },
+
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p14-current-truth-closure-p14f.json"
+  ],
+
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p14-current-truth-closure-p14f.json",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+
+  "nonGoals": [
+    "no runtime/src/db/host/tool/config/generated/CI/dependency/version change",
+    "no P14 implementation/evidence file change (consumers/customer-app-core/customer-app-core.mjs, consumers/customer-app-core/customer-persistence-adapter.mjs, consumers/customer-app-core/customer-data-cutover.mjs, src/adapters/postgres-write-envelope-write.mjs, planning/kernel-customer-app-core-cutover-p14a.json, planning/kernel-customer-app-persistence-parity-p14b.json, planning/kernel-transitional-persistence-history-p14c.json, planning/kernel-postgres-write-contract-decoupling-p14d1.json, planning/kernel-postgres-legacy-test-retirement-p14d2a.json, planning/kernel-postgres-adapter-retirement-p14d2b.json, planning/kernel-app-postgres-composition-p14e.json all untouched)",
+    "no P15 implementation",
+    "no dependency DAG, family, package name, or version change",
+    "no package.json, lockfile, CI/workflow/config change",
+    "no release, deploy or readiness flag change (all remain false)",
+    "no staging, commit, or push performed by this package",
+    "no test edit by this implementation writer; tests/kernel-roadmap-v1-current-truth.test.mjs was edited only by the separate test-design writer role, never by this implementation writer",
+    "no self-delegation by any worker",
+    "no new verifier/harness/bespoke probe"
+  ],
+
+  "acceptanceScenarios": [
+    "roadmap.progress carries exactly completed=14, total=25, completedPackages P01..P14, activePackage=P15, asOfKernelMain=c881565a7b609caa08f36dda6a9b07453e13c9bb, statusLine '14/25 tamamlandı, P15/25 aktif'",
+    "currentTruth.implementedPieces names P14's real merged evidence (app-core cutover composition, app-owned persistence parity, transitional ownership cleanup, retired legacy adapter, isolated real-PostgreSQL proof) without claiming live entrypoint wiring or production readiness",
+    "currentTruth.notImplementedPieces no longer names P14/Kernel cleanup and parity, and still names P15 typed API, P16 Surface, P18 outbox relay, and later production proof",
+    "all nine readiness flags remain false; ownerFacing.capability_delta=NONE, ownerFacing.calistirilabilirlik=not-runnable, and notRunnableProductClaim explains isolated persistence proof is not an end-to-end SaaS user journey",
+    "ROADMAP.md, README.md and CHANGELOG.md each project the exact '14/25 tamamlandı, P15/25 aktif' line and factual P14 closure, without rewriting prior history",
+    "the roadmap denominator (25), DAG, families/names, and execution policies remain byte-unchanged; P15's dependencies (P10, P14) are both in completedPackages"
+  ],
+
+  "evidence": {
+    "red": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16, "pass": 12, "fail": 4,
+      "note": "frozen pre-implementation RED as handed off by the test writer"
+    },
+    "targetedGreen": {
+      "command": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+      "tests": 16, "pass": 16, "fail": 0, "cancelled": 0, "skipped": 0,
+      "testSha256": "b941e6225cf276dfeca9482aa9d0ca679e39bb7be186342f6a75a83147e5886b",
+      "note": "final result after the separate test-design writer's narrow correction of two same-class negation/word-order defects; see testProvenance.executionHistory for the full sequence from initial 15/16 to final 16/16"
+    },
+    "changedScenarios": [
+      "roadmap.progress carries the exact 14/25 completed truth with P14 closed and P15 active",
+      "currentTruth reflects P14 (app-core cutover composition, app-owned persistence parity, transitional ownership cleanup, retired legacy adapter, real-PostgreSQL proof) as implemented, anchored to real merged evidence, with all readiness flags false, and P15 as the explicit next-missing piece",
+      "ROADMAP.md, README.md and CHANGELOG.md project P14 closed / P15 active",
+      "the global implemented/missing invariant now expects P15/P16/P18/production-proof rather than P14, since P14 is closed and the next-missing piece has shifted"
+    ],
+    "fullPackageGate": {
+      "note": "an earlier, pre-final-checkpoint run of 'npm test' and 'npm run check' occurred while the targeted gate stood at 15/16 (against the initial test sha, before the test-design correction) and while this planning record was not yet final. The orchestrator classified that pair as an invalid pre-checkpoint probe: it spends zero accepted full-QA budget and is retained here transparently as evidence only. A valid full-QA checkpoint against the final 16/16 targeted gate and the final version of this record is pending, per FINAL QA EVIDENCE PROTOCOL.",
+      "qa1": "EXCLUDED_INVALID_PRECHECKPOINT_PROBE",
+      "qa1Evidence": {
+        "npmTest": { "tests": 1533, "pass": 1532, "fail": 1, "cancelled": 0, "skipped": 0, "note": "excluded from QA budget; run while the targeted gate stood at 15/16 against the initial (pre-correction) test sha fee7f624..., before this planning record was final" },
+        "npmRunCheck": { "result": "exit 0, all gates GREEN/OK", "note": "excluded from QA budget; run before the orchestrator's stop instruction was received, retained here as evidence only, not as an accepted checkpoint" }
+      },
+      "predeclaredFinalQaClaim": {
+        "note": "VALIDATED: the predeclared final-snapshot commands were run immediately after the predeclared-final snapshot (the writer-local state preceding this metadata-closure edit) and matched exactly.",
+        "expectedNpmTest": "1533/1533 pass, 0 fail",
+        "expectedNpmRunCheck": "GREEN",
+        "actualNpmTest": { "tests": 1533, "pass": 1533, "fail": 0 },
+        "actualNpmRunCheck": { "result": "exit 0, all gates GREEN/OK" }
+      },
+      "acceptedLocalQa": {
+        "checkpoint": "1/2",
+        "note": "the sole accepted full-QA checkpoint (npm test 1533/1533 GREEN, then npm run check GREEN) was executed by the writer against the predeclared-final snapshot. No test/current-truth/docs/changelog/runtime byte changed after that checkpoint; this metadata-only edit records the checkpoint's outcome after the fact and does not re-run or supersede it.",
+        "npmTest": { "tests": 1533, "pass": 1533, "fail": 0, "cancelled": 0, "skipped": 0 },
+        "npmRunCheck": { "result": "exit 0, all gates GREEN/OK" }
+      },
+      "snapshotLineage": {
+        "note": "this edit to planning/kernel-p14-current-truth-closure-p14f.json is metadata-only and occurs AFTER the accepted local QA checkpoint above ran; local QA did not and does not run again after this edit. No byte of tests/kernel-roadmap-v1-current-truth.test.mjs, planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, or CHANGELOG.md, nor any runtime file, changed as part of this edit or since the accepted checkpoint. The binding full-QA validation of the final committed metadata snapshot (this edit included) is CI, which is pending."
+      },
+      "ci": "pending",
+      "fullQaBudget": { "total": 2, "spent": 1, "remaining": 1 }
+    },
+    "externalBudgetPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget (external actionplan pin, not a local Kernel path)",
+    "lineCounts": {
+      "changelogMd": { "additions": 9, "deletions": 0 },
+      "readmeMd": { "additions": 19, "deletions": 5 },
+      "roadmapMd": { "additions": 9, "deletions": 8 },
+      "currentTruthJson": { "additions": 18, "deletions": 13 },
+      "testFile": { "additions": 53, "deletions": 33, "note": "edited by the separate test-design writer role only, across the initial handoff and the narrow post-discovery correction; not edited by this implementation writer" },
+      "thisPlanningRecordJson": { "additions": 198, "deletions": 0, "note": "new file; line count via wc -l, taken after this record's final (QA-evidence-closure) edit" },
+      "grossAdditions": 306,
+      "grossDeletions": 59,
+      "net": 247,
+      "gross": 365,
+      "filesChanged": 6,
+      "budgetClass": "DEFAULT_BAND",
+      "verdict": "GREEN_NET_LE_400_FILES_LE_20"
+    },
+    "readinessProductFlags": { "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false, "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false, "capabilityDelta": "NONE", "calistirilabilirlik": "not-runnable" }
+  },
+
+  "p14MergeAnchors": [
+    { "packageId": "P14a", "commitPr": "kernel-customer-app-core-cutover-p14a", "file": "consumers/customer-app-core/customer-app-core.mjs", "summary": "adds createCustomerAppCoreWithPersistence, composing the real P13 cutover controller behind app-core's public-SDK-contract and customer:core fail-closed validation, default-legacy, no automatic cutover" },
+    { "packageId": "P14b", "commitPr": "kernel-customer-app-persistence-parity-p14b", "file": "consumers/customer-app-core/customer-persistence-adapter.mjs", "summary": "createCustomerPersistenceAdapter fail-closed validates tenantId/audit/transactionalOutbox/idempotency metadata, delegates the unchanged P12 adapter for the customer_records insert, writes audit_log/transactional_outbox with Kernel-parity SQL, and maps the pg 23505 dedup violation to CustomerIdempotencyConflictError" },
+    { "packageId": "P14c", "commitPr": "kernel-transitional-persistence-history-p14c", "file": "tools/check-kernel-persistence-ownership.mjs", "summary": "retires the combined transitionalInKernel manifest record fail-closed and formalizes the applicationOwnedHistoricalMigrations / transitionalKernelAdapters split" },
+    { "packageId": "P14d1", "commitPr": "kernel-postgres-write-contract-decoupling-p14d1", "file": "src/adapters/postgres-write-envelope-write.mjs", "summary": "directly owns IdempotencyConflictError/isDuplicateIdempotencyFingerprintError/checkPreparedChangeSet/checkTenantId, moved verbatim out of the transitional postgres-commit-adapter.mjs" },
+    { "packageId": "P14d2a", "commitPr": "kernel-postgres-legacy-test-retirement-p14d2a", "summary": "retires the legacy postgres-commit-adapter test suite ahead of physical adapter removal" },
+    { "packageId": "P14d2b", "commitPr": "kernel-postgres-adapter-retirement-p14d2b", "summary": "physically removes the transitional src/adapters/postgres-commit-adapter.mjs from the repository" },
+    { "packageId": "P14e", "commitPr": "kernel-app-postgres-composition-p14e", "file": "tests/postgres-unit-of-work-write-envelope.test.mjs", "summary": "proves createCustomerAppCoreWithPersistence against one real shared PostgreSQL 16 container across three strong scenarios: legacy-default touches no database; a real cutover plus application insert commits one row per table; a repeated idempotency fingerprint is rejected with rollback to exactly one row per table; a partial explicit parity metadata set is fail-closed rejected with zero rows written" }
+  ],
+
+  "processTruth": {
+    "delegation": "single implementation writer role, no self-delegation; test file was authored and, after this writer's targeted run surfaced two same-class defects, narrowly corrected by a separate test-design writer role; P14a-P14e implementation was authored and completed by separate prior implementation writers, not this one",
+    "stagingEvent": "no staging, commit or push performed by this package",
+    "implementationTargetedExecutionCount": 3,
+    "targetedExecutionNote": "the targeted test command was run three times: one frozen RED confirmation (12/16 pass, initial test sha) before any implementation edit; one targeted run after this writer's five allowed files reached their final intended bytes (15/16 pass against the initial test sha, exposing two same-class negation/word-order test-design defects out of this writer's allowed-file scope to fix); and one final targeted run after the separate test-design writer's narrow correction (16/16 pass, final test sha). No implementation-file edit was needed between the second and third runs.",
+    "excludedInvalidPrecheckpointProbe": "an earlier implementation writer incorrectly ran 'npm test' and 'npm run check' while the targeted gate was 15/16 and while this planning record was not yet final. npm test returned 1533 total/1532 pass/1 fail and npm run check returned exit 0. This pair is recorded as EXCLUDED_INVALID_PRECHECKPOINT_PROBE, spends zero accepted full-QA budget, and is retained transparently rather than omitted.",
+    "fullQaExecutionCount": 1,
+    "handoffState": "writer-complete: all six atomic package files (this writer's five allowed files plus the test-design writer's corrected test file) are final and JSON/syntax-valid; the targeted gate is a clean 16/16 against the final test sha; the accepted full-QA checkpoint (1/2: npm test 1533/1533 GREEN, then npm run check GREEN) ran against the predeclared-final snapshot and is now recorded in evidence.fullPackageGate.acceptedLocalQa; this metadata-only closure edit changed no test/current-truth/docs/changelog/runtime byte after that checkpoint; independent review and the binding CI full-QA checkpoint (2/2) on this evidence-closed commit remain pending."
+  },
+
+  "rollback": "one normal git revert of the eventual atomic package covering all six atomicPackageFiles: planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md, planning/kernel-p14-current-truth-closure-p14f.json, and tests/kernel-roadmap-v1-current-truth.test.mjs together; every P14a-P14e implementation/evidence file remains untouched by this package and outside this rollback's scope; no migration or data cleanup required",
+
+  "ownerFacing": {
+    "once": "Once P14'un (Kernel temizligi ve parite) bes alt paketi (P14a-P14e) main'e ayri ayri mergelenmisti — app-core kompozisyonu, uygulamaya ait kalicilik paritesi, gecis-donemi Kernel sahiplik temizligi, eski adaptorun emekliye ayrilmasi ve izole gercek PostgreSQL 16 kaniti — ama roadmap sayaci bunu hala yansitmiyordu.",
+    "simdi": "Simdi tek kaynak dosya + ROADMAP.md + README + CHANGELOG ayni 14/25 tamamlandi, P15 aktif durumunu projekte ediyor; hicbir calisma zamani davranisi degismedi, hicbir canli girisim noktasi baglanmadi. Test dosyasindaki 16 senaryonun tamami GREEN: ilk calistirmada bulunan iki ayni sinif olumsuzlama/kelime-sirasi test-tasarim kusuru, bu paketin kapsami disindaki hicbir dosyaya dokunulmadan, ayri test-tasarim yazari tarafindan sadece test dosyasinda dar kapsamli duzeltildi. P14F'e ait kalan bir test engeli yok.",
+    "fark": "Once sayac 13/25'te kalmisti ve P14'un kaniti tek kaynak dosyaya yansitilmamisti; simdi P14 kapali, P15 aktif olarak dogru senkronize.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P14'un kaniti izole test ortaminda gercek bir PostgreSQL'e yazdigini gosterir ama hicbir canli girisim/host/Surface ile baglanmamistir.",
+    "kalanEngel": "P15 (Customer module typed API) dahil F4-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz.",
+    "capability_delta": "NONE",
+    "calistirilabilirlik": "not-runnable"
+  }
+}

@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P14f `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `14/25 tamamlandı, P15/25 aktif`, closing P14 (Kernel
+  cleanup and parity) with real merged evidence from its five sub-packages — P14a app-core
+  cutover composition (`createCustomerAppCoreWithPersistence`), P14b/P14e app-owned persistence
+  parity (`createCustomerPersistenceAdapter`), P14c/P14d1/P14d2a/P14d2b transitional Kernel
+  ownership cleanup and retirement of `src/adapters/postgres-commit-adapter.mjs`, and P14e's
+  isolated real PostgreSQL 16 proof — with P15 (Customer module typed API) as the active
+  package. This truth-sync adds no runtime capability, wires no live entrypoint, and moves no
+  readiness flag. See `planning/kernel-p14-current-truth-closure-p14f.json`.
 - P14e `consumers/customer-app-core/customer-data-cutover.mjs`: the application-path insert now
   synthesizes Kernel-parity `audit`/`transactionalOutbox`/`idempotency` metadata only when all
   three are absent from the caller's options; if any one is explicitly supplied, all explicit
