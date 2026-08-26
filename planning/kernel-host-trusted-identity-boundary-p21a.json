@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0.0",
+  "package": "P21A-host-trusted-identity-boundary",
+  "generatedAt": "2026-08-26",
+  "base": "122ae24e0d7c40f108c0f79abcd38e1291fd65fe",
+  "baseTree": "f358b70a00035f6881d7483d8374995b53874cea",
+  "goal": "Close the host boundary runner's identity hole on its real-database ALLOW path. Before this package host/js_asgi/create_customer_asgi_runner.mjs built its authenticated Principal out of the request's own x-tenant-id / x-actor-id headers in every mode, so in --policy allow mode a client's claim and the runner's authenticated identity were the same string and the composition's CROSS_TENANT_DENY / IDENTITY_MISMATCH checks could never disagree with it. Allow mode now takes its Principal only from two explicit trusted CLI inputs of the runner process, leaves the request claims untouched as claims, and fails closed on a missing or malformed trusted input before the composition exists.",
+  "packageClass": "security-test-conformance",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "budget": {
+    "band": "default",
+    "bandMaxNet": 400,
+    "classCeilingKind": "justified",
+    "classMaxNet": 800,
+    "maxChangedFiles": 20,
+    "plannedChangedFiles": 3,
+    "note": "Planned and reported inside the default band (net <= 400), so the security-test-conformance justified ceiling is not drawn on and no extra band evidence is required."
+  },
+  "provenance": {
+    "scopeSynthesisSha256": "660e1ba34d9862de89dd53c0c28df67e864270b616242aa81b263967ee41af42",
+    "masterScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeDetermination": true,
+    "writer": "claude-implementation-writer",
+    "singleWriter": true,
+    "reviewerMustBeSeparateSession": true,
+    "note": "Blind scope determination: the two input scope hashes were frozen and reconciled by the MASTER into the recorded synthesis hash before this writer started. The writer never saw either side and must not assert a value it was not given, so both input hashes are recorded as held-by-MASTER rather than invented."
+  },
+  "frozenTestPath": "tests/kernel-python-host-bridge-real-pg-allow.test.mjs",
+  "frozenTestSha256": "97a8691cfe78c9a9c19f964cf2b0d0bbce0089b424fe2e0a1b5a835586e2b18e",
+  "allowedFiles": [
+    "host/js_asgi/create_customer_asgi_runner.mjs",
+    "planning/kernel-host-trusted-identity-boundary-p21a.json",
+    "tests/kernel-python-host-bridge-real-pg-allow.test.mjs"
+  ],
+  "trustedIdentityContract": {
+    "flags": ["--trusted-tenant-id", "--trusted-actor-id"],
+    "requiredWhen": "--policy allow",
+    "tenantForm": "canonical lowercase hyphenated UUID in 8-4-4-4-12 form, nil UUID excluded, matching the domain's own TenantId validator",
+    "actorForm": "1-128 visible ASCII characters, matching the domain's own ActorId validator",
+    "principalSource": "the two trusted CLI inputs only, never a request header",
+    "requestClaimsHandling": "x-tenant-id / x-actor-id are left exactly as sent and stay claims; the existing composition answers 403 CROSS_TENANT_DENY or 403 IDENTITY_MISMATCH before any database write",
+    "failClosed": "a missing or malformed trusted input is a deterministic malformed-CLI-args exit before the composition is constructed: non-zero exit, empty stdout, no PostgreSQL contact",
+    "denyModeUnchanged": "no CLI args and --policy deny keep the V15E behavior of deriving the deterministic principal from the request headers against a never-connected placeholder connection string"
+  },
+  "acceptanceScenarios": [
+    { "id": "P21A-1", "name": "allow mode fails closed without a well-formed trusted identity", "given": "--policy allow --connection-string <closed port>, a stdin envelope carrying client-supplied x-tenant-id / x-actor-id headers, and a missing, valueless, non-canonical or empty trusted identity input", "then": "the runner exits non-zero, stderr names the exact missing or malformed trusted input as 'create_customer_asgi_runner: malformed CLI args: ...', stdout carries no ASGI response event, and stderr shows no sign of any PostgreSQL contact attempt" },
+    { "id": "P21A-2", "name": "allow mode with a matching trusted identity still commits to real PostgreSQL", "given": "the Python StdioJsAsgiBridge driving the runner in --policy allow with --trusted-tenant-id / --trusted-actor-id equal to the request's claims, against a migrated real PostgreSQL 16 substrate", "then": "POST /customers returns 201 with the full CommitReceipt, the receipt ids are the real persisted customer_records / audit_log / transactional_outbox rows, and an identical duplicate request returns a deterministic 409 IDEMPOTENCY_CONFLICT without inserting a second row in any of the three tables" },
+    { "id": "P21A-3", "name": "a client cannot become somebody else by asking", "given": "the same real PostgreSQL harness and one explicit trusted identity, with one request claiming a different x-tenant-id and one claiming a different x-actor-id", "then": "the two attempts are answered 403 CROSS_TENANT_DENY and 403 IDENTITY_MISMATCH with retryable false and no commitReceipt, and customer_records, audit_log and transactional_outbox all stay empty" }
+  ],
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-python-host-bridge-real-pg-allow.test.mjs",
+    "syntaxCheck": "node --check host/js_asgi/create_customer_asgi_runner.mjs",
+    "whitespaceCheck": "git diff --check",
+    "frozenTestUnchanged": "sha256 of tests/kernel-python-host-bridge-real-pg-allow.test.mjs equals frozenTestSha256",
+    "fullQaBudget": "one required CI full QA; no bespoke probe, self-verifier or repeat evidence package",
+    "dockerDependentScenarios": "P21A-2 and P21A-3 need a local Docker daemon; its absence is an environment failure, reported separately and never as a bridge or runner capability gap"
+  },
+  "rollback": {
+    "mechanism": "git revert of this package's single commit, or git checkout of the two changed non-test files at base 122ae24e0d7c40f108c0f79abcd38e1291fd65fe",
+    "blastRadius": "host/js_asgi/create_customer_asgi_runner.mjs and this planning artifact only",
+    "srcUntouched": true,
+    "schemaUntouched": true,
+    "dataUntouched": true,
+    "note": "Reverting restores the V15E/V15F header-derived principal in allow mode and removes the two trusted identity flags. Nothing outside the runner reads those flags, no migration or stored data depends on them, and deny/no-args behavior is byte-identical before and after, so the revert is complete and needs no compensating step."
+  },
+  "capabilityDelta": "HOST_RUNNER_TRUSTED_IDENTITY_INJECTION_BOUNDARY: the host boundary runner's real-database ALLOW path now takes its authenticated Principal only from explicit trusted process inputs, so a request's identity headers are checkable claims instead of being the identity itself, and a malformed or missing trusted input fails closed before any database is contacted.",
+  "readinessFlags": {
+    "kernelReady": false, "releaseAllowed": false, "productionAllowed": false, "runnableProduct": false, "deployAllowed": false, "hostSelected": false, "oneGoldenSliceReady": false, "walkingSkeletonReady": false, "gapClosed": false, "p21Complete": false
+  },
+  "nonGoals": [
+    "no production authentication: this mints no session, verifies no credential, issues no token, and adds no auth provider, framework or dependency",
+    "no hosted readiness, no hosted journey and no hosted deployment claim of any kind",
+    "no host server selection, no network listener, socket server, HTTP server, Docker config, FastAPI, Django, Uvicorn or Hypercorn import",
+    "no src/** change and no Python host bridge code change",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no schema, migration or data projection change",
+    "no secret scanning and no connection-string transport redesign",
+    "no release, deploy, production, or runnable product claim",
+    "no P21 completion claim: this package is P21A only",
+    "no commit, push, or merge performed by this package"
+  ],
+  "userJourney": {
+    "once": "Bir CRM formundan 'yeni müşteri' kaydı geldiğinde, host çalıştırıcısı gerçek veritabanına yazan izinli modda bile 'sen kimsin' sorusunun cevabını isteğin kendi başlığından okuyordu. Yani isteği gönderen taraf kendi kimliğini kendisi yazıyordu; sistemin karşılaştıracağı ikinci bir doğru yoktu.",
+    "simdi": "İzinli mod artık kimliği yalnızca çalıştırıcıya dışarıdan verilen iki güvenilir girdiden alıyor. İsteğin başlığındaki kiracı ve kullanıcı bilgisi olduğu gibi duruyor ama artık sadece bir iddia; sistem onu güvenilir kimlikle karşılaştırıyor. Güvenilir girdi eksikse veya bozuksa çalıştırıcı veritabanına hiç dokunmadan duruyor.",
+    "fark": "Bir kullanıcı artık 'ben başka bir şirketin kullanıcısıyım' diye yazarak başkasının verisine yazamıyor: bu denemeler 403 CROSS_TENANT_DENY ve 403 IDENTITY_MISMATCH ile kapanıyor ve üç yazma tablosunun hiçbirine tek satır düşmüyor. Doğru kimlikle gelen gerçek kayıt eskisi gibi işliyor, tekrar gönderilen aynı istek 409 ile ikinci kez yazılmıyor.",
+    "kullaniciYolculugu": "CRM formu gönder → host çalıştırıcısı güvenilir kimlikle kurulur → istek gerçek JS Kernel sınırına gider → kiracı ve kullanıcı iddiası güvenilir kimlikle karşılaştırılır → uyuyorsa gerçek PostgreSQL'e tek işlemde müşteri, denetim kaydı ve outbox satırı yazılır ve makbuz döner; uymuyorsa yazma hiç başlamadan 403 ile reddedilir; aynı istek tekrar gelirse 409 ile ikinci kayıt oluşmaz.",
+    "kalanEngel": "Bu bir test çalıştırıcısı sınırıdır, gerçek kimlik doğrulama değildir: güvenilir kimliği hâlâ testi başlatan süreç veriyor, oturum açan bir kullanıcı değil. Seçili bir host sunucusu, ağ dinleyicisi ve gerçek bir giriş akışı hâlâ yok, dolayısıyla barındırılan bir ürün yolculuğu çalıştırılabilir değildir ve P21 kapanmış sayılmaz."
+  },
+  "productClaim": {
+    "runnable": "The frozen P21A test path is runnable: the Python bridge plus the real JS boundary runner commit to a real PostgreSQL 16 substrate under an explicit trusted identity, and reject client identity override attempts without writing.",
+    "notRunnable": "No hosted product journey is runnable. There is no selected host server, no network listener and no real login: the trusted identity is supplied by the test-runner process, not authenticated from a user, and no release, deploy or production readiness follows from this package."
+  }
+}
