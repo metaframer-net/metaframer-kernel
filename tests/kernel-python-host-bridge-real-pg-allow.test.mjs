@@ -27,6 +27,19 @@ const REQUEST_ID = "44444444-4444-4444-8444-444444444444";
 const ACTOR = "runner-actor";
 const TENANT = "55555555-5555-4555-8555-555555555555";
 
+// P21A trusted-identity boundary: in explicit --policy allow mode the runner's authenticated
+// Principal is an explicit trusted input of the test-runner process (--trusted-tenant-id /
+// --trusted-actor-id), never a request claim read out of x-tenant-id / x-actor-id. This is a
+// test-runner identity-injection contract only: it is not production authentication, mints no
+// session or token, and is no hosted-readiness claim.
+const TRUSTED_TENANT_FLAG = "--trusted-tenant-id";
+const TRUSTED_ACTOR_FLAG = "--trusted-actor-id";
+const TRUSTED_TENANT = "66666666-6666-4666-8666-666666666666";
+const TRUSTED_ACTOR = "trusted-runner-actor";
+const UNREACHABLE_CONNECTION_STRING = "postgresql://mfk_runtime:unused@127.0.0.1:1/never_connected";
+// Any trace of an actual PostgreSQL contact attempt; a fail-closed args rejection must show none.
+const DB_CONTACT_PATTERN = /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|getaddrinfo|password authentication|pg_hba|SASL/i;
+
 function pyScript(scenario) {
   return `
 import asyncio
@@ -196,6 +209,77 @@ test("malformed envelope sent directly to the runner exits non-zero with determi
 });
 
 // =====================================================================================
+// P21A scenario 1 — explicit --policy allow must carry an explicit, well-formed trusted identity.
+//
+// Allow mode is the only mode that can reach a real database, so it must refuse to run at all
+// unless both trusted identity inputs are present and well formed. Every rejection here is a
+// deterministic malformed-CLI-args exit before the composition is constructed: no ASGI response
+// events on stdout, and no sign of any PostgreSQL contact attempt in stderr, even though the
+// stdin envelope carries client-supplied x-tenant-id / x-actor-id headers and the connection
+// string points at a closed port. Default deny / no-args behavior is unaffected and is still
+// proved by the V15E/V15F tests above.
+// =====================================================================================
+
+const ALLOW_ARGS_WITHOUT_TRUSTED_IDENTITY = ["--policy", "allow", "--connection-string", UNREACHABLE_CONNECTION_STRING];
+
+const CLIENT_CLAIM_ENVELOPE = JSON.stringify({
+  scope: {
+    type: "http",
+    method: "POST",
+    path: "/customers",
+    headers: [
+      ["content-type", "application/json"],
+      ["x-request-id", REQUEST_ID],
+      ["x-actor-id", ACTOR],
+      ["x-tenant-id", TENANT],
+      ["idempotency-key", "order-runner-1"],
+    ],
+  },
+  bodyBase64: Buffer.from(JSON.stringify({ name: "Ada Lovelace" })).toString("base64"),
+});
+
+const TRUSTED_IDENTITY_ARG_FAILURES = [
+  {
+    name: "neither trusted identity flag supplied",
+    extra: [],
+    expected: /malformed CLI args: --policy allow requires --trusted-tenant-id/,
+  },
+  {
+    name: "only --trusted-tenant-id supplied",
+    extra: [TRUSTED_TENANT_FLAG, TRUSTED_TENANT],
+    expected: /malformed CLI args: --policy allow requires --trusted-actor-id/,
+  },
+  {
+    name: "--trusted-tenant-id carries no value",
+    extra: [TRUSTED_ACTOR_FLAG, TRUSTED_ACTOR, TRUSTED_TENANT_FLAG],
+    expected: /malformed CLI args: --trusted-tenant-id requires a value/,
+  },
+  {
+    name: "--trusted-tenant-id is not a canonical UUID",
+    extra: [TRUSTED_TENANT_FLAG, "not-a-uuid", TRUSTED_ACTOR_FLAG, TRUSTED_ACTOR],
+    expected: /malformed CLI args: --trusted-tenant-id must be a canonical lowercase hyphenated UUID/,
+  },
+  {
+    name: "--trusted-actor-id is empty",
+    extra: [TRUSTED_TENANT_FLAG, TRUSTED_TENANT, TRUSTED_ACTOR_FLAG, ""],
+    expected: /malformed CLI args: --trusted-actor-id must not be empty/,
+  },
+];
+
+test("--policy allow without a well-formed trusted identity fails closed before any database attempt", () => {
+  for (const { name, extra, expected } of TRUSTED_IDENTITY_ARG_FAILURES) {
+    const result = spawnSync("node", [RUNNER_PATH, ...ALLOW_ARGS_WITHOUT_TRUSTED_IDENTITY, ...extra], {
+      input: CLIENT_CLAIM_ENVELOPE,
+      encoding: "utf-8",
+    });
+    assert.notEqual(result.status, 0, `${name}: the runner must exit non-zero`);
+    assert.match(result.stderr, expected, `${name}: stderr must name the exact missing or malformed trusted input`);
+    assert.equal(result.stdout, "", `${name}: no ASGI response events may be written`);
+    assert.doesNotMatch(result.stderr, DB_CONTACT_PATTERN, `${name}: must fail closed before contacting PostgreSQL`);
+  }
+});
+
+// =====================================================================================
 // GJ-01 V15F — real PostgreSQL ALLOW commit through the Python bridge + real JS runner.
 //
 // Reuses the Docker/Postgres/migration helper shape from tests/kernel-create-customer-asgi-
@@ -278,7 +362,11 @@ function runMigration(host, port) {
   }
 }
 
-test("Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /customers to a real PostgreSQL 16 commit, with duplicate-request 409 proof", async (t) => {
+// One real PostgreSQL 16 substrate for one test: container, least-privilege migration/runtime
+// roles, migrated schema and the runtime connection string. Shared by the two real-database P21A
+// scenarios below so the identical harness proves both the trusted-identity commit and the
+// rejected client override attempts.
+async function provisionPostgres(t) {
   if (!dockerAvailable()) {
     throw new Error(
       "docker is not available in this environment: this is an environment failure, not a " +
@@ -312,7 +400,16 @@ test("Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /cus
 
   runMigration(host, port);
 
-  const connectionString = `postgresql://${RUNTIME_ROLE}:${encodeURIComponent(RUNTIME_PASSWORD)}@${host}:${port}/${DATABASE}`;
+  return {
+    host,
+    port,
+    connectionString: `postgresql://${RUNTIME_ROLE}:${encodeURIComponent(RUNTIME_PASSWORD)}@${host}:${port}/${DATABASE}`,
+  };
+}
+
+test("Python StdioJsAsgiBridge + real JS runner --policy allow with a matching trusted identity carries POST /customers to a real PostgreSQL 16 commit, with duplicate-request 409 proof", async (t) => {
+  const { host, port, connectionString } = await provisionPostgres(t);
+
   const tenantId = crypto.randomUUID();
   const actorId = "actor-real-pg-bridge";
   const requestId = crypto.randomUUID();
@@ -323,7 +420,13 @@ test("Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /cus
   const script = pyScript(`
     import json
 
-    bridge = StdioJsAsgiBridge(["node", ${JSON.stringify(RUNNER_PATH)}, "--policy", "allow", "--connection-string", ${JSON.stringify(connectionString)}])
+    bridge = StdioJsAsgiBridge([
+        "node", ${JSON.stringify(RUNNER_PATH)},
+        "--policy", "allow",
+        "--connection-string", ${JSON.stringify(connectionString)},
+        "--trusted-tenant-id", ${JSON.stringify(tenantId)},
+        "--trusted-actor-id", ${JSON.stringify(actorId)},
+    ])
     scope = ${scopeLiteral}
     body_bytes = json.dumps({"name": "Ada Lovelace"}).encode("utf-8")
 
@@ -423,4 +526,134 @@ test("Python StdioJsAsgiBridge + real JS runner --policy allow carries POST /cus
     const outboxCount = await client.query("SELECT count(*) FROM transactional_outbox WHERE tenant_id = $1", [tenantId]);
     assert.equal(Number(outboxCount.rows[0].count), 1, "the duplicate request must not enqueue a second outbox row");
   });
+});
+
+// =====================================================================================
+// P21A scenario 3 — a client cannot become somebody else by asking.
+//
+// Same real PostgreSQL harness, same allow-mode runner, one explicit trusted identity. Two
+// override attempts are made through the Python bridge: one claims a different x-tenant-id, one
+// claims a different x-actor-id. Both are closed by the pipeline that already exists — 403
+// CROSS_TENANT_DENY and 403 IDENTITY_MISMATCH — and neither leaves a row behind in any of the
+// three write tables the ALLOW path would otherwise fill.
+// =====================================================================================
+
+test("client x-tenant-id / x-actor-id override attempts are denied 403 and add no PostgreSQL rows", async (t) => {
+  const { host, port, connectionString } = await provisionPostgres(t);
+
+  const trustedTenantId = crypto.randomUUID();
+  const trustedActorId = "actor-trusted-boundary";
+  const attackerTenantId = crypto.randomUUID();
+  const attackerActorId = "actor-attacker";
+  const tenantOverrideRequestId = crypto.randomUUID();
+  const actorOverrideRequestId = crypto.randomUUID();
+
+  const script = pyScript(`
+    import json
+
+    bridge = StdioJsAsgiBridge([
+        "node", ${JSON.stringify(RUNNER_PATH)},
+        "--policy", "allow",
+        "--connection-string", ${JSON.stringify(connectionString)},
+        "--trusted-tenant-id", ${JSON.stringify(trustedTenantId)},
+        "--trusted-actor-id", ${JSON.stringify(trustedActorId)},
+    ])
+    body_bytes = json.dumps({"name": "Mallory"}).encode("utf-8")
+
+    async def attempt(scope):
+        async def receive():
+            return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+        sent = []
+
+        async def send(event):
+            sent.append(event)
+
+        await bridge(scope, receive, send)
+        assert len(sent) == 2, sent
+        return sent[0]["status"], json.loads(sent[1]["body"])
+
+    tenant_override_scope = ${postCustomersScopeLiteral({
+      tenant: attackerTenantId,
+      actor: trustedActorId,
+      requestId: tenantOverrideRequestId,
+      idempotencyKey: `idem-${tenantOverrideRequestId}`,
+    })}
+    tenant_status, tenant_payload = await attempt(tenant_override_scope)
+    assert tenant_status == 403, (tenant_status, tenant_payload)
+    assert tenant_payload["error"]["code"] == "CROSS_TENANT_DENY", tenant_payload
+    assert tenant_payload["error"]["requestId"] == ${JSON.stringify(tenantOverrideRequestId)}, tenant_payload
+    assert tenant_payload["error"]["retryable"] == False, tenant_payload
+    assert "commitReceipt" not in tenant_payload, tenant_payload
+
+    actor_override_scope = ${postCustomersScopeLiteral({
+      tenant: trustedTenantId,
+      actor: attackerActorId,
+      requestId: actorOverrideRequestId,
+      idempotencyKey: `idem-${actorOverrideRequestId}`,
+    })}
+    actor_status, actor_payload = await attempt(actor_override_scope)
+    assert actor_status == 403, (actor_status, actor_payload)
+    assert actor_payload["error"]["code"] == "IDENTITY_MISMATCH", actor_payload
+    assert actor_payload["error"]["requestId"] == ${JSON.stringify(actorOverrideRequestId)}, actor_payload
+    assert actor_payload["error"]["retryable"] == False, actor_payload
+    assert "commitReceipt" not in actor_payload, actor_payload
+
+    print("OK")
+  `);
+
+  const { stdout } = await runPython(script);
+  assert.match(stdout, /OK/);
+
+  await withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+    for (const table of ["customer_records", "audit_log", "transactional_outbox"]) {
+      const rows = await client.query(`SELECT count(*) FROM ${table}`);
+      assert.equal(
+        Number(rows.rows[0].count),
+        0,
+        `${table} must stay empty: a rejected identity override attempt may never write`,
+      );
+    }
+  });
+});
+
+// =====================================================================================
+// P21A package manifest — a compact structural check that the planning artifact names this exact
+// frozen test file by content hash, and claims no production authentication or hosted readiness.
+// =====================================================================================
+
+const P21A_MANIFEST_PATH = fileURLToPath(
+  new URL("../planning/kernel-host-trusted-identity-boundary-p21a.json", import.meta.url),
+);
+const FROZEN_TEST_PATH = fileURLToPath(import.meta.url);
+
+test("P21A planning manifest freezes this test file by hash and claims no production authentication", async () => {
+  const manifest = await loadJson(P21A_MANIFEST_PATH);
+  assert.equal(manifest.package, "P21A-host-trusted-identity-boundary");
+  assert.equal(manifest.base, "122ae24e0d7c40f108c0f79abcd38e1291fd65fe");
+  assert.equal(manifest.baseTree, "f358b70a00035f6881d7483d8374995b53874cea");
+  assert.equal(
+    manifest.provenance.scopeSynthesisSha256,
+    "660e1ba34d9862de89dd53c0c28df67e864270b616242aa81b263967ee41af42",
+  );
+  assert.equal(
+    manifest.actionplanPin,
+    "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  );
+  assert.equal(manifest.frozenTestPath, "tests/kernel-python-host-bridge-real-pg-allow.test.mjs");
+  assert.equal(
+    manifest.frozenTestSha256,
+    crypto.createHash("sha256").update(await readFile(FROZEN_TEST_PATH)).digest("hex"),
+  );
+  assert.deepEqual([...manifest.allowedFiles].sort(), [
+    "host/js_asgi/create_customer_asgi_runner.mjs",
+    "planning/kernel-host-trusted-identity-boundary-p21a.json",
+    "tests/kernel-python-host-bridge-real-pg-allow.test.mjs",
+  ]);
+  for (const flag of ["kernelReady", "releaseAllowed", "productionAllowed", "runnableProduct"]) {
+    assert.equal(manifest.readinessFlags[flag], false);
+  }
+  const nonGoals = String(manifest.nonGoals).toLowerCase();
+  assert.match(nonGoals, /no production authentication/);
+  assert.match(nonGoals, /no hosted/);
 });

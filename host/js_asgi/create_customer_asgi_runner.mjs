@@ -23,9 +23,21 @@ import { ActorId, Principal, TenantId } from "../../src/domain/identity-primitiv
 //                                   requires --connection-string; omitting it is a malformed-args
 //                                   failure.
 //
-// No env read: the connection string comes only from the explicit --connection-string CLI arg,
-// never from process.env. No network listener, no HTTP/ASGI server import, no host server
-// selection.
+// P21A adds the trusted-identity boundary. Allow mode is the only mode that can reach a real
+// database, so it additionally requires --trusted-tenant-id and --trusted-actor-id, and builds
+// its authenticated Principal from those two explicit trusted inputs of this process and from
+// nothing else. The request's own x-tenant-id / x-actor-id headers stay exactly as sent and stay
+// claims: the composition compares them against the trusted Principal and answers
+// CROSS_TENANT_DENY or IDENTITY_MISMATCH before any write. A missing or malformed trusted input
+// is a deterministic malformed-CLI-args exit before the composition exists, so nothing reaches
+// stdout and no database is contacted. Deny mode and the no-args default are untouched and keep
+// deriving their deterministic principal from the request headers. This is a test-runner
+// identity-injection contract only: not production authentication, no session, no credential
+// check, no token, no hosted-readiness claim.
+//
+// No env read: the connection string and both trusted identity inputs come only from explicit
+// CLI args, never from process.env. No network listener, no HTTP/ASGI server import, no host
+// server selection.
 // =====================================================================================
 
 const NEVER_CONNECTED_CONNECTION_STRING = "postgres://user:pass@localhost:5432/never_connected";
@@ -52,8 +64,32 @@ function fail(message) {
   process.exit(1);
 }
 
+// The same canonical forms the domain's own identity primitives enforce (TenantId/ActorId),
+// checked here so a malformed trusted input is refused as a CLI-args failure before the
+// composition is constructed, rather than as a constructor throw once a database is already
+// reachable.
+const TRUSTED_UUID_FORM = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const NIL_UUID = "00000000-0000-0000-0000-000000000000";
+const TRUSTED_ACTOR_FORM = /^[\x21-\x7e]{1,128}$/;
+
+function checkTrustedTenantId(value) {
+  if (!TRUSTED_UUID_FORM.test(value)) {
+    return "--trusted-tenant-id must be a canonical lowercase hyphenated UUID in 8-4-4-4-12 form";
+  }
+  if (value === NIL_UUID) return "--trusted-tenant-id must not be the nil UUID";
+  return undefined;
+}
+
+function checkTrustedActorId(value) {
+  if (value.length === 0) return "--trusted-actor-id must not be empty";
+  if (!TRUSTED_ACTOR_FORM.test(value)) {
+    return "--trusted-actor-id must be 1-128 visible ASCII characters";
+  }
+  return undefined;
+}
+
 function parseArgs(argv) {
-  const args = { policy: "deny", connectionString: undefined };
+  const args = { policy: "deny", connectionString: undefined, trustedTenantId: undefined, trustedActorId: undefined };
   let i = 0;
   while (i < argv.length) {
     const flag = argv[i];
@@ -73,10 +109,36 @@ function parseArgs(argv) {
       i += 2;
       continue;
     }
+    if (flag === "--trusted-tenant-id") {
+      const value = argv[i + 1];
+      if (value === undefined) return { error: "--trusted-tenant-id requires a value" };
+      const problem = checkTrustedTenantId(value);
+      if (problem !== undefined) return { error: problem };
+      args.trustedTenantId = value;
+      i += 2;
+      continue;
+    }
+    if (flag === "--trusted-actor-id") {
+      const value = argv[i + 1];
+      if (value === undefined) return { error: "--trusted-actor-id requires a value" };
+      const problem = checkTrustedActorId(value);
+      if (problem !== undefined) return { error: problem };
+      args.trustedActorId = value;
+      i += 2;
+      continue;
+    }
     return { error: `unrecognized argument: ${flag}` };
   }
-  if (args.policy === "allow" && args.connectionString === undefined) {
-    return { error: "--policy allow requires --connection-string" };
+  if (args.policy === "allow") {
+    if (args.connectionString === undefined) {
+      return { error: "--policy allow requires --connection-string" };
+    }
+    if (args.trustedTenantId === undefined) {
+      return { error: "--policy allow requires --trusted-tenant-id" };
+    }
+    if (args.trustedActorId === undefined) {
+      return { error: "--policy allow requires --trusted-actor-id" };
+    }
   }
   return { args };
 }
@@ -147,7 +209,7 @@ async function main() {
     fail(`malformed CLI args: ${parsed.error}`);
     return;
   }
-  const { policy, connectionString } = parsed.args;
+  const { policy, connectionString, trustedTenantId, trustedActorId } = parsed.args;
 
   const raw = await readStdin();
 
@@ -168,8 +230,14 @@ async function main() {
   const scope = unwrapJsonSafe(envelope.scope);
   const body = Buffer.from(envelope.bodyBase64, "base64");
 
-  const tenant = headerValue(scope.headers, "x-tenant-id") || FALLBACK_TENANT;
-  const actor = headerValue(scope.headers, "x-actor-id") || FALLBACK_ACTOR;
+  // Allow mode takes its authenticated identity only from the trusted CLI inputs, so the request's
+  // own headers stay claims for the composition to check. Deny mode keeps the V15E behavior.
+  const tenant = policy === "allow"
+    ? trustedTenantId
+    : headerValue(scope.headers, "x-tenant-id") || FALLBACK_TENANT;
+  const actor = policy === "allow"
+    ? trustedActorId
+    : headerValue(scope.headers, "x-actor-id") || FALLBACK_ACTOR;
 
   const composition = createCustomerAsgiComposition({
     connectionString: policy === "allow" ? connectionString : NEVER_CONNECTED_CONNECTION_STRING,
