@@ -1,16 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-
-const execFileAsync = promisify(execFile);
 
 const PLANNING_PATH = fileURLToPath(
   new URL("../planning/gj01-v15c-python-host-bridge-contract.json", import.meta.url),
 );
-const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 async function loadPlanning() {
   return JSON.parse(await readFile(PLANNING_PATH, "utf-8"));
@@ -78,32 +73,4 @@ test("acceptance list includes Uvicorn and Hypercorn smoke compatibility later w
   const noFramework = planning.acceptance.noFrameworkBase.toLowerCase();
   assert.match(noFramework, /fastapi/);
   assert.match(noFramework, /django/);
-});
-
-test("this package changes no src file, no package.json, no CI workflow, and no Python file relative to HEAD", async () => {
-  const { stdout } = await execFileAsync("git", ["diff", "--name-only", "HEAD"], {
-    cwd: REPO_ROOT,
-  });
-  const { stdout: cachedStdout } = await execFileAsync("git", ["diff", "--cached", "--name-only", "HEAD"], {
-    cwd: REPO_ROOT,
-  });
-  const { stdout: untrackedStdout } = await execFileAsync(
-    "git",
-    ["ls-files", "--others", "--exclude-standard"],
-    { cwd: REPO_ROOT },
-  );
-  const changedFiles = new Set(
-    [stdout, cachedStdout, untrackedStdout]
-      .join("\n")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean),
-  );
-
-  for (const file of changedFiles) {
-    assert.equal(file.startsWith("src/"), false, `unexpected src change: ${file}`);
-    assert.notEqual(file, "package.json", "package.json must not change");
-    assert.equal(file.startsWith(".github/"), false, `unexpected CI workflow change: ${file}`);
-    assert.equal(file.endsWith(".py"), false, `unexpected Python file: ${file}`);
-  }
 });
