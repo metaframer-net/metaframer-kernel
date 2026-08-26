@@ -1,10 +1,14 @@
 import { Identity } from "../application/identity.mjs";
+import { Clock } from "../application/clock.mjs";
 import { PolicyDecisionPoint } from "../application/policy-decision-point.mjs";
+import { DecisionLogPort } from "../application/decision-log-port.mjs";
+import { DecisionLoggingPolicyDecisionPoint } from "../application/decision-logging-policy-decision-point.mjs";
 import { CreateCustomerPipeline } from "../application/create-customer-pipeline.mjs";
 import { CreateCustomerCommitService } from "../application/create-customer-commit-service.mjs";
 import { UnitOfWork } from "../application/unit-of-work.mjs";
 import { WriteEnvelope } from "../application/write-envelope.mjs";
 import { createPostgresUnitOfWork } from "../adapters/postgres-unit-of-work.mjs";
+import { PostgresDecisionLogAdapter } from "../adapters/postgres-decision-log-adapter.mjs";
 import { createPostgresWrite } from "../adapters/postgres-write-envelope-write.mjs";
 import { CreateCustomerRequestHandler } from "./create-customer-request-handler.mjs";
 
@@ -90,3 +94,123 @@ export function createCustomerComposition(options) {
   });
 }
 Object.freeze(createCustomerComposition);
+
+// =====================================================================================
+// createAuditedCustomerComposition
+//
+// The same composition root, with the boundary's authorization decision made durably auditable.
+// It differs from `createCustomerComposition` in exactly one wiring choice: the pipeline's policy
+// decision point is a DecisionLoggingPolicyDecisionPoint over a real PostgresDecisionLogAdapter,
+// so every decision this boundary reaches — allow and deny alike — is appended to the append-only,
+// hash-chained `policy_decision_log` before the decision is handed back. Because the pipeline
+// awaits that decision before its invariant stage and long before any commit, a decision that
+// cannot be logged stops the request instead of letting it commit unaudited. Nothing about stage
+// order, outcome projection or the four write intents changes.
+//
+// Two pools are owned here, both over the same caller-supplied connection string and both this
+// factory's to release: the decision log adapter's, and the lazily created unit-of-work resource's.
+// `close` attempts both, always, and only then re-raises the first refusal — a pool that failed to
+// end must never leave its sibling open.
+//
+// The six admitted options are read exactly once, synchronously, as own enumerable data
+// properties, before any adapter is constructed and therefore before any pool exists — a refused
+// option set leaves nothing behind to close. `idGenerator` and `now` are collaborators, not
+// capabilities: this module still mints no id, reads no ambient clock, no environment value and no
+// random value of its own, and imports no HTTP/ASGI, framework or host surface. This is a
+// composition root, not a server.
+// =====================================================================================
+
+const AUDITED_OPTIONS_KEYS = [
+  "connectionString", "current", "candidatesFor", "evaluateInvariants", "idGenerator", "now",
+];
+
+const AUDITED_FUNCTION_KEYS = ["current", "candidatesFor", "evaluateInvariants", "idGenerator", "now"];
+
+const AUDITED_KEYS_REFUSAL = `createAuditedCustomerComposition options must carry exactly these six own enumerable data keys: ${AUDITED_OPTIONS_KEYS.join(", ")}`;
+
+/**
+ * Take the six collaborators out of the one options object, or refuse — synchronously, in full,
+ * before a single connection, pool or adapter exists.
+ *
+ * The key count is read with `Reflect.ownKeys`, so a symbol-keyed member counts as a seventh key
+ * rather than arriving unannounced. Each key is then read through its own descriptor rather than
+ * by property access, so an accessor is refused rather than invoked: reading an option may not run
+ * caller code, and a composition root is the last place an option should be able to.
+ */
+function checkAuditedOptions(options) {
+  if (!isOrdinaryObject(options)) {
+    throw new TypeError("createAuditedCustomerComposition needs exactly one ordinary options object");
+  }
+  if (Reflect.ownKeys(options).length !== AUDITED_OPTIONS_KEYS.length) {
+    throw new TypeError(AUDITED_KEYS_REFUSAL);
+  }
+  const checked = {};
+  for (const key of AUDITED_OPTIONS_KEYS) {
+    const descriptor = Object.getOwnPropertyDescriptor(options, key);
+    if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) {
+      throw new TypeError(AUDITED_KEYS_REFUSAL);
+    }
+    checked[key] = descriptor.value;
+  }
+  if (typeof checked.connectionString !== "string" || !checked.connectionString) {
+    throw new TypeError("createAuditedCustomerComposition connectionString must be a non-empty string");
+  }
+  for (const key of AUDITED_FUNCTION_KEYS) {
+    if (typeof checked[key] !== "function") {
+      throw new TypeError(`createAuditedCustomerComposition ${key} must be a function`);
+    }
+  }
+  return checked;
+}
+
+/**
+ * Wire one real CreateCustomerRequestHandler to a real CreateCustomerCommitService, a real
+ * createPostgresUnitOfWork resource and a real PostgresDecisionLogAdapter, from exactly the six
+ * caller-supplied collaborators. Returns a frozen `{ handler, close }` object; `close` attempts to
+ * release both pools this factory owns and then re-raises the first refusal, if there was one.
+ */
+export function createAuditedCustomerComposition(options) {
+  const checked = checkAuditedOptions(options);
+
+  const identity = new Identity({ current: checked.current });
+  const clock = new Clock({ now: checked.now });
+  const decisionLogAdapter = new PostgresDecisionLogAdapter({ connectionString: checked.connectionString });
+  const policyDecisionPoint = new DecisionLoggingPolicyDecisionPoint({
+    candidatesFor: checked.candidatesFor,
+    decisionLog: new DecisionLogPort({ append: decisionLogAdapter.append }),
+    idGenerator: checked.idGenerator,
+    clock,
+    chainHead: decisionLogAdapter.chainHead,
+  });
+  const pipeline = new CreateCustomerPipeline({
+    identity,
+    policyDecisionPoint,
+    evaluateInvariants: checked.evaluateInvariants,
+  });
+  const resource = createPostgresUnitOfWork({ connectionString: checked.connectionString });
+  const service = new CreateCustomerCommitService({
+    pipeline,
+    commit: (preparedChangeSet, context) => {
+      const unitOfWork = new UnitOfWork(resource.port);
+      const write = createPostgresWrite({ requestId: context.requestId, idempotencyKey: context.idempotencyKey });
+      const envelope = new WriteEnvelope({ unitOfWork, write });
+      return envelope.commit(preparedChangeSet);
+    },
+  });
+  const handler = new CreateCustomerRequestHandler({ service });
+
+  return Object.freeze({
+    handler,
+    // Both closes are started before either is awaited for its verdict, so a rejected first close
+    // can never skip the second. The first refusal is then re-raised unchanged, because a caller
+    // that asked for its pools back is entitled to learn that one of them did not come back.
+    close: async () => {
+      const settled = await Promise.allSettled([decisionLogAdapter.close(), resource.close()]);
+      const refused = settled.find((outcome) => outcome.status === "rejected");
+      if (refused !== undefined) {
+        throw refused.reason;
+      }
+    },
+  });
+}
+Object.freeze(createAuditedCustomerComposition);

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0.0",
+  "package": "P21C-boundary-decision-audit",
+  "generatedAt": "2026-08-26",
+  "base": "f11669da4d6fe6deec6a89e4e2c696df6722ab17",
+  "baseTree": "12fdf61bdd4800ee56d15ff7b9f5f44fa81a361f",
+  "goal": "Make the boundary's authorization decision durably auditable against one real migrated PostgreSQL 16 substrate. P21A closed the identity hole on the ALLOW path and P21B proved the deny path writes nothing; both left the decision itself unrecorded. This package wires the existing DecisionLoggingPolicyDecisionPoint, DecisionLogPort and PostgresDecisionLogAdapter into a second, additive composition root so every boundary decision — allow and deny alike — is appended to the append-only, hash-chained policy_decision_log before it can reach the invariant stage or any commit, and a decision that cannot be logged stops the request rather than committing unaudited. The fixed security expectations stay owned by the frozen test file; this manifest describes the scenarios, binds the provenance and gates the run, and supplies no expected value back to any assertion.",
+  "packageClass": "security-test-conformance",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "budget": {
+    "band": "conditional",
+    "bandMaxNet": 800,
+    "classCeilingKind": "justified",
+    "classMaxNet": 800,
+    "maxChangedFiles": 20,
+    "measuredBy": "codex-desktop-master",
+    "actual": {
+      "grossAdditions": 503,
+      "grossDeletions": 2,
+      "net": 501,
+      "changedFiles": 4
+    },
+    "note": "The default band is NOT claimed. The MASTER measurement over all four files, the two untracked new ones included, is gross additions 503, gross deletions 2, measured net 501, changed files 4 — above the default band ceiling and inside the canonical conditional band (net <= 800) and the security-test-conformance justified class ceiling (net <= 800), with four changed files against the 20-file ceiling. The conditional band is therefore drawn on deliberately and its seven delivery gates are recorded below.",
+    "conditionalDeliveryGates": [
+      { "gate": "single-narrow-problem", "status": "met", "evidence": "One problem only: the boundary's authorization decision was not durably recorded. Every changed line serves that one problem — one widened admission gate, one additive audited factory, one manifest, one frozen test. No unrelated refactor, rename or cleanup rides along." },
+      { "gate": "bounded-file-set", "status": "met", "evidence": "Exactly the four files named in allowedFiles were touched, declared up front and unchanged since: git status shows two modified sources and two new files and nothing else." },
+      { "gate": "no-redundant-repetition", "status": "met", "evidence": "createAuditedCustomerComposition reuses the existing Identity, Clock, DecisionLogPort, DecisionLoggingPolicyDecisionPoint, PostgresDecisionLogAdapter, createPostgresUnitOfWork, CreateCustomerCommitService and CreateCustomerRequestHandler rather than reimplementing any of them; it duplicates no decision, hash, chain or commit logic. The size is one wiring root plus its option gate and its documented contract, not repeated code." },
+      { "gate": "no-quality-tradeoff", "status": "met", "evidence": "No test was weakened, skipped or made conditional; the frozen test was never edited and its hash is unchanged. Options are validated synchronously through descriptors before any pool exists, both owned pools are closed on every path, and the admission gate's residual limit is documented in the source rather than papered over." },
+      { "gate": "full-green", "status": "met-targeted-pending-qa", "evidence": "node --check GREEN on both changed sources, git diff --check clean, JSON parse GREEN, and node --test tests/kernel-boundary-decision-audit-p21c.test.mjs 3/3 GREEN against a real PostgreSQL 16 container. The two-execution full QA budget in greenEvidence.fullQaBudget is still unspent: QA1 and QA2 remain outstanding and this gate is not closed until they are." },
+      { "gate": "fresh-reviewer-accept", "status": "pending", "evidence": "Not met at this authoring checkpoint and not claimable by this writer. A separate read-only Claude reviewer session on the same immutable snapshot must accept the package; this writer authored it and may not review it." },
+      { "gate": "explicit-rollback", "status": "met", "evidence": "The rollback block below names the mechanism, the blast radius and the four files, records that createCustomerComposition and its four-option contract are unchanged, and states compensatingStepRequired false with the reason." }
+    ]
+  },
+  "provenance": {
+    "scopeSynthesisSha256": "6aa154ef368bf3f65706b07fff31f30e6a8223c042220b19b9f52be658d2139d",
+    "masterScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeDetermination": true,
+    "writer": "claude-implementation-writer",
+    "singleWriter": true,
+    "reviewerMustBeSeparateSession": true,
+    "note": "Blind scope determination: the input scope hashes were frozen and reconciled by the MASTER into the recorded synthesis hash before this writer started. The writer never saw either side and must not assert a value it was not given, so both input hashes are recorded as held-by-MASTER rather than invented. The frozen test file was authored by a separate Claude test writer and arrived at this writer untouched.",
+    "testAuthoring": "claude-only"
+  },
+  "frozenTestPath": "tests/kernel-boundary-decision-audit-p21c.test.mjs",
+  "frozenTestSha256": "5bc3a259631776b05a18d7f91276815e6e3d522d9f8e2b69f64c73ef3bd54cab",
+  "allowedFiles": [
+    "planning/kernel-boundary-decision-audit-p21c.json",
+    "tests/kernel-boundary-decision-audit-p21c.test.mjs",
+    "src/application/create-customer-pipeline.mjs",
+    "src/delivery/create-customer-composition.mjs"
+  ],
+  "writeTables": ["customer_records", "audit_log", "transactional_outbox"],
+  "decisionAuditContract": {
+    "substrate": "one migrated real PostgreSQL 16 container, shared by all three scenarios within a single test",
+    "auditBeforeEffect": "the audited composition's policy decision point appends the DecisionLogEntry and awaits the append before it returns the decision, and the pipeline awaits that decision before its invariant stage and long before any commit, so no decision can reach an effect ahead of its own audit record",
+    "unloggableDecisionStopsTheRequest": "the decision log's INSERT grant is revoked on the live substrate, so the append refuses; the refusal propagates out of the boundary as a rejection, the invariant stage installed to throw if reached is never entered, no decision row survives and no business row is written",
+    "chainIntegrity": "each persisted row is re-verified by the independent verifyPersistedDecisionLogRow oracle, which recomputes the canonical hash from the row's own payload and binds id, tenant and prev_hash to it; the frozen test additionally binds the successor's prev_hash to the genesis row's entry_hash",
+    "decisionPointAdmission": "the pipeline admits exactly two prototypes — PolicyDecisionPoint and DecisionLoggingPolicyDecisionPoint — by prototype identity plus the frozen, zero-own-property shape both constructors leave behind; nothing is duck-typed, so a subclass, the frozen test's ordinary Object.create hollow, a plain decide/decideAll facade and an ordinary object are each refused",
+    "decisionPointAdmissionResidual": "this is a structural check, not a private brand. No private-field or WeakSet brand was added in this bounded package, and the two admitted classes expose no synchronous accessor that touches private state, so the gate cannot distinguish a deliberately frozen, zero-own-property object built on one of the two prototypes from a genuine instance; a transparent proxy over a genuine instance is likewise indistinguishable from here. The frozen test enumerates the ordinary hollow, which is refused; the deliberately frozen hollow is not covered and is not claimed. This residual is documented in the source at src/application/create-customer-pipeline.mjs and is left open for a later package",
+    "twoOwnedPools": "the audited factory owns exactly two pools over the same connection string — the decision log adapter's and the lazily created unit-of-work resource's — and close attempts both even if either refuses, re-raising the first refusal",
+    "countingMethod": "whole-database count(*) over each write table as the superuser, with no tenant filter and no row-level predicate, so no row can hide behind a scope",
+    "expectedValuesOwnedBy": "the frozen test file only: status, outcome, error code, receipt shape, decision payload fields, chain linkage and row counts are written there and are never read back out of this manifest",
+    "manifestRole": "the manifest is a load-bearing gate: the frozen test refuses to run any P21C scenario unless this file exists and declares exactly the three scenario ids in order"
+  },
+  "acceptanceScenarios": [
+    { "id": "P21C-1", "name": "the closed default deny is logged as a verifiable genesis entry and writes no business row", "given": "the audited real-PostgreSQL composition built over the migrated container with an empty policy candidate list, a well-formed CreateCustomer@1 request carrying a valid tenant, actor, request id and idempotency key, and an invariant stage that throws if it is ever reached", "then": "the boundary refuses on the policy deny path without reaching the invariant stage, exactly one decision row exists, that row verifies independently against a hash recomputed from its own persisted payload, it records the default-deny shape and the boundary request id the frozen test asserts, and every one of the three write tables still holds the untouched count the frozen test asserts" },
+    { "id": "P21C-2", "name": "a decision that cannot be logged stops the request, and the restored grant chains the allow onto the genesis", "given": "the same container, connection string and audited composition flow with one applicable allow candidate, first with the decision log's INSERT grant revoked on the live substrate and a throwing invariant stage, then with the grant restored and an invariant stage that passes", "then": "the unloggable attempt rejects rather than committing unaudited, leaves no decision row and no business row and never enters the invariant stage; with the grant restored the same flow returns the normal success CommitReceipt, writes exactly one row per business table, and appends a second verified decision row whose prev_hash names the P21C-1 genesis and whose payload records the matched allow policy, its layer and the boundary request id" },
+    { "id": "P21C-3", "name": "the pipeline admits exactly the two decision-point prototypes the frozen test names, the audited factory admits exactly its six data options, and close releases both runtime pools", "given": "the exact and impostor decision points the frozen test enumerates, the valid six-option set together with every malformed variant the frozen test enumerates, and the audited composition that has by now both logged and committed over live pools", "then": "only the two admitted prototypes are admitted, and each subclass, ordinary Object.create hollow, facade and ordinary object the frozen test enumerates is refused — by prototype identity plus a frozen, zero-own-property structural check, which does not cover a deliberately frozen hollow; every malformed option set is refused synchronously before any I/O; and one close releases every mfk_runtime backend both owned pools opened" }
+  ],
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-boundary-decision-audit-p21c.test.mjs",
+    "syntaxCheck": "node --check src/application/create-customer-pipeline.mjs && node --check src/delivery/create-customer-composition.mjs",
+    "jsonParseCheck": "node -e \"JSON.parse(require('fs').readFileSync('planning/kernel-boundary-decision-audit-p21c.json','utf8'))\"",
+    "whitespaceCheck": "git diff --check",
+    "frozenTestUnchanged": "sha256 of tests/kernel-boundary-decision-audit-p21c.test.mjs equals frozenTestSha256, unchanged from the handoff snapshot",
+    "targetedGreen": "3/3 subtests GREEN against a real PostgreSQL 16 container",
+    "fullQaBudget": "two full QA executions for this change package, fixed and immutable: QA1 is the implementation writer's one local full QA on the clean package commit, QA2 is the required CI full QA. At this authoring checkpoint neither has been consumed; the targeted RED-to-GREEN checks above do not spend the budget, and no bespoke probe, self-verifier or repeat evidence package may be added to it.",
+    "dockerDependentScenarios": "P21C-1, P21C-2 and P21C-3 need a local Docker daemon; its absence is an environment failure, reported separately and never as a boundary or decision-audit capability gap"
+  },
+  "rollback": {
+    "mechanism": "git revert of this package's single atomic commit after delivery: one targeted, recoverable, non-destructive revert commit that touches only the four files this package changed and rewrites no history",
+    "blastRadius": "this planning artifact, the frozen test file, the pipeline's decision-point admission gate and the additive audited factory in the existing composition module",
+    "existingCompositionPreserved": true,
+    "hostUntouched": true,
+    "schemaUntouched": true,
+    "dataUntouched": true,
+    "ciUntouched": true,
+    "dependenciesUntouched": true,
+    "note": "Reverting narrows the pipeline's decision-point gate back to PolicyDecisionPoint alone and removes the additive createAuditedCustomerComposition factory, this manifest and the frozen test. createCustomerComposition and its four-option contract are unchanged by this package, so nothing that exists today loses a caller. No host, schema, migration, dependency or CI surface changed, no stored data depends on this file, and the policy_decision_log table already existed, so the revert is complete and needs no compensating step.",
+    "compensatingStepRequired": false
+  },
+  "capabilityDelta": "BOUNDARY_POLICY_DECISION_DURABLY_AUDITED: every authorization decision the boundary reaches is now appended to the append-only, hash-chained policy_decision_log on a real PostgreSQL 16 substrate before that decision can reach the invariant stage or any commit — the closed default deny lands as an independently verifiable genesis entry, the allow chains onto it by prev_hash, a decision that cannot be logged stops the request instead of committing unaudited, the pipeline admits exactly the two decision-point prototypes by prototype identity plus a frozen, zero-own-property structural check — which refuses the subclasses, ordinary Object.create hollow, facade and ordinary objects the frozen test enumerates, and which is explicitly NOT a private brand: a deliberately frozen zero-own-property hollow on one of those prototypes, or a transparent proxy over a genuine instance, is not distinguishable and is not claimed to be — and one close releases both runtime pools the audited composition owns.",
+  "readinessFlags": {
+    "kernelReady": false,
+    "releaseAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "deployAllowed": false,
+    "hostSelected": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "gapClosed": false,
+    "p21Complete": false
+  },
+  "nonGoals": [
+    "no hosted readiness, no hosted journey and no hosted deployment claim of any kind",
+    "no release, deploy, production, or runnable product claim",
+    "no new dependency, no package.json, lockfile, pyproject or uv.lock change",
+    "no schema, migration, RLS or data projection change: the policy_decision_log table and its constraints already existed at this base",
+    "no ASGI, host, runner or CI/workflow/config change",
+    "no edit to any P21A or P21B evidence, to the frozen P21C test, to the managed policy source, or to any auth/session surface",
+    "no change to createCustomerComposition or to its exact four-option contract",
+    "no change to pipeline stage order, outcome projection or the four write intents",
+    "no duck-typed decision point: admission stays prototype identity plus a frozen zero-own-property structural check, never the presence of a decide method, and no private brand was added here",
+    "no new policy engine, authorization framework or managed policy source: the candidates are still supplied by the caller",
+    "no roadmap, current-truth or changelog edit",
+    "no full QA beyond the fixed two-execution budget recorded in greenEvidence.fullQaBudget: QA1 is the implementation writer's one local full QA on the clean package commit and QA2 is the required CI full QA, and beyond those two no third full QA run, bespoke probe, self-verifier or repeated evidence package may be produced",
+    "no P21 completion claim: P21 remains incomplete and this package is P21C only",
+    "no commit, push, merge, child agent or network mutation performed by this package"
+  ],
+  "userJourney": {
+    "once": "Bir CRM formundan 'yeni müşteri' kaydı geldiğinde sınır, isteğe izin verip vermeyeceğine karar veriyordu ve bu kararı doğru veriyordu; ama kararın kendisi hiçbir yere yazılmıyordu. Yani 'bu istek neden reddedildi', 'hangi kural kazandı', 'kim, ne zaman, hangi kiracı için karar aldı' sorularının kalıcı bir cevabı yoktu. Denetim kaydı tablosu vardı ama o yalnızca yazılan işi kaydediyordu; reddedilen istek geriye hiçbir iz bırakmıyordu.",
+    "simdi": "Karar noktası artık her kararı — izin de reddet de — kararı geri vermeden önce, zincirlenmiş ve yalnızca-ekleme yapılan karar defterine yazıyor. Kural denetimi ve kayıt işlemi bu yazma bitmeden başlayamıyor. Karar defterine yazılamıyorsa istek orada duruyor: kural denetimine hiç girmiyor, hiçbir tabloya satır düşmüyor ve istek hata ile geri dönüyor.",
+    "fark": "Kayıtsız karar diye bir şey kalmadı. Reddedilen ilk istek defterin ilk halkası olarak yazılıyor ve bu satır, kendi içeriğinden yeniden hesaplanan özet ile bağımsızca doğrulanabiliyor; sonraki izinli istek de bir önceki halkanın özetine bağlanıyor. Böylece bir satırı sonradan değiştiren ya da araya satır sokan biri zinciri kırmış olur. Karar noktası tarafında ise kazanç sınırlıdır ve olduğu gibi yazılıyor: yalnızca iki tür kabul ediliyor ve sadece 'decide' metodu taşıyan sahte bir nesne kabul edilmiyor, ama bu bir kimlik mührü değil, yapısal bir kontroldür. Bu pakette özel bir mühür eklenmedi; dolayısıyla doğru prototip üzerine kurulmuş, kasıtla dondurulmuş ve hiçbir kendi özelliği olmayan bir taklit ile gerçek nesne birbirinden ayrılamıyor. Yani 'karar noktası taklit edilemez' denemez; testin saydığı taklitler reddediliyor, bu kadarı doğrudur.",
+    "kullaniciYolculugu": "CRM formu gönder → sınır isteği alır → yetki kararı verilir → karar önce deftere yazılır ve yazma bitene kadar hiçbir şey ilerlemez → yazma başarılıysa: reddedildiyse istek kural denetimine hiç girmeden 403 döner ve üç yazma tablosuna tek satır düşmez, izin verildiyse kural denetimi çalışır ve kayıt tek işlemde tamamlanıp makbuz döner → yazma başarısızsa: istek hata ile durur, hiçbir şey kaydedilmez ve kayıtsız hiçbir iş yapılmış olmaz → istek bittiğinde her iki bağlantı havuzu da kapatılır.",
+    "kalanEngel": "Bu bir sınır ve veritabanı kanıtıdır, barındırılan bir ürün değildir. Seçili bir host sunucusu, ağ dinleyicisi ve gerçek bir giriş akışı hâlâ yok; yetki kuralları hâlâ çağıranın verdiği adaylardan geliyor, yönetilen bir kural kaynağından değil. Karar defteri henüz bir sorgulama, raporlama veya saklama-süresi yüzeyine bağlı değil. Karar noktası kabul kapısında açık bir eksik var: kasıtla dondurulmuş, kendi özelliği olmayan bir taklit hâlâ ayırt edilemiyor; bunun için özel bir mühür gerekiyor ve o ayrı bir pakete bırakıldı. Dolayısıyla barındırılan bir kullanıcı yolculuğu çalıştırılabilir değildir ve P21 kapanmış sayılmaz."
+  },
+  "productClaim": {
+    "runnable": "The frozen P21C test path is runnable: against a real PostgreSQL 16 container every boundary authorization decision is appended to the hash-chained policy_decision_log before it can reach the invariant stage or a commit, the default-deny genesis and its allow successor both verify independently and chain together, a decision that cannot be logged stops the request with no decision row and no business row, and one close releases both runtime pools.",
+    "notRunnable": "No hosted product journey is runnable. There is no selected host server, no network listener and no real login; the policy candidates are supplied by the caller rather than by a managed policy source, and the decision log has no query, reporting or retention surface. The decision-point admission gate is structural, not a private brand: it refuses the impostors the frozen test enumerates but does not distinguish a deliberately frozen, zero-own-property hollow built on an admitted prototype, and closing that residual needs a later package. No release, deploy or production readiness follows from this package. P21 is not complete."
+  }
+}
