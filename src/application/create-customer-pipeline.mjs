@@ -23,10 +23,16 @@ import { ActorId, CorrelationId, IdempotencyKey, TenantId } from "../domain/iden
 // carries a V2-shaped, non-leaking error envelope — code, message, requestId, retryable — and
 // zero write intents.
 //
+// One optional collaborator is admitted beside those three: `auditIdentityGuard`. It is awaited
+// only after the identityTenantGuard has already refused a request, and only to witness that
+// refusal — it decides nothing, changes no outcome, and is handed the authenticated identity rather
+// than the one the ActionSpec claimed. Omit it and this pipeline is exactly what it was before.
+//
 // Framework-free and capability-free by construction: no clock, no random value, no environment
 // read, no network or file access. The only non-pure step is awaiting the two injected ports
-// (Identity, PolicyDecisionPoint) and the one injected pure `evaluateInvariants` collaborator;
-// given the same ActionSpec and the same collaborator answers, two runs serialize byte-identically.
+// (Identity, PolicyDecisionPoint), the one injected pure `evaluateInvariants` collaborator and, on
+// a guard refusal alone, the optional `auditIdentityGuard` witness; given the same ActionSpec and
+// the same collaborator answers, two runs serialize byte-identically.
 // =====================================================================================
 
 const isOrdinaryObject = (value) =>
@@ -64,16 +70,50 @@ const isGenuineDecisionPoint = (value) =>
 
 const ACTION_SPEC_KEYS = ["requestId", "actorId", "tenantId", "payload", "idempotencyKey"];
 
-const OPTIONS_KEYS = ["identity", "policyDecisionPoint", "evaluateInvariants"];
+const REQUIRED_OPTIONS_KEYS = ["identity", "policyDecisionPoint", "evaluateInvariants"];
+
+// The one optional collaborator this pipeline admits, and no second. It is a *witness*, never a
+// decider: the identity guard below has already refused the request by the time it is called, its
+// answer cannot change that refusal, and a pipeline built without it behaves exactly as it did
+// before this option existed. It exists because the guard short-circuits ahead of the policy
+// decision point, so an attempted cross-tenant or cross-actor reach — the one class of request most
+// worth a record — would otherwise be refused with nothing written anywhere.
+const OPTIONAL_OPTIONS_KEYS = ["auditIdentityGuard"];
+
+const OPTIONS_KEYS = [...REQUIRED_OPTIONS_KEYS, ...OPTIONAL_OPTIONS_KEYS];
+
+const OPTIONS_REFUSAL = `CreateCustomerPipeline options must carry exactly these keys: ${REQUIRED_OPTIONS_KEYS.join(", ")}, and may optionally carry: ${OPTIONAL_OPTIONS_KEYS.join(", ")}`;
+
+/**
+ * The optional guard auditor, taken from its own property descriptor or refused.
+ *
+ * Absence is the legacy contract and answers `null`. Presence is read as data and never invoked:
+ * an accessor-backed option would run caller code merely to be inspected, and the constructor of an
+ * Application-ring value is the last place that may happen, so an accessor and a non-enumerable
+ * member are both refused from the descriptor alone. A present-but-undefined member is a supplied
+ * option that is not a collaborator, and is refused rather than silently read as absence.
+ */
+function optionalGuardAuditorOf(options, keys) {
+  if (!keys.includes(OPTIONAL_OPTIONS_KEYS[0])) return null;
+  const descriptor = Object.getOwnPropertyDescriptor(options, OPTIONAL_OPTIONS_KEYS[0]);
+  if (!("value" in descriptor) || !descriptor.enumerable) {
+    throw new TypeError("CreateCustomerPipeline auditIdentityGuard must be an own enumerable data property, never an accessor");
+  }
+  if (typeof descriptor.value !== "function") {
+    throw new TypeError("CreateCustomerPipeline auditIdentityGuard, when present, must be a function");
+  }
+  return descriptor.value;
+}
 
 function checkOptions(options) {
   if (!isOrdinaryObject(options)) {
     throw new TypeError("CreateCustomerPipeline needs exactly one ordinary options object");
   }
   const keys = Reflect.ownKeys(options);
-  if (keys.length !== OPTIONS_KEYS.length || OPTIONS_KEYS.some((key) => !keys.includes(key))) {
-    throw new TypeError(`CreateCustomerPipeline options must carry exactly these keys: ${OPTIONS_KEYS.join(", ")}`);
+  if (keys.some((key) => !OPTIONS_KEYS.includes(key)) || REQUIRED_OPTIONS_KEYS.some((key) => !keys.includes(key))) {
+    throw new TypeError(OPTIONS_REFUSAL);
   }
+  const auditIdentityGuard = optionalGuardAuditorOf(options, keys);
   const { identity, policyDecisionPoint, evaluateInvariants } = options;
   if (!isExactly(identity, Identity)) {
     throw new TypeError("CreateCustomerPipeline identity must be an exact Identity instance");
@@ -84,7 +124,7 @@ function checkOptions(options) {
   if (typeof evaluateInvariants !== "function") {
     throw new TypeError("CreateCustomerPipeline evaluateInvariants must be a function");
   }
-  return { identity, policyDecisionPoint, evaluateInvariants };
+  return { identity, policyDecisionPoint, evaluateInvariants, auditIdentityGuard };
 }
 
 /** A best-effort, non-throwing raw requestId for an error envelope, even on a malformed ActionSpec. */
@@ -169,13 +209,36 @@ export class CreateCustomerPipeline {
   #identity;
   #policyDecisionPoint;
   #evaluateInvariants;
+  #auditIdentityGuard;
 
   constructor(options) {
     const checked = checkOptions(options);
     this.#identity = checked.identity;
     this.#policyDecisionPoint = checked.policyDecisionPoint;
     this.#evaluateInvariants = checked.evaluateInvariants;
+    this.#auditIdentityGuard = checked.auditIdentityGuard;
     Object.freeze(this);
+  }
+
+  /**
+   * One identity-guard refusal, witnessed before it is handed back.
+   *
+   * The refusal itself is already decided and is projected unchanged; the auditor only learns that
+   * it happened. It is handed one frozen ordinary object carrying exactly four already-validated
+   * values — which guard refused, the *authenticated* Principal, and this request's CorrelationId
+   * and IdempotencyKey — and nothing the ActionSpec claimed, so a foreign tenant or actor cannot
+   * leak through this seam because it is never put into it.
+   *
+   * It is awaited, not merely called, and its refusal is not caught: an audit that cannot be
+   * recorded must stop the request rather than let it answer an unrecorded 403, which is exactly
+   * the silence this seam exists to remove.
+   */
+  async #refuseAtGuard(outcome, code, requestId, principal, correlationId, idempotencyKey) {
+    const auditIdentityGuard = this.#auditIdentityGuard;
+    if (auditIdentityGuard !== null) {
+      await auditIdentityGuard(Object.freeze({ code, principal, correlationId, idempotencyKey }));
+    }
+    return errorOutcome(outcome, requestId, code, false);
   }
 
   /**
@@ -186,6 +249,12 @@ export class CreateCustomerPipeline {
    * preparedChangeSetProjection, errorEnvelopeProjection. A shape failure or an identity mismatch
    * short-circuits before the policy decision point or the invariant collaborator is ever
    * reached; a policy deny short-circuits before the invariant collaborator is reached.
+   *
+   * The tenant guard keeps its precedence over the actor guard, so a request whose tenant and
+   * actor are both wrong is still the cross-tenant refusal it always was. Where an optional
+   * `auditIdentityGuard` was supplied, it is awaited on a guard refusal — and only there — before
+   * that refusal is projected; every other path, this pipeline's three outcomes and its four write
+   * intents included, is untouched by its presence.
    */
   async run(actionSpec) {
     // actionSpecShapeCheck
@@ -202,10 +271,10 @@ export class CreateCustomerPipeline {
     const identity = this.#identity;
     const authenticated = await identity.current();
     if (!authenticated.tenantId.equals(claimedTenantId)) {
-      return errorOutcome("CROSS_TENANT_DENY", requestId, "CROSS_TENANT_DENY", false);
+      return await this.#refuseAtGuard("CROSS_TENANT_DENY", "CROSS_TENANT_DENY", requestId, authenticated, correlationId, idempotencyKey);
     }
     if (!authenticated.actorId.equals(claimedActorId)) {
-      return errorOutcome("DENY", requestId, "IDENTITY_MISMATCH", false);
+      return await this.#refuseAtGuard("DENY", "IDENTITY_MISMATCH", requestId, authenticated, correlationId, idempotencyKey);
     }
 
     let command;
