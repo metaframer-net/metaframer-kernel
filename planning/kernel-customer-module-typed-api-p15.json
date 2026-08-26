@@ -1,0 +1,36 @@
+{
+  "package": "P15-customer-module-typed-api",
+  "base": "15ce3e2e",
+  "masterScope": "03d1349bda35b23051cb3ed6ca272bff6b88eb928df274f140213d3473f044b8",
+  "blindScope": "9ffd2eba6c146c9f2954db2afe84f5d48204050b1f2bdf142307c398c224e7a8",
+  "synthesis": "8d1d326982d1b9b0063e88f3caaaeabaa42674beef9f1183fb7fef7e04be02af",
+  "frozenTestPath": "tests/kernel-customer-module-api-p15.test.mjs",
+  "frozenTestSha256": "f0d7b32b577ce061f59064850600c206aff72c47dcfceb9842c2825fdaf33119",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374#changePackageBudget",
+  "allowedFiles": [
+    "consumers/customer-app-core/customer-module-api.mjs",
+    "planning/kernel-customer-module-typed-api-p15.json",
+    "CHANGELOG.md",
+    "tests/kernel-customer-module-api-p15.test.mjs"
+  ],
+  "implementation": {
+    "manifest": "actionCoordinate customer.create@1 (frozen), operations [\"recordCustomer\"] (frozen)",
+    "factory": "after P14 composition, rejects unless sdk ACTION_NAME=customer.create/ACTION_VERSION=1; frozen handle carries the manifest",
+    "recordCustomer": "requires exactly {actionSpec, record, insertOptions}, each of insertOptions.audit/transactionalOutbox/idempotency an ordinary object; validates via sdk.buildActionSpec + canonicalizeCustomerRecord (P11); requires tenant match across built/canonical/insertOptions, non-empty audit.action/audit.correlationId/transactionalOutbox.eventName/transactionalOutbox.correlationId/idempotency.fingerprint (so two missing correlation ids can never pass as undefined==undefined), and audit.correlationId==transactionalOutbox.correlationId; inserts canonical once; returns frozen {ok:true, record: canonical}; propagates legacyInsert rejection by identity",
+    "residualDeviation": "built.requestId is NOT equated to audit/outbox correlationId — the frozen test's fixture (UUID requestId vs literal \"corr-1\") would fail that check; deliberate, known gap, not an oversight"
+  },
+  "excludes": ["Surface", "host", "relay", "DB", "readiness"],
+  "readinessClaim": "none",
+  "rollback": "revert all 4 allowedFiles; no other file touched",
+  "qa": {
+    "targeted": "node --test tests/kernel-customer-module-api-p15.test.mjs — 5/5 pass, run after every byte change",
+    "invalidatedRuns": [
+      "run1: npm test+check GREEN, invalidated by later docs/planning snapshot change, not accepted",
+      "run2: npm test+check GREEN, invalidated by later code-correction snapshot change, not accepted",
+      "run3: npm test+check GREEN, invalidated by this budget-accounting snapshot change, not accepted",
+      "run4: npm test+check GREEN, invalidated by this fail-closed insertOptions/audit/outbox/idempotency behavior correction, not accepted"
+    ],
+    "acceptedFinalSnapshotBatch": "pending — run exactly once after all 4 files reach final byte content, no edits after"
+  },
+  "testHashUnchanged": true
+}
