@@ -114,8 +114,12 @@ test('global readiness truth is all false and current truth names real existing 
   for (const term of ['consumers/customer-app-core/customer-data-cutover\\.mjs', 'createCustomerDataCutover', 'P13']) {
     assert.match(exists, new RegExp(term), `implementedPieces missing ${term}`);
   }
+  for (const term of ['customer-module-api', 'createCustomerModuleApi', 'CUSTOMER_MODULE_API_MANIFEST']) {
+    assert.match(exists, new RegExp(term), `implementedPieces missing ${term}`);
+  }
+
   const missing = t.notImplementedPieces.join(' | ');
-  for (const term of ['P15', 'typed API', 'Surface', 'outbox relay', 'production proof']) {
+  for (const term of ['Surface', 'outbox relay', 'production proof']) {
     assert.match(missing, new RegExp(term), `notImplementedPieces missing ${term}`);
   }
   assert.doesNotMatch(missing, /clean consumer conformance/i);
@@ -129,8 +133,12 @@ test('global readiness truth is all false and current truth names real existing 
   assert.doesNotMatch(missing, /\(P13\)/);
   assert.doesNotMatch(missing, /\(P14\)/);
   assert.doesNotMatch(missing, /Kernel cleanup and parity/i);
+  assert.doesNotMatch(missing, /\(P15\)/);
+  assert.doesNotMatch(missing, /Customer module typed API/i);
   assert.match(missing, /P16/);
+  assert.match(missing, /live entrypoint|host/i);
   assert.match(missing, /P18/);
+  assert.match(missing, /P19-P25|P19–P25/);
   assert.doesNotMatch(t.notRunnableProductClaim, /only the S1.*and isolated ASGI/i);
   assert.doesNotMatch(t.notRunnableProductClaim, /no SDK, app, module or delivery ring/i);
 });
@@ -216,18 +224,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 14/25 completed truth with P14 closed and P15 active', () => {
+test('roadmap.progress carries the exact 15/25 completed truth with P15 closed and P16 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, 14);
+  assert.equal(progress.completed, 15);
   assert.equal(progress.total, 25);
-  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14']);
+  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15']);
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, 'P15');
-  assert.equal(progress.asOfKernelMain, 'c881565a7b609caa08f36dda6a9b07453e13c9bb');
-  assert.equal(progress.statusLine, '14/25 tamamlandı, P15/25 aktif');
+  assert.equal(progress.activePackage, 'P16');
+  assert.equal(progress.asOfKernelMain, 'aca41956d5e679548d9bced0110250aaf392a10c');
+  assert.equal(progress.statusLine, '15/25 tamamlandı, P16/25 aktif');
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -241,50 +249,52 @@ test('roadmap.progress carries the exact 14/25 completed truth with P14 closed a
   }
 });
 
-test('currentTruth reflects P14 (Kernel cleanup and parity) as implemented, anchored to real merged evidence, and P15 as the explicit next-missing piece, with all readiness flags false and isolated proof distinguished from a real user journey', () => {
+test('currentTruth reflects P15 (Customer module typed API) as implemented, anchored to real merged evidence, and P16 as the explicit next-missing piece, with live entrypoint/host, P18 relay and P19-P25 proof also missing, all readiness flags false, and the known requestId/correlation residual disclosed', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
 
   const implemented = t.implementedPieces.join(' | ');
-  assert.match(implemented, /app-core cutover composition/i);
-  assert.match(implemented, /app-owned persistence parity/i);
-  assert.match(implemented, /transitional.*ownership|ownership.*cleanup/i);
-  assert.match(implemented, /adapter retirement/i);
-  assert.match(implemented, /real PostgreSQL/i);
-  assert.match(implemented, /createCustomerAppCoreWithPersistence/);
-  assert.match(implemented, /P14/);
+  assert.match(implemented, /customer-module-api/i);
+  assert.match(implemented, /createCustomerModuleApi/);
+  assert.match(implemented, /recordCustomer/);
+  assert.match(implemented, /CUSTOMER_MODULE_API_MANIFEST/);
+  assert.match(implemented, /customer\.create@1/);
+  assert.match(implemented, /P15/);
 
   const missing = t.notImplementedPieces.join(' | ');
-  assert.doesNotMatch(missing, /\(P14\)/);
-  assert.doesNotMatch(missing, /Kernel cleanup and parity/i);
-  assert.match(missing, /typed API/i);
+  assert.doesNotMatch(missing, /\(P15\)/);
+  assert.doesNotMatch(missing, /Customer module typed API/i);
   assert.match(missing, /Surface/i);
+  assert.match(missing, /P16/);
+  assert.match(missing, /live entrypoint|host/i);
   assert.match(missing, /outbox relay/i);
+  assert.match(missing, /P18/);
   assert.match(missing, /production proof/i);
-  assert.match(missing, /P15/);
+  assert.match(missing, /P19-P25|P19–P25/);
 
-  const compositionFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-app-core.mjs');
-  const persistenceFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-persistence-adapter.mjs');
-  const cutoverFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-data-cutover.mjs');
-  const postgresCommitAdapterFile = path.join(repoRoot, 'src', 'adapters', 'postgres-commit-adapter.mjs');
-  const planningFile = path.join(repoRoot, 'planning', 'kernel-app-postgres-composition-p14e.json');
-  assert.ok(existsSync(compositionFile), 'consumers/customer-app-core/customer-app-core.mjs must exist as P14 evidence');
-  assert.ok(existsSync(persistenceFile), 'consumers/customer-app-core/customer-persistence-adapter.mjs must exist as P14 evidence');
-  assert.ok(existsSync(cutoverFile), 'consumers/customer-app-core/customer-data-cutover.mjs must exist as P14 evidence');
-  assert.ok(!existsSync(postgresCommitAdapterFile), 'src/adapters/postgres-commit-adapter.mjs must be retired (P14D2B)');
-  assert.ok(existsSync(planningFile), 'planning/kernel-app-postgres-composition-p14e.json must exist as P14 real-PostgreSQL proof');
+  const moduleApiFile = path.join(repoRoot, 'consumers', 'customer-app-core', 'customer-module-api.mjs');
+  const planningFile = path.join(repoRoot, 'planning', 'kernel-customer-module-typed-api-p15.json');
+  const frozenTestFile = path.join(repoRoot, 'tests', 'kernel-customer-module-api-p15.test.mjs');
+  assert.ok(existsSync(moduleApiFile), 'consumers/customer-app-core/customer-module-api.mjs must exist as P15 evidence');
+  assert.ok(existsSync(planningFile), 'planning/kernel-customer-module-typed-api-p15.json must exist as P15 evidence');
+  assert.ok(existsSync(frozenTestFile), 'tests/kernel-customer-module-api-p15.test.mjs must exist as P15 frozen evidence');
 
-  const compositionSource = readFileSync(compositionFile, 'utf8');
-  for (const token of ['createCustomerAppCoreWithPersistence']) {
-    assert.ok(compositionSource.includes(token), `composition source missing ${token}`);
+  const moduleApiSource = readFileSync(moduleApiFile, 'utf8');
+  for (const token of ['createCustomerModuleApi', 'CUSTOMER_MODULE_API_MANIFEST', 'recordCustomer']) {
+    assert.ok(moduleApiSource.includes(token), `customer-module-api source missing ${token}`);
   }
+
+  const frozenTestSource = readFileSync(frozenTestFile, 'utf8');
+  const frozenTestCount = (frozenTestSource.match(/^test\(/gm) || []).length;
+  assert.equal(frozenTestCount, 5, 'P15 frozen test file must carry exactly 5 test() scenarios');
 
   const planningRecord = JSON.parse(readFileSync(planningFile, 'utf8'));
-  for (const key of ['kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed', 'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct']) {
-    assert.equal(planningRecord.capabilityDelta.strongerFlags[key], false, `planning stronger flag ${key} must be false`);
-  }
-  assert.ok(typeof planningRecord.capabilityDelta.notRunnable === 'string' && planningRecord.capabilityDelta.notRunnable.length > 0, 'planning notRunnable truth missing');
-  assert.match(planningRecord.capabilityDelta.notRunnable, /wires? no live entrypoint/i);
+  assert.equal(planningRecord.frozenTestPath, 'tests/kernel-customer-module-api-p15.test.mjs');
+  assert.ok(typeof planningRecord.frozenTestSha256 === 'string' && planningRecord.frozenTestSha256.length > 0, 'planning frozenTestSha256 missing');
+  assert.ok(typeof planningRecord.implementation?.residualDeviation === 'string' && planningRecord.implementation.residualDeviation.length > 0, 'planning residualDeviation truth missing');
+  assert.match(planningRecord.implementation.residualDeviation, /requestId/i);
+  assert.match(planningRecord.implementation.residualDeviation, /correlationId/i);
+  assert.match(planningRecord.implementation.residualDeviation, /NOT equated|deliberate|known gap/i);
 
   for (const key of ['kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed', 'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct']) {
     assert.equal(t[key], false, `${key} must remain false`);
@@ -297,31 +307,30 @@ test('currentTruth reflects P14 (Kernel cleanup and parity) as implemented, anch
   assert.equal(o.capability_delta, 'NONE');
   assert.equal(o.calistirilabilirlik, 'not-runnable');
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /14\/25/);
-  assert.match(ownerText, /P15/);
+  assert.match(ownerText, /15\/25/);
+  assert.match(ownerText, /P16/);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 
   assert.doesNotMatch(t.notRunnableProductClaim, /(?<!\bNo\b[^.]{0,80})\bis runnable end-to-end\b/i);
   assert.match(t.notRunnableProductClaim, /No SaaS user journey.*runnable end-to-end/is);
 });
 
-test('ROADMAP.md, README.md and CHANGELOG.md project P14 closed / P15 active, and src/delivery/create-customer-asgi-composition.mjs no longer misdescribes the commit boundary as a PostgresCommitAdapter', () => {
+test('ROADMAP.md, README.md and CHANGELOG.md project P15 closed / P16 active, with no runnable or readiness overclaim', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.match(roadmap, /14\/25 tamamlandı, P15\/25 aktif/);
-  assert.match(roadmap, /P14/);
+  assert.match(roadmap, /15\/25 tamamlandı, P16\/25 aktif/);
   assert.match(roadmap, /P15/);
+  assert.match(roadmap, /P16/);
+  assert.doesNotMatch(roadmap, /\bis runnable\b/i);
 
   const readme = readText('README.md');
-  assert.match(readme, /14\/25 tamamlandı, P15\/25 aktif/);
+  assert.match(readme, /15\/25 tamamlandı, P16\/25 aktif/);
+  assert.doesNotMatch(readme, /\bis runnable\b/i);
 
   const changelog = readText('CHANGELOG.md');
   const unreleasedIdx = changelog.indexOf('## [Unreleased]');
   const unreleased = changelog.slice(unreleasedIdx);
-  assert.match(unreleased, /P14/);
+  assert.match(unreleased, /P15/);
   assert.match(unreleased, /roadmap-v1-current-truth\.json/);
-  assert.match(unreleased, /14\/25 tamamlandı, P15\/25 aktif/);
-
-  const compositionText = readText('src/delivery/create-customer-asgi-composition.mjs');
-  assert.doesNotMatch(compositionText, /underlying PostgresCommitAdapter/i);
-  assert.doesNotMatch(compositionText, /the composed PostgresCommitAdapter/i);
+  assert.match(unreleased, /15\/25 tamamlandı, P16\/25 aktif/);
+  assert.doesNotMatch(unreleased, /\bis runnable\b/i);
 });

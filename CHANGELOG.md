@@ -31,6 +31,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   fixture (UUID requestId vs literal `"corr-1"`) would fail that check; deliberate, known gap. No
   Surface/host/relay/DB/readiness change; no runnable/readiness claim. See
   `planning/kernel-customer-module-typed-api-p15.json`.
+- P15b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `15/25 tamamlandı, P16/25 aktif`, closing P15 (Customer
+  module typed API) with real merged evidence — `consumers/customer-app-core/customer-module-api.mjs`
+  (`createCustomerModuleApi`, `CUSTOMER_MODULE_API_MANIFEST`, `recordCustomer`), frozen
+  `tests/kernel-customer-module-api-p15.test.mjs` (5/5 GREEN), merged via PR #116 with a passing CI run — with
+  P16 (separate Surface/UI projection), live entrypoint/host wiring, P18 (outbox relay lifecycle)
+  and P19-P25 production proof all still named as the explicit next-missing pieces. This
+  truth-sync adds no runtime capability, wires no live entrypoint, and moves no readiness flag.
+  See `planning/kernel-p15-current-truth-closure-p15b.json`.
 - P14f `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `14/25 tamamlandı, P15/25 aktif`, closing P14 (Kernel
   cleanup and parity) with real merged evidence from its five sub-packages — P14a app-core
