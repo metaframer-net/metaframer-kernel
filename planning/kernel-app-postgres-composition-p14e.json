@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "kernel-app-postgres-composition-p14e-2026-08-26",
+  "packageKind": "implementation",
+  "packageState": "writer-candidate-awaiting-external-gates",
+
+  "base": { "commit": "cfe90e0a5a38aaf57c1b2f45039eede42d9337db", "tree": "17f851ac01c4e4e5ecbd9320bb2ed0813fb6aba4" },
+  "worktree": "/Users/karaca/DEV/mimari/metaframer-kernel/worktrees/kernel-roadmap-v1-p14e-app-postgres-composition-20260826",
+
+  "scopeHashes": {
+    "master": "cafbbf6f934cb7d86806fc51ab0d40a991ce73250dba86859149c9f26ac08a46",
+    "blind": "ad30ee79eabed2c741d6524cbb038c7bbb58352f5b07f6ff0397bcd8e074abd0",
+    "synthesis": "ebb162c01eda80a460cc4646dcc3b94544ba21eb28cd1f27cec88f2e8de1472a"
+  },
+
+  "allowedWriteFilesByRole": {
+    "testWriter": [
+      "tests/postgres-unit-of-work-write-envelope.test.mjs"
+    ],
+    "implementationWriter": [
+      "consumers/customer-app-core/customer-data-cutover.mjs",
+      "planning/kernel-app-postgres-composition-p14e.json",
+      "CHANGELOG.md"
+    ]
+  },
+  "packageFiles": [
+    "tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "consumers/customer-app-core/customer-data-cutover.mjs",
+    "planning/kernel-app-postgres-composition-p14e.json",
+    "CHANGELOG.md"
+  ],
+  "currentTurnWritableFile": "planning/kernel-app-postgres-composition-p14e.json",
+  "nonGoals": [
+    "test edits", "Kernel src/db/migrations", "automatic cutover", "P15/P18",
+    "host/Surface/relay/release/deploy/readiness", "ROADMAP/README/current-truth updates",
+    "bespoke probes", "commit/push", "delegate"
+  ],
+
+  "testProvenance": {
+    "path": "tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "sha256Before": "0a9d6c68ce2a3d2c0c1e4e271a5f925f8629e85fcbd1bbd758a9809f73d43860",
+    "sha256After": "0a9d6c68ce2a3d2c0c1e4e271a5f925f8629e85fcbd1bbd758a9809f73d43860",
+    "note": "frozen, read-only for this writer; content and hash unchanged before and after implementation",
+    "scenarios": {
+      "container": "one existing shared real PostgreSQL container across all three strong scenarios",
+      "list": [
+        "createCustomerAppCoreWithPersistence: legacy default touches no database, then a real cutover and an application insert with no explicit parity metadata commits one row per table with a frozen canonical record",
+        "createCustomerAppCoreWithPersistence: repeating the default idempotency fingerprint after a real application insert rejects with CustomerIdempotencyConflictError and rolls back to exactly one row per table",
+        "createCustomerAppCoreWithPersistence: a partial explicit parity metadata set is fail-closed rejected with TypeError and leaves zero rows in every table (frozen P14b all-or-nothing rule)"
+      ]
+    },
+    "red": {
+      "command": "node --test tests/postgres-unit-of-work-write-envelope.test.mjs",
+      "tests": 12, "pass": 11, "fail": 1,
+      "reason": "partial explicit parity metadata (one of audit/transactionalOutbox/idempotency explicitly supplied, others absent) was silently completed with defaults inside customer-data-cutover.mjs instead of being passed through unchanged for createCustomerPersistenceAdapter to fail-closed reject before any table write"
+    },
+    "green": {
+      "command": "node --test tests/postgres-unit-of-work-write-envelope.test.mjs",
+      "tests": 12, "pass": 12, "fail": 0
+    }
+  },
+
+  "capabilityDelta": {
+    "before": "In `consumers/customer-app-core/customer-data-cutover.mjs`, the application-path insert always built `parityOptions` by defaulting each of `audit`, `transactionalOutbox` and `idempotency` independently with `??`. A caller who explicitly supplied only one of the three (leaving the other two absent) got those two silently synthesized with Kernel-default values instead of the whole call being rejected, so `createCustomerPersistenceAdapter`'s all-or-nothing explicit-parity validation never saw the partial input it was designed to reject.",
+    "after": "The application-path insert now decides synthesis as a single all-or-nothing gate: only when `audit`, `transactionalOutbox` and `idempotency` are all absent/undefined does it synthesize all three Kernel-parity defaults exactly as before; the moment any one of the three is explicitly supplied, none are defaulted and the full explicit `insertOptions` object (including any partial subset) is passed through unchanged to `createCustomerPersistenceAdapter`, which fail-closed rejects an incomplete explicit set with a `TypeError` before any table write. Legacy branch, connection/pool handling, tenant-context BEGIN/SELECT mfk_begin_tenant_context/COMMIT/ROLLBACK/release, cutover/rollback/close, complete explicit metadata pass-through, and every existing default value are byte-identical to before.",
+    "strongerFlags": {
+      "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false,
+      "deployAllowed": false, "productionAllowed": false, "gapClosed": false,
+      "oneGoldenSliceReady": false, "runnableProduct": false
+    },
+    "notRunnable": "This package closes one fail-closed validation gap inside an already-explicit opt-in application cutover branch, proven against one real PostgreSQL container. It wires no live entrypoint, host, Surface, relay, release, deploy or automatic cutover trigger. P14 remains active; this is not a P14 completion claim.",
+    "owner": {
+      "once": "Gecis kolu (cutover) acikken, uygulama tarafindan cagiran biri iz kaydi (audit), kuyruk (transactionalOutbox) ve tekrar-onleme (idempotency) bilgisinin sadece bir kismini acikca verdiginde, sistem eksik kalan kismi sessizce kendi varsayilanlariyla tamamliyor ve yaziyordu; oysa bu, cagiranin farkinda olmadan yanlis/eksik bir iz veya kuyruk kaydiyla veri yazilmasina yol acabilirdi.",
+      "simdi": "Artik kural nettir: cagiran uc alanin da (audit, transactionalOutbox, idempotency) hicbirini vermezse sistem hepsini eskisi gibi otomatik tamamlar; ama cagiran bunlardan herhangi birini acikca verirse, sistem artik hicbirini tamamlamaz ve eksik kalan diger alanlar varsa islemi tabloya hicbir satir yazmadan acik bir hatayla reddeder.",
+      "fark": "Once kismi acik bilgi sessizce tamamlanip yaziliyordu; simdi kismi acik bilgi, hicbir satir yazilmadan once acik bir hatayla durduruluyor. Tum-yok ya da tum-acik kurali artik gercekten uygulaniyor.",
+      "kullaniciYolculugu": "Bir CRM/HRMS formunun 'musteri kaydet' akisinda: gecis kolu kapaliyken davranis degismedi (legacy yol). Gecis kolu acikken ve cagiran hicbir ek bilgi vermezse davranis degismedi (otomatik tamamlama devam ediyor). Cagiran iz/kuyruk/tekrar-onleme bilgisinin sadece bir kismini acikca verirse, kayit artik yarim bilgiyle sessizce yazilmiyor; acik, tekrar denenebilir bir hata donuyor ve hicbir tabloya satir yazilmiyor.",
+      "kalanEngel": "P14 hala aktif: bu yolun gercek bir canli girisimle (entrypoint/host/Surface/relay) baglanmasi, otomatik gecis tetikleyicisi ve P15/P18 hala yapilmadi; bu paket sadece mevcut acik gecis noktasindaki bir dogrulama bosluguna kapaniyor."
+    },
+    "rollback": "git revert/delete all four package files together: tests/postgres-unit-of-work-write-envelope.test.mjs (test writer), consumers/customer-app-core/customer-data-cutover.mjs, planning/kernel-app-postgres-composition-p14e.json and the CHANGELOG.md Unreleased bullet (implementation writer). The test file is part of the P14E atomic package and is included in rollback like every other package file, not excluded from it."
+  },
+
+  "budget": {
+    "band": "default", "maxNet": 400, "maxFiles": 20, "grossGuard": 800,
+    "grossAdditions": 330, "grossDeletions": 7, "net": 323, "fileCount": 4,
+    "accounting": {
+      "tests/postgres-unit-of-work-write-envelope.test.mjs": { "additions": 204, "deletions": 0, "note": "frozen, test-writer role; tracked git diff --numstat" },
+      "consumers/customer-app-core/customer-data-cutover.mjs": { "additions": 12, "deletions": 7, "note": "tracked git diff --numstat" },
+      "planning/kernel-app-postgres-composition-p14e.json": { "additions": 105, "deletions": 0, "note": "self-final line count (wc -l), untracked new file" },
+      "CHANGELOG.md": { "additions": 9, "deletions": 0, "note": "tracked git diff --numstat" }
+    },
+    "arithmeticNote": "grossAdditions = 204 + 12 + 105 + 9 = 330; grossDeletions = 0 + 7 + 0 + 0 = 7; net = 330 - 7 = 323; all four package files, fileCount = 4."
+  },
+
+  "qaBudget": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "qa1": {
+      "role": "writer-local",
+      "ordering": "npm test (1533/1533 GREEN) and npm run check (GREEN) both ran after the frozen test file and the runtime file were final and byte-unchanged since, and before this evidence JSON and the CHANGELOG bullet were appended. No runtime or test byte changed after qa1.",
+      "evidenceOnlyFilesValidation": "planning/kernel-app-postgres-composition-p14e.json and CHANGELOG.md, appended after qa1, receive targeted structural validation only in this turn (jq empty, git diff --check) — not a rerun of npm test or npm run check."
+    },
+    "qa2": { "role": "CI", "status": "pending, required; performs full final-snapshot validation covering all four package files including the evidence-only files appended after qa1" }
+  },
+
+  "successMarker": "P14E_IMPLEMENTATION_GREEN_COMPLETE"
+}

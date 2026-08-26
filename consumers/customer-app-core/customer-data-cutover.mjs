@@ -40,13 +40,18 @@ export function createCustomerDataCutover(options) {
       await client.query("SELECT mfk_begin_tenant_context($1::uuid)", [insertOptions?.tenantId]);
       const adapter = createCustomerPersistenceAdapter({ query: (sql, params) => client.query(sql, params) });
       const recordId = record?.id;
-      const parityOptions = {
-        ...insertOptions,
-        audit: insertOptions?.audit ?? { action: "customer.created", type: "audit.append", correlationId: recordId },
-        transactionalOutbox:
-          insertOptions?.transactionalOutbox ?? { eventName: "customer.created", correlationId: recordId },
-        idempotency: insertOptions?.idempotency ?? { fingerprint: recordId },
-      };
+      const allParityAbsent =
+        insertOptions?.audit === undefined &&
+        insertOptions?.transactionalOutbox === undefined &&
+        insertOptions?.idempotency === undefined;
+      const parityOptions = allParityAbsent
+        ? {
+            ...insertOptions,
+            audit: { action: "customer.created", type: "audit.append", correlationId: recordId },
+            transactionalOutbox: { eventName: "customer.created", correlationId: recordId },
+            idempotency: { fingerprint: recordId },
+          }
+        : { ...insertOptions };
       const result = await adapter.insert(record, parityOptions);
       await client.query("COMMIT");
       return result;

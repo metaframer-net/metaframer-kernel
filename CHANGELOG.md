@@ -16,6 +16,15 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P14e `consumers/customer-app-core/customer-data-cutover.mjs`: the application-path insert now
+  synthesizes Kernel-parity `audit`/`transactionalOutbox`/`idempotency` metadata only when all
+  three are absent from the caller's options; if any one is explicitly supplied, all explicit
+  parity fields pass through unchanged so `createCustomerPersistenceAdapter` fail-closed rejects a
+  partial explicit set before any table write, closing a targeted real-PostgreSQL RED where a
+  partially explicit set was previously silently completed instead of rejected. Legacy default,
+  explicit cutover wiring, transaction/context/commit/rollback/release behavior, complete explicit
+  metadata pass-through and every existing default value are unchanged. See
+  `planning/kernel-app-postgres-composition-p14e.json`.
 - P14d1 `src/adapters/postgres-write-envelope-write.mjs` directly owns and exports
   `IdempotencyConflictError`, `isDuplicateIdempotencyFingerprintError`, `checkPreparedChangeSet`
   and `checkTenantId`, along with their private constants and validation helpers, moved verbatim

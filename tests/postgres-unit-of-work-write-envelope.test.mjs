@@ -394,3 +394,207 @@ test("checkPreparedChangeSet accepts a null-prototype safe customer.payload and 
 
   return Promise.all([checkNullProto(), checkRejected()]);
 });
+
+// =====================================================================================
+// P14e — createCustomerAppCoreWithPersistence composed with a freshly rendered generated
+// public SDK and the real P13 cutover controller, driven end to end against the same
+// migrated PostgreSQL 16 container/roles established above. No mocked adapter, no in-memory
+// substrate: every assertion below reads back the real customer_records/audit_log/
+// transactional_outbox rows.
+// =====================================================================================
+
+const appCorePath = "consumers/customer-app-core/customer-app-core.mjs";
+const persistenceAdapterPath = "consumers/customer-app-core/customer-persistence-adapter.mjs";
+const actionContractModulePath = "src/application/action-contract.mjs";
+const sdkGeneratorModulePath = "tools/generate-versioned-action-sdk-distribution.mjs";
+
+async function buildFreshGeneratedSdk() {
+  const { ActionContract } = await import(pathToFileURL(path.join(root, actionContractModulePath)).href);
+  const { renderVersionedActionSdkDistribution } = await import(
+    pathToFileURL(path.join(root, sdkGeneratorModulePath)).href
+  );
+  const contract = new ActionContract({
+    kind: "command",
+    name: "customer.core.ping",
+    version: 1,
+    fields: Object.freeze(["id"]),
+    outcomes: Object.freeze(["ok", "rejected"]),
+    errorEnvelopeFields: Object.freeze(["code", "message"]),
+  });
+  const payload = renderVersionedActionSdkDistribution(contract, "1.0.0.0");
+  const moduleSource = payload.files[payload.modulePath];
+  const dataUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(moduleSource)}`;
+  const sdkModule = await import(dataUrl);
+  return { sdkModule, coordinate: payload.coordinate };
+}
+
+function freshCustomerRecord(tenantId) {
+  const now = new Date();
+  return {
+    id: crypto.randomUUID(),
+    tenant_id: tenantId,
+    name: "Ada Lovelace",
+    payload: { plan: "pro" },
+    created_at: now.toISOString(),
+    recorded_at: now.toISOString(),
+  };
+}
+
+async function countRow(table, tenantId) {
+  return withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+    const result = await client.query(`SELECT count(*) FROM ${table} WHERE tenant_id = $1`, [tenantId]);
+    return Number(result.rows[0].count);
+  });
+}
+
+test("createCustomerAppCoreWithPersistence: legacy default touches no database, then a real cutover and an application insert with no explicit parity metadata commits one row per table with a frozen canonical record", async () => {
+  const { sdkModule, coordinate } = await buildFreshGeneratedSdk();
+  const { createCustomerAppCoreWithPersistence } = await import(pathToFileURL(path.join(root, appCorePath)).href);
+
+  const tenantId = crypto.randomUUID();
+  let legacyCalls = 0;
+
+  const appCore = createCustomerAppCoreWithPersistence({
+    sdk: sdkModule,
+    coordinate,
+    grantedCapabilities: ["customer:core"],
+    cutoverOptions: {
+      connectionString,
+      legacyInsert: async (record) => {
+        legacyCalls += 1;
+        return { legacy: true, id: record.id };
+      },
+      verifyCompatibility: async (boundary) => {
+        const probe = await boundary.query("SELECT 1 FROM customer_records LIMIT 0");
+        return Array.isArray(probe.rows);
+      },
+    },
+  });
+
+  assert.equal(appCore.persistence.activeWriter, "legacy");
+  const legacyRecord = freshCustomerRecord(tenantId);
+  const legacyResult = await appCore.persistence.insert(legacyRecord, { tenantId });
+  assert.equal(legacyCalls, 1);
+  assert.deepEqual(legacyResult, { legacy: true, id: legacyRecord.id });
+  assert.equal(await countRow("customer_records", tenantId), 0, "legacy default must never touch the real database");
+
+  await appCore.persistence.cutover();
+  assert.equal(appCore.persistence.activeWriter, "application");
+
+  const record = freshCustomerRecord(tenantId);
+  const inserted = await appCore.persistence.insert(record, { tenantId });
+
+  assert.equal(Object.isFrozen(inserted), true);
+  assert.equal(inserted.id, record.id);
+  assert.equal(inserted.tenant_id, tenantId);
+
+  assert.equal(await countRow("customer_records", tenantId), 1);
+  assert.equal(await countRow("audit_log", tenantId), 1);
+  assert.equal(await countRow("transactional_outbox", tenantId), 1);
+
+  await appCore.persistence.close();
+});
+
+test("createCustomerAppCoreWithPersistence: repeating the default idempotency fingerprint after a real application insert rejects with CustomerIdempotencyConflictError and rolls back to exactly one row per table", async () => {
+  const { sdkModule, coordinate } = await buildFreshGeneratedSdk();
+  const { createCustomerAppCoreWithPersistence } = await import(pathToFileURL(path.join(root, appCorePath)).href);
+  const { CustomerIdempotencyConflictError } = await import(
+    pathToFileURL(path.join(root, persistenceAdapterPath)).href
+  );
+
+  const tenantId = crypto.randomUUID();
+
+  const appCore = createCustomerAppCoreWithPersistence({
+    sdk: sdkModule,
+    coordinate,
+    grantedCapabilities: ["customer:core"],
+    cutoverOptions: {
+      connectionString,
+      legacyInsert: async () => {
+        throw new Error("legacy must not be reached after cutover");
+      },
+      verifyCompatibility: async (boundary) => {
+        const probe = await boundary.query("SELECT 1 FROM customer_records LIMIT 0");
+        return Array.isArray(probe.rows);
+      },
+    },
+  });
+
+  await appCore.persistence.cutover();
+  assert.equal(appCore.persistence.activeWriter, "application");
+
+  const firstRecord = freshCustomerRecord(tenantId);
+  await appCore.persistence.insert(firstRecord, { tenantId });
+  const defaultFingerprint = firstRecord.id;
+
+  const secondRecord = freshCustomerRecord(tenantId);
+  await assert.rejects(
+    () =>
+      appCore.persistence.insert(secondRecord, {
+        tenantId,
+        audit: { action: "customer.created", correlationId: secondRecord.id },
+        transactionalOutbox: { eventName: "customer.created", correlationId: secondRecord.id },
+        idempotency: { fingerprint: defaultFingerprint },
+      }),
+    (error) => {
+      assert.ok(error instanceof CustomerIdempotencyConflictError);
+      assert.equal(error.code, "IDEMPOTENCY_CONFLICT");
+      assert.equal(error.tenantId, tenantId);
+      return true;
+    },
+  );
+
+  assert.equal(await countRow("customer_records", tenantId), 1, "the rolled-back second insert must leave no extra customer row");
+  assert.equal(await countRow("audit_log", tenantId), 1, "the rolled-back second insert must leave no extra audit row");
+  assert.equal(await countRow("transactional_outbox", tenantId), 1, "the rolled-back second insert must leave no extra outbox row");
+
+  await appCore.persistence.close();
+});
+
+test("createCustomerAppCoreWithPersistence: a partial explicit parity metadata set is fail-closed rejected with TypeError and leaves zero rows in every table (frozen P14b all-or-nothing rule)", async () => {
+  const { sdkModule, coordinate } = await buildFreshGeneratedSdk();
+  const { createCustomerAppCoreWithPersistence } = await import(pathToFileURL(path.join(root, appCorePath)).href);
+
+  const tenantId = crypto.randomUUID();
+
+  const appCore = createCustomerAppCoreWithPersistence({
+    sdk: sdkModule,
+    coordinate,
+    grantedCapabilities: ["customer:core"],
+    cutoverOptions: {
+      connectionString,
+      legacyInsert: async () => {
+        throw new Error("legacy must not be reached after cutover");
+      },
+      verifyCompatibility: async (boundary) => {
+        const probe = await boundary.query("SELECT 1 FROM customer_records LIMIT 0");
+        return Array.isArray(probe.rows);
+      },
+    },
+  });
+
+  try {
+    await appCore.persistence.cutover();
+    assert.equal(appCore.persistence.activeWriter, "application");
+
+    const record = freshCustomerRecord(tenantId);
+    // Only `audit` is supplied explicitly; transactionalOutbox and idempotency are withheld.
+    // The frozen P14b rule synthesizes all three defaults only when NO parity metadata object
+    // is supplied at all — once any one of the three is explicit, the explicit set must pass
+    // unchanged and an incomplete set must be rejected fail-closed, never silently backfilled.
+    await assert.rejects(
+      () =>
+        appCore.persistence.insert(record, {
+          tenantId,
+          audit: { action: "customer.created", correlationId: record.id },
+        }),
+      TypeError,
+    );
+
+    assert.equal(await countRow("customer_records", tenantId), 0, "a fail-closed rejection must leave no customer row");
+    assert.equal(await countRow("audit_log", tenantId), 0, "a fail-closed rejection must leave no audit row");
+    assert.equal(await countRow("transactional_outbox", tenantId), 0, "a fail-closed rejection must leave no outbox row");
+  } finally {
+    await appCore.persistence.close();
+  }
+});
