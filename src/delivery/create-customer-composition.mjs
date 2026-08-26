@@ -1,6 +1,9 @@
 import { Identity } from "../application/identity.mjs";
 import { Clock } from "../application/clock.mjs";
+import { Command } from "../application/action-primitives.mjs";
 import { PolicyDecisionPoint } from "../application/policy-decision-point.mjs";
+import { PolicyRequest, PolicyDecision } from "../application/policy-decision.mjs";
+import { DecisionLogEntry } from "../application/decision-log-entry.mjs";
 import { DecisionLogPort } from "../application/decision-log-port.mjs";
 import { DecisionLoggingPolicyDecisionPoint } from "../application/decision-logging-policy-decision-point.mjs";
 import { CreateCustomerPipeline } from "../application/create-customer-pipeline.mjs";
@@ -112,6 +115,19 @@ Object.freeze(createCustomerComposition);
 // `close` attempts both, always, and only then re-raises the first refusal — a pool that failed to
 // end must never leave its sibling open.
 //
+// It also wires the pipeline's optional `auditIdentityGuard` witness, over the very same decision
+// log, id generator, clock and chain head. The identity guard runs ahead of the policy decision
+// point, so a request claiming a foreign tenant or a foreign actor was refused before any decision
+// existed to record — the one class of request most worth a record was the one leaving none. Each
+// such refusal now lands in the same append-only, hash-chained log, as a fixed reserved system-layer
+// default deny that matches no policy and resolves no layer, before the refusal is handed back; a
+// deny that cannot be recorded stops the request instead of answering an unrecorded 403.
+//
+// That audit row is built *only* from the authenticated identity and this request's own genuine
+// correlation and idempotency values, over an empty payload. No attacker-claimed tenant or actor is
+// carried into the Command, the PolicyRequest, the reason or the row: the pipeline never hands the
+// witness a claimed value, and this factory never reads one.
+//
 // The six admitted options are read exactly once, synchronously, as own enumerable data
 // properties, before any adapter is constructed and therefore before any pool exists — a refused
 // option set leaves nothing behind to close. `idGenerator` and `now` are collaborators, not
@@ -119,6 +135,65 @@ Object.freeze(createCustomerComposition);
 // random value of its own, and imports no HTTP/ASGI, framework or host surface. This is a
 // composition root, not a server.
 // =====================================================================================
+
+// The stage the audited refusal is filed under, and one fixed reason per guard. The two reasons are
+// deliberately distinct, so the log tells a cross-tenant reach apart from an actor mismatch, and a
+// request whose tenant and actor are both wrong is recorded under the tenant reason — the guard's
+// fixed precedence stays visible in the record, not only in the response. Neither reason echoes a
+// value the request claimed, exactly as PolicyDecision requires of any refusal.
+const IDENTITY_GUARD_STAGE = "identityTenantGuard";
+
+const IDENTITY_GUARD_REASONS = Object.freeze({
+  CROSS_TENANT_DENY: "identity guard: the authenticated principal does not hold the tenant this request claimed, so the request was refused at the system layer before any policy was consulted",
+  IDENTITY_MISMATCH: "identity guard: the authenticated principal is not the actor this request claimed, so the request was refused at the system layer before any policy was consulted",
+});
+
+/**
+ * Build the durable identity-guard witness the audited pipeline is given.
+ *
+ * It reconstructs, from the authenticated identity alone, exactly the audit-only decision that was
+ * never taken: one genuine `customer.create` Command over an empty payload, one PolicyRequest whose
+ * context names the guard stage and, under `guard`, the code that refused, and one fixed default-deny PolicyDecision
+ * — matching no policy and therefore resolving no layer — tracing this request's own CorrelationId.
+ * Chain head, id and instant are then resolved through the same collaborators the audited policy
+ * decision point uses, so a guard refusal and a policy decision share one chain in the order they
+ * happened.
+ *
+ * An unrecognised code is refused here rather than filed under a blank reason: the caller is the
+ * pipeline's own fixed guard, so anything else is drift and must fail closed.
+ */
+function createIdentityGuardAuditor(decisionLog, chainHead, idGenerator, clock) {
+  return async (guard) => {
+    if (!Object.prototype.hasOwnProperty.call(IDENTITY_GUARD_REASONS, guard.code)) {
+      throw new TypeError(`createAuditedCustomerComposition cannot audit an unknown identity-guard code: ${String(guard.code)}`);
+    }
+    const principal = guard.principal;
+    const action = new Command({
+      name: "customer.create",
+      version: 1,
+      principal,
+      correlationId: guard.correlationId,
+      causationId: null,
+      idempotencyKey: guard.idempotencyKey,
+      payload: {},
+    });
+    const request = new PolicyRequest({
+      action,
+      resource: { type: "customer", tenantId: principal.tenantId.toString() },
+      context: { stage: IDENTITY_GUARD_STAGE, guard: guard.code },
+    });
+    const decision = new PolicyDecision({
+      effect: "deny",
+      reason: IDENTITY_GUARD_REASONS[guard.code],
+      matchedPolicyId: null,
+      traceId: guard.correlationId,
+    });
+    const prevHash = await chainHead(principal.tenantId);
+    const id = await idGenerator();
+    const ts = await clock.now();
+    await decisionLog.append(new DecisionLogEntry({ id, request, decision, layerResolved: null, ts, prevHash }));
+  };
+}
 
 const AUDITED_OPTIONS_KEYS = [
   "connectionString", "current", "candidatesFor", "evaluateInvariants", "idGenerator", "now",
@@ -175,9 +250,10 @@ export function createAuditedCustomerComposition(options) {
   const identity = new Identity({ current: checked.current });
   const clock = new Clock({ now: checked.now });
   const decisionLogAdapter = new PostgresDecisionLogAdapter({ connectionString: checked.connectionString });
+  const decisionLog = new DecisionLogPort({ append: decisionLogAdapter.append });
   const policyDecisionPoint = new DecisionLoggingPolicyDecisionPoint({
     candidatesFor: checked.candidatesFor,
-    decisionLog: new DecisionLogPort({ append: decisionLogAdapter.append }),
+    decisionLog,
     idGenerator: checked.idGenerator,
     clock,
     chainHead: decisionLogAdapter.chainHead,
@@ -186,6 +262,9 @@ export function createAuditedCustomerComposition(options) {
     identity,
     policyDecisionPoint,
     evaluateInvariants: checked.evaluateInvariants,
+    auditIdentityGuard: createIdentityGuardAuditor(
+      decisionLog, decisionLogAdapter.chainHead, checked.idGenerator, clock,
+    ),
   });
   const resource = createPostgresUnitOfWork({ connectionString: checked.connectionString });
   const service = new CreateCustomerCommitService({
