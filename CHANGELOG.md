@@ -1265,22 +1265,6 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   (via `db/kernel-runtime-substrate-s1.json#rootSourceTopology`), so both moved together as one
   package rather than drifting apart.
 
-### Removed
-- P14d2a deletes the legacy `tests/postgres-commit-adapter.test.mjs` (343 lines, 10 test cases).
-  `tests/postgres-unit-of-work-write-envelope.test.mjs` (authored by closed test writer; not
-  edited by implementation writer) retains key
-  surviving-path coverage — module export shape, `IdempotencyConflictError` shape, missing-tenantId
-  pre-DB rejection, null-prototype/array/class/function customer-payload shape rejection, and the
-  real-PostgreSQL four-intent atomic commit plus duplicate-idempotency-fingerprint rollback — and
-  already asserted the legacy file's absence. This is not a like-for-like 10/10 replacement: 5 of
-  the 10 legacy cases are directly covered, 3 are obsolete adapter-only behavior with no surviving
-  equivalent (the module-existence case, the import/class-side-effect surface case, and the
-  cross-tenantId options-mismatch rejection case), and 2 are no longer separately asserted by any
-  surviving test (non-`pending` `persistenceState` rejection, and rejection of a nameless customer
-  payload). No product code changed; `src/adapters/postgres-commit-adapter.mjs` still exists and
-  is unmodified. Full coverage disposition, per-case classification and numstat in
-  `planning/kernel-postgres-legacy-test-retirement-p14d2a.json`.
-
 ### Changed
 - `src/delivery/standard-router.mjs`, `StandardRouter.handle` is now an `async` method. It
   awaits exactly one call to `route.handler.handle(message)`, whether the handler returns a
@@ -1306,6 +1290,22 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
   feature checkout can no longer print a line that reads as the project's verdict.
 - The package version moved from the planning placeholder 0.0.0-planning onto the prerelease train
   at 0.1.0-alpha.1. This is a train entry, not a release.
+
+### Removed
+- P14d2a deletes the legacy `tests/postgres-commit-adapter.test.mjs` (343 lines, 10 test cases).
+  `tests/postgres-unit-of-work-write-envelope.test.mjs` (authored by closed test writer; not
+  edited by implementation writer) retains key
+  surviving-path coverage — module export shape, `IdempotencyConflictError` shape, missing-tenantId
+  pre-DB rejection, null-prototype/array/class/function customer-payload shape rejection, and the
+  real-PostgreSQL four-intent atomic commit plus duplicate-idempotency-fingerprint rollback — and
+  already asserted the legacy file's absence. This is not a like-for-like 10/10 replacement: 5 of
+  the 10 legacy cases are directly covered, 3 are obsolete adapter-only behavior with no surviving
+  equivalent (the module-existence case, the import/class-side-effect surface case, and the
+  cross-tenantId options-mismatch rejection case), and 2 are no longer separately asserted by any
+  surviving test (non-`pending` `persistenceState` rejection, and rejection of a nameless customer
+  payload). No product code changed; `src/adapters/postgres-commit-adapter.mjs` still exists and
+  is unmodified. Full coverage disposition, per-case classification and numstat in
+  `planning/kernel-postgres-legacy-test-retirement-p14d2a.json`.
 
 ### Fixed
 - GJ-01 V15N CLI argv=None separator fix (`host/python_asgi/create_customer_host_cli.py`,
