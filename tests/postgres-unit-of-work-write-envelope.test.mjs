@@ -326,3 +326,71 @@ test("postgres-write-envelope-write.mjs no longer imports from postgres-commit-a
     "postgres-write-envelope-write.mjs must not import the old commit-adapter module",
   );
 });
+
+test("the legacy tests/postgres-commit-adapter.test.mjs file must be absent", () => {
+  assert.throws(
+    () => readFileSync(path.join(root, "tests/postgres-commit-adapter.test.mjs")),
+    { code: "ENOENT" },
+    "tests/postgres-commit-adapter.test.mjs must have been retired",
+  );
+});
+
+test("createPostgresWrite rejects a preparedChangeSet with a missing customer tenantId before ever calling scope.query", async () => {
+  const { createPostgresWrite } = await import(pathToFileURL(path.join(root, writePath)).href);
+
+  const scope = {
+    query: () => {
+      throw new Error("scope.query must not be called when the customer tenantId is missing");
+    },
+  };
+
+  const intents = validIntentsForTenant(crypto.randomUUID());
+  delete intents.customer.tenantId;
+  const preparedChangeSet = Object.freeze({ persistenceState: "pending", intents: Object.freeze(intents) });
+
+  const write = createPostgresWrite({ requestId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID() });
+
+  await assert.rejects(() => write(scope, preparedChangeSet), TypeError);
+});
+
+test("checkPreparedChangeSet accepts a null-prototype safe customer.payload and rejects array/class-instance/function payload shapes", () => {
+  // checkPreparedChangeSet lives in postgres-write-envelope-write.mjs; this test is a pure,
+  // synchronous unit test of its payload-shape validation and does not touch scope/Docker.
+  const tenantId = crypto.randomUUID();
+
+  const nullProtoIntents = validIntentsForTenant(tenantId);
+  const nullProtoPayload = Object.create(null);
+  nullProtoPayload.name = "Ada";
+  nullProtoIntents.customer = { ...nullProtoIntents.customer, payload: nullProtoPayload };
+  const nullProtoChangeSet = Object.freeze({ persistenceState: "pending", intents: Object.freeze(nullProtoIntents) });
+
+  const checkNullProto = async () => {
+    const { checkPreparedChangeSet } = await import(pathToFileURL(path.join(root, writePath)).href);
+    const checked = checkPreparedChangeSet(nullProtoChangeSet);
+    assert.equal(checked.customer.payload.name, "Ada");
+  };
+
+  class NamePayload {
+    constructor(name) {
+      this.name = name;
+    }
+  }
+
+  const rejectedShapes = [
+    ["array", ["Ada"]],
+    ["class instance", new NamePayload("Ada")],
+    ["function", (() => { const f = () => {}; f.customName = "Ada"; return f; })()],
+  ];
+
+  const checkRejected = async () => {
+    const { checkPreparedChangeSet } = await import(pathToFileURL(path.join(root, writePath)).href);
+    for (const [label, payload] of rejectedShapes) {
+      const intents = validIntentsForTenant(tenantId);
+      intents.customer = { ...intents.customer, payload };
+      const preparedChangeSet = Object.freeze({ persistenceState: "pending", intents: Object.freeze(intents) });
+      assert.throws(() => checkPreparedChangeSet(preparedChangeSet), TypeError, `${label} payload must be rejected`);
+    }
+  };
+
+  return Promise.all([checkNullProto(), checkRejected()]);
+});
