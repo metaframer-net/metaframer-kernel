@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P18b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `18/25 tamamlandı, P19/25 aktif`, closing P18 (outbox
+  relay lifecycle) with real merged evidence — `db/metaframer_kernel_db/outbox_relay.py`'s
+  `run_outbox_relay_once(sqlalchemy_url, tenant_id, deliver, *, limit, lease_seconds)`, composing
+  the existing `claim_batch`/`publish_claim`/`release_claim` substrate primitives into one
+  single-pass, fenced drain returning a frozen `OutboxRelayResult(published, failed)`,
+  test-verified against real PostgreSQL 16 across 3
+  scenarios (`db/tests/test_outbox_relay_lifecycle.py`, PR #122 with a passing CI run) —
+  with P19
+  (observability/SLO) and P20-P25 production proof all still named as the explicit next-missing
+  pieces. This truth-sync adds the `POSTGRES_OUTBOX_RELAY_FENCED_RUN_ONCE`
+  run-once-only capability delta, wires no scheduler/loop, retry policy, dead-letter queue or
+  live entrypoint, and moves no global readiness flag; a hosted product remains not-runnable.
+  See `planning/kernel-p18-current-truth-closure-p18b.json`.
 - P17 `host/pyproject.toml`: makes `host/` an installable, offline-buildable pure-Python
   distribution via `uv_build` (`module-root=""`, `module-name="python_asgi"`).
   Package `metaframer-kernel-asgi-host`, version `0.1.0a1`, `requires-python >= 3.12`, no

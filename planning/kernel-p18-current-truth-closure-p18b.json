@@ -1,0 +1,101 @@
+{
+  "package": "P18b-current-truth-closure",
+  "base": "2af79e462e5dca60cb55475747566285bf29f323",
+  "baseTree": "39876e7c3e477bb1a920c5eb137dd16083a5ec90",
+  "masterScope": "dbcfdc0afaf48784bd59bb56310fce8e2924ecbfb7b0b8483b8998c1bbdd245e",
+  "blindScope": "ecaa8738b0ead74e7a6e7b1481610c4c281e2d7e6f825ee87283179de9c86ade",
+  "synthesisScope": "ec50652f6a3cd20767f332597df05898cae456511aa34d4a0b5db429146191cd",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p18-current-truth-closure-p18b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p18-current-truth-closure-p18b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p18-current-truth-closure-p18b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "77b8ad7e1fda9e01606247fdfdda51df8a20f6a20d7ce828d09a3747bbdb1fc1",
+  "testHashUnchanged": true,
+  "excludes": ["runtime", "DAG structure", "readiness flags", "commit", "push", "AGENTS.md", "P18 evidence source files", "P19-P25"],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "POSTGRES_OUTBOX_RELAY_FENCED_RUN_ONCE",
+    "notRunnable": "This truth-sync wires no live entrypoint, host, scheduler or loop; it only projects P18's already-merged fenced outbox relay run-once evidence (PR #122, CI run 32960181093) into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. A hosted product remains not-runnable; calistirilabilirlik is outbox-relay-run-once-only-hosted-product-not-runnable."
+  },
+  "p18Evidence": {
+    "sourcePath": "db/metaframer_kernel_db/outbox_relay.py",
+    "sourceSha256": "d523cc2b30039ab3903211302dbd3e48b46aebb133c2443ea4f00f87bfe06221",
+    "testPath": "db/tests/test_outbox_relay_lifecycle.py",
+    "testSha256": "b7e609030a2f9086c4d2270769e84479495665a44b41bfefd0ad425c467e199d",
+    "scenarios": 3,
+    "pr": 122,
+    "ciRun": 32960181093,
+    "signature": "run_outbox_relay_once(sqlalchemy_url, tenant_id, deliver, *, limit, lease_seconds) -> OutboxRelayResult(published, failed)",
+    "note": "limit and lease_seconds are required keyword-only arguments with no defaults; OutboxRelayResult carries exactly two id tuples (published, failed), no remaining/count field."
+  },
+  "syncSummary": "Advances roadmap.progress from 17/25 (P18 active) to 18/25 (P19 active); adds P18's merged db/metaframer_kernel_db/outbox_relay.py run_outbox_relay_once/OutboxRelayResult evidence to currentTruth.implementedPieces; removes P18 (outbox relay lifecycle) from notImplementedPieces, replacing it with two distinct explicit remaining gaps — a production scheduler/consumer-loop, retry policy and dead-letter queue (DLQ) around run_outbox_relay_once (an operational gap, not itself a named roadmap phase) and P19's own canonical scope, observability/SLO proof, plus P20-P25 production proof; all nine stronger readiness flags remain false; ownerFacing capability_delta becomes POSTGRES_OUTBOX_RELAY_FENCED_RUN_ONCE and calistirilabilirlik becomes outbox-relay-run-once-only-hosted-product-not-runnable.",
+  "budget": {
+    "canonicalSource": "external actionplan-repository pin f25018d937557381cf8f8dd1012c29a2e48ba374#changePackageBudget",
+    "measurement": {
+      "files": 6,
+      "grossAdditions": 198,
+      "grossDeletions": 77,
+      "net": 121,
+      "gross": 275
+    },
+    "class": "DEFAULT_BAND",
+    "verdict": "COMPLIANT: net 121 (<=400) and gross 275 fit DEFAULT_BAND with no named-condition requires. Recalculated across the full six-file atomic package against original base 2af79e462e5dca60cb55475747566285bf29f323 (planning/roadmap-v1-current-truth.json, this file (new), ROADMAP.md, README.md, CHANGELOG.md, tests/kernel-roadmap-v1-current-truth.test.mjs), including this gate-correction wave's CHANGELOG.md wording fix and this file's qa.invalidatedBatches/acceptedRerun update; the frozen test file's diff is unchanged from the prior measurement."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — GREEN after this package's edits, no test file edit by the implementation writer",
+    "fullQaBudget": "accepted budget remains QA1 final local + QA2 CI",
+    "invalidatedBatches": [
+      {
+        "candidateHead": "689156a07542ec6d00f22af7ede95b6eaf6de3c4",
+        "candidateTree": "2e7be7703e841a81d94e97444100cca7778a5a63",
+        "command": "npm run check",
+        "outcome": "RED — stopped at node tools/check-versioning-changelog.mjs with changelog-raw-commit-hash:32960181093 (CHANGELOG.md named a raw CI run number, a hex-shaped token)",
+        "accepted": false
+      },
+      {
+        "candidateHead": "689156a07542ec6d00f22af7ede95b6eaf6de3c4",
+        "candidateTree": "2e7be7703e841a81d94e97444100cca7778a5a63",
+        "command": "npm test",
+        "outcome": "environment-invalid — Docker socket absent locally, no rerun attempted",
+        "accepted": false
+      }
+    ],
+    "acceptedRerun": "Both QA1 outcomes above are invalidated (RED versioning-checker finding and an invalid local test environment) against the pre-correction candidate; neither is an accepted claim. QA1 acceptance (final local full run: npm test + npm run check, one time each) is deferred prospectively to a new immutable snapshot commit that includes this gate correction, to be run by the implementation QA worker once that snapshot exists; QA2 is the required CI run on that same new snapshot. This record does not itself assert a post-commit result — it only names which worker, on which commit, runs which commands, and defers the outcome to that run.",
+    "rollback": "revert planning/roadmap-v1-current-truth.json, this file, ROADMAP.md, README.md and CHANGELOG.md to the pre-package commit; no runtime, host, AGENTS.md, DAG, flags or P18 evidence file touched by this package"
+  }
+}

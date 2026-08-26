@@ -31,17 +31,16 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`17/25 tamamlandı, P18/25 aktif` (`roadmap.progress` in
+`18/25 tamamlandı, P19/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
-packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15, P16, P17. P17
-(installable ASGI host adapters) is closed — `host/pyproject.toml` makes `host/` an installable,
-offline-buildable pure-Python distribution via `uv_build` (package `metaframer-kernel-asgi-host`,
-version `0.1.0a1`, no dependencies), and `host/python_asgi/__init__.py` publicly re-exports
-exactly three names (`StdioJsAsgiBridge`, `create_customer_app`, `run_create_customer_host`) —
-test-verified 3/3 (PR #120 with a passing CI run), packaging/installability contract only, no
-listener started and no live entrypoint/host wiring. P18 (outbox relay lifecycle) is the active
-package and the next explicit gap; none of this makes a hosted product runnable and none of it
-moves any global readiness flag under [README.md](README.md) `## Current status`.
+packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15, P16, P17,
+P18. P18 (outbox relay lifecycle) is closed — `db/metaframer_kernel_db/outbox_relay.py`'s
+`run_outbox_relay_once` composes `claim_batch`/`publish_claim`/`release_claim` into one
+single-pass, fenced drain returning a frozen `OutboxRelayResult` — test-verified against real
+PostgreSQL 16 across 3 scenarios (PR #122 with a passing CI run), run-once only, no scheduler,
+no live entrypoint/host wiring. P19 (observability/SLO) is the active package and the next
+explicit gap; none of this makes a hosted product runnable and none of it moves any global
+readiness flag under [README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG
 

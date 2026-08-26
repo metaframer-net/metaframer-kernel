@@ -622,7 +622,15 @@ no dependencies), with `host/python_asgi/__init__.py` publicly re-exporting exac
 (PR #120 with a passing CI run) — with P18 (outbox relay lifecycle) as the active package; this
 adds the `PYTHON_ASGI_HOST_ADAPTERS_INSTALLABLE_PACKAGE` packaging/installability-only capability
 delta, wires no live entrypoint/host, and a hosted product remains not-runnable with no global
-readiness flag under **Current status** moved.
+readiness flag under **Current status** moved. A further roadmap current-truth package has since
+synced the counter again to `18/25 tamamlandı, P19/25 aktif`, closing P18 (outbox relay
+lifecycle) — `db/metaframer_kernel_db/outbox_relay.py`'s `run_outbox_relay_once` composing the
+substrate's `claim_batch`/`publish_claim`/`release_claim` primitives into one single-pass, fenced
+drain that returns a frozen `OutboxRelayResult`, test-verified against real PostgreSQL 16 across
+3 scenarios (PR #122 with a passing CI run) — with P19 (observability/SLO) as the active package;
+this adds the `POSTGRES_OUTBOX_RELAY_FENCED_RUN_ONCE` run-once-only capability delta, wires no
+scheduler/loop, retry policy, dead-letter queue or live entrypoint/host, and a hosted product
+remains not-runnable with no global readiness flag under **Current status** moved.
 
 ## Authorized order and what remains closed
 
