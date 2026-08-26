@@ -1,0 +1,90 @@
+{
+  "package": "P19b-current-truth-closure",
+  "base": "9f821251a36a9bf2633236dfde67676f70d3cf05",
+  "baseTree": "f62c08a833ffe7abec05fe5d9b608f559257fb5d",
+  "masterScope": "75c3d3c7f05f87b926a64d11be85abaecee6f596283237c5a47755c67987ea20",
+  "blindScope": "21d0ee2e45b1b5577e264610fd85e3490d1246faf58570097f636ec88bffeb36",
+  "synthesisScope": "8f1fe8f5dd506196230c4b1cdb01dddc5f134c74fe243370787432fee33ff749",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p19-current-truth-closure-p19b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p19-current-truth-closure-p19b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p19-current-truth-closure-p19b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "dedd123a793171d340599b4c51b2c6753edb21127b4948e0a511979664448ef7",
+  "testHashUnchanged": false,
+  "testHandoffCorrection": {
+    "authorized": true,
+    "from": "b1d1e88f89921670efc7d909233299154480799f16743da7fa497592b3abfa71",
+    "to": "dedd123a793171d340599b4c51b2c6753edb21127b4948e0a511979664448ef7",
+    "note": "sequential final semantic correction: the P19b implementation writer does not edit the frozen test file; frozenTestSha256 is corrected here to match the final accepted test handoff already present in the working tree."
+  },
+  "excludes": ["runtime", "DAG structure", "readiness flags", "commit", "push", "AGENTS.md", "P19 evidence source files", "P20-P25"],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "OUTBOX_RELAY_OBSERVED_SLO_SINGLE_PASS",
+    "notRunnable": "This truth-sync wires no exporter, dashboard, alert transport, scheduler, retry policy, DLQ or live entrypoint/host; it only projects P19's already-merged observed outbox relay SLO evidence (PR #124, CI run 32970268485) into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. A hosted product remains not-runnable; calistirilabilirlik is outbox-relay-observed-slo-single-pass-hosted-product-not-runnable."
+  },
+  "p19Evidence": {
+    "sourcePath": "db/metaframer_kernel_db/observability.py",
+    "sourceSha256": "92e3b8fcc2dc44e211b90aeb4b90dca5bd672a2c51db42f48479ca7dd171a9fc",
+    "testPath": "db/tests/test_outbox_relay_observability_slo.py",
+    "testSha256": "581a203b32741329405e1504f3b9cad6959ee83dc7d761450b2bf822f88f41bd",
+    "scenarios": 3,
+    "pr": 124,
+    "ciRun": 32970268485,
+    "signature": "run_observed_outbox_relay_once(...) wraps run_outbox_relay_once with a RelaySlo threshold, emitting one outbox_relay.batch_completed structured event carrying duration and failure-rate measurements plus a RelaySloVerdict",
+    "note": "single-pass observed run only; no exporter, dashboard, alert transport, scheduler, retry policy, DLQ or live host wiring; no production/release claim."
+  },
+  "syncSummary": "Advances roadmap.progress from 18/25 (P19 active) to 19/25 (P20 active); adds P19's merged db/metaframer_kernel_db/observability.py run_observed_outbox_relay_once/RelaySlo/outbox_relay.batch_completed evidence to currentTruth.implementedPieces; removes P19 (observability/SLO) from notImplementedPieces, replacing it with an explicit exporter/dashboard/alert-transport gap around the SLO events plus P20-P25 production proof; all nine stronger readiness flags remain false; ownerFacing capability_delta becomes OUTBOX_RELAY_OBSERVED_SLO_SINGLE_PASS and calistirilabilirlik becomes outbox-relay-observed-slo-single-pass-hosted-product-not-runnable.",
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "measurement": {
+      "changedFileCount": 6,
+      "grossAdditions": 177,
+      "grossDeletions": 66,
+      "measuredNet": 111,
+      "grossChurn": 243
+    },
+    "class": "production", "band": "default", "noFalseDefaultClaim": true, "waiver": false,
+    "verdict": "COMPLIANT: measured at report time via git diff --numstat against original base 9f821251a36a9bf2633236dfde67676f70d3cf05 across all six atomicPackageFiles, per actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget — CHANGELOG.md +12/-0, README.md +10/-1, ROADMAP.md +9/-8, planning/roadmap-v1-current-truth.json +16/-15, tests/kernel-roadmap-v1-current-truth.test.mjs +40/-42 (final accepted test-handoff diff, not edited by this package), and the untracked planning/kernel-p19-current-truth-closure-p19b.json counted as +90/-0 (line count as additions). files=6, grossAdditions=177, grossDeletions=66, measuredNet=111. Net<=400, additions<=800, files<=20: DEFAULT_BAND, no named-condition requires."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — GREEN after this package's edits, no test file edit by the implementation writer",
+    "fullQaBudget": "not spent by this package; deferred to the implementation QA worker on a new immutable snapshot commit (QA1 final local run) and required CI (QA2)",
+    "rollback": "revert planning/roadmap-v1-current-truth.json, planning/kernel-p19-current-truth-closure-p19b.json, ROADMAP.md, README.md, CHANGELOG.md and tests/kernel-roadmap-v1-current-truth.test.mjs to the pre-package commit; P19A runtime/evidence (db/metaframer_kernel_db/observability.py, db/tests/test_outbox_relay_observability_slo.py, PR #124) stays untouched by this package"
+  }
+}

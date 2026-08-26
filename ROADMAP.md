@@ -31,16 +31,17 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`18/25 tamamlandı, P19/25 aktif` (`roadmap.progress` in
+`19/25 tamamlandı, P20/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
 packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15, P16, P17,
-P18. P18 (outbox relay lifecycle) is closed — `db/metaframer_kernel_db/outbox_relay.py`'s
-`run_outbox_relay_once` composes `claim_batch`/`publish_claim`/`release_claim` into one
-single-pass, fenced drain returning a frozen `OutboxRelayResult` — test-verified against real
-PostgreSQL 16 across 3 scenarios (PR #122 with a passing CI run), run-once only, no scheduler,
-no live entrypoint/host wiring. P19 (observability/SLO) is the active package and the next
-explicit gap; none of this makes a hosted product runnable and none of it moves any global
-readiness flag under [README.md](README.md) `## Current status`.
+P18, P19. P19 (observability/SLO) is closed — `db/metaframer_kernel_db/observability.py`'s
+`run_observed_outbox_relay_once` wraps P18's `run_outbox_relay_once` with a `RelaySlo` threshold
+and emits exactly one structured `outbox_relay.batch_completed` event per call carrying a
+duration/failure-rate verdict — test-verified against real PostgreSQL 16 across 3 scenarios
+(PR #124 with a passing CI run 32970268485), single-pass observed run only, no exporter,
+dashboard, alert transport, scheduler, or live entrypoint/host wiring. P20 (performance) is the
+active package and the next explicit gap; none of this makes a hosted product runnable and none
+of it moves any global readiness flag under [README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG
 
