@@ -441,7 +441,63 @@ function runMigration(host, port) {
   }
 }
 
+// P21B — the boundary's authorization deny path must write nothing to a real database. The fixed
+// security expectations (403, POLICY_DENY, retryable false, no receipt, zero rows) are owned here
+// in the test; the package manifest describes the scenarios and gates the run, and never supplies
+// an expected value back to an assertion.
+const P21B_MANIFEST_PATH = "planning/kernel-boundary-authz-deny-zero-write-p21b.json";
+const P21B_FROZEN_TEST_PATH = "tests/kernel-create-customer-asgi-composition.test.mjs";
+const P21B_SCENARIO_IDS = Object.freeze(["P21B-1", "P21B-2", "P21B-3"]);
+const P21B_WRITE_TABLES = Object.freeze(["customer_records", "audit_log", "transactional_outbox"]);
+
+async function requireP21bContract() {
+  let text;
+  try {
+    text = await readFile(path.join(root, P21B_MANIFEST_PATH), "utf8");
+  } catch (error) {
+    assert.fail(`${P21B_MANIFEST_PATH} must exist before the P21B deny-zero-write scenarios may run: ${error.message}`);
+  }
+  const contract = JSON.parse(text);
+  assert.deepEqual(
+    (contract.acceptanceScenarios ?? []).map((scenario) => scenario?.id),
+    [...P21B_SCENARIO_IDS],
+    `${P21B_MANIFEST_PATH} must declare exactly the three P21B scenario ids, in order`,
+  );
+  return contract;
+}
+
+/** Whole-database row counts for the three write tables — no tenant filter, so nothing can hide. */
+async function p21bRowCounts(host, port) {
+  return withPg(host, port, "postgres", SUPERUSER_PASSWORD, DATABASE, async (client) => {
+    const counts = {};
+    for (const table of P21B_WRITE_TABLES) {
+      counts[table] = (await client.query(`SELECT count(*)::int AS count FROM ${table}`)).rows[0].count;
+    }
+    return counts;
+  });
+}
+
+const p21bCounts = (rows) => Object.fromEntries(P21B_WRITE_TABLES.map((table) => [table, rows]));
+
+/** The one POST /customers scope shape this real-PostgreSQL test sends, deny path and allow path alike. */
+const realPgScope = (tenant, actor, request) => ({
+  type: "http",
+  method: "POST",
+  path: "/customers",
+  headers: [
+    ["content-type", "application/json"],
+    ["x-request-id", request],
+    ["x-actor-id", actor],
+    ["x-tenant-id", tenant],
+    ["idempotency-key", `idem-${request}`],
+  ],
+});
+
 test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /customers request to a real PostgreSQL 16 commit", async (t) => {
+  // Load-bearing P21B contract read: the deny-zero-write scenarios below may not run before the
+  // package manifest that authorizes them exists.
+  await requireP21bContract();
+
   if (!dockerAvailable()) {
     throw new Error(
       "docker is not available in this environment: this is an environment failure, not an " +
@@ -477,6 +533,53 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
 
   const connectionString = `postgresql://${RUNTIME_ROLE}:${encodeURIComponent(RUNTIME_PASSWORD)}@${host}:${port}/${DATABASE}`;
   const ALLOW_CANDIDATE = Object.freeze({ policyId: "allow.everything", effect: "allow", applies: true });
+
+  // P21B-1 / P21B-2 — the deny path writes nothing. Same container, same connection string and
+  // same composition flow as the ALLOW commit below; only the candidate list differs. P21B-1 is
+  // the closed default with no candidate at all; P21B-2 is one applicable deny against one
+  // applicable allow, in both orders. None may reach the invariant stage, and afterwards every
+  // write table must still be empty.
+  const denyTenantId = crypto.randomUUID();
+  const denyActorId = "actor-p21b-deny";
+  const denyBodyBytes = new TextEncoder().encode(JSON.stringify({ name: "Ada Lovelace" }));
+  const invariantsMustNotRun = async () => {
+    throw new Error("a denied request must never reach the invariant stage of the pipeline");
+  };
+
+  for (const [scenario, candidates] of [
+    ["P21B-1 default deny from no candidates", []],
+    ["P21B-2 allow then deny", [ALLOW_CANDIDATE, DENY_CANDIDATE]],
+    ["P21B-2 deny then allow", [DENY_CANDIDATE, ALLOW_CANDIDATE]],
+  ]) {
+    const denyRequestId = crypto.randomUUID();
+    const denied = createCustomerAsgiComposition({
+      connectionString,
+      current: async () => principalOf(denyTenantId, denyActorId),
+      candidatesFor: async () => [...candidates],
+      evaluateInvariants: invariantsMustNotRun,
+    });
+    try {
+      const { events, send } = collectingSend();
+      await denied.app(realPgScope(denyTenantId, denyActorId, denyRequestId), receiveOnce(denyBodyBytes), send);
+
+      assert.equal(events.length, 2, `${scenario}: a denied request must answer exactly two ASGI events`);
+      assert.equal(events[0].status, 403, `${scenario}: a non-allow decision must be refused`);
+      const denyBody = JSON.parse(new TextDecoder().decode(events[1].body));
+      assert.equal(denyBody.error.code, "POLICY_DENY", `${scenario}: the refusal must be a policy deny`);
+      assert.equal(denyBody.error.requestId, denyRequestId);
+      assert.equal(denyBody.error.retryable, false);
+      assert.equal(denyBody.commitReceipt, undefined, `${scenario}: a denied request must carry no commit receipt`);
+    } finally {
+      await denied.close();
+    }
+  }
+
+  assert.deepEqual(
+    await p21bRowCounts(host, port),
+    p21bCounts(0),
+    "P21B-1/P21B-2: no denied request may leave a row in any write table",
+  );
+
   const tenantId = crypto.randomUUID();
   const actorId = "actor-real-pg";
   const requestId = crypto.randomUUID();
@@ -490,18 +593,7 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
 
   try {
     const { events, send } = collectingSend();
-    const scope = {
-      type: "http",
-      method: "POST",
-      path: "/customers",
-      headers: [
-        ["content-type", "application/json"],
-        ["x-request-id", requestId],
-        ["x-actor-id", actorId],
-        ["x-tenant-id", tenantId],
-        ["idempotency-key", `idem-${requestId}`],
-      ],
-    };
+    const scope = realPgScope(tenantId, actorId, requestId);
     const jsonBytes = new TextEncoder().encode(JSON.stringify({ name: "Ada Lovelace" }));
     const result = await composition.app(scope, receiveOnce(jsonBytes), send);
 
@@ -566,6 +658,15 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
       assert.equal(outbox.rows[0].event_type, "customer.created");
     });
 
+    // P21B-3 positive control: the same substrate that stayed empty under every deny above now
+    // carries exactly one row per write table, so those zero-row proofs are load-bearing rather
+    // than a harness that simply cannot write.
+    assert.deepEqual(
+      await p21bRowCounts(host, port),
+      p21bCounts(1),
+      "P21B-3: the ALLOW commit must add exactly one row to each write table, and only it",
+    );
+
     // GJ-01 V14L: a second, identical request (same tenant, same idempotency fingerprint) must
     // surface as a deterministic delivery 409 IDEMPOTENCY_CONFLICT — never a leaked raw
     // PostgreSQL error, and never a second customer/audit/outbox row.
@@ -597,30 +698,8 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
     // ownership with no shared UnitOfWork in-flight collision.
     const concurrentARequestId = crypto.randomUUID();
     const concurrentBRequestId = crypto.randomUUID();
-    const concurrentAScope = {
-      type: "http",
-      method: "POST",
-      path: "/customers",
-      headers: [
-        ["content-type", "application/json"],
-        ["x-request-id", concurrentARequestId],
-        ["x-actor-id", actorId],
-        ["x-tenant-id", tenantId],
-        ["idempotency-key", `idem-${concurrentARequestId}`],
-      ],
-    };
-    const concurrentBScope = {
-      type: "http",
-      method: "POST",
-      path: "/customers",
-      headers: [
-        ["content-type", "application/json"],
-        ["x-request-id", concurrentBRequestId],
-        ["x-actor-id", actorId],
-        ["x-tenant-id", tenantId],
-        ["idempotency-key", `idem-${concurrentBRequestId}`],
-      ],
-    };
+    const concurrentAScope = realPgScope(tenantId, actorId, concurrentARequestId);
+    const concurrentBScope = realPgScope(tenantId, actorId, concurrentBRequestId);
     const concurrentABytes = new TextEncoder().encode(JSON.stringify({ name: "Grace Hopper" }));
     const concurrentBBytes = new TextEncoder().encode(JSON.stringify({ name: "Katherine Johnson" }));
     const concurrentACollector = collectingSend();
@@ -662,5 +741,56 @@ test("createCustomerAsgiComposition.app carries an ALLOW+invariants-ok POST /cus
     });
   } finally {
     await composition.close();
+  }
+});
+
+// =====================================================================================
+// P21B package manifest — one compact structural bind: this exact base and frozen test file,
+// the frozen scope-synthesis hash, the two allowed files, the three scenario ids, the owner
+// comprehension fields, and a claim of no production mutation and no hosted readiness.
+// =====================================================================================
+
+test("P21B planning manifest binds this package, freezes this test file, and claims no production mutation", async () => {
+  const contract = await requireP21bContract();
+
+  assert.equal(contract.package, "P21B-boundary-authz-deny-zero-write");
+  assert.equal(contract.base, "275dbeef6b3da6023e42070fe756d9dbc16a2bf9");
+  assert.equal(contract.baseTree, "ce420623abff2370c61b175dde6f8b23ec9586f5");
+  assert.equal(
+    contract.provenance.scopeSynthesisSha256,
+    "fa2f29148fe4e4a84a635b0ddbd1163776a7629c6e195a612955a1e438cb2714",
+  );
+  assert.equal(contract.provenance.singleWriter, true);
+  assert.equal(contract.provenance.reviewerMustBeSeparateSession, true);
+
+  assert.equal(contract.frozenTestPath, P21B_FROZEN_TEST_PATH);
+  assert.equal(
+    contract.frozenTestSha256,
+    crypto.createHash("sha256").update(await readFile(path.join(root, P21B_FROZEN_TEST_PATH))).digest("hex"),
+    "frozenTestSha256 must be the content hash of this exact test file",
+  );
+  assert.deepEqual(
+    [...contract.allowedFiles].sort(),
+    [P21B_MANIFEST_PATH, P21B_FROZEN_TEST_PATH].sort(),
+    "P21B may touch only its own manifest and this frozen test file: it mutates no production file",
+  );
+  assert.deepEqual([...contract.writeTables], [...P21B_WRITE_TABLES]);
+  assert.match(contract.capabilityDelta, /^BOUNDARY_AUTHZ_DENY_ZERO_WRITE:/);
+
+  for (const scenario of contract.acceptanceScenarios) {
+    for (const key of ["name", "given", "then"]) {
+      assert.ok(typeof scenario[key] === "string" && scenario[key].length > 0, `${scenario.id} needs a ${key}`);
+    }
+  }
+  for (const flag of ["kernelReady", "releaseAllowed", "productionAllowed", "runnableProduct", "p21Complete"]) {
+    assert.equal(contract.readinessFlags[flag], false, `readinessFlags.${flag} must stay false`);
+  }
+  for (const key of ["once", "simdi", "fark", "kullaniciYolculugu", "kalanEngel"]) {
+    assert.ok(typeof contract.userJourney[key] === "string" && contract.userJourney[key].length > 0,
+      `userJourney.${key} must be a non-empty string`);
+  }
+  const nonGoals = contract.nonGoals.join(" | ").toLowerCase();
+  for (const required of [/no production mutation/, /no src\/\*\* change/, /no hosted/, /no release, deploy/]) {
+    assert.match(nonGoals, required, `nonGoals must state: ${required}`);
   }
 });

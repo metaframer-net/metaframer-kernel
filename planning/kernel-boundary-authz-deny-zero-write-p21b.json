@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1.0.0",
+  "package": "P21B-boundary-authz-deny-zero-write",
+  "generatedAt": "2026-08-26",
+  "base": "275dbeef6b3da6023e42070fe756d9dbc16a2bf9",
+  "baseTree": "ce420623abff2370c61b175dde6f8b23ec9586f5",
+  "goal": "Prove against a real PostgreSQL 16 substrate that the boundary's authorization deny path writes nothing at all. P21A closed the identity hole on the ALLOW path; this package makes the negative side load-bearing by running the closed default deny and the deny-beats-allow precedence deny through the same container, the same connection string and the same composition flow as the ALLOW commit, then counting every row in the three write tables with no tenant filter, so nothing can hide. The fixed security expectations stay owned by the frozen test file; this manifest describes the scenarios, binds the provenance and gates the run, and supplies no expected value back to any assertion.",
+  "packageClass": "security-test-conformance",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "budget": {
+    "band": "default",
+    "bandMaxNet": 400,
+    "classCeilingKind": "justified",
+    "classMaxNet": 800,
+    "maxChangedFiles": 20,
+    "plannedChangedFiles": 2,
+    "note": "Planned and reported inside the default band (net <= 400) with two changed files, so the security-test-conformance justified ceiling is not drawn on and no extra band evidence is required."
+  },
+  "provenance": {
+    "scopeSynthesisSha256": "fa2f29148fe4e4a84a635b0ddbd1163776a7629c6e195a612955a1e438cb2714",
+    "masterScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeDetermination": true,
+    "writer": "claude-implementation-writer",
+    "singleWriter": true,
+    "reviewerMustBeSeparateSession": true,
+    "note": "Blind scope determination: the input scope hashes were frozen and reconciled by the MASTER into the recorded synthesis hash before this writer started. The writer never saw either side and must not assert a value it was not given, so both input hashes are recorded as held-by-MASTER rather than invented. The frozen test file was authored by a separate Claude test writer and arrived at this writer untouched.",
+    "testAuthoring": "claude-only"
+  },
+  "frozenTestPath": "tests/kernel-create-customer-asgi-composition.test.mjs",
+  "frozenTestSha256": "8c5acc5ef32b961b9491bf7f503439dfae35c71f48b1653ab5857c185c84f2ac",
+  "allowedFiles": [
+    "planning/kernel-boundary-authz-deny-zero-write-p21b.json",
+    "tests/kernel-create-customer-asgi-composition.test.mjs"
+  ],
+  "writeTables": ["customer_records", "audit_log", "transactional_outbox"],
+  "denyZeroWriteContract": {
+    "substrate": "one migrated real PostgreSQL 16 container, shared by the deny scenarios and the ALLOW commit within a single test",
+    "countingMethod": "whole-database count(*) over each write table as the superuser, with no tenant filter and no row-level predicate, so no row can hide behind a scope",
+    "invariantStageMustNotRun": "the deny scenarios install an evaluateInvariants that throws if it is ever called, so a denied request that reached the invariant stage fails the test rather than passing quietly",
+    "expectedValuesOwnedBy": "the frozen test file only: status, error code, retryable, receipt absence and row counts are written there and are never read back out of this manifest",
+    "manifestRole": "the manifest is a load-bearing gate: the frozen test refuses to run the deny scenarios unless this file exists and declares exactly the three scenario ids in order"
+  },
+  "acceptanceScenarios": [
+    { "id": "P21B-1", "name": "the closed default denies with no candidate at all and writes nothing", "given": "the real-PostgreSQL composition built over the migrated container with an empty policy candidate list, a well-formed POST /customers request carrying a valid tenant, actor, request id and idempotency key, and an invariant stage that throws if it is ever reached", "then": "the boundary answers a refusal on the deny path without ever reaching the invariant stage and without returning a commit receipt, and afterwards every one of the three write tables still holds the count the frozen test asserts for an untouched substrate" },
+    { "id": "P21B-2", "name": "an applicable deny beats an applicable allow in both candidate orders", "given": "the same container, connection string and composition flow, with one applicable allow candidate and one applicable deny candidate presented in both orders, and the same throwing invariant stage", "then": "both orders are refused identically on the deny path with no commit receipt and no invariant-stage entry, precedence never depends on candidate order, and the three write tables are still at the untouched count the frozen test asserts" },
+    { "id": "P21B-3", "name": "the positive control proves the zero-row proofs are load-bearing", "given": "the same substrate that stayed untouched under every deny above, now driven through the existing ALLOW plus invariants-ok commit path of the frozen test", "then": "the commit adds exactly the per-table row count the frozen test asserts and nothing more, so the preceding zero-row results are evidence of a refused write rather than a harness that could not write at all" }
+  ],
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-create-customer-asgi-composition.test.mjs",
+    "jsonParseCheck": "node -e \"JSON.parse(require('fs').readFileSync('planning/kernel-boundary-authz-deny-zero-write-p21b.json','utf8'))\"",
+    "whitespaceCheck": "git diff --check",
+    "frozenTestUnchanged": "sha256 of tests/kernel-create-customer-asgi-composition.test.mjs equals frozenTestSha256, unchanged from the handoff snapshot",
+    "targetedGreen": "17/17 subtests GREEN against a real PostgreSQL 16 container, including the two new P21B tests",
+    "fullQaBudget": "two full QA executions for this change package, fixed and immutable: QA1 is the implementation writer's one local full QA on the clean package commit, QA2 is the required CI full QA. At this authoring checkpoint neither has been consumed; the targeted RED-to-GREEN checks above do not spend the budget, and no bespoke probe, self-verifier or repeat evidence package may be added to it.",
+    "dockerDependentScenarios": "P21B-1, P21B-2 and P21B-3 need a local Docker daemon; its absence is an environment failure, reported separately and never as a boundary or authorization capability gap"
+  },
+  "rollback": {
+    "mechanism": "git revert of this package's single atomic commit after delivery: one targeted, recoverable, non-destructive revert commit that touches only the two files this package changed and rewrites no history",
+    "blastRadius": "this planning artifact and the frozen test file only",
+    "srcUntouched": true,
+    "hostUntouched": true,
+    "schemaUntouched": true,
+    "dataUntouched": true,
+    "ciUntouched": true,
+    "dependenciesUntouched": true,
+    "note": "Reverting removes two test cases and this manifest. No production, host, schema, migration, dependency or CI surface changed, nothing outside the frozen test reads this file, and no stored data depends on it, so the revert is complete and needs no compensating step.",
+    "compensatingStepRequired": false
+  },
+  "capabilityDelta": "BOUNDARY_AUTHZ_DENY_ZERO_WRITE: the boundary's authorization deny path is now proven against a real PostgreSQL 16 substrate to write nothing — the closed default with no candidate and an applicable deny against an applicable allow in either order are both refused before the invariant stage, the three write tables are counted whole-database with no tenant filter and stay untouched, and a positive control on the same substrate proves those zero-row results are a refused write rather than a harness that could not write.",
+  "readinessFlags": {
+    "kernelReady": false,
+    "releaseAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "deployAllowed": false,
+    "hostSelected": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "gapClosed": false,
+    "p21Complete": false
+  },
+  "nonGoals": [
+    "no production mutation: this package changes no runtime behavior and adds no production code path",
+    "no src/** change, no host/** change and no tool or script change",
+    "no hosted readiness, no hosted journey and no hosted deployment claim of any kind",
+    "no release, deploy, production, or runnable product claim",
+    "no package.json, dependency, lockfile, CI/workflow/config, pyproject or uv.lock change",
+    "no schema, migration or data projection change",
+    "no roadmap, current-truth or changelog edit",
+    "no new policy engine, authorization framework, dependency or provider",
+    "no full QA beyond the fixed two-execution budget recorded in greenEvidence.fullQaBudget: QA1 is the implementation writer's one local full QA on the clean package commit and QA2 is the required CI full QA, and beyond those two no third full QA run, bespoke probe, router-evidence script, self-verifier or repeated evidence package may be produced",
+    "no P21 completion claim: P21 remains incomplete and this package is P21B only",
+    "no commit, push, merge, child agent or network mutation performed by this package"
+  ],
+  "userJourney": {
+    "once": "Bir CRM formundan 'yeni müşteri' kaydı geldiğinde, isteğin yetkisi yoksa sınırın 403 döndürdüğünü biliyorduk ama bunu gerçek bir veritabanının başında kanıtlamamıştık. Reddedilen istek geriye hiçbir iz bırakmıyor mu, yoksa denetim kaydı ya da outbox tarafında yarım bir satır kalıyor mu — bunun cevabı yalnızca sahte kurgularla verilmişti.",
+    "simdi": "Reddetme yolu artık izin verilen kayıtla tamamen aynı gerçek PostgreSQL 16 kabında, aynı bağlantı dizesiyle ve aynı akışla çalışıyor. Hiç kural olmadığı durum ve 'izin ver' ile 'reddet' kurallarının iki farklı sırada karşılaştığı durum deneniyor; reddedilen istek kural denetimi aşamasına hiç ulaşamıyor, makbuz almıyor ve üç yazma tablosu kiracı filtresi olmadan, tüm veritabanı üzerinden sayılıyor.",
+    "fark": "Aynı kabın hemen ardından izinli kayıt işlenip her tabloya beklenen satırı bıraktığı için, önceki boş sayımlar 'zaten yazamayan bir düzenek' değil, gerçekten engellenmiş bir yazma anlamına geliyor. Yani 'yetkisiz istek hiçbir şey yazmaz' cümlesi artık gerçek veritabanı kanıtıdır; ayrıca 'reddet' kuralı 'izin ver' kuralının önüne hangi sırada gelirse gelsin kazanıyor.",
+    "kullaniciYolculugu": "CRM formu gönder → sınır isteği alır → yetki kararı verilir → karar izin değilse istek kural denetimine hiç girmeden reddedilir, makbuz dönmez ve müşteri, denetim kaydı ve outbox tablolarına tek satır düşmez → aynı kapta yetkili bir kayıt gönderildiğinde ise üç tabloya da beklenen satır tek işlemde yazılır ve makbuz döner.",
+    "kalanEngel": "Bu bir sınır ve veritabanı kanıtıdır, barındırılan bir ürün değildir. Seçili bir host sunucusu, ağ dinleyicisi ve gerçek bir giriş akışı hâlâ yok; yetki kuralları hâlâ testin verdiği kurgusal adaylardan geliyor, yönetilen bir kural kaynağından değil. Dolayısıyla barındırılan bir kullanıcı yolculuğu çalıştırılabilir değildir ve P21 kapanmış sayılmaz."
+  },
+  "productClaim": {
+    "runnable": "The frozen P21B test path is runnable: against a real PostgreSQL 16 container the boundary's deny path is refused before the invariant stage with no commit receipt and leaves all three write tables untouched, while the ALLOW positive control on the same substrate commits normally.",
+    "notRunnable": "No hosted product journey is runnable. There is no selected host server, no network listener and no real login; the policy candidates are supplied by the test, not by a managed policy source, and no release, deploy or production readiness follows from this package. P21 is not complete."
+  }
+}
