@@ -1,0 +1,76 @@
+{
+  "package": "P15b-current-truth-closure",
+  "base": "aca41956d5e679548d9bced0110250aaf392a10c",
+  "baseTree": "692cf3cf702de7bbb8ef766048e36077da82edbb",
+  "masterScope": "d23700ce465b7cc06df31769d663455283214b65b6e7e3123f279f6864b3869c",
+  "blindScope": "6108ca868df126333f9d1d88da7fd9ed525261f696e492188b035bce7243c0",
+  "synthesisScope": "fb17973fd425af1e957083e31eb2d1e103c70ca36143a47c7d7b174d5040881b",
+  "actionplanPin": "f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p15-current-truth-closure-p15b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p15-current-truth-closure-p15b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "allowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p15-current-truth-closure-p15b.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "7fdcd3e75a80e59a059a59e5144ee186e462a898206d5699e2895370954c11a6",
+  "excludes": ["runtime", "DAG structure", "readiness flags", "commit", "push"],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "notRunnable": "This truth-sync wires no live entrypoint, host, Surface or relay; it only projects P15's already-merged evidence into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md."
+  },
+  "syncSummary": "Advances roadmap.progress from 14/25 (P15 active) to 15/25 (P16 active); adds P15's merged customer-module-api evidence to currentTruth.implementedPieces; removes P15 from notImplementedPieces; retains P16 (separate Surface/UI projection, live entrypoint/host wiring), P18 (outbox relay lifecycle) and P19-P25 (production proof) as the explicit next-missing pieces; all nine stronger readiness flags remain false; ownerFacing capability_delta stays NONE and calistirilabilirlik stays not-runnable.",
+  "residualDisclosed": "P15's frozen residual (built requestId is NOT equated to audit/outbox correlationId — deliberate, known gap, not an oversight) is projected unchanged from planning/kernel-customer-module-typed-api-p15.json; this closure package does not alter that behavior.",
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — 16 tests; 12 GREEN before this package's edits (RED12), 4 RED (roadmap.progress 15/25 test, P15-implemented/P16-active currentTruth test, ROADMAP/README/CHANGELOG P15-closed/P16-active test, and the transitional missing-pieces phrasing check) driving this package's edits to all 16 GREEN",
+    "redCount": 4,
+    "greenCount": 16,
+    "invalidatedFullBatches": [
+      "batch1: npm run check rejected raw CI-run-number phrasing in CHANGELOG.md (changelog-raw-commit-hash finding on the literal CI run number); the snapshot then changed (CI run number reworded to \"a passing CI run\" across CHANGELOG.md/ROADMAP.md/README.md/planning/roadmap-v1-current-truth.json) so that run is invalidated, not accepted",
+      "batch2: npm test 1538/1538 GREEN + npm run check GREEN was reached on the prior snapshot, but this required evidence-correction package (atomicPackageFiles/testWriterAllowedFiles/implementationWriterAllowedFiles/expanded scope identifiers/budget accounting) changed planning/kernel-p15-current-truth-closure-p15b.json afterward, so that run is invalidated, not accepted",
+      "batches3-4: batch3 npm test 1538/1538 GREEN was reached on the atomicPackageFiles/budget-accounting snapshot, then invalidated by the full-length masterScope/blindScope/synthesisScope plus budget.class=DEFAULT_BAND/budget.verdict correction; batch4 npm test+check then run against that corrected snapshot is invalidated by this exact self-count correction (record line count 76, budget additions/deletions/net/gross recomputed) changing planning/kernel-p15-current-truth-closure-p15b.json afterward, so neither run is accepted"
+    ],
+    "acceptedFinalSnapshotBatch": "predeclared: npm test 1538/1538 GREEN + npm run check GREEN, run exactly once after all 6 atomicPackageFiles (5 implementation-writer files plus the frozen test, unedited) reach final byte content; binds via an unchanged-byte handoff — no byte edited in any of the 6 files after this run"
+  },
+  "budget": {
+    "grossAdditions": 184,
+    "grossDeletions": 79,
+    "net": 105,
+    "gross": 263,
+    "files": 6,
+    "class": "DEFAULT_BAND",
+    "verdict": "GREEN_NET_LE_400_FILES_LE_20"
+  },
+  "rollback": "revert all 6 atomicPackageFiles listed in atomicPackageFiles; no other file touched; the frozen test tests/kernel-roadmap-v1-current-truth.test.mjs is authored solely by the separate test writer and is never edited by this implementation-writer package",
+  "testHashUnchanged": true
+}

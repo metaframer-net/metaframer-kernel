@@ -57,15 +57,15 @@
       "P14 app-core cutover composition (P14a): consumers/customer-app-core/customer-app-core.mjs adds createCustomerAppCoreWithPersistence, reusing createCustomerAppCore's public-SDK-contract and customer:core fail-closed validation unchanged and composing a real createCustomerDataCutover from injected cutoverOptions into a frozen {sdkCoordinate, status, persistence} result, default-legacy, no automatic cutover; test-verified",
       "P14 app-owned persistence parity (P14b/P14e): consumers/customer-app-core/customer-persistence-adapter.mjs (createCustomerPersistenceAdapter) fail-closed validates tenantId/audit/transactionalOutbox/idempotency metadata before any query, delegates the unchanged P12 adapter for the canonical customer_records insert, writes audit_log and transactional_outbox with the same SQL/param shape as the Kernel's own postgres-write-envelope-write.mjs, and maps the pg 23505 transactional_outbox_tenant_dedup_key violation to a new CustomerIdempotencyConflictError; the P13 cutover's application branch calls this adapter, synthesizing Kernel-parity default metadata only when the caller supplies none at all and fail-closed rejecting a partial explicit metadata set; test-verified against real PostgreSQL 16",
       "P14 transitional Kernel ownership cleanup and legacy adapter retirement (P14c/P14d1/P14d2a/P14d2b): tools/check-kernel-persistence-ownership.mjs retires the combined transitionalInKernel manifest record fail-closed, src/adapters/postgres-write-envelope-write.mjs now directly owns IdempotencyConflictError/isDuplicateIdempotencyFingerprintError/checkPreparedChangeSet/checkTenantId moved verbatim out of the transitional src/adapters/postgres-commit-adapter.mjs, the legacy postgres-commit-adapter.mjs test suite was retired, and the transitional src/adapters/postgres-commit-adapter.mjs file itself is now physically removed from the repository; test-verified",
-      "P14 isolated real PostgreSQL 16 proof (P14e): tests/postgres-unit-of-work-write-envelope.test.mjs exercises createCustomerAppCoreWithPersistence against one real shared PostgreSQL container across three strong scenarios — legacy default touches no database, a real cutover plus application insert commits one row per table with a frozen canonical record, a repeated idempotency fingerprint is rejected with rollback to exactly one row per table, and a partial explicit parity metadata set is fail-closed rejected with zero rows written in any table; test-verified, no live entrypoint, host, Surface, relay, release, deploy or automatic cutover trigger wired"
+      "P14 isolated real PostgreSQL 16 proof (P14e): tests/postgres-unit-of-work-write-envelope.test.mjs exercises createCustomerAppCoreWithPersistence against one real shared PostgreSQL container across three strong scenarios — legacy default touches no database, a real cutover plus application insert commits one row per table with a frozen canonical record, a repeated idempotency fingerprint is rejected with rollback to exactly one row per table, and a partial explicit parity metadata set is fail-closed rejected with zero rows written in any table; test-verified, no live entrypoint, host, Surface, relay, release, deploy or automatic cutover trigger wired",
+      "P15 Customer module typed API: consumers/customer-app-core/customer-module-api.mjs (createCustomerModuleApi, CUSTOMER_MODULE_API_MANIFEST) composes the P14 createCustomerAppCoreWithPersistence handle behind a frozen, fail-closed customer.create@1 manifest (operations [\"recordCustomer\"]), validating every recordCustomer call's actionSpec via the P08 SDK, canonicalizing the record via P11's canonicalizeCustomerRecord, cross-checking tenant/audit/outbox correlation before ever touching the injected legacyInsert, and returning a frozen {ok:true, record}; test-verified 5/5 (tests/kernel-customer-module-api-p15.test.mjs, PR #116 with a passing CI run), no live entrypoint, host or Surface wiring"
     ],
     "notImplementedPieces": [
-      "Customer module typed API (P15)",
-      "separate Surface/UI projection (P16)",
+      "separate Surface/UI projection (P16), live entrypoint/host wiring",
       "outbox relay lifecycle (P18) actually delivering events out of the transactional outbox",
       "production proof: no HA/DR, security, performance or promotion gate evidence exists yet (P19-P25)"
     ],
-    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, P07's generic renderActionSdk generator plus P08's versioned SDK distribution wrapper exist over the exact P02 ActionContract, P09's clean-consumer conformance proof exists over P08's real distribution payload, P10's app-core public-SDK consumer boundary exists, P11's app-owned customer schema/validator contract exists, P12's application-owned, query-injected adapter exists, P13's frozen data cutover/rollback controller exists, and P14's createCustomerAppCoreWithPersistence composition, app-owned persistence parity adapter, retired transitional Kernel adapter, and isolated real-PostgreSQL-16 proof now all exist, but a Customer module typed API, a product Surface, live entrypoint wiring, outbox relay delivery and every later production-readiness gate remain absent to make it runnable as a real product."
+    "notRunnableProductClaim": "No SaaS user journey (form submit -> save -> reject -> retry) is runnable end-to-end today. A CreateCustomer-specific golden-slice chain spanning Domain, Application, Adapters and Delivery is test-verified in isolation, P07's generic renderActionSdk generator plus P08's versioned SDK distribution wrapper exist over the exact P02 ActionContract, P09's clean-consumer conformance proof exists over P08's real distribution payload, P10's app-core public-SDK consumer boundary exists, P11's app-owned customer schema/validator contract exists, P12's application-owned, query-injected adapter exists, P13's frozen data cutover/rollback controller exists, P14's createCustomerAppCoreWithPersistence composition, app-owned persistence parity adapter, retired transitional Kernel adapter, and isolated real-PostgreSQL-16 proof exist, and P15's customer.create@1 typed module API (createCustomerModuleApi/recordCustomer) now also exists, but a product Surface, live entrypoint/host wiring, outbox relay delivery and every later production-readiness gate remain absent to make it runnable as a real product."
   },
   "roadmap": {
     "version": "v1",
@@ -108,12 +108,12 @@
       { "id": "P25", "name": "promotion gates", "family": "F7", "dodRef": "F7", "dependsOn": ["P20", "P21", "P23", "P24"] }
     ],
     "progress": {
-      "completed": 14,
+      "completed": 15,
       "total": 25,
-      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08", "P09", "P10", "P11", "P12", "P13", "P14"],
-      "activePackage": "P15",
-      "asOfKernelMain": "c881565a7b609caa08f36dda6a9b07453e13c9bb",
-      "statusLine": "14/25 tamamlandı, P15/25 aktif"
+      "completedPackages": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08", "P09", "P10", "P11", "P12", "P13", "P14", "P15"],
+      "activePackage": "P16",
+      "asOfKernelMain": "aca41956d5e679548d9bced0110250aaf392a10c",
+      "statusLine": "15/25 tamamlandı, P16/25 aktif"
     }
   },
   "execution": {
@@ -139,11 +139,11 @@
     }
   },
   "ownerFacing": {
-    "once": "Once P14'un (Kernel temizligi ve parite) bes alt paketi (P14a-P14e) main'e ayri ayri mergelenmisti — app-core kompozisyonu, uygulamaya ait kalicilik paritesi, gecis-donemi Kernel sahiplik temizligi, eski adaptorun emekliye ayrilmasi ve izole gercek PostgreSQL 16 kaniti — ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
-    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 14/25 tamamlandi, P15 aktif: bu paket sadece o roadmap gercegini P14'un gercek mergelenmis bes alt-paket kanitiyla (createCustomerAppCoreWithPersistence, createCustomerPersistenceAdapter, gecis-donemi Kernel temizligi, gercek PostgreSQL 16 kaniti) senkronlar, hicbir calisma zamani davranisi degistirmez ve hicbir canli girisim noktasi baglanmaz.",
-    "fark": "Once P14 mergelenmisti ama sayac 13/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 14/25 tamamlandi, P15/25 aktif durumunu projekte ediyor.",
-    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P14'teki kanit izole test ortaminda gercek bir PostgreSQL'e yazdigini kanitlar ama hicbir canli girisim/host/Surface ile baglanmamistir, bu yuzden gercek bir kullanici yolculugu henuz calismaz.",
-    "kalanEngel": "P15 (Customer module typed API) dahil F4-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
+    "once": "Once P15 (Customer module typed API) main'e mergelenmisti (PR #116 with a passing CI run) — customer.create@1 icin frozen bir modul API'si (createCustomerModuleApi, recordCustomer) — ama roadmap sayaci bunu hala yansitmiyordu; kanit vardi, tek kaynak metin geri kalmisti.",
+    "simdi": "Simdi 25 paketlik sabit plan (8 teslimat fazi/ailesi) icinde 15/25 tamamlandi, P16 aktif: bu paket sadece o roadmap gercegini P15'in gercek mergelenmis kanitiyla (consumers/customer-app-core/customer-module-api.mjs, 5/5 test, PR #116) senkronlar, hicbir calisma zamani davranisi degistirmez ve hicbir canli girisim noktasi baglanmaz.",
+    "fark": "Once P15 mergelenmisti ama sayac 14/25'te kalmisti; simdi tek kaynak dosya + ROADMAP.md + README ayni 15/25 tamamlandi, P16/25 aktif durumunu projekte ediyor.",
+    "kullaniciYolculugu": "Bir CRM/HRMS form submit -> save -> reject -> retry yolculugu bu depoda hala uctan uca calismiyor; P15'teki typed modul API'si tenant/audit/outbox tutarliligini test ortaminda kanitlar ama hicbir canli girisim/host/Surface ile baglanmamistir, bu yuzden gercek bir kullanici yolculugu henuz calismaz.",
+    "kalanEngel": "P16 (ayri Surface/UI projeksiyonu) dahil F4-F7 fazlarinin tamami tamamlanmadan hicbir uctan uca kullanici yolculugu calismaz; sdkReady/appBuildable/releaseAllowed hepsi false kalir.",
     "capability_delta": "NONE",
     "calistirilabilirlik": "not-runnable"
   }
