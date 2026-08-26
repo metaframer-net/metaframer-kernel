@@ -1,0 +1,56 @@
+{
+  "package": "P19A-outbox-relay-observability-slo",
+  "base": "85b45ad44e598281e71fe60841fc8c712cfeb3c3",
+  "baseTree": "d31ea23eec0f42bbc13a5b64aeca7a34cf67f692",
+  "provenance": {
+    "synthesisV3Sha256": "fa4dcd0d504d684e5b904e995be8ba28658341c3eaa8081dbff2020a2b5bf6fc",
+    "synthesisV4Sha256": "5fe0281143d23f17ed84bf71f51e1985a822cd225bcbae981bef3b6f0312f28c",
+    "masterSha256": "95f4b69916775c26469dbc052bd71ac1380d2b7648850247e674d48a0d9f3746",
+    "blindSha256": "0b2d8b11f23bc481231c7e270bf66e72711d70f6378910bc28ff72b1ebd0f76d"
+  },
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "frozenTestPath": "db/tests/test_outbox_relay_observability_slo.py",
+  "frozenTestSha256": "581a203b32741329405e1504f3b9cad6959ee83dc7d761450b2bf822f88f41bd",
+  "testHashUnchanged": true,
+  "allowedFiles": ["planning/kernel-outbox-relay-observability-slo-p19a.json", "db/metaframer_kernel_db/observability.py"],
+  "roleOwnedTest": "db/tests/test_outbox_relay_observability_slo.py",
+  "implementation": "observability.py adds frozen RelaySlo/RelaySloVerdict + run_observed_outbox_relay_once wrapping unchanged P18 run_outbox_relay_once; injected clock measures duration, failure_rate=failed/(published+failed) (0.0 if empty); emits exactly one compact outbox_relay.batch_completed JSON line via injected sink built from a single explicit allowlisted dict (event/service/env/timestamp/tenant_id (str-normalized)/correlation_id/published_count/failed_count/duration_seconds/failure_rate/latency_met/failure_rate_met/within_slo) through json.dumps(separators=\",\",\":\", ensure_ascii=False, allow_nan=False) — ordinary readable JSON, no Unicode-escaping, no row IDs/data/payload/claim token/exception/stack ever included",
+  "scenarios": "clean full drain + empty second pass both green; partial failure is failure-rate red with no id/exception leaked; deterministically slow full success is latency-red only",
+  "scope": "one observed relay pass, additive module only",
+  "nonGoals": "no change to run_outbox_relay_once/P18 semantics; no per-row logging, exporter, metrics backend, dashboard, alert transport; no consumer loop, retry policy, dead-letter queue",
+  "readinessFlags": {"kernelReady": false, "releaseAllowed": false, "productionAllowed": false, "runnableProduct": false},
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget: production class, default band, max400 net/800 gross/files20",
+    "perFile": {
+      "db/tests/test_outbox_relay_observability_slo.py": {"additions": 240, "deletions": 0},
+      "db/metaframer_kernel_db/observability.py": {"additions": 102, "deletions": 0},
+      "planning/kernel-outbox-relay-observability-slo-p19a.json": {"additions": 56, "deletions": 0}
+    },
+    "grossAdditions": 398, "grossDeletions": 0, "netLines": 398, "fileCount": 3,
+    "class": "production", "band": "default", "noFalseDefaultClaim": true
+  },
+  "qa": {
+    "invalidatedAttempt": {
+      "snapshot": "10517909d1624c4296a5c8e32c432e2e2fb00a79",
+      "tree": "3497909becb5185a537d320808553819520b4827",
+      "npmTest": "1544/1544 pass",
+      "npmRunCheck": "GREEN",
+      "substrateStatic": "RED — ruff would reformat db/metaframer_kernel_db/observability.py and the frozen test",
+      "substratePytest": "not run",
+      "invalidatedBy": "this authorized format-only correction; the snapshot's static-RED evidence is superseded, QA1 remains pending on the new commit"
+    },
+    "targeted": "uv run pytest tests/test_outbox_relay_observability_slo.py -q (from db/) — 3/3 pass on frozen bytes, ruff-formatted observability.py",
+    "ruff": "ruff check db/metaframer_kernel_db/observability.py db/tests/test_outbox_relay_observability_slo.py — clean; ruff format --check on both — already formatted",
+    "fullQaExecutionsPerChangePackage": 2,
+    "notRun": "full repo QA, git, roadmap current-truth, changelog, release/deploy — out of this slice"
+  },
+  "checkpoint": "20m targeted-QA checkpoint",
+  "once": "P18 relay pass'i çalışıp bitiyordu ama sonucu SLO'ya karşı ölçen, tek satır yapılandırılmış log üreten katman yoktu.",
+  "simdi": "Aynı P18 relay pass'i artık süre/hata oranı ölçülüp RelaySlo'ya karşı değerlendiriliyor; tek satır JSON özet olay enjekte sink'e yazılıyor.",
+  "fark": "Yeni additive modül observability.py eklendi; run_outbox_relay_once davranışı değişmedi.",
+  "kullaniciYolculugu": "Operasyon artık her relay pass'inin SLO içinde mi olduğunu tek log satırından anlar; hiçbir satır/id/hata detayı sızmaz.",
+  "kalanEngel": "Exporter, dashboard, alert transport, consumer loop hâlâ yok; full QA/CI/current-truth kapanışı bu paketin dışında.",
+  "capability_delta": "OUTBOX_RELAY_OBSERVED_SLO_SINGLE_PASS",
+  "notRunnable": "Bu paket hiçbir servis/dinleyici başlatmaz; yalnızca tek bir relay pass'ini ölçüp raporlar.",
+  "rollback": "revert all three package files — db/metaframer_kernel_db/observability.py, planning/kernel-outbox-relay-observability-slo-p19a.json, and the role-owned db/tests/test_outbox_relay_observability_slo.py; no other file touched"
+}
