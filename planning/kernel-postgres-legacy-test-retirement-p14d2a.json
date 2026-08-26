@@ -1,0 +1,178 @@
+{
+  "package": "P14D2A",
+  "title": "Retire the legacy postgres-commit-adapter.test.mjs test file",
+  "role": "implementation-writer",
+  "baseCommit": "b0bdcc82cc70828a1309aac0da20edf887a997a4",
+  "synthesisHash": "3421d5fb50d4980a0d598d2e564aa54318037922150e812431882ad94308bc9a",
+  "packageFiles": [
+    {
+      "path": "tests/postgres-unit-of-work-write-envelope.test.mjs",
+      "role": "authored by closed test writer; not edited by implementation writer",
+      "editedByImplementationWriter": false,
+      "frozenSha256": "b8c8aa6cc0cf07bdbfaa03f67158425a71699d80919942c37844a80d1843888e",
+      "numstat": { "additions": 68, "deletions": 0 }
+    },
+    {
+      "path": "tests/postgres-commit-adapter.test.mjs",
+      "role": "deleted by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 0, "deletions": 343 }
+    },
+    {
+      "path": "planning/kernel-postgres-legacy-test-retirement-p14d2a.json",
+      "role": "added by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 178, "deletions": 0 }
+    },
+    {
+      "path": "CHANGELOG.md",
+      "role": "edited by this implementation writer",
+      "editedByImplementationWriter": true,
+      "numstat": { "additions": 16, "deletions": 0 }
+    }
+  ],
+  "allowedWrites": [
+    "tests/postgres-commit-adapter.test.mjs (delete)",
+    "planning/kernel-postgres-legacy-test-retirement-p14d2a.json (add)",
+    "CHANGELOG.md (edit)"
+  ],
+  "nonGoals": [
+    "no product code change",
+    "no edit to tests/postgres-unit-of-work-write-envelope.test.mjs by this implementation writer",
+    "no other file, stage, commit or push",
+    "no further full QA execution beyond the one writer-local slot already spent"
+  ],
+  "capability_delta": "NONE",
+  "candidateStatus": "IMPLEMENTATION_GREEN_AWAITING_REVIEW_AND_CI",
+  "strongerFlags": {
+    "productCodeChanged": false,
+    "testCoverageIncreased": false,
+    "behaviorChanged": false,
+    "scopeWidened": false,
+    "fullyReviewed": false,
+    "ciVerified": false,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "coverageDisposition": {
+    "note": "10 legacy tests/postgres-commit-adapter.test.mjs cases classified honestly below. NOT all 10 are directly covered by the surviving tests/postgres-unit-of-work-write-envelope.test.mjs; three were adapter-only behavior that has no surviving equivalent, and two are no longer separately asserted at all. Surviving-path key coverage (module export shape, IdempotencyConflictError shape, missing-tenantId pre-DB rejection, null-prototype/array/class/function payload-shape rejection, and the real-Postgres four-intent atomic commit + duplicate-fingerprint rollback) is retained; this is not a like-for-like 10/10 replacement.",
+    "categories": ["directly-covered", "obsolete-adapter-only", "no-longer-separately-asserted"],
+    "mapping": [
+      {
+        "legacy": "the adapter module and its planning package exist",
+        "category": "obsolete-adapter-only",
+        "reason": "asserted only that adapterPath was a string; PostgresCommitAdapter as a distinct exported surface is not re-tested. The surviving module's own export shape is separately proven by the export-shape test below, but that is a different module/surface, not a re-proof of this trivial assertion."
+      },
+      {
+        "legacy": "importing the adapter exposes PostgresCommitAdapter with no side effects",
+        "category": "obsolete-adapter-only",
+        "reason": "PostgresCommitAdapter, COMMITTED_INTENTS and DEFERRED_INTENTS are adapter-specific exports with no equivalent assertion in the surviving file, which addresses createPostgresWrite/createPostgresUnitOfWork instead."
+      },
+      {
+        "legacy": "IdempotencyConflictError is exported, frozen, and carries a deterministic non-retryable shape",
+        "category": "directly-covered",
+        "reason": "re-proven verbatim by 'postgres-write-envelope-write.mjs directly exports IdempotencyConflictError, checkPreparedChangeSet, checkTenantId and isDuplicateIdempotencyFingerprintError with the deterministic, unchanged shape' (frozen constructor/prototype, code, retryable, tenantId, fingerprint, message)."
+      },
+      {
+        "legacy": "the adapter refuses a preparedChangeSet that is not persistenceState pending",
+        "category": "no-longer-separately-asserted",
+        "reason": "the underlying behavior (rejecting a non-'pending' persistenceState) survives inside checkPreparedChangeSet's validation, but no surviving test exercises it directly: the checkPreparedChangeSet({persistenceState:'pending', intents:{}}) test at line 311 passes persistenceState='pending' and throws only because intents is empty. No surviving test passes a non-'pending' persistenceState and asserts rejection on that basis specifically."
+      },
+      {
+        "legacy": "the adapter refuses a customer intent with no tenantId, before any DB work",
+        "category": "directly-covered",
+        "reason": "re-proven by 'createPostgresWrite rejects a preparedChangeSet with a missing customer tenantId before ever calling scope.query', including the pre-DB-work guarantee (scope.query throws if called)."
+      },
+      {
+        "legacy": "the adapter refuses a customer intent whose tenantId mismatches options.tenantId, before any DB work",
+        "category": "obsolete-adapter-only",
+        "reason": "this specific cross-check (customer.tenantId vs. the options.tenantId passed to adapter.commit) was PostgresCommitAdapter-only. checkTenantId in the surviving file only validates a single tenantId value in isolation (empty/undefined -> TypeError); no surviving test compares two tenantId values against each other."
+      },
+      {
+        "legacy": "the adapter accepts a null-prototype customer.payload with a non-empty name, past shape checks and before any DB work",
+        "category": "directly-covered",
+        "reason": "re-proven by 'checkPreparedChangeSet accepts a null-prototype safe customer.payload and rejects array/class-instance/function payload shapes' (checkNullProto branch asserts checked.customer.payload.name === 'Ada')."
+      },
+      {
+        "legacy": "the adapter still refuses a customer.payload with no name, whether ordinary or null-prototype",
+        "category": "no-longer-separately-asserted",
+        "reason": "no test in tests/postgres-unit-of-work-write-envelope.test.mjs constructs a customer.payload with an empty object or a nameless null-prototype object and asserts rejection. The surviving payload-shape test only exercises array/class-instance/function rejection and the null-proto-with-name acceptance case; the no-name rejection path is not independently exercised anywhere in the surviving suite."
+      },
+      {
+        "legacy": "the adapter still refuses a customer.payload that is an array, a class instance or a function",
+        "category": "directly-covered",
+        "reason": "re-proven by the rejectedShapes loop (array, class instance, function) in 'checkPreparedChangeSet accepts a null-prototype safe customer.payload and rejects array/class-instance/function payload shapes'."
+      },
+      {
+        "legacy": "all four ALLOW_COMMIT intents, including customer, are committed atomically against a real PostgreSQL 16 instance",
+        "category": "directly-covered",
+        "reason": "re-proven against a real Docker-backed PostgreSQL 16 instance by 'WriteEnvelope composed with createPostgresWrite over a real UnitOfWork commits all four intents in one tenant transaction and returns a canonical CommitReceipt' plus the duplicate-fingerprint rollback case in 'a repeated preparedChangeSet fingerprint through WriteEnvelope rejects with IdempotencyConflictError and leaves exactly one row per table'."
+      }
+    ],
+    "tally": { "directly-covered": 5, "obsolete-adapter-only": 3, "no-longer-separately-asserted": 2, "total": 10 }
+  },
+  "redGreen": {
+    "targetedCommand": "node --test tests/postgres-unit-of-work-write-envelope.test.mjs",
+    "red": {
+      "beforeDelete": true,
+      "result": "8/9 pass, 1 fail",
+      "failingTest": "the legacy tests/postgres-commit-adapter.test.mjs file must be absent"
+    },
+    "green": {
+      "afterDelete": true,
+      "result": "9/9 pass"
+    }
+  },
+  "fullSuiteEvidence": {
+    "npmTest": "1528/1528 pass",
+    "npmRunCheck": "GREEN (exit 0)"
+  },
+  "numstat": {
+    "additions": 262,
+    "deletions": 343,
+    "net": -81,
+    "gross": 605,
+    "files": 4,
+    "grossCeiling": 800,
+    "withinCeiling": true,
+    "note": "additions = 68 (frozen test file, authored by closed test writer, not edited by implementation writer) + 178 (planning JSON) + 16 (CHANGELOG.md); deletions = 343 (deleted legacy test file). Gross churn is within the 800 ceiling but the package still requires independent review because it deletes an entire test file."
+  },
+  "class": "small-with-deletion, requires independent review",
+  "qaSlots": {
+    "fullQaExecutionsAllowed": 2,
+    "used": {
+      "targetedRedToGreen": "not counted against the full-QA budget",
+      "writerLocalFullQa": 1
+    },
+    "status": "local slot 1/2 spent (npm test + npm run check, both GREEN); CI full QA (slot 2/2) pending",
+    "remainingForCi": 1
+  },
+  "rollback": {
+    "action": "revert all four package files to their state at this package's parent commit (a normal revert of the package's changes, not a git-rm recipe)",
+    "filesInScope": [
+      "tests/postgres-commit-adapter.test.mjs",
+      "planning/kernel-postgres-legacy-test-retirement-p14d2a.json",
+      "CHANGELOG.md",
+      "tests/postgres-unit-of-work-write-envelope.test.mjs"
+    ]
+  },
+  "ownerFacing": {
+    "once": "Sistemde eski bir test dosyası duruyordu; onun 10 kontrolünden bir kısmı yeni testlerde zaten vardı, bir kısmı artık geçerli değildi, bir kısmı da hiç ayrıca kontrol edilmiyordu.",
+    "simdi": "O eski test dosyası silindi. Yeni testlerde: modül export şekli, hata şekli, eksik kiracı-kimliği reddi ve dört kaydın gerçek PostgreSQL üzerinde birlikte kaydedilmesi hâlâ kanıtlanıyor. Ama 'persistenceState pending değilse reddet' ve 'isimsiz payload reddi' gibi bazı eski kontroller artık hiçbir testte ayrıca doğrulanmıyor; 'iki farklı kiracı-kimliğinin karşılaştırılması' ise ayrı bir konu — o davranışın kendisi artık hiç yok (adapter'e özgüydü, karşılığı yok).",
+    "fark": "Test envanteri sadeleşti ama tam 1'e 1 yerine geçmedi; bazı eski kontroller kayboldu. Üretim kodunda değişiklik yok.",
+    "kullaniciYolculugu": "Değişmedi — müşteri kayıt/onay/reddet akışı öncesiyle aynı şekilde çalışır.",
+    "kalanEngel": "P14 tamamlanmadı; CI tam QA turu (2/2 slot) hâlâ bekliyor; P14D2B bir sonraki adım.",
+    "capability_delta": "NONE",
+    "runnableClaim": "Not applicable — no product code changed; test-suite-only cleanup, candidate awaiting independent review and CI."
+  },
+  "reviewStatus": "candidate awaiting independent review and CI; not yet merged/promoted",
+  "p14Status": "incomplete",
+  "nextPackage": "P14D2B"
+}
