@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "1.0.0",
+  "package": "P21D-audited-asgi-boundary-composition",
+  "generatedAt": "2026-08-27",
+  "base": "da8ed64ac8765d6e77f9abbc762097f671c34564",
+  "baseTree": "0425f6826bb3c36e29665f50b976fd140ab715df",
+  "goal": "Carry the boundary's decision audit all the way to the protocol boundary. P21C made every authorization decision durably auditable, but only at the handler seam: createAuditedCustomerComposition was never wired into the ASGI composition root, so createCustomerAsgiComposition.app still composed the unaudited createCustomerComposition and every request that actually arrived through the ASGI callable reached the pipeline with an unrecorded decision. This package adds one additive factory, createAuditedCustomerAsgiComposition, that wires the audited handler through the very same CreateCustomerHttpMessageAdapter, one-route StandardRouter and AsgiCoreProfileAdapter, and changes no existing caller: createCustomerAsgiComposition keeps its exact four required options, its optional maxBodyBytes, its frozen four-key result and its observable behaviour. The fixed expectations stay owned by the frozen test file; this manifest describes the scenarios, binds the provenance and gates the run, and supplies no expected value back to any assertion.",
+  "packageClass": "security-test-conformance",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "budget": {
+    "band": "conditional",
+    "bandMaxNet": 800,
+    "classCeilingKind": "justified",
+    "classMaxNet": 800,
+    "maxChangedFiles": 20,
+    "measuredBy": "codex-desktop-master",
+    "actual": {
+      "grossAdditions": 615,
+      "grossDeletions": 33,
+      "net": 582,
+      "changedFiles": 3
+    },
+    "note": "The default band is NOT claimed. The writer's measurement over all three files, the two untracked new ones included, is recorded above and is subject to the MASTER's own measurement on the clean package commit; it is above the default band ceiling and inside the canonical conditional band (net <= 800) and the security-test-conformance justified class ceiling (net <= 800), with three changed files against the 20-file ceiling. The conditional band is therefore drawn on deliberately and its seven delivery gates are recorded below.",
+    "conditionalDeliveryGates": [
+      { "gate": "single-narrow-problem", "status": "met", "evidence": "One problem only: the audited composition did not reach the ASGI callable. Every changed line serves that one problem — one additive audited ASGI factory with its own option gate, one shared private wiring helper the two factories now both use, one manifest, one frozen test. No unrelated refactor, rename or cleanup rides along." },
+      { "gate": "bounded-file-set", "status": "met", "evidence": "Exactly the three files named in allowedFiles were touched, declared up front and unchanged since: git status shows one modified source and two new files and nothing else." },
+      { "gate": "no-redundant-repetition", "status": "met", "evidence": "The audited factory reuses createAuditedCustomerComposition, CreateCustomerHttpMessageAdapter, StandardRouter, AsgiCoreProfileAdapter and the module's existing decodeJsonBody, encodeJsonBody and encodeUtf8HeaderPart helpers rather than reimplementing any of them, and the protocol-boundary wiring the two factories share was factored into one private composeAsgiOver helper instead of being copied. It duplicates no routing, decoding, decision, hash or commit logic; no new module, dependency, capability, framework or host was introduced." },
+      { "gate": "no-quality-tradeoff", "status": "met", "evidence": "No test was weakened, skipped or made conditional; the frozen test was never edited and its hash is unchanged from the handoff snapshot. The audited options are validated synchronously through property descriptors before the base factory runs and therefore before any pool exists, an accessor-backed option is refused rather than invoked, and close is the audited base's own close passed through unchanged so both owned pools stay released on one call." },
+      { "gate": "full-green", "status": "met-targeted-pending-qa", "evidence": "node --check GREEN on the changed source, git diff --check clean, JSON parse GREEN, frozen test sha256 unchanged, and node --test tests/kernel-audited-asgi-boundary-composition-p21d.test.mjs 3/3 GREEN against a real PostgreSQL 16 container. The two-execution full QA budget in greenEvidence.fullQaBudget is still unspent: QA1 and QA2 remain outstanding and this gate is not closed until they are." },
+      { "gate": "fresh-reviewer-accept", "status": "pending", "evidence": "Not met at this authoring checkpoint and not claimable by this writer. A separate read-only Claude reviewer session on the same immutable snapshot must accept the package; this writer authored it and may not review it." },
+      { "gate": "explicit-rollback", "status": "met", "evidence": "The rollback block below names the mechanism, the blast radius and the three files, records that createCustomerAsgiComposition's contract and behaviour are unchanged by this package, and states compensatingStepRequired false with the reason." }
+    ]
+  },
+  "provenance": {
+    "scopeSynthesisSha256": "4662e343f895f058ba96824b9cfd8bd47962ff5dd20949db2833fa94a7068038",
+    "masterScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeSha256": "held-by-codex-desktop-master-not-disclosed-to-the-implementation-writer",
+    "blindScopeDetermination": true,
+    "writer": "claude-implementation-writer",
+    "singleWriter": true,
+    "reviewerMustBeSeparateSession": true,
+    "note": "Blind scope determination: the input scope hashes were frozen and reconciled by the MASTER into the recorded synthesis hash before this writer started. The writer never saw either side and must not assert a value it was not given, so both input hashes are recorded as held-by-MASTER rather than invented. The frozen test file was authored by a separate Claude test writer and arrived at this writer untouched.",
+    "testAuthoring": "claude-only"
+  },
+  "frozenTestPath": "tests/kernel-audited-asgi-boundary-composition-p21d.test.mjs",
+  "frozenTestSha256": "b96cf79eb60010f0d81052da35064d219ac35dae5d5905e3c726be6c32c316e2",
+  "allowedFiles": [
+    "planning/kernel-audited-asgi-boundary-composition-p21d.json",
+    "tests/kernel-audited-asgi-boundary-composition-p21d.test.mjs",
+    "src/delivery/create-customer-asgi-composition.mjs"
+  ],
+  "writeTables": ["customer_records", "audit_log", "transactional_outbox"],
+  "auditedAsgiBoundaryContract": {
+    "substrate": "one migrated real PostgreSQL 16 container, shared by P21D-1, P21D-2 and P21D-3 within a single test",
+    "additiveOnly": "createAuditedCustomerAsgiComposition is a second, additive export. createCustomerAsgiComposition keeps its exact four required options, its optional maxBodyBytes, its frozen { asgi, router, app, close } result and its observable behaviour; no existing caller changes shape, and the frozen test asserts that directly",
+    "auditReachesTheCallable": "app(scope, receive, send) now drives the audited handler, so the decision an ASGI request reaches is appended to the append-only, hash-chained policy_decision_log before the invariant stage and long before any commit; the deny lands as an independently verifiable genesis entry, the allow chains onto it by prev_hash, and both trace the HTTP request id taken from the boundary",
+    "unloggableDecisionCannotAnswer2xx": "with the decision log's INSERT grant revoked on the live substrate the append refuses; the refusal either propagates out of app or answers the boundary, never silently, no 2xx is produced at the ASGI boundary, no decision row survives and no business row is written. Restoring the grant proves the same flow still commits and chains onward, so the two refusal proofs are load-bearing rather than a harness that had stopped being able to write",
+    "optionAdmission": "exactly six required own enumerable data collaborators — connectionString, current, candidatesFor, evaluateInvariants, idGenerator, now — plus the optional own enumerable data maxBodyBytes. Keys are counted with Reflect.ownKeys so a symbol-keyed member counts as an extra key, each key is read through its own property descriptor so an accessor-backed or non-enumerable member is refused rather than invoked, and every refusal is synchronous and complete before the base factory, any pool, adapter or I/O exists",
+    "optionAdmissionResidual": "this is a shape and type gate, not a semantic one: a function of the right arity that behaves wrongly, or a syntactically well-formed connection string pointing at the wrong database, is admitted here and refused only later by the substrate. That is unchanged from the factories this one composes and is not claimed to be closed",
+    "twoOwnedPools": "close is the audited composition's own close, passed through unchanged, so the decision log adapter's pool and the unit-of-work resource's pool are both released by one call; the frozen test counts live mfk_runtime backends against the server rather than inferring them from the wiring",
+    "sharedWiring": "the protocol-boundary wiring both factories perform — http message adapter, one-route StandardRouter, AsgiCoreProfileAdapter, the frozen ASGI-shaped callable and the frozen four-key result — is one private composeAsgiOver helper. It decides nothing and validates nothing: admission stays in each factory's own gate and close is passed through untouched, so the legacy contract is not reinterpreted",
+    "frameworkFreeAndCapabilityFree": "the module still imports no fs, net, http or https surface, calls no fetch, reads no environment value, no ambient clock and no random value, and names and imports no web framework or host server; idGenerator and now are caller-supplied collaborators, not capabilities. The frozen test asserts this over the module source",
+    "countingMethod": "whole-database count(*) over each write table as the superuser, with no tenant filter and no row-level predicate, so no row can hide behind a scope",
+    "expectedValuesOwnedBy": "the frozen test file only: status, outcome, error code, receipt shape, decision payload fields, chain linkage and row counts are written there and are never read back out of this manifest",
+    "manifestRole": "the manifest is a load-bearing gate: the frozen test refuses to run any P21D scenario unless this file exists and declares exactly the five scenario ids in order"
+  },
+  "acceptanceScenarios": [
+    { "id": "P21D-1", "name": "the closed default deny driven through the audited ASGI callable is logged as a verifiable genesis entry and writes no business row", "given": "the audited ASGI composition built over the migrated container with an empty policy candidate list, one POST /customers ASGI scope carrying a valid tenant, actor, request id and idempotency key, a single-chunk JSON body, and an invariant stage that throws if it is ever reached", "then": "app answers exactly the two ASGI events it sent and refuses on the policy deny path with the fixed non-allow status, error code, request id, retryability and absent receipt the frozen test asserts, without reaching the invariant stage; exactly one decision row exists, that row verifies independently against a hash recomputed from its own persisted payload, it records the default-deny shape and the HTTP request id, and every one of the three write tables still holds the untouched count the frozen test asserts" },
+    { "id": "P21D-2", "name": "an applicable allow through the same audited callable commits and chains its decision onto the P21D-1 genesis", "given": "the same container, connection string and audited ASGI flow with one applicable allow candidate, an invariant stage that passes, and a fresh HTTP request id and idempotency key", "then": "the callable answers the committed status the frozen test asserts with a body whose commitReceipt carries exactly the canonical eight CommitReceipt keys and is bound to that exact HTTP request, exactly one row per business table is written, and a second verified decision row is appended whose prev_hash names the P21D-1 genesis and whose payload records the matched allow policy, its layer and the HTTP request id" },
+    { "id": "P21D-3", "name": "an unloggable decision can never answer 2xx at the ASGI boundary, and one close releases both pools after the flow is proven to still work", "given": "the same substrate with the decision log's INSERT grant revoked on the live database and a throwing invariant stage, then with the grant restored, a passing invariant stage and a fresh request id, with live mfk_runtime backends counted against the server while the composition is still open", "then": "the blocked attempt either propagates out of app or answers the boundary but never passes silently, produces no 2xx, leaves no decision row and writes no business row; with the grant restored the same flow commits again, adds exactly one further row per business table and appends one further verified decision row chained onto the P21D-2 successor and tracing its own request id, so the revoked window left no gap in the chain; and both runtime pools hold a live backend before close and none afterwards" },
+    { "id": "P21D-4", "name": "the audited ASGI factory admits exactly its six data options plus the optional maxBodyBytes, hands back the frozen four-key composition, and leaves the legacy factory's contract untouched", "given": "the valid six-option set alone and with each admitted maxBodyBytes value, every malformed variant the frozen test enumerates — non-objects, arrays, empty and extra-keyed objects, each missing required key, wrong-typed collaborators and invalid maxBodyBytes values — plus the own symbol-keyed extra, the accessor-backed required option and the non-enumerable required option, and the module source itself", "then": "each admitted set yields a frozen composition with exactly the four keys asgi, router, app and close, a frozen three-parameter callable and a close that does not reject although nothing ever connected; every malformed set is refused synchronously with a TypeError before any I/O and the accessor is never invoked; createCustomerAsgiComposition still yields its exact four-key result from its own four required options and still refuses the two audit collaborators as unknown; and the module source still carries no fs, net, http or https import, no fetch, no environment read, no ambient clock or random value and no web framework or host server name" },
+    { "id": "P21D-5", "name": "the planning manifest binds this package, this base, this frozen test and its three allowed files", "given": "this manifest read from disk by the frozen test before any scenario may run", "then": "the package name, base commit, base tree, scope synthesis hash, single-writer and separate-reviewer provenance, frozen test path and its exact content hash, the three allowed files, the three write tables, the capabilityDelta prefix, the five scenario ids in order with a name, given and then each, the five readiness flags all false, the five non-empty Turkish userJourney fields and the literally required non-goals are all present as the frozen test asserts" }
+  ],
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-audited-asgi-boundary-composition-p21d.test.mjs",
+    "syntaxCheck": "node --check src/delivery/create-customer-asgi-composition.mjs",
+    "jsonParseCheck": "node -e \"JSON.parse(require('fs').readFileSync('planning/kernel-audited-asgi-boundary-composition-p21d.json','utf8'))\"",
+    "whitespaceCheck": "git diff --check",
+    "frozenTestUnchanged": "sha256 of tests/kernel-audited-asgi-boundary-composition-p21d.test.mjs equals frozenTestSha256, unchanged from the handoff snapshot",
+    "targetedGreen": "3/3 subtests GREEN against a real PostgreSQL 16 container",
+    "fullQaBudget": "two full QA executions for this change package, fixed and immutable: QA1 is the implementation writer's one local full QA on the clean package commit, QA2 is the required CI full QA. At this authoring checkpoint neither has been consumed; the targeted RED-to-GREEN checks above do not spend the budget, and no third full QA run, bespoke probe, self-verifier or repeated evidence package may be added to it.",
+    "dockerDependentScenarios": "P21D-1, P21D-2 and P21D-3 need a local Docker daemon; its absence is an environment failure, reported separately and never as an audited ASGI boundary capability gap"
+  },
+  "rollback": {
+    "mechanism": "git revert of this package's single atomic commit after delivery: one targeted, recoverable, non-destructive revert commit that touches only the three files this package changed and rewrites no history",
+    "blastRadius": "this planning artifact, the frozen test file, and the additive audited factory plus the shared private wiring helper inside the existing ASGI composition module",
+    "existingCompositionPreserved": true,
+    "hostUntouched": true,
+    "schemaUntouched": true,
+    "dataUntouched": true,
+    "ciUntouched": true,
+    "dependenciesUntouched": true,
+    "note": "Reverting removes createAuditedCustomerAsgiComposition, inlines the shared wiring back into createCustomerAsgiComposition, and removes this manifest and the frozen test. createCustomerAsgiComposition's four required options, its optional maxBodyBytes, its frozen four-key result and its observable behaviour are unchanged by this package, so nothing that exists today loses a caller and no revert compensation is owed to one. No host, schema, migration, dependency or CI surface changed, no stored data depends on this file, and the policy_decision_log table and the audited handler factory both already existed at this base, so the revert is complete and needs no compensating step.",
+    "compensatingStepRequired": false
+  },
+  "capabilityDelta": "AUDITED_BOUNDARY_REACHES_THE_ASGI_CALLABLE: a request that actually arrives through the ASGI callable is now audited before it can have an effect. The additive createAuditedCustomerAsgiComposition wires the P21C audited handler through the same http message adapter, one-route router and ASGI core profile adapter, so against a real PostgreSQL 16 substrate the closed default deny answers the protocol boundary only after landing as an independently verifiable genesis entry in the hash-chained policy_decision_log with no business row anywhere, the allow commits with its canonical CommitReceipt and chains onto that genesis by prev_hash, a decision that cannot be logged can never produce a 2xx at the boundary and leaves neither a decision row nor a business row, and one close releases both pools the audited composition owns. The audited factory admits exactly its six own enumerable data collaborators plus the optional maxBodyBytes, deciding from property descriptors alone before any pool exists and never invoking a caller-supplied accessor. This is additive only: createCustomerAsgiComposition keeps its exact contract and behaviour, and this remains a composition root — no host is selected, no server is started and no framework is introduced.",
+  "readinessFlags": {
+    "kernelReady": false,
+    "releaseAllowed": false,
+    "productionAllowed": false,
+    "runnableProduct": false,
+    "deployAllowed": false,
+    "hostSelected": false,
+    "oneGoldenSliceReady": false,
+    "walkingSkeletonReady": false,
+    "gapClosed": false,
+    "p21Complete": false
+  },
+  "nonGoals": [
+    "no hosted readiness, no hosted journey, no host selection, no host runner and no hosted deployment claim of any kind: this is still a composition root and no server is started here",
+    "no release, deploy, production, or runnable product claim",
+    "no new dependency, no new module, no package.json, lockfile, pyproject or uv.lock change, and no secret or dependency scan is performed or claimed by this package",
+    "no schema, migration, RLS or data projection change: the policy_decision_log table, its constraints and the three business write tables all already existed at this base",
+    "no change to createCustomerAsgiComposition's four required options, its optional maxBodyBytes, its frozen four-key result or its observable behaviour: only the wiring body it shares with the new factory was factored into a private helper and its host-vendor comment wording was reworded, and the frozen test asserts the legacy contract directly",
+    "no change to createCustomerComposition, createAuditedCustomerComposition, the http message adapter, the router, the ASGI core profile adapter, the pipeline, stage order, outcome projection or the four write intents",
+    "no identity-guard audit: the P21A trusted-identity boundary and its guard are untouched here and re-auditing them is out of scope",
+    "no CI, workflow or config change, and no auth, session or managed policy source change: the policy candidates are still supplied by the caller",
+    "no edit to any P21A, P21B or P21C evidence, to the frozen P21D test, or to the managed policy source",
+    "no roadmap, current-truth or changelog edit",
+    "no full QA beyond the fixed two-execution budget recorded in greenEvidence.fullQaBudget: QA1 is the implementation writer's one local full QA on the clean package commit and QA2 is the required CI full QA, and beyond those two no third full QA run, bespoke probe, self-verifier or repeated evidence package may be produced",
+    "no P21 completion claim: P21 remains incomplete and this package is P21D only",
+    "no commit, push, merge, child agent or network mutation performed by this package"
+  ],
+  "residuals": [
+    "Host and runner: no host server is selected, no network listener exists and no real Python host bridge/shim is implemented, so no hosted user journey is runnable. Out of scope here, left to a later package.",
+    "Identity-guard audit: the trusted-identity boundary closed in P21A is not re-audited by this package.",
+    "Secret and dependency scanning: not performed and not claimed by this package.",
+    "Auth, session and managed policy source: the boundary still takes its policy candidates from the caller and has no real login or session surface.",
+    "Roadmap, current-truth and changelog: not updated by this package; recording P21D against the roadmap is the MASTER's separate step.",
+    "P21 completion: not claimed. P21D closes only the audited-ASGI-callable gap.",
+    "Option admission is a shape and type gate, not a semantic one: a wrongly behaving collaborator of the right type, or a well-formed connection string pointing at the wrong database, is admitted here and refused only later by the substrate."
+  ],
+  "userJourney": {
+    "once": "CRM formundan gelen 'yeni müşteri' isteği gerçek bir protokol kapısından, yani ASGI çağrısından içeri girdiğinde, o yolun ucundaki iş akışı hâlâ denetimsiz olanıydı. P21C'de karar defteri çalışır hale gelmişti ama yalnızca doğrudan çağrılan iç işleyicide; kapıdan giren istek eski, kayıt tutmayan kurulumu kullanıyordu. Yani gerçek yoldan gelen hiçbir yetki kararı deftere yazılmıyordu.",
+    "simdi": "Aynı kapıya, eskisini hiç bozmadan, ikinci bir kurulum eklendi: denetimli ASGI kurulumu. Bu kurulumda kapıdan giren isteğin yetki kararı, herhangi bir etki doğurmadan önce zincirli ve yalnızca-ekleme yapılan karar defterine yazılıyor. Karar yazılamıyorsa istek 2xx başarı yanıtı alamıyor; ne deftere ne de üç iş tablosuna tek satır düşüyor.",
+    "fark": "Denetim artık kapının kendisine ulaştı. Reddedilen ilk istek defterin ilk halkası olarak yazılıyor ve kendi içeriğinden yeniden hesaplanan özetle bağımsızca doğrulanabiliyor; izin verilen istek hem makbuzunu alıyor hem de bir önceki halkaya bağlanıyor. Defter yazılamadığı sürede hiçbir iş yapılmıyor, izin geri geldiğinde zincir kaldığı yerden kopmadan devam ediyor. Eski kurulum ise satırı satırına aynı kaldı: dört zorunlu seçeneği, isteğe bağlı gövde sınırı ve dört anahtarlı sonucu değişmedi, dolayısıyla bugün onu kullanan hiçbir çağıran etkilenmiyor.",
+    "kullaniciYolculugu": "CRM formu gönder → istek ASGI kapısından girer → kimlik ve yetki kararı verilir → karar önce deftere yazılır ve yazma bitene kadar hiçbir şey ilerlemez → yazma başarılıysa: reddedildiyse kural denetimine hiç girilmeden reddetme yanıtı döner ve üç yazma tablosuna tek satır düşmez, izin verildiyse kural denetimi çalışır, kayıt tek işlemde tamamlanır ve makbuz döner → yazma başarısızsa: istek asla başarı yanıtı almaz, hiçbir satır kalmaz → istek bittiğinde tek bir kapatma çağrısı her iki bağlantı havuzunu da bırakır.",
+    "kalanEngel": "Bu hâlâ bir sınır ve veritabanı kanıtıdır, barındırılan bir ürün değildir. Seçilmiş bir sunucu, ağ dinleyicisi ve gerçek bir giriş/oturum akışı yok; yetki kuralları hâlâ çağıranın verdiği adaylardan geliyor, yönetilen bir kural kaynağından değil. Karar defterinin sorgulama, raporlama ve saklama-süresi yüzeyi yok. Seçenek kapısı biçim ve tür kontrolüdür: doğru türde ama yanlış davranan bir bağımlılık ya da yanlış veritabanına işaret eden geçerli bir bağlantı dizesi burada değil, ancak veritabanında reddedilir. Kimlik koruması denetimi, sır/bağımlılık taraması ve yol haritası güncellemesi bu paketin dışındadır. Dolayısıyla barındırılan bir kullanıcı yolculuğu çalıştırılabilir değildir ve P21 kapanmış sayılmaz."
+  },
+  "productClaim": {
+    "runnable": "The frozen P21D test path is runnable: against a real PostgreSQL 16 container an ASGI request driven through createAuditedCustomerAsgiComposition.app has its authorization decision appended to the hash-chained policy_decision_log before the invariant stage or any commit, the default-deny genesis and its allow successor both verify independently and chain together, a decision that cannot be logged never produces a 2xx and leaves no decision row and no business row, the restored grant proves the flow still commits and the chain has no gap, one close releases both runtime pools, and the legacy createCustomerAsgiComposition contract is asserted unchanged.",
+    "notRunnable": "No hosted product journey is runnable. There is no selected host server, no network listener, no Python host bridge/shim and no real login or session; the policy candidates are supplied by the caller rather than by a managed policy source, and the decision log has no query, reporting or retention surface. Option admission is a shape and type gate, not a semantic one. No release, deploy or production readiness follows from this package. P21 is not complete."
+  }
+}
