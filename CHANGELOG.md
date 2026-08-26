@@ -16,6 +16,20 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P20b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `20/25 tamamlandı, P21/25 aktif`, closing P20
+  (performance) with real merged evidence — `db/metaframer_kernel_db/performance.py`'s
+  `summarize_relay_performance`, computing a deterministic `RelayPerformanceBaseline` (nearest-rank
+  p95/p99 duration, published/failed totals, a measured seconds-per-published proxy, sorted
+  per-tenant p95 and a measured fairness ratio) over caller-supplied relay samples, test-verified
+  against real PostgreSQL 16 across 3 scenarios (`db/tests/test_outbox_relay_performance_baseline.py`,
+  PR #126 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/32982906594))
+  — with P21 (security) active and P21-P25 production proof all still named as the explicit
+  next-missing pieces. This truth-sync adds the `OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY`
+  capability delta, wires no calibrated SLA/threshold, sustained load/concurrency/noisy-neighbor
+  proof, dollar-cost/optimizer proof, exporter, dashboard, alert transport, scheduler/loop,
+  retry policy, dead-letter queue or live entrypoint, and moves no global readiness flag; a
+  hosted product remains not-runnable. See `planning/kernel-p20-current-truth-closure-p20b.json`.
 - P19b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `19/25 tamamlandı, P20/25 aktif`, closing P19
   (observability/SLO) with real merged evidence — `db/metaframer_kernel_db/observability.py`'s
