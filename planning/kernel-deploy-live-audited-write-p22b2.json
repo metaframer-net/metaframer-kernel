@@ -1,0 +1,208 @@
+{
+  "package": "kernel-deploy-live-audited-write-p22b2",
+  "title": "P22B2 — the audited business write over live HTTP, and the durable decision record it leaves behind",
+  "class": "security-test-conformance",
+  "base": "0587a4e8971c9ff191b7d83051075c351c87a7d9",
+  "baseTree": "a652a1d03f873ce27bcfb9a177654755f8e46cb6",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "frozenTestPath": "tests/kernel-deploy-live-audited-write-p22b2.test.mjs",
+  "frozenTestSha256": "0aee9deeb1fb6491e2a67b8026f5ff3ccce4a3e1808b933087ea3be0bf63a8e4",
+  "allowedFiles": [
+    "tests/kernel-deploy-live-audited-write-p22b2.test.mjs",
+    "tests/_harness/live-audited-write-probe.mjs",
+    "planning/kernel-deploy-live-audited-write-p22b2.json"
+  ],
+  "problem": "P22B1 proved the assembly runs and deliberately proved that it does not write: every route it exercised was a refusal and all four runtime tables stayed empty. So the one claim a business system exists to make had still never been made here — that a real request, arriving over a real socket at a real server, really commits, and that the decision authorizing it survives as an independently verifiable record. Every earlier proof of the audited write drove the JS runner directly over stdio (P21F) or drove the Python bridge in-process; none of them travelled over HTTP, and none of them ran inside the frozen deploy artifact. The gap was narrow and total: an image that answers refusals is indistinguishable, from the outside, from an image that can serve — and a refusal is exactly the class of request that used to leave no record at all.",
+  "solution": "One read-only probe seam, tests/_harness/live-audited-write-probe.mjs, is added BESIDE the P22B1 harness and changes no byte of it. It starts nothing and stops nothing: it is handed the ONE environment P22B1 already builds and adds exactly the three reads that environment does not offer. sendJsonRequest sends a real HTTP request carrying a method, a JSON body and the identity headers the boundary decides on, run by the application image's own node against 127.0.0.1 inside the container, because no port is published; the P22B1 client carries a method and a route alone and can therefore only ever reach a refusal. queryAsSuperuser reads every column of every row through the database's own psql over its local trusted socket as the superuser — the only role that can carry a verification read, because both roles P22B1 exposes are NOBYPASSRLS and a sweep that cannot see a row can never prove that row absent. readTrustedPrincipal reads the identity the container really runs on out of its own mounted config file, so the frozen test asserts against the environment's principal rather than against a constant it declared. The frozen test then drives two sequential requests through the unchanged audited boundary: one trusted POST /customers that commits, and one claiming a foreign tenant that is refused 403 by the identity guard that already existed. Both are judged by the rows, not by the answers.",
+  "acceptanceScenarios": [
+    {
+      "id": "P22B2-1",
+      "title": "the read-only probe seam exists beside the P22B1 harness, exports exactly its four members, fixes the audited-write target with bounded waits, and preserves all six untouched surfaces",
+      "asserts": "The probe exports exactly AUDITED_WRITE_PROBE_CONTRACT, queryAsSuperuser, readTrustedPrincipal and sendJsonRequest, and the three named functions are callable; the contract is frozen and fixes POST, /customers, port 8000, the mfk database and the postgres verification role; both timeout bounds are finite, positive and no looser than the P22B1 environment's own http and dockerCli bounds; the contract names exactly the six preserved surfaces with exactly their recorded digests, and each of the six still hashes to that digest in the working tree; and the probe defines no image, runs nothing privileged, and carries no importable reference to the environment harness, so it can never start or stop an environment."
+    },
+    {
+      "id": "P22B2-2",
+      "title": "one trusted POST /customers really commits over live HTTP: a COMMITTED receipt whose ids bind to exactly one customer, audit and outbox row, authorized by an independently verifiable decision genesis",
+      "asserts": "The environment's trusted tenant is a canonical UUID and its trusted actor a non-empty string, both read from the credential the container really runs on; all four runtime tables start empty, exactly as P22B1 left them; the live listener answers 201 with a CommitReceipt whose outcome is COMMITTED and whose requestId, tenantId and idempotencyKey are this exact HTTP request's own, carrying exactly one outbox event id, exactly the canonical eight receipt fields and a canonical UTC millisecond committedAt; customer_records, audit_log and transactional_outbox each hold exactly one row in the whole database — the row the receipt names, under the trusted tenant, carrying this request's own name, event type, actor and correlation; and the single policy_decision_log row verifies independently by recomputation from its own persisted payload, is filed under the trusted tenant as the head of a new chain with a null prev_hash, and records the matched allow.everything policy, its resolved tenant layer, this request's own trace id, the trusted requestActor and the customer.create action."
+    },
+    {
+      "id": "P22B2-3",
+      "title": "a sequential request claiming a foreign tenant is refused 403 over the same live HTTP, writes no business row, and chains onto the genesis as an audited deny that never carries the claimed tenant",
+      "asserts": "With the allow genesis already on record, a well-formed request claiming a genuinely foreign tenant is answered 403 with the existing CROSS_TENANT_DENY envelope, retryable false, traced to its own request id and carrying no receipt; each of the three business tables still holds exactly the one row the allow committed and it still belongs to the trusted tenant; the log holds exactly two rows, the second verifying independently, recording a deny that matched no policy and resolved no layer, filed under the trusted identity rather than the claimed one, naming the identityTenantGuard stage and the CROSS_TENANT_DENY guard, carrying a non-empty reason, and chaining onto the genesis entry hash; and a server-side sweep projecting every row of all four tables to text finds the claimed tenant in none of them."
+    },
+    {
+      "id": "P22B2-4",
+      "title": "the planning manifest binds this package to its base, its blind-frozen scope, its three allowed files, its measured metrics, its rollback and the one readiness flag this package really moves",
+      "asserts": "This manifest records the immutable base commit and tree, the canonical Actionplan change-package budget pin that owns every threshold, the frozen test path and its recomputed sha256, the exact targeted command, the P22B2 scope synthesis with its parent and blind-frozen scope hashes, the P22A1/P22A2/P22B1 delivered set with P22C alone outstanding, the unmoved 21/25 counter, one-writer provenance with a separate read-only reviewer and Claude-only test authoring, the same six preserved surfaces the probe contract records, measured Git metrics over exactly three files inside the class ceiling with the conditional band and all seven canonical gates drawn explicitly and no exemption claimed, the rollback with every untouched surface, the nineteen-flag readiness set with exactly runtimeImplementationStarted, hostServerSelectedForDeployArtifact, networkListenerStarted and liveHttpAuditProven true, the declared non-goals, the fixed capability-delta prefix, both product claims and the five Turkish owner-facing fields."
+    }
+  ],
+  "splitEvidence": {
+    "thisPackage": "P22B2",
+    "counter": "21/25",
+    "scopeSynthesisName": "P22B2_SCOPE_SYNTHESIS_V1",
+    "scopeSynthesisSha256": "b52a7b0ef3b4f338200102e1a226a5805fb125fffc02391e521b47d57fc653bb",
+    "parentScopeSha256": "e5dd2e1d99dea2c4f676f4314733572a46d0377b8865cffab1642b84604cda1",
+    "blindScopeSha256": "d7a1e659421eb264976a1c9f102abb6ba4926aeb69954b29ad1e61b18abb8cb2",
+    "blindScopeDetermination": "The blind scope was frozen and hashed before either side saw the other; P22B2_SCOPE_SYNTHESIS_V1 is the reconciled result and is the only scope this package was written against.",
+    "delivered": ["P22A1", "P22A2", "P22B1"],
+    "remaining": ["P22C"],
+    "remainingOwnership": {
+      "P22C": "roadmap current-truth closure for P22"
+    },
+    "counterUnmovedReason": "P22B2 is one package inside the already-counted P22 phase. An audited write is a capability, not a phase completion: the counter moves when P22C closes P22 in the roadmap current truth, and this package edits no roadmap document."
+  },
+  "environmentReuse": {
+    "harness": "tests/_harness/live-http-postgres-environment.mjs",
+    "reuse": "read-only, unchanged, byte-identical",
+    "environmentsStartedByThisPackage": 0,
+    "why": "P22B1 already owns the one ephemeral environment: a digest-pinned PostgreSQL 16.15 at the real migration head on a unique internal network, and the unchanged P22A2 image serving HTTP from its own installed Uvicorn under full hardening with no published port. A second environment would prove a second assembly, not the audited write, and editing the first would invalidate the proof P22B1 already delivered."
+  },
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-deploy-live-audited-write-p22b2.test.mjs",
+    "regressionGuards": [
+      "node --test tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs",
+      "node --test tests/kernel-deploy-oci-image-p22a2.test.mjs",
+      "node --test tests/kernel-deploy-secret-boundary-p22a1.test.mjs",
+      "node --test tests/kernel-audited-host-runner-p21f.test.mjs"
+    ],
+    "fullQaExecutionsAllowed": 2,
+    "fullQaByWriter": "npm test && npm run check",
+    "fullQaBySecondGate": "CI"
+  },
+  "budget": {
+    "class": "security-test-conformance",
+    "band": "conditional",
+    "ceilingSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "actual": { "grossAdditions": 714, "grossDeletions": 0, "net": 714, "changedFiles": 3 },
+    "measurement": "git diff --numstat against base tree a652a1d03f873ce27bcfb9a177654755f8e46cb6, counting the three allowed files and nothing else; no existing file is modified, so gross deletions are zero and net equals gross additions.",
+    "conditionalDeliveryGates": [
+      {
+        "gate": "single-narrow-problem",
+        "state": "GREEN",
+        "evidence": "One problem only: does one real business request really commit through the frozen deploy artifact over live HTTP, and does the decision that authorized it survive as an independently verifiable record — together with the refusal that must leave a record and no row. No second environment, no image definition, no persistence beyond the suite, no staging, no registry, no deployment, no roadmap edit."
+      },
+      {
+        "gate": "bounded-file-set",
+        "state": "GREEN",
+        "evidence": "Exactly three files, declared in allowedFiles before the first write and unchanged since. One is the frozen test the writer did not author and did not edit; the other two are new, and one of them is test-only harness code. No src module, no host module, no image file, no schema, no migration, no dependency and no workflow is touched, and the six preserved surfaces are proven byte-identical by the frozen test itself."
+      },
+      {
+        "gate": "no-redundant-repetition",
+        "state": "GREEN",
+        "evidence": "Nothing is reimplemented. The environment is P22B1's, unchanged and read-only. The boundary, the identity guard, the policy decision point, the hash-chained log and the receipt contract are the existing src and host modules. The independent verification of every persisted decision row is the production verifyPersistedDecisionLogRow, not a second hash recomputation this package wrote. The probe contributes only the three reads the environment does not already expose, and no second copy of anything it does."
+      },
+      {
+        "gate": "no-quality-tradeoff",
+        "state": "GREEN",
+        "evidence": "The receipt is never the proof: every claim is settled by reading the rows back from the server, and each business table is required to hold exactly one row in the whole database rather than merely to contain the row the receipt names. The genesis is recomputed from its own persisted payload rather than trusted because the test wrote it. The cross-tenant sweep runs server-side over every column of every row of all four tables projected to text, so a claimed tenant cannot survive anywhere the test never thought to read. Both probe waits are bounded and neither is looser than the environment's own bound. The superuser verification read is stated as a deliberate limit in the probe itself and changes no privilege of the NOBYPASSRLS role the listener actually connects as."
+      },
+      {
+        "gate": "full-green",
+        "state": "PENDING",
+        "evidence": "Targeted RED-to-GREEN plus four narrow regressions are the writer's; one full local QA run is the writer's single budgeted execution and the CI full run is the second. Recorded by the reviewer, not asserted here."
+      },
+      {
+        "gate": "fresh-reviewer-accept",
+        "state": "PENDING",
+        "evidence": "A separate read-only session on this immutable snapshot must accept the package. The writer cannot review the package the writer wrote, and any change to the snapshot invalidates the review."
+      },
+      {
+        "gate": "explicit-rollback",
+        "state": "GREEN",
+        "evidence": "Deleting tests/_harness/live-audited-write-probe.mjs and this manifest (and the frozen test if the whole package is withdrawn) returns the tree to base a652a1d03f873ce27bcfb9a177654755f8e46cb6. Every Docker resource the run creates belongs to P22B1's harness, carries that run's unique label and is removed by the same run, so nothing outside this checkout has to be undone."
+      }
+    ]
+  },
+  "provenance": {
+    "singleWriter": true,
+    "writerRole": "claude-implementation-writer",
+    "reviewerMustBeSeparateSession": true,
+    "reviewerIsReadOnly": true,
+    "testAuthoring": "claude-only",
+    "writerDidNotAuthorFrozenTest": true,
+    "frozenTestUnedited": true
+  },
+  "rollback": {
+    "mechanism": "Delete tests/_harness/live-audited-write-probe.mjs and planning/kernel-deploy-live-audited-write-p22b2.json, and the frozen test if the whole package is withdrawn. No existing file was modified, so this restores the base tree exactly.",
+    "blastRadius": "Confined to one new test-only probe file plus this manifest and the frozen test. No src module, no host module, no image definition, no schema, no migration, no dependency, no lock, no workflow, no roadmap document and no running system is touched. The rows this package writes exist only inside an ephemeral database that is deleted with its own volume before the run exits, so there is no surviving data to undo.",
+    "compensatingStepRequired": false,
+    "compensatingStepReason": "The audited write lands in a database that exists only for the life of the suite: its container, its volume, the application container, the network, the image tag and the temporary host secret directory all carry the run's unique label and are removed before the process exits. Nothing was pushed, deployed, promoted or persisted, so there is no external effect to compensate for.",
+    "srcUntouched": true,
+    "p22b1Untouched": true,
+    "hostDeployImageUntouched": true,
+    "secretFileRunnerUntouched": true,
+    "boundaryRunnerUntouched": true,
+    "hostModulesUntouched": true,
+    "dbUntouched": true,
+    "ciUntouched": true,
+    "dependenciesUntouched": true,
+    "roadmapUntouched": true
+  },
+  "preservedHashes": {
+    "tests/_harness/live-http-postgres-environment.mjs": "d7f83b4d86cc440888076bce5da845d2bc9ff66843bd1dc79f8847a273695d0f",
+    "tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs": "aef0f0ca2eb34147f75725f8ef302d2c60ec61da2e8ca9921c8075fac69873e9",
+    "planning/kernel-deploy-ephemeral-environment-p22b1.json": "272f957aeaf4f54c1883beea4be70b1b43bcce63b58064f6829c06a59c796afa",
+    "host/deploy/Dockerfile": "e9910e31c56c20d003c8e14a31c50e5a101c29d380105f408f28d0f240cdc99c",
+    "host/deploy/secret_file_runner.mjs": "d26edfede30131e6250a5df0700c540849af67105f2405ee83da02b590c5f981",
+    "host/js_asgi/create_customer_asgi_runner.mjs": "64e1fc81e3b5bda0174ca35df573355aa87376493364c936af36bf2866ea2ec7"
+  },
+  "readinessFlags": {
+    "runtimeImplementationStarted": true,
+    "hostServerSelectedForDeployArtifact": true,
+    "networkListenerStarted": true,
+    "liveHttpAuditProven": true,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false,
+    "p22Complete": false,
+    "stagingEnvironmentExists": false,
+    "stagingRunPerformed": false,
+    "productionHostSelected": false,
+    "registryPushed": false,
+    "externalDeploymentPerformed": false
+  },
+  "nonGoals": [
+    "No persistent environment is created: the audited write lands in a database that is deleted with its own volume before the run exits, and this package starts no environment of its own at all.",
+    "No P22B1 file is edited: the harness, its frozen test and its manifest are proven byte-identical by sha256 inside the frozen test itself.",
+    "No staging environment exists and no staging run is performed; one audited write inside an environment that deletes itself is neither.",
+    "No registry is contacted, authenticated against, tagged for or pushed to.",
+    "No deployment, promotion or external environment change is performed or implied.",
+    "No host port is published for the application or the database; the listener is reachable only from inside the isolated network, and the one request proven here is sent by the container's own node against 127.0.0.1.",
+    "No image is defined, written, edited or rebuilt by this package: host/deploy/Dockerfile is exactly what P22A2 delivered and the probe defines no image of its own.",
+    "No src module, host module, schema, migration, dependency, lock or CI workflow is modified; the boundary this write travels through is the existing one.",
+    "No roadmap document is edited and no phase counter is advanced.",
+    "No current-truth closure is written; P22C alone closes P22 in the roadmap current truth.",
+    "No production host is selected, no readiness flag beyond the declared set is introduced, and nothing here is a claim that the artifact is deployable, releasable or production-ready."
+  ],
+  "capabilityDelta": "LIVE_AUDITED_BUSINESS_WRITE: the deploy artifact can now be asked to do the one thing a business system exists for, and it does it. A real POST /customers, carrying a real JSON body and real identity headers, sent over a real socket to the real listener inside the frozen image, commits through the unchanged audited boundary against a real pinned PostgreSQL at the real migration head — and answers a COMMITTED receipt whose ids bind to exactly one customer row, one audit row and one outbox row, each carrying this request's own business. The decision that authorized it is the independently verifiable genesis of that tenant's hash-chained log, recomputed from its own persisted payload rather than trusted. The refusal is proven in the same environment and in the same chain: a request claiming a foreign tenant is refused 403 by the existing identity guard, writes no business row, is filed under the identity the container was trusted with rather than the one it claimed, and the claimed tenant appears in no column of any row of any of the four tables. What this does not add is durability beyond the suite: the environment that carried it deletes itself.",
+  "productClaim": {
+    "runnable": "The audited write runs today: `node --test tests/kernel-deploy-live-audited-write-p22b2.test.mjs` brings up P22B1's environment unchanged, sends one trusted POST /customers over live HTTP inside it, receives a 201 COMMITTED CommitReceipt, and reads back exactly one customer, audit and outbox row plus one independently verifiable decision genesis; it then sends one cross-tenant request, receives the existing 403 CROSS_TENANT_DENY, and proves the refusal wrote no business row and left a chained audited record that never carries the claimed tenant.",
+    "notRunnable": "There is still no runnable product. There is no user interface, no persistent database, no hosted environment and no way for a real person to reach this listener: the environment is created and destroyed by one test run, so the customer saved here exists for seconds and is then deleted with the volume that held it. Closing P22 in the roadmap current truth is P22C, and every readiness flag beyond the four declared true — including deployAllowed, stagingEnvironmentExists, runnableProduct and p22Complete — stays false."
+  },
+  "userJourney": {
+    "once": "Önceden sistem ayağa kalkıyordu ama hiçbir şey kaydetmiyordu. Gönderilen her istek bilerek 'böyle bir yol yok' cevabı alıyordu; kutu açılmıştı, sunucu çalışıyordu, fakat bugüne kadar hiçbir gerçek kayıt hiçbir zaman oluşturulmamıştı ve hiçbir izin kararı kalıcı olarak yazılmamıştı.",
+    "simdi": "Şimdi gerçek bir müşteri kaydı isteği gönderiliyor ve sistem onu gerçekten kaydediyor. Tek istekten sonra veritabanında tam olarak bir müşteri satırı, bir denetim satırı ve bir olay satırı oluşuyor; bu isteğe izin veren kararın kendisi de değiştirilemez bir zincirin ilk halkası olarak yazılıyor ve bu halka, testin yazdığına güvenilerek değil, kendi kayıtlı içeriğinden yeniden hesaplanarak doğrulanıyor.",
+    "fark": "Fark reddedilen istekte en net görülüyor: başkasının kimliğini iddia eden istek 403 ile geri çevriliyor, hiçbir iş satırı yazılmıyor, ama bu ret de aynı zincire ikinci halka olarak işleniyor. Üstelik kayda kabın gerçekten güvendiği kimlik yazılıyor, isteğin iddia ettiği kimlik değil; iddia edilen kimlik dört tablonun hiçbir satırının hiçbir sütununda bulunmuyor.",
+    "kullaniciYolculugu": "Bir CRM kullanıcısı müşteri formunu doldurup kaydet dediğinde artık kaydın gerçekten oluştuğu, kimin ne zaman kaydettiğinin denetim kaydına düştüğü ve başka bir şirketin verisine uzanan bir isteğin hem reddedildiği hem de bu reddin iz olarak kaldığı kanıtlanmış durumda. Ama bu kullanıcı henüz yok: ortada ekran yok, kalıcı veritabanı yok, erişilebilir bir adres yok; kaydedilen müşteri test bitince ortamla birlikte siliniyor.",
+    "kalanEngel": "Kalan engel tek adım: P22C yol haritasındaki güncel gerçeği kapatacak. Onun ötesinde ise gerçek kullanıcıya ulaşmak için kalıcı bir ortam, bir ekran ve ayrı ayrı onaylanması gereken yayına alma kararları gerekiyor; bunların hiçbiri bu pakette yok ve hiçbiri bu paketle açılmıyor."
+  },
+  "residualRisks": [
+    "The write is proven once, inside an environment that deletes itself. Nothing here shows that the same write keeps working, survives a restart, or behaves under concurrency: this is one sequential request followed by one sequential refusal, and durability beyond the life of the suite is not claimed.",
+    "The verification reads run as the database superuser, which bypasses row-level security. That is deliberate and is the only way a sweep can prove a row absent rather than merely invisible, but it means these reads are not the path the application takes: the listener still connects as the NOBYPASSRLS runtime role through its mounted credential, and this package changes no privilege of that role.",
+    "The trusted principal is read from the environment's own mounted config file on the host side. Those are the same bytes bind-mounted read-only into the container and validated by the P22A1 wrapper, but the honest statement is that the file is read beside the container rather than out of it.",
+    "The identity headers this package sends are claims a test process makes; there is no authentication, no session, no token and no credential check anywhere in this path. What is proven is that the guard refuses a claim the trusted principal does not hold — not that a real client could not have been trusted with a different principal in the first place.",
+    "The environment, its digest pin and its bootstrap-phase caveat are P22B1's and are unchanged here, including that Docker is a hard requirement for this suite: a docker-unavailable failure is an environment failure and never a P22B2 capability gap."
+  ],
+  "reviewInstructions": {
+    "snapshotHash": "recompute over the working tree at review time; a changed snapshot invalidates the review",
+    "reviewerMustNotBe": "the session that wrote tests/_harness/live-audited-write-probe.mjs or this manifest",
+    "targetedCommandToReproduce": "node --test tests/kernel-deploy-live-audited-write-p22b2.test.mjs",
+    "sixPreservedSurfaces": "the frozen test recomputes all six sha256 against the working tree, so a review does not have to take this manifest's word for them"
+  }
+}
