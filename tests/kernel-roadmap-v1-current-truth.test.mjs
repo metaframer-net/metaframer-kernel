@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -37,6 +38,74 @@ function loadRoadmap() {
 }
 function readText(rel) {
   return readFileSync(path.join(repoRoot, rel), 'utf8');
+}
+
+// P21A-G merged security evidence. Each entry binds one sub-package to its merged pull request,
+// the passing CI run for that merge commit, and the frozen test file its manifest froze by SHA-256.
+const P21_SECURITY_EVIDENCE = [
+  {
+    pkg: 'P21A',
+    pr: '#128',
+    ciRun: '32997140154',
+    manifest: 'planning/kernel-host-trusted-identity-boundary-p21a.json',
+    frozenTestPath: 'tests/kernel-python-host-bridge-real-pg-allow.test.mjs',
+    frozenTestSha256: '97a8691cfe78c9a9c19f964cf2b0d0bbce0089b424fe2e0a1b5a835586e2b18e',
+  },
+  {
+    pkg: 'P21B',
+    pr: '#129',
+    ciRun: '33003288720',
+    manifest: 'planning/kernel-boundary-authz-deny-zero-write-p21b.json',
+    frozenTestPath: 'tests/kernel-create-customer-asgi-composition.test.mjs',
+    frozenTestSha256: '8c5acc5ef32b961b9491bf7f503439dfae35c71f48b1653ab5857c185c84f2ac',
+  },
+  {
+    pkg: 'P21C',
+    pr: '#130',
+    ciRun: '33010709401',
+    manifest: 'planning/kernel-boundary-decision-audit-p21c.json',
+    frozenTestPath: 'tests/kernel-boundary-decision-audit-p21c.test.mjs',
+    frozenTestSha256: '5bc3a259631776b05a18d7f91276815e6e3d522d9f8e2b69f64c73ef3bd54cab',
+  },
+  {
+    pkg: 'P21D',
+    pr: '#131',
+    ciRun: '33015412681',
+    manifest: 'planning/kernel-audited-asgi-boundary-composition-p21d.json',
+    frozenTestPath: 'tests/kernel-audited-asgi-boundary-composition-p21d.test.mjs',
+    frozenTestSha256: 'b96cf79eb60010f0d81052da35064d219ac35dae5d5905e3c726be6c32c316e2',
+  },
+  {
+    pkg: 'P21E',
+    pr: '#132',
+    ciRun: '33019320390',
+    manifest: 'planning/kernel-identity-guard-decision-audit-p21e.json',
+    frozenTestPath: 'tests/kernel-identity-guard-decision-audit-p21e.test.mjs',
+    frozenTestSha256: '8c62e044e5e7d52f48b9df74f9426552e99f30a3984f8612ad56fef72815c135',
+  },
+  {
+    pkg: 'P21F',
+    pr: '#133',
+    ciRun: '33023129130',
+    manifest: 'planning/kernel-audited-host-runner-p21f.json',
+    frozenTestPath: 'tests/kernel-audited-host-runner-p21f.test.mjs',
+    frozenTestSha256: '06de7a1a7e0a441ce2ac422b1af90fd555cb409e6781aece57a9145acccb7fca',
+  },
+  {
+    pkg: 'P21G',
+    pr: '#134',
+    ciRun: '33027876043',
+    manifest: 'planning/kernel-security-dependency-secret-scan-p21g.json',
+    frozenTestPath: 'tests/kernel-security-dependency-secret-scan-p21g.test.mjs',
+    frozenTestSha256: '70e5a6bdbcb32452a8ef867ddff8a904cc1831efb637de1b60fec4579d146cbf',
+  },
+];
+
+// The separate Security-workflow run on the #134 merge commit, distinct from that merge's ci.yml run.
+const P21G_SECURITY_WORKFLOW_RUN = '33027876143';
+
+function sha256File(rel) {
+  return createHash('sha256').update(readFileSync(path.join(repoRoot, rel))).digest('hex');
 }
 
 test('roadmap is 25 atomic packages across 8 delivery phases/families, never called "25 phases", across all four projections', () => {
@@ -148,7 +217,7 @@ test('global readiness truth is all false and current truth names real existing 
   assert.doesNotMatch(missing, /\boutbox relay\b/i);
   assert.doesNotMatch(missing, /\(P18\)/);
   assert.match(missing, /scheduler|loop|retry policy|dead-letter|DLQ/i);
-  assert.match(missing, /P21-P25|P21–P25/);
+  assert.match(missing, /P22-P25|P22–P25/);
   assert.doesNotMatch(missing, /P20-P25|P20–P25/);
   assert.doesNotMatch(t.notRunnableProductClaim, /only the S1.*and isolated ASGI/i);
   assert.doesNotMatch(t.notRunnableProductClaim, /no SDK, app, module or delivery ring/i);
@@ -202,17 +271,20 @@ test('execution model caps writer lanes at 3 and declares shared locks', () => {
   assert.ok(Array.isArray(doc.execution.sharedLocks) && doc.execution.sharedLocks.length > 0);
 });
 
-test('owner-facing fields declare capability_delta OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY, hosted SaaS still not-runnable', () => {
+test('owner-facing fields declare capability_delta KERNEL_BOUNDARY_SECURITY_AUDIT_AND_SUPPLY_CHAIN_GATE at 21/25 with P22 active, hosted SaaS still not-runnable', () => {
   const doc = loadRoadmap();
   const o = doc.ownerFacing;
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, 'OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY');
-  assert.equal(o.calistirilabilirlik, 'outbox-relay-performance-baseline-hosted-product-not-runnable');
+  assert.equal(o.capability_delta, 'KERNEL_BOUNDARY_SECURITY_AUDIT_AND_SUPPLY_CHAIN_GATE');
+  assert.equal(o.calistirilabilirlik, 'kernel-boundary-security-audited-hosted-product-not-runnable');
   const ownerText = JSON.stringify(o);
+  assert.match(ownerText, /21\/25/);
+  assert.match(ownerText, /P22/);
   assert.match(ownerText, /hosted/i);
-  assert.match(ownerText, /not-runnable|calismaz|calismiyor/i);
+  assert.match(ownerText, /not-runnable|calismaz|calismiyor|çalışmıyor/i);
+  assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 });
 
 test('ROADMAP.md and README.md project the same corrected structure', () => {
@@ -238,18 +310,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 20/25 completed truth with P20 closed and P21 active', () => {
+test('roadmap.progress carries the exact 21/25 completed truth with P21 closed and P22 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, 20);
+  assert.equal(progress.completed, 21);
   assert.equal(progress.total, 25);
-  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18', 'P19', 'P20']);
+  assert.deepEqual([...progress.completedPackages].sort(), ['P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', 'P09', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18', 'P19', 'P20', 'P21']);
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, 'P21');
-  assert.equal(progress.asOfKernelMain, 'ab1b0146b11e2ad1a775a8936c81d72062f5a439');
-  assert.equal(progress.statusLine, '20/25 tamamlandı, P21/25 aktif');
+  assert.equal(progress.activePackage, 'P22');
+  assert.equal(progress.asOfKernelMain, 'cc86cf6385d9c66ef50e72c10618c6f496e71732');
+  assert.equal(progress.statusLine, '21/25 tamamlandı, P22/25 aktif');
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -263,41 +335,93 @@ test('roadmap.progress carries the exact 20/25 completed truth with P20 closed a
   }
 });
 
-test('currentTruth reflects P20 (performance baseline) as implemented, anchored to real merged PR #126 evidence, and P21 (security) as the explicit next-missing piece, with P22-P25 proof also missing, all readiness flags false, and hosted SaaS still not-runnable', () => {
+test('currentTruth reflects P21 (security) as implemented through the merged P21A-G evidence bound to its frozen manifests, with P22-P25 production proof still missing, all readiness flags false, and hosted SaaS still not-runnable', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
-
   const implemented = t.implementedPieces.join(' | ');
-  assert.match(implemented, /summarize_relay_performance/);
-  assert.match(implemented, /RelayPerformanceBaseline/);
-  assert.match(implemented, /nearest.?rank.*p95.*p99|p95.*p99.*nearest.?rank/i);
-  assert.match(implemented, /measured fairness/i);
-  assert.match(implemented, /seconds.?per.?published/i);
-  assert.match(implemented, /#126/);
-  assert.match(implemented, /32982906594/);
-  assert.match(implemented, /P20/);
+
+  // Each P21 sub-package is bound to its merged pull request, the passing CI run for that merge,
+  // and the frozen test file its manifest froze by SHA-256.
+  for (const e of P21_SECURITY_EVIDENCE) {
+    assert.ok(implemented.includes(e.pkg), `implementedPieces must name ${e.pkg}`);
+    assert.ok(implemented.includes(e.pr), `implementedPieces must cite ${e.pkg} PR ${e.pr}`);
+    assert.ok(implemented.includes(e.ciRun), `implementedPieces must cite the ${e.pr} CI run ${e.ciRun}`);
+    assert.ok(implemented.includes(e.frozenTestPath), `implementedPieces must cite ${e.pkg} frozen test ${e.frozenTestPath}`);
+
+    const manifestFile = path.join(repoRoot, e.manifest);
+    assert.ok(existsSync(manifestFile), `${e.pkg} manifest ${e.manifest} must exist as frozen evidence`);
+    const manifest = JSON.parse(readFileSync(manifestFile, 'utf8'));
+    assert.equal(manifest.frozenTestPath, e.frozenTestPath, `${e.pkg} manifest frozenTestPath mismatch`);
+    assert.equal(manifest.frozenTestSha256, e.frozenTestSha256, `${e.pkg} manifest frozenTestSha256 mismatch`);
+    assert.ok(existsSync(path.join(repoRoot, e.frozenTestPath)), `${e.pkg} frozen test ${e.frozenTestPath} must exist`);
+    assert.equal(sha256File(e.frozenTestPath), e.frozenTestSha256, `${e.pkg} frozen test ${e.frozenTestPath} has drifted from its manifest SHA-256`);
+  }
+  assert.ok(implemented.includes(P21G_SECURITY_WORKFLOW_RUN), `implementedPieces must cite the Security workflow run ${P21G_SECURITY_WORKFLOW_RUN}`);
+
+  // The security substance itself, not only the package labels.
+  for (const [term, label] of [
+    [/--trusted-tenant-id/, 'P21A trusted tenant input'],
+    [/--trusted-actor-id/, 'P21A trusted actor input'],
+    [/default deny/i, 'P21B closed default deny'],
+    [/zero.?write/i, 'P21B deny zero-write proof'],
+    [/policy_decision_log/, 'P21C decision log table'],
+    [/prev_hash|hash.?chain/i, 'P21C hash chain'],
+    [/createAuditedCustomerAsgiComposition/, 'P21D audited ASGI composition'],
+    [/createAuditedCustomerComposition/, 'P21E audited composition'],
+    [/identity guard/i, 'P21E identity-guard refusal audit'],
+    [/--audit on/, 'P21F opt-in audit flag'],
+    [/host runner/i, 'P21F audited host runner'],
+    [/\.github\/workflows\/security\.yml/, 'P21G security workflow'],
+    [/npm audit/i, 'P21G npm dependency audit'],
+    [/pip-audit/i, 'P21G Python dependency audit'],
+    [/trufflehog|digest-pinned scanner/i, 'P21G pinned secret scanner'],
+    [/tracked (tree|snapshot)/i, 'P21G current-tree secret scan'],
+    [/PostgreSQL 16|real PostgreSQL/i, 'real-substrate proof'],
+    [/P20/, 'P20 performance baseline must remain named'],
+  ]) {
+    assert.match(implemented, term, `implementedPieces missing ${label}`);
+  }
 
   const missing = t.notImplementedPieces.join(' | ');
-  assert.doesNotMatch(missing, /\(P20\)/);
-  assert.doesNotMatch(missing, /\bperformance\b(?!\s*(baseline|proof|threshold))/i);
-  assert.match(missing, /calibrated SLA|threshold/i);
-  assert.match(missing, /sustained load|concurrency|noisy.?neighbor/i);
-  assert.match(missing, /dollar.?cost|optimizer/i);
-  assert.match(missing, /exporter|dashboard|alert transport|scheduler|DLQ|live host/i);
-  assert.match(missing, /P21/);
-  assert.match(missing, /production proof/i);
-  assert.match(missing, /P21-P25|P21–P25/);
+  assert.doesNotMatch(missing, /\(P21\)/, 'P21 is closed and must not be listed as not implemented');
+  assert.doesNotMatch(missing, /P21-P25|P21–P25/, 'the P21-P25 range claim is stale at 21/25');
+  assert.doesNotMatch(missing, /P20-P25|P20–P25/);
+  assert.match(missing, /P22-P25|P22–P25/, 'the remaining production-proof range is P22-P25');
+  for (const [term, label] of [
+    [/deploy package|staging/i, 'P22 deploy package/staging'],
+    [/HA\/DR|upgrade rollback/i, 'P23 HA/DR/upgrade rollback'],
+    [/consumer teams|external proof/i, 'P24 external consumer proof'],
+    [/promotion gate/i, 'P25 promotion gates'],
+    [/production proof/i, 'production proof'],
+    [/live entrypoint|live host|host wiring/i, 'live entrypoint/host wiring'],
+  ]) {
+    assert.match(missing, term, `notImplementedPieces missing ${label}`);
+  }
 
-  const relayTestFile = path.join(repoRoot, 'db', 'tests', 'test_outbox_relay_performance_baseline.py');
-  assert.ok(existsSync(relayTestFile), 'db/tests/test_outbox_relay_performance_baseline.py must exist as P20 frozen evidence');
-  const perfModuleFile = path.join(repoRoot, 'db', 'metaframer_kernel_db', 'performance.py');
-  assert.ok(existsSync(perfModuleFile), 'db/metaframer_kernel_db/performance.py must exist as P20 frozen evidence');
-
-  const frozenTestSource = readFileSync(relayTestFile, 'utf8');
-  const frozenTestCount = (frozenTestSource.match(/^def test_/gm) || []).length;
-  assert.equal(frozenTestCount, 3, 'P20 frozen test file must carry exactly 3 real PostgreSQL test_ scenarios');
-  assert.match(frozenTestSource, /\[5, 0, 0\]/, 'must cover the clean-then-empty [5,0,0] published_count evidence');
-  assert.match(frozenTestSource, /allowed_ids/, 'must cover identity-level allowed_ids tenant-isolation evidence');
+  // The explicit P21 residuals: what the closed security package still does not do.
+  for (const [term, label] of [
+    [/opt-in|--audit on|default(-| )off/i, 'the audit is opt-in and default-off'],
+    [/login|session/i, 'no real login or session surface'],
+    [/managed policy/i, 'no managed policy source'],
+    [/from the caller|caller-supplied|process input/i, 'caller/process-supplied identity and policy candidates'],
+    [/no host server is selected|network listener/i, 'no selected host and no listener'],
+    [/query|reporting|retention|export/i, 'no decision-log query/report/retention/export'],
+    [/tracked tree only|current tracked (tree|snapshot)/i, 'current-tree-only scan'],
+    [/Git history/i, 'the Git history is unscanned'],
+    [/runtime secret|environment variable|deployment configuration/i, 'runtime secrets are uncovered'],
+    [/secret store/i, 'no CI secret store coverage'],
+    [/detector/i, 'detector blind spot'],
+    [/advisory databas|moving floor|published tomorrow/i, 'advisory blind spot'],
+    [/development-only depend|dev depend|omit=dev/i, 'npm development-dependency blind spot'],
+    [/pre-commit|local[^|]{0,60}(secret|scan)/i, 'no local secret gate'],
+    [/branch.?protection/i, 'supply-chain-and-secret-scan is not a required branch-protection context'],
+    [/required (status )?(check|context)/i, 'not a required merge check'],
+    [/DAST|dynamic application security testing/i, 'no DAST until a host exists'],
+    [/Actionplan/i, 'no Actionplan node writeback'],
+    [/writeback|write-back|write back/i, 'no Actionplan node writeback'],
+  ]) {
+    assert.match(missing, term, `notImplementedPieces missing residual: ${label}`);
+  }
 
   for (const key of ['kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed', 'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct']) {
     assert.equal(t[key], false, `${key} must remain false`);
@@ -307,36 +431,44 @@ test('currentTruth reflects P20 (performance baseline) as implemented, anchored 
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, 'OUTBOX_RELAY_PERFORMANCE_BASELINE_PURE_SUMMARY');
+  assert.equal(o.capability_delta, 'KERNEL_BOUNDARY_SECURITY_AUDIT_AND_SUPPLY_CHAIN_GATE');
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /20\/25/);
-  assert.match(ownerText, /P21/);
+  assert.match(ownerText, /21\/25/);
+  assert.match(ownerText, /P22/);
   assert.match(ownerText, /hosted/i);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 
   assert.doesNotMatch(t.notRunnableProductClaim, /(?<!\bNo\b[^.]{0,80})\bis runnable end-to-end\b/i);
   assert.match(t.notRunnableProductClaim, /No SaaS user journey.*runnable end-to-end/is);
-  assert.match(t.notRunnableProductClaim, /exporter|dashboard|alert transport|scheduler|DLQ|live host/i);
+  assert.match(t.notRunnableProductClaim, /no host server is selected|live host|listener|live entrypoint/i);
+  assert.match(t.notRunnableProductClaim, /P22-P25|P22–P25/);
 });
 
-test('ROADMAP.md, README.md and CHANGELOG.md project P20 closed / P21 active, with no runnable or readiness overclaim', () => {
+test('ROADMAP.md, README.md and CHANGELOG.md project P21 closed / P22 active, with no runnable, readiness or merge-blocking overclaim', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.match(roadmap, /20\/25 tamamlandı, P21\/25 aktif/);
-  assert.match(roadmap, /P20/);
+  assert.match(roadmap, /21\/25 tamamlandı, P22\/25 aktif/);
   assert.match(roadmap, /P21/);
+  assert.match(roadmap, /P22/);
   assert.doesNotMatch(roadmap, /\bis runnable\b/i);
 
   const readme = readText('README.md');
-  assert.match(readme, /20\/25 tamamlandı, P21\/25 aktif/);
+  assert.match(readme, /21\/25 tamamlandı, P22\/25 aktif/);
   assert.doesNotMatch(readme, /\bis runnable\b/i);
 
   const changelog = readText('CHANGELOG.md');
   const unreleasedIdx = changelog.indexOf('## [Unreleased]');
+  assert.ok(unreleasedIdx >= 0);
   const unreleased = changelog.slice(unreleasedIdx);
-  assert.match(unreleased, /P20/);
-  assert.match(unreleased, /#126/);
-  assert.match(unreleased, /32982906594/);
+  assert.match(unreleased, /P21/);
+  for (const e of P21_SECURITY_EVIDENCE) {
+    assert.ok(unreleased.includes(e.pr), `CHANGELOG Unreleased must cite ${e.pkg} PR ${e.pr}`);
+    assert.ok(unreleased.includes(e.ciRun), `CHANGELOG Unreleased must cite the ${e.pr} CI run ${e.ciRun}`);
+  }
+  assert.ok(unreleased.includes(P21G_SECURITY_WORKFLOW_RUN), `CHANGELOG Unreleased must cite the Security workflow run ${P21G_SECURITY_WORKFLOW_RUN}`);
+  assert.match(unreleased, /\.github\/workflows\/security\.yml/);
   assert.match(unreleased, /roadmap-v1-current-truth\.json/);
-  assert.match(unreleased, /20\/25 tamamlandı, P21\/25 aktif/);
+  assert.match(unreleased, /21\/25 tamamlandı, P22\/25 aktif/);
   assert.doesNotMatch(unreleased, /\bis runnable\b/i);
+  assert.doesNotMatch(unreleased, /\b(blocks|blocking|prevents) (the )?merges?\b/i, 'the security workflow is not a required merge gate today');
+  assert.doesNotMatch(unreleased, /merges? (is|are) blocked\b/i, 'the security workflow is not a required merge gate today');
 });

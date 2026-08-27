@@ -650,7 +650,24 @@ P21 (security) as the active package; this adds the `OUTBOX_RELAY_PERFORMANCE_BA
 capability delta, wires no calibrated SLA/threshold, sustained load/concurrency/noisy-neighbor
 proof, dollar-cost/optimizer proof, exporter, dashboard, alert transport, scheduler/loop or live
 entrypoint/host, and a hosted product remains not-runnable with no global readiness flag under
-**Current status** moved.
+**Current status** moved. A further roadmap current-truth package has since synced the
+counter again to `21/25 tamamlandı, P22/25 aktif`, closing P21 (security) with seven merged
+sub-packages — P21A binding the host boundary's real-database ALLOW path to trusted process
+inputs (`--trusted-tenant-id`, `--trusted-actor-id`; PR #128, CI run 32997140154), P21B proving
+the authorization deny path writes nothing on a real PostgreSQL 16 substrate (PR #129, CI run
+33003288720), P21C appending every boundary decision to the append-only, `prev_hash`-chained
+`policy_decision_log` before the invariant stage (PR #130, CI run 33010709401), P21D carrying
+that audited boundary to the ASGI callable via `createAuditedCustomerAsgiComposition` (PR #131,
+CI run 33015412681), P21E auditing identity-guard refusals via `createAuditedCustomerComposition`
+(PR #132, CI run 33019320390), P21F adding the opt-in `--audit on` audited host runner (PR #133,
+CI run 33023129130), and P21G adding `.github/workflows/security.yml` with `npm audit`,
+`pip-audit` and a digest-pinned TruffleHog scan of the current tracked tree (PR #134, CI run
+33027876043 plus its separate Security workflow run 33027876143) — with P22 (deploy
+package/staging) as the active package; this adds the
+`KERNEL_BOUNDARY_SECURITY_AUDIT_AND_SUPPLY_CHAIN_GATE` capability delta, leaves the audit opt-in
+and default-off, selects no host server, starts no network listener, scans no Git history, is not
+a required status check under branch protection, and a hosted product remains not-runnable with
+no global readiness flag under **Current status** moved.
 
 ## Authorized order and what remains closed
 

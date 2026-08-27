@@ -31,18 +31,26 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`20/25 tamamlandı, P21/25 aktif` (`roadmap.progress` in
+`21/25 tamamlandı, P22/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
 packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15, P16, P17,
-P18, P19, P20. P20 (performance) is closed — `db/metaframer_kernel_db/performance.py`'s
-`summarize_relay_performance` computes a deterministic RelayPerformanceBaseline (nearest-rank
-p95/p99, published/failed totals, a measured seconds-per-published proxy, sorted per-tenant p95
-and a measured fairness ratio) — test-verified against real PostgreSQL 16 across 3 scenarios
-(PR #126 with a passing CI run 32982906594), a pure summarizer only, no calibrated SLA/threshold,
-sustained load/concurrency/noisy-neighbor proof, dollar-cost/optimizer proof, exporter, dashboard,
-alert transport, scheduler, or live entrypoint/host wiring. P21 (security) is the active package
-and the next explicit gap; none of this makes a hosted product runnable and none of it moves any
-global readiness flag under [README.md](README.md) `## Current status`.
+P18, P19, P20, P21. P21 (security) is closed by seven merged sub-packages: P21A binds the host
+boundary's real-database ALLOW path to trusted process inputs (`--trusted-tenant-id`,
+`--trusted-actor-id`; PR #128, CI run 32997140154); P21B proves the authorization deny path writes
+nothing on a real PostgreSQL 16 substrate (PR #129, CI run 33003288720); P21C appends every
+boundary decision to the append-only, `prev_hash`-chained `policy_decision_log` before the
+invariant stage (PR #130, CI run 33010709401); P21D carries that audited boundary to the ASGI
+callable via `createAuditedCustomerAsgiComposition` (PR #131, CI run 33015412681); P21E audits
+identity-guard refusals via `createAuditedCustomerComposition` (PR #132, CI run 33019320390);
+P21F adds the opt-in `--audit on` audited host runner (PR #133, CI run 33023129130); and P21G
+adds `.github/workflows/security.yml` running `npm audit`, `pip-audit` and a digest-pinned
+TruffleHog scan of the current tracked tree (PR #134, CI run 33027876043 plus its separate
+Security workflow run 33027876143). The audit stays opt-in and default-off, no host server is
+selected, no network listener exists, the Git history is unscanned, and
+`supply-chain-and-secret-scan` is not a required status check under branch protection. P22
+(deploy package/staging) is the active package and the next explicit gap; none of this makes a
+hosted product runnable and none of it moves any global readiness flag under
+[README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG
 
