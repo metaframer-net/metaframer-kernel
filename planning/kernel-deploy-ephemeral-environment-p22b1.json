@@ -1,0 +1,202 @@
+{
+  "package": "kernel-deploy-ephemeral-environment-p22b1",
+  "title": "P22B1 — one ephemeral live environment and the live HTTP proof that runs inside it",
+  "class": "security-test-conformance",
+  "base": "29c9fac3f640743db1c75b1123ef2feb5afcfe85",
+  "baseTree": "5fa161a7a5084eb62a1510bfc439df4d78906fe6",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "frozenTestPath": "tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs",
+  "frozenTestSha256": "aef0f0ca2eb34147f75725f8ef302d2c60ec61da2e8ca9921c8075fac69873e9",
+  "allowedFiles": [
+    "tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs",
+    "tests/_harness/live-http-postgres-environment.mjs",
+    "planning/kernel-deploy-ephemeral-environment-p22b1.json"
+  ],
+  "problem": "P22A1 fixed the argument shape a mounted credential travels in and P22A2 froze the image that carries it, but neither ever started anything. Nothing in this repository had yet proven that the audited boundary answers a REAL HTTP request, over a real socket, from a real server, against a real database. Every existing proof either drove the JS runner directly over stdio or drove a Python bridge in-process; the parts had been tested, the assembly had not. Without that assembly there was no way to tell an image that merely contains a server from an image that can actually serve, and no way to see whether the mounted credential survives contact with a running listener rather than a one-shot process that exits before anything can observe it.",
+  "solution": "One test-only harness, tests/_harness/live-http-postgres-environment.mjs, builds exactly one ephemeral environment and deletes it again. A digest-pinned PostgreSQL 16.15 is brought up, migrated to the real head 0003_policy_decision_log by the REAL alembic revisions under the real mfk_migration/mfk_runtime role split, and then re-served on a unique internal network with no published host port. The UNCHANGED P22A2 image is started beside it under --read-only, --tmpfs /tmp, --cap-drop ALL and --security-opt no-new-privileges, as its own numeric non-root user, with the credential arriving only as a read-only mounted file — and with its own installed Uvicorn 0.40.0 launched through a run-time entrypoint override onto the EXISTING console entry, so no image file is edited and the image's own entrypoint and command stay exactly what P22A2 froze. Because the database publishes nothing and the application publishes nothing, every later read goes back in through docker exec: SQL through the database's own psql over its local trusted socket, HTTP through the application container's own node against 127.0.0.1. The migration is the one step this host cannot reach an unpublished database for, so it runs in a bootstrap phase against the same named volume on the default bridge and the volume is then re-served by the container the suite judges. Teardown removes exactly what this run's unique label names, is idempotent, and runs from a finally block.",
+  "acceptanceScenarios": [
+    {
+      "id": "P22B1-1",
+      "title": "the harness declares a frozen contract that pins the database, targets the EXISTING image definition, console entry and P22A1 wrapper, and bounds every wait",
+      "asserts": "The harness exports exactly LIVE_ENVIRONMENT_CONTRACT, collectLabelledResources, startLiveEnvironment and stopLiveEnvironment; the contract is frozen and fixes the digest-pinned PostgreSQL image, both role names, host/deploy/Dockerfile, host/python_asgi/create_customer_host_cli.py, the uvicorn runner, the P22A1 wrapper path inside the image, the secret mount directory, port 8000, that no host port is published, that the network is internal, and the label key and value prefix; the four hardening flags are recorded in order; nothing in the contract is privileged; every one of the five timeout keys is a finite positive bound of at most 900000ms; the harness defines no image of its own; and the existing Dockerfile still enters through the P22A1 wrapper on mounted secret-file paths."
+    },
+    {
+      "id": "P22B1-2",
+      "title": "a real pinned PostgreSQL 16.15 comes up on an isolated internal network at the real migration head, and the runtime role cannot change the schema it serves",
+      "asserts": "The database really runs the pinned image, really reports server_version 16.15 with a server_version_num inside the 16 series, publishes no host port, and sits on a uniquely named per-run network to which both containers are attached and to which nothing else is; alembic_version really reads 0003_policy_decision_log; audit_log, customer_records, policy_decision_log and transactional_outbox all exist; and CREATE TABLE, ALTER TABLE ADD COLUMN and DROP TABLE as mfk_runtime are each refused by PostgreSQL itself with SQLSTATE 42501, after which the public schema's table list is byte-identical to what it was before."
+    },
+    {
+      "id": "P22B1-3",
+      "title": "the UNCHANGED P22A2 image serves live HTTP from its own installed Uvicorn under full hardening, answers every exercised route with a refusal, and writes nothing",
+      "asserts": "The image's own entrypoint is still the P22A1 wrapper and its default command is still exactly the two mounted secret-file paths, so Uvicorn is a run-time override and not an image edit; the running container keeps the image's numeric non-zero user, a read-only rootfs, a tmpfs /tmp, CapDrop ALL and no-new-privileges, and publishes no port at all; the server is exactly the hash-locked uvicorn 0.40.0 and its own log shows it bound port 8000; GET /healthz, POST /healthz and GET /customers answered from inside the container return 404/404/405 carrying the real router's ROUTE_NOT_FOUND and METHOD_NOT_SUPPORTED envelopes with retryable false; and all four runtime tables are still empty."
+    },
+    {
+      "id": "P22B1-4",
+      "title": "neither the deploy URL nor its password reaches any of the six observable surfaces, and stopping the environment is idempotent and complete",
+      "asserts": "The harness collects exactly the six silent surfaces plus the mounted-file positive control; the mounted file really carries the runtime credential the environment runs on; each of argv, env, inspect, logs, image and proc is really collected, is non-empty, and carries neither the runtime password nor any connection string; the first stop tears the environment down, a second stop succeeds rather than throwing and reports that it removed nothing; no labelled container, network, image tag or secret directory survives; and the temporary host secret directory is gone from disk."
+    },
+    {
+      "id": "P22B1-5",
+      "title": "the planning manifest binds this package to its base, its blind-frozen scope, its three allowed files, its measured metrics, its rollback and its unchanged readiness",
+      "asserts": "This manifest records the immutable base commit and tree, the canonical Actionplan change-package budget pin, the frozen test path and its recomputed sha256, the exact targeted command, the P22B1 scope synthesis, parent and blind-frozen scope hashes and the sha256 of the rejected earlier test, the P22A1/P22A2 delivered pair and the outstanding P22B2/P22C remainder, the unmoved 21/25 counter, the pinned database image and migration head, one-writer provenance with a separate read-only reviewer, the rollback with every untouched surface, measured Git metrics over exactly three files inside the class ceiling with the conditional band and all seven canonical gates drawn explicitly and no waiver, the nineteen-flag readiness set with exactly runtimeImplementationStarted, hostServerSelectedForDeployArtifact and networkListenerStarted true, the declared non-goals, the fixed capability-delta prefix, both product claims and the five Turkish owner-facing fields."
+    }
+  ],
+  "splitEvidence": {
+    "thisPackage": "P22B1",
+    "counter": "21/25",
+    "scopeSynthesisName": "P22B1_SCOPE_SYNTHESIS_V1",
+    "scopeSynthesisSha256": "24e53a3f4231627d6fbba3378e1707c5a264db298753ed03686216c3f4991117",
+    "parentScopeSha256": "f7a1dd4042b9e65ed510389435b8632930f2374da6c35993f6d89ae2e0476efc",
+    "blindScopeSha256": "3f98f650575bc3c62354cb5deaf9653d4b7ad4e0c8a5e17dcd049d33376e784d",
+    "rejectedTestSha256": "a678ef233561337b58fd20ca377f7e8a3ab65995ad925cd6ef5af4b93530e3f0",
+    "blindScopeDetermination": "The blind scope was frozen and hashed before either side saw the other; P22B1_SCOPE_SYNTHESIS_V1 is the reconciled result and is the only scope this package was written against. The rejected earlier test is recorded by sha256 so it can never be revived as this package's frozen test.",
+    "delivered": ["P22A1", "P22A2"],
+    "remaining": ["P22B2", "P22C"],
+    "remainingOwnership": {
+      "P22B2": "the audited business write over live HTTP, with the durable decision record it leaves behind",
+      "P22C": "roadmap current-truth closure for P22"
+    }
+  },
+  "environmentPins": {
+    "postgresImage": "postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+    "migrationHead": "0003_policy_decision_log",
+    "uvicornVersion": "0.40.0",
+    "digestKind": "multiarch-index",
+    "whyIndexDigest": "A tag is a mutable pointer: postgres:16.15-alpine3.24 can be republished, and then this proof silently ran against a different server than the one it was reviewed against. The index digest also keeps amd64 and arm64 on the same frozen release. It pins the input only, and makes no claim about the output."
+  },
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs",
+    "regressionGuards": [
+      "node --test tests/kernel-deploy-secret-boundary-p22a1.test.mjs",
+      "node --test tests/kernel-deploy-oci-image-p22a2.test.mjs",
+      "node --test tests/kernel-python-host-runner-cli.test.mjs"
+    ],
+    "fullQaExecutionsAllowed": 2,
+    "fullQaByWriter": "npm test && npm run check",
+    "fullQaBySecondGate": "CI"
+  },
+  "budget": {
+    "class": "security-test-conformance",
+    "band": "conditional",
+    "ceilingSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "actual": { "grossAdditions": 793, "grossDeletions": 0, "net": 793, "changedFiles": 3 },
+    "conditionalDeliveryGates": [
+      {
+        "gate": "single-narrow-problem",
+        "state": "GREEN",
+        "evidence": "One problem only: does the frozen deploy artifact really serve HTTP against a real migrated database, and does the environment that proves it delete itself. No audited write, no persistence, no staging, no registry, no deployment, no image edit, no roadmap edit."
+      },
+      {
+        "gate": "bounded-file-set",
+        "state": "GREEN",
+        "evidence": "Exactly three files, declared in allowedFiles before the first write and unchanged since. One is the frozen test the writer did not author and did not edit; the other two are new and test-only. No src module, no host module, no image file, no schema, no dependency and no workflow is touched."
+      },
+      {
+        "gate": "no-redundant-repetition",
+        "state": "GREEN",
+        "evidence": "Nothing is reimplemented. The schema comes from the real alembic revisions, the role split and grant shape are the ones the existing P21F substrate test already established, the server is the image's own installed Uvicorn reached through the existing console entry, the boundary is the existing P22A1 wrapper, and the router envelopes come from the real StandardRouter. The harness contributes orchestration and teardown, and no second copy of any of them."
+      },
+      {
+        "gate": "no-quality-tradeoff",
+        "state": "GREEN",
+        "evidence": "The database is digest-pinned and publishes no host port; the network is internal and unique per run; the application runs read-only, capability-dropped, no-new-privileges, as a numeric non-root user, with no published port and the credential only as a read-only mounted file; the runtime role is proven unable to change the schema by PostgreSQL's own SQLSTATE 42501 rather than by anything this repository wrote; every Docker, uv and process wait is bounded by a declared timeout; and teardown is exact-label, idempotent and safe on a partially started environment."
+      },
+      {
+        "gate": "full-green",
+        "state": "PENDING",
+        "evidence": "Targeted RED-to-GREEN plus three narrow regressions are the writer's; one full local QA run is the writer's single budgeted execution and the CI full run is the second. Recorded by the reviewer, not asserted here."
+      },
+      {
+        "gate": "fresh-reviewer-accept",
+        "state": "PENDING",
+        "evidence": "A separate read-only session on this immutable snapshot must accept the package. The writer cannot review the package the writer wrote, and any change to the snapshot invalidates the review."
+      },
+      {
+        "gate": "explicit-rollback",
+        "state": "GREEN",
+        "evidence": "Deleting tests/_harness/live-http-postgres-environment.mjs and this manifest (and the frozen test if the whole package is withdrawn) returns the tree to base 5fa161a7a5084eb62a1510bfc439df4d78906fe6. Every Docker resource the harness creates is labelled with a per-run unique value and removed by the same run, so nothing outside this checkout has to be undone."
+      }
+    ]
+  },
+  "provenance": {
+    "singleWriter": true,
+    "writerRole": "claude-implementation-writer",
+    "reviewerMustBeSeparateSession": true,
+    "reviewerIsReadOnly": true,
+    "testAuthoring": "claude-only",
+    "writerDidNotAuthorFrozenTest": true,
+    "frozenTestUnedited": true
+  },
+  "rollback": {
+    "mechanism": "Delete tests/_harness/live-http-postgres-environment.mjs and planning/kernel-deploy-ephemeral-environment-p22b1.json, and the frozen test if the whole package is withdrawn. No existing file was modified, so this restores the base tree exactly.",
+    "blastRadius": "Confined to two new test-only files plus the frozen test. No src module, no host module, no image definition, no schema, no migration, no dependency, no lock, no workflow and no running system is touched. Everything the harness creates outside the tree — one image tag, one network, two containers, one volume and one temporary secret directory — carries this run's unique label and is removed by this run.",
+    "compensatingStepRequired": false,
+    "compensatingStepReason": "The environment is ephemeral by construction: it is stopped inside the suite that creates it, and its containers, network, volume, image tag and temporary host secret directory are removed before the run exits. Nothing was pushed, deployed, promoted or persisted, so there is no external effect to compensate for.",
+    "srcUntouched": true,
+    "hostDeployImageUntouched": true,
+    "secretFileRunnerUntouched": true,
+    "hostModulesUntouched": true,
+    "dbUntouched": true,
+    "ciUntouched": true,
+    "dependenciesUntouched": true
+  },
+  "readinessFlags": {
+    "runtimeImplementationStarted": true,
+    "hostServerSelectedForDeployArtifact": true,
+    "networkListenerStarted": true,
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false,
+    "p22Complete": false,
+    "stagingEnvironmentExists": false,
+    "stagingRunPerformed": false,
+    "productionHostSelected": false,
+    "registryPushed": false,
+    "externalDeploymentPerformed": false,
+    "liveHttpAuditProven": false
+  },
+  "nonGoals": [
+    "No audited write is performed or proven: every route this package exercises is a refusal, all four runtime tables stay empty, and the durable decision record over live HTTP is P22B2's.",
+    "No persistent environment is created: the database volume, both containers, the network, the image tag and the temporary host secret directory are removed before the run exits.",
+    "No staging environment exists and no staging run is performed; an ephemeral environment that deletes itself is neither.",
+    "No registry is contacted, authenticated against, tagged for or pushed to; the image exists only in a local build cache under a per-run tag.",
+    "No deployment, promotion or external environment change is performed or implied.",
+    "No host port is published for the application, and none for the database in the environment under test; the listener is reachable only from inside the isolated network.",
+    "No image file is written or edited: host/deploy/Dockerfile, host/deploy/Dockerfile.dockerignore and host/deploy/requirements-uvicorn.txt are exactly what P22A2 delivered, and Uvicorn is started by a run-time entrypoint override.",
+    "No src module, host module, schema, migration, dependency, lock or CI workflow is modified.",
+    "No roadmap document is edited and no phase counter is advanced.",
+    "No current-truth closure is written; P22C alone closes P22 in the roadmap current truth.",
+    "No production host is selected and no readiness flag beyond the declared set is introduced."
+  ],
+  "capabilityDelta": "EPHEMERAL_LIVE_HTTP_ENVIRONMENT: the deploy artifact can now be stood up, driven and torn down as a real running system. One command brings up a digest-pinned PostgreSQL 16.15 at the real migration head under the real role split, starts the unchanged P22A2 image beside it under full hardening with its own installed Uvicorn, answers real HTTP requests from inside the isolated network with the real router's refusal envelopes, and proves the mounted credential reaches none of six observable surfaces while the listener is running. It also proves the runtime role cannot change the schema it serves, by PostgreSQL's own refusal. What it deliberately does not do is write: no audited business row, no durable decision record, no persistence beyond the life of the suite.",
+  "productClaim": {
+    "runnable": "The environment runs today: `node --test tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs` builds the pinned image, brings up a real migrated PostgreSQL 16.15 on an isolated internal network, starts the real listener under read-only, capability-dropped, non-root hardening with no published port, sends real HTTP requests to it from inside the container, receives the real audited boundary's refusal envelopes, and removes every resource it created.",
+    "notRunnable": "There is still no runnable product. A user cannot submit a form, save a customer or see a decision on record: every route proven here is a refusal, the four runtime tables stay empty by design, and the environment deletes itself when the suite ends. A successful audited write over live HTTP is P22B2, and closing P22 in the roadmap current truth is P22C; every readiness flag beyond the three declared true stays false."
+  },
+  "userJourney": {
+    "once": "Önceden kutu vardı ama hiç açılmamıştı. İçinde bir sunucu programı duruyordu, fakat o programın gerçekten ayağa kalkıp bir isteğe cevap verip veremeyeceğini kimse denememişti; parçalar tek tek denenmişti, birleşmiş hâli hiç denenmemişti.",
+    "simdi": "Şimdi kutu gerçekten açılıyor. Yanına gerçek bir veritabanı kuruluyor, veritabanının tabloları gerçek kurulum adımlarıyla oluşturuluyor, kutu içindeki sunucu gerçekten dinlemeye başlıyor ve kendisine gönderilen gerçek bir isteğe gerçek bir cevap veriyor. İş bitince ortam kendini siliyor: ne kap, ne ağ, ne parola dosyası geride kalıyor.",
+    "fark": "Fark üç yerde: sunucu dışarıya hiçbir kapı açmıyor, sadece kendi kapalı ağının içinden erişilebiliyor; programın veritabanı kullanıcısı tabloları değiştirmeye kalkarsa veritabanının kendisi reddediyor; ve çalışırken parola altı ayrı gözlem noktasının hiçbirinde görünmüyor.",
+    "kullaniciYolculugu": "Bir CRM kullanıcısı müşteri formunu doldurup kaydet dediğinde isteği karşılayacak bir sunucunun ayakta olması gerekir. Bu paket o sunucuyu ilk kez gerçekten ayağa kaldırıyor ve ona gerçek bir istek gönderiyor; ama gönderilen isteklerin hepsi bilerek 'böyle bir yol yok' cevabını alan isteklerdi, yani form hâlâ kaydedilemiyor ve hiçbir kayıt oluşmuyor.",
+    "kalanEngel": "Kalan engel iki adım: P22B2 gerçek bir kaydetme isteğinin hem kaydı hem de denetim izini kanıtlayacak, P22C ise yol haritasındaki güncel gerçeği kapatacak. Bunlar bitmeden hiçbir gerçek kullanıcı hiçbir formu kaydedemez."
+  },
+  "residualRisks": [
+    "The environment is ephemeral, so it proves that this assembly works once, not that it keeps working. Nothing here is a staging environment and nothing here is monitored; a durable environment is a separate decision with its own gate.",
+    "The migration reaches the database through a bootstrap container on the default bridge, because an unpublished database on an internal network cannot be reached from this host. That container is removed before any assertion runs and the container the suite judges publishes nothing, but the honest statement is that the volume was briefly served by a container that did publish a loopback port.",
+    "The routes exercised here are refusals, so the application never had to complete a database round trip to answer them. That the pinned database is real, migrated and reachable is proven directly through its own psql; that the application can complete an audited write against it is P22B2's proof and is not claimed here.",
+    "The six silent surfaces are exactly six. The claim is narrow: the credential is real, is mounted, is in use, and is absent from those six. It is not a claim that the credential is unextractable by a party who can already read the mount, the container filesystem or the database.",
+    "A digest pin freezes the database's security updates along with its version. That is the intended trade — a moved tag would silently change what this proof ran against — and keeping it current is a separately reviewed pin bump. Docker itself is a hard requirement for this suite, as it already is for npm test here: a docker-unavailable failure is an environment failure and never a P22B1 capability gap."
+  ],
+  "reviewInstructions": {
+    "snapshotHash": "recompute over the working tree at review time; a changed snapshot invalidates the review",
+    "reviewerMustNotBe": "the session that wrote tests/_harness/live-http-postgres-environment.mjs or this manifest",
+    "targetedCommandToReproduce": "node --test tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs",
+    "dockerIsRequired": "npm test in this repository already requires a working Docker daemon; a docker-unavailable failure is an environment failure and never a P22B1 capability gap"
+  }
+}
