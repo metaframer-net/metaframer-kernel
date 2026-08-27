@@ -1,0 +1,121 @@
+{
+  "package": "kernel-high-availability-standby-failover-p23b",
+  "title": "P23B — one real streaming standby, one total loss of the primary, one promotion, and the audited business that carried on over the same never-restarted listener",
+  "class": "security-test-conformance",
+  "base": "738a42511ff62481e5a92e9a6e4ed2a78b666d34",
+  "baseTree": "dbbb35de3eb5640761757b9d6a0b053a2c9b6bad",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "frozenTestPath": "tests/kernel-high-availability-standby-failover-p23b.test.mjs",
+  "frozenTestSha256": "4706927aa718a58980f2944768d5b52bf003f9a6ed039190efac76acd76d689e",
+  "allowedFiles": ["tests/kernel-high-availability-standby-failover-p23b.test.mjs", "tests/_harness/live-standby-failover-probe.mjs", "planning/kernel-high-availability-standby-failover-p23b.json"],
+  "problem": "P23A proved this system can lose its database and get the truth back OUT OF AN ARCHIVE, with a window of loss and an operator in the middle. It proved nothing about a second copy that was already current when the node died, so in this repository the sentence “the database node is gone” still meant “stop, restore, and accept whatever was written in between”. Nobody had ever seen a second live copy of this business database exist at all: whether it would carry the same cluster identity, whether the audited hash chain would stream onto it, whether it would refuse writes while the primary lived, whether it would promote itself when the primary died — which it must not — or whether a running listener could follow a failover without being restarted or re-credentialed.",
+  "solution": "One failover seam, tests/_harness/live-standby-failover-probe.mjs, is added BESIDE the two P22 harnesses and the P23A recovery seam and changes no byte of any of them. It starts no environment, defines no image, opens no host port and holds no environment of its own: it is handed the ONE P22B1 environment and reads the container names, the network, the run's unique label and the pinned image out of it. It creates a replication-only role over the primary's own trusted socket with the password on stdin, appends the one exact pg_hba line that lets that role open a challenge-response replication connection, takes a REAL pg_basebackup with its own permanent physical slot, and runs the standby from the same pinned image with the credential named only by a path under /run/secrets. It then waits for a replayed LSN, destroys the primary container and its volume, promotes with PostgreSQL's own pg_promote, and moves the db alias onto the promoted node while the application container is never restarted.",
+  "acceptanceScenarios": [
+    {"id": "P23B-1", "title": "the failover seam and its package contract exist, fix a path-only replication credential and a port-free standby, bind the package to MASTER's frozen scope, and preserve all nine P22/P23A surfaces byte-identical"},
+    {"id": "P23B-2", "title": "a REAL pg_basebackup standby of the running primary carries the primary's own system identifier, streams from it through a dedicated replication role, publishes no host port, and is reached by a credential named only by path"},
+    {"id": "P23B-3", "title": "one trusted write committed on the primary really arrives on the standby, proven by replayed LSN and by all four tables, while the standby refuses a write of its own with PostgreSQL's own SQLSTATE 25006"},
+    {"id": "P23B-4", "title": "destroying the primary container AND its volume is a total loss that leaves the standby still UNPROMOTED and the untouched listener failing closed, without leaking the credential it still holds"},
+    {"id": "P23B-5", "title": "promoting the standby ends recovery, advances the timeline, and rebinds the db alias onto the promoted node, with the application container never restarted"},
+    {"id": "P23B-6", "title": "a second trusted write commits on the promoted node through the never-restarted listener and chains onto the entry hash the chain had BEFORE the failover, and teardown leaves zero labelled resources and no secret on disk"}
+  ],
+  "splitEvidence": {
+    "thisPackage": "P23B",
+    "counter": "22/25",
+    "scopeSynthesisName": "P23B_SCOPE_SYNTHESIS_V1",
+    "scopeSynthesisText": "P23B_SCOPE_SYNTHESIS_V1 | base=738a42511ff62481e5a92e9a6e4ed2a78b666d34 tree=dbbb35de3eb5640761757b9d6a0b053a2c9b6bad | reconciliation=intersection of independently frozen MASTER scope sha256 84390b3a75d764146f00d50bfc27c766344bd41fa314a0b49911fcfaa13a994d and blind Claude scope sha256 a4e6b41992e71c8ba879209349279cf8ef8326b224120f2c71e9352664d70952; analyst filenames and six-way observable split selected because they match repository naming and isolate failure evidence | problem=prove one real PostgreSQL 16 physical standby shares cluster identity, streams and replays one audited write, refuses standby writes, then only after the old primary container is destroyed and daemon absence verified is promoted and given the same db alias, allowing the never-restarted application to commit a second audited write on the same verified decision chain | scenarios=P23B-1 contract hashes budget nine preserved surfaces; P23B-2 replication-only role exact pg_hba line pg_basebackup same lineage streaming in-recovery pinned image secret-path-only no host port; P23B-3 committed audited write replay LSN exact four-table truth and SQLSTATE 25006 standby refusal; P23B-4 destroy primary verify daemon absence while standby remains in recovery and listener fails closed without disclosure; P23B-5 promote after fence verify recovery false timeline advance same system identifier then move db alias with listener and mounted files unchanged; P23B-6 post-failover audited commit continues pre-failover chain and teardown leaves zero resources/secrets | allowedFiles=tests/kernel-high-availability-standby-failover-p23b.test.mjs,tests/_harness/live-standby-failover-probe.mjs,planning/kernel-high-availability-standby-failover-p23b.json | preserved=the blind scope nine exact P22B1/P22B2/P23A live harness-test-probe and deploy boundary surfaces byte-identical | security=replication secret enters only through host mode-0600 file mounted read-only, becomes container-local mode-0600 pgpass named only by path, never value-bearing argv/env/inspect/log/result; secret-bearing SQL failures redact output; bounded waits; no host binding | claims=PHYSICAL_STANDBY_AND_FENCED_MANUAL_FAILOVER plus replication/read-only/chain proof; highAvailabilityProven stays false because this is manual ephemeral unmonitored async failover; no automatic detection/failover/fencing,quorum,synchronous zero-loss guarantee,RPO/RTO,PITR,WAL archive,upgrade or migration rollback,app multi-instance,staging,deploy,production,P23 closure | budget=security-test-conformance conditional,exactly3 files,net and gross <=800,all seven gates,no waiver; split P23B1/P23B2 if honest size exceeds 800 | QA=separate Claude test writer then implementation writer then immutable read-only reviewer; targeted RED-GREEN,one writer full local QA,one CI full QA | rollback=delete three new files and labelled sweep removes standby/helper/old volume/secret dir | checkpoint=20m READY_FOR_CI or CLEAN_SPLIT_OR_ROLLBACK or BLOCKED_WITH_ONE_EVIDENCE",
+    "scopeSynthesisSha256": "dc6c89ce646500af72a1ebacc366af7b2af4b835ac1ae1359ab27291e267da7f",
+    "parentScopeSha256": "84390b3a75d764146f00d50bfc27c766344bd41fa314a0b49911fcfaa13a994d",
+    "blindScopeSha256": "a4e6b41992e71c8ba879209349279cf8ef8326b224120f2c71e9352664d70952",
+    "blindScopeDetermination": "MASTER's scope and the blind Claude scope were frozen and hashed independently from the same immutable base 738a42511ff62481e5a92e9a6e4ed2a78b666d34 before either side saw the other, and the reconciled synthesis above is their intersection. This writer was handed the synthesis text and the two parent digests only, never either parent text, so their digests are recorded here as evidence while their wording is not reproduced, and nothing in this package could have been written to fit a scope reconciled after the fact.",
+    "delivered": ["P22A1", "P22A2", "P22B1", "P22B2", "P22C", "P23A", "P23B"],
+    "remaining": ["P23C", "P23D"],
+    "remainingOwnership": {"P23C": "upgrade and migration rollback drill: a schema version moved forward and then really taken back, which neither P23A nor P23B attempts. P23A's manifest had reserved the letter P23B for this work; the reconciled scope for this package gave P23B to the failover proof and moved the rollback drill to P23C, so the two names shifted by one and no delivered package was renumbered.", "P23D": "roadmap current-truth closure for P23, and the phase counter that moves only when the whole phase closes."},
+    "counterUnmovedReason": "P23B is one package inside the already-active P23 phase. A proven manual failover is a capability, not a phase completion: P23 is high availability, disaster recovery and upgrade rollback together, and this package explicitly claims no high availability, no automatic failover and no rollback. The counter stays at 22/25 until P23 closes."
+  },
+  "greenEvidence": {
+    "targetedTest": "node --test tests/kernel-high-availability-standby-failover-p23b.test.mjs",
+    "regressionGuards": ["node --test tests/kernel-deploy-live-audited-write-p22b2.test.mjs", "node --test tests/kernel-disaster-recovery-backup-restore-p23a.test.mjs"],
+    "fullQaExecutionsAllowed": 2, "fullQaByWriter": "npm test && npm run check", "fullQaBySecondGate": "CI",
+    "state": "targeted RED-to-GREEN on the six scenarios first, then the writer's single full local QA and the required CI full QA, which are the only two full executions this package may spend."
+  },
+  "budget": {
+    "class": "security-test-conformance",
+    "band": "conditional",
+    "ceilingSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "actual": {"grossAdditions": 790, "grossDeletions": 0, "net": 790, "changedFiles": 3},
+    "measurement": "git diff --numstat against base tree dbbb35de3eb5640761757b9d6a0b053a2c9b6bad, counting the three allowed files and nothing else. No existing file is modified, so gross deletions are zero and net equals gross additions.",
+    "conditionalDeliveryGates": [
+      {"gate": "single-narrow-problem", "state": "GREEN", "evidence": "One problem only: when this system's database node is lost, is a second copy already current, can it be promoted, and does the audited business continue on it over the same never-restarted listener."},
+      {"gate": "bounded-file-set", "state": "GREEN", "evidence": "Three files, all new: the frozen test, one failover probe beside the two P22 harnesses and the P23A seam, and this manifest. No existing file is modified."},
+      {"gate": "no-redundant-repetition", "state": "GREEN", "evidence": "Every HTTP request, verification read and trusted principal on the primary is the UNCHANGED P22B2 probe's, the environment is the UNCHANGED P22B1 one, and nothing P23A already proved is proved again here."},
+      {"gate": "no-quality-tradeoff", "state": "GREEN", "evidence": "No credential on a command line or in an environment value, bounded waits everywhere, no host port, redacted failures, and every claim read back from PostgreSQL or the daemon rather than from a descriptor."},
+      {"gate": "full-green", "state": "PENDING", "evidence": "The writer's single full local QA and the required CI full QA are the two allowed executions; both must be recorded before this gate turns GREEN."},
+      {"gate": "fresh-reviewer-accept", "state": "PENDING", "evidence": "A separate read-only Claude session on this immutable snapshot must accept the package: the writer never reviews what the writer wrote."},
+      {"gate": "explicit-rollback", "state": "GREEN", "evidence": "Delete the three new files; the labelled sweep the run already performs removes the standby container, its data volume, the throwaway backup container and the host secret directory."}
+    ]
+  },
+  "provenance": {
+    "singleWriter": true, "writerRole": "claude-implementation-writer", "reviewerMustBeSeparateSession": true, "reviewerIsReadOnly": true,
+    "testAuthoring": "claude-only", "writerDidNotAuthorFrozenTest": true, "frozenTestUnedited": true
+  },
+  "environmentPins": {
+    "environmentsDefinedByThisPackage": 0, "imagesDefinedByThisPackage": 0, "migrationHead": "0003_policy_decision_log",
+    "standbySource": "the standby is served by exactly the pinned image the primary really runs, read off the environment rather than named again here, and it is built by a real pg_basebackup of that running primary.",
+    "replicationCredentialDelivery": "a host mode-0600 file bound READ-ONLY into each container, copied container-locally to a mode-0600 pgpass and named to libpq through PGPASSFILE as a PATH. No value ever reaches an argument, an environment variable, docker inspect, a log or a returned descriptor, and the host file is deleted as soon as both containers hold their own copy."
+  },
+  "rollback": {
+    "mechanism": "Delete tests/_harness/live-standby-failover-probe.mjs and planning/kernel-high-availability-standby-failover-p23b.json, and the frozen test if the whole package is withdrawn. Nothing else changes, because nothing else was touched.",
+    "blastRadius": "Confined to one new test-only probe file plus this manifest and the frozen test. No src module, no host module, no image definition, no schema, no migration, no CI file and no dependency is involved, and the run's own labelled sweep removes the standby container, its data volume, the throwaway backup container and the host secret directory.",
+    "compensatingStepRequired": false,
+    "compensatingStepReason": "Nothing outside the run survives it: the standby container and volume carry the run's unique label so the unchanged P22B1 teardown removes them, the backup container is removed by the daemon the moment it exits, and the host secret directory is deleted by the seam that made it.",
+    "srcUntouched": true, "p22HarnessesUntouched": true, "p23aRecoverySeamUntouched": true, "hostDeployImageUntouched": true,
+    "secretFileRunnerUntouched": true, "boundaryRunnerUntouched": true, "dbUntouched": true, "migrationsUntouched": true,
+    "ciUntouched": true, "dependenciesUntouched": true, "roadmapUntouched": true
+  },
+  "preservedHashes": {
+    "tests/_harness/live-http-postgres-environment.mjs": "d7f83b4d86cc440888076bce5da845d2bc9ff66843bd1dc79f8847a273695d0f",
+    "tests/_harness/live-audited-write-probe.mjs": "b019d07ea91ee1af91b7487706826c6f4c5abd8ab786e3d731bf2a2ab5664f23",
+    "tests/_harness/live-recovery-probe.mjs": "e13a0e5be9fc4066c74fb8dbc11279c1e72a2359287195865db1f08ee834c63b",
+    "tests/kernel-deploy-live-audited-write-p22b2.test.mjs": "0aee9deeb1fb6491e2a67b8026f5ff3ccce4a3e1808b933087ea3be0bf63a8e4",
+    "tests/kernel-disaster-recovery-backup-restore-p23a.test.mjs": "b59540ee938eac8fc18e2acd25fe98a000c231525351f73814ef347436d51d43",
+    "planning/kernel-disaster-recovery-backup-restore-p23a.json": "a0cfdd49894d694b033f7537481ae178a0c879a1817851757fe491fc8a2db7e1",
+    "host/deploy/Dockerfile": "e9910e31c56c20d003c8e14a31c50e5a101c29d380105f408f28d0f240cdc99c",
+    "host/deploy/secret_file_runner.mjs": "d26edfede30131e6250a5df0700c540849af67105f2405ee83da02b590c5f981",
+    "host/js_asgi/create_customer_asgi_runner.mjs": "64e1fc81e3b5bda0174ca35df573355aa87376493364c936af36bf2866ea2ec7"
+  },
+  "readinessFlags": {
+    "runtimeImplementationStarted": true, "hostServerSelectedForDeployArtifact": true, "networkListenerStarted": true, "liveHttpAuditProven": true,
+    "p22Complete": true, "backupRestoreProven": true, "streamingStandbyProven": true, "manualFailoverProven": true,
+    "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false,
+    "deployAllowed": false, "productionAllowed": false, "gapClosed": false, "oneGoldenSliceReady": false,
+    "runnableProduct": false, "p23Complete": false, "stagingEnvironmentExists": false, "stagingRunPerformed": false,
+    "productionHostSelected": false, "registryPushed": false, "externalDeploymentPerformed": false, "highAvailabilityProven": false,
+    "automaticFailoverProven": false, "splitBrainProtectionProven": false, "synchronousReplicationProven": false, "pointInTimeRecoveryProven": false,
+    "migrationRollbackProven": false, "offsiteBackupExists": false, "automatedBackupScheduleExists": false, "recoveryObjectivesAgreed": false
+  },
+  "nonGoals": [
+    "No automatic failover and no automatic detection: nothing here watches the primary, elects a leader or promotes anything by itself, and the promotion is an operator's deliberate act in one scenario.",
+    "No split brain protection and no quorum: there is no fencing device, no witness and no majority anywhere in this package, and the old primary is made safe only by being destroyed first.",
+    "No synchronous replication: the replica is asserted to be async, so a commit is acknowledged before the second copy holds it and a promotion after a real crash can lose whatever had not yet been streamed.",
+    "No connection pooler, no virtual IP and no client-side failover logic: the running application follows the failover only because one network alias is moved onto the promoted node.",
+    "No point-in-time recovery, no WAL archive and no backup schedule: P23B streams live WAL to one running copy and archives nothing, so P23A's verified archive stays the only backup this repository owns.",
+    "No migration rollback and no upgrade drill: the schema stays on the P22B1 migration head throughout, moved neither forward nor back.",
+    "No agreed RPO and no agreed RTO: this package measures no recovery objective, proposes none and negotiates none.",
+    "No production, no staging, no registry, no external deployment and no new image: the pinned P22A2 image and the P22B1 environment are used exactly as they are, no host port is opened, and no roadmap, release or CI surface is touched."
+  ],
+  "capabilityDelta": "STREAMING_STANDBY_AND_MANUAL_FAILOVER: this system can now keep a second live copy of its business database streaming off the primary, lose the primary entirely, promote that copy and carry on committing audited writes over the same never-restarted listener, with the tamper-evident decision chain continuing as ONE chain across the failover. The standby carries the primary's own system identifier, refuses every write while the primary lives, and does not promote itself when the primary dies.",
+  "productClaim": {"runnable": "The failover runs today: `node --test tests/kernel-high-availability-standby-failover-p23b.test.mjs` brings up the unchanged P22B1 environment, streams a real physical standby off it, commits one trusted write over live HTTP, proves the replay, destroys the primary and its volume, promotes the copy, moves the db alias and commits a second audited write on the promoted node through the listener that was never restarted.",
+    "notRunnable": "There is still no runnable product and no high availability. There is no user interface, no persistent or hosted environment, nothing that detects a failure, nothing that fails over without an operator, no second machine and no agreed recovery objective. Everything here lives inside one ephemeral test environment that deletes itself at the end of the run."},
+  "userJourney": {
+    "once": "Önceden veritabanı sunucusu tek kopyaydı. O kopya giderse tek yol P23A ile kanıtlanan yedekten geri dönmekti: bir operatör arşivi bulacak, yeni bir sunucu kuracak, geri yükleyecekti. Bu süre boyunca sistem yazamıyordu ve yedek anından sonraki her şey kayıptı.",
+    "simdi": "Şimdi ikinci bir canlı kopya var. Birinci sunucu çalışırken ikinci kopya onun WAL kayıtlarını gerçek zamanlı alıyor, aynı küme kimliğini taşıyor ve kendisine gelen hiçbir yazmayı kabul etmiyor. Birinci sunucu tamamen yok edildiğinde ikinci kopya kendi kendine terfi etmiyor; operatör terfi ettiriyor ve db adı o kopyaya taşınıyor.",
+    "fark": "Fark iki yerde görülüyor. Birincisi veri: yedekten dönüşteki “son yedekten bu yana ne kaybettik” penceresi burada yok, çünkü ikinci kopya kayıp anında zaten günceldi. İkincisi süreklilik: uygulama konteyneri hiç yeniden başlatılmadı — aynı süreç, aynı pid, aynı kimlik bilgisi — sadece yazdığı ad artık başka bir sunucuyu gösteriyor.",
+    "kullaniciYolculugu": "Bir CRM kullanıcısı müşteri formunu doldurup kaydediyor ve kayıt oluşuyor. Sonra veritabanı sunucusu tamamen ölüyor: o anda gönderilen istek sessizce “kaydettim” demiyor, açık bir hata dönüyor ve hiçbir yerde sahte bir makbuz kalmıyor. Operatör ikinci kopyayı terfi ettiriyor. Kullanıcı formu yeniden gönderiyor, kayıt oluşuyor ve denetim zinciri ölümden önceki kaydın üstüne ekleniyor, yani “daha önce ne karar verdik” sorusunun cevabı kaybolmuyor.",
+    "kalanEngel": "Kalan engel açık: bu devir teslimi hâlâ bir insan başlatıyor. Hiçbir şey arızayı kendi kendine fark etmiyor, kimse kopyayı otomatik terfi ettirmiyor, ikinci bir makine yok ve “en fazla ne kadar veri kaybedilebilir, en fazla ne kadar sürede geri dönülebilir” sorusu hâlâ yazılı değil. Kopyalama eşzamansız olduğu için gerçek bir çökmede henüz aktarılmamış son yazmalar kaybolabilir."
+  },
+  "residualRisks": [
+    "Replication is asynchronous. The frozen test destroys the primary only AFTER the standby is proven to have replayed the committed position, so this drill loses nothing, but a real crash at an arbitrary moment could lose whatever was not yet streamed and this package agrees no bound on that.",
+    "The failover is manual end to end: an operator destroys, promotes and moves the alias. Nothing detects the loss, so a real outage lasts exactly as long as the operator takes to notice and act.",
+    "One standby, one host, one ephemeral network. There is no second machine, no offsite copy and no monitoring, and the whole environment deletes itself at the end of the run."
+  ]
+}
