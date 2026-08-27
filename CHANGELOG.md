@@ -16,6 +16,37 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P22c `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `22/25 tamamlandı, P23/25 aktif`, closing P22 (deploy
+  package/staging) with the four real merged sub-packages — P22A1 handing the deploy artifact its
+  database credential as a mounted secret-file pair (`--config-file`, `--database-url-file`,
+  `host/deploy/secret_file_runner.mjs`) so the credential value is never an OS-visible argument
+  (PR #136 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33036329914)),
+  P22A2 putting that wrapper in an input-pinned OCI image (`host/deploy/Dockerfile`, digest-pinned
+  multiarch bases, a lock-only `npm ci`, a hash-locked Uvicorn requirement set, a numeric non-root user
+  and two mounted secret-file paths)
+  (PR #137 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33042126138)),
+  P22B1 standing that image up beside a digest-pinned PostgreSQL 16.15 at migration head
+  `0003_policy_decision_log` under the `mfk_migration`/`mfk_runtime` role split, hardened with
+  `--read-only`, `--cap-drop ALL` and `no-new-privileges` and serving real HTTP with no published
+  port
+  (PR #138 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33049913914)),
+  and P22B2 sending a real `POST /customers` to that live listener for a `201 COMMITTED`
+  `CommitReceipt` bound to exactly one `customer_records`, one `audit_log` and one
+  `transactional_outbox` row, with the authorizing decision recomputed as the genesis of the
+  tenant's hash-chained `policy_decision_log` and a foreign-tenant claim refused
+  `403 CROSS_TENANT_DENY` writing nothing
+  (PR #139 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33055438573))
+  — with P23 (HA/DR/upgrade rollback) active and P23-P25 production proof named as the explicit
+  next-missing pieces. This truth-sync adds the
+  `DEPLOY_ARTIFACT_PROVEN_BY_EPHEMERAL_LIVE_AUDITED_WRITE` capability delta; the environment that
+  carried the proof is ephemeral and deletes itself, no staging environment exists and no staging
+  run was performed, no registry is contacted, no external deployment and no production host
+  selection happens, the proof is one sequential request and one refusal with no restart,
+  durability, concurrency, sustained-load or monitoring evidence, and the audit stays opt-in and
+  default-off. No global readiness flag moves — `deployAllowed` and `productionAllowed` stay
+  `false` — and a hosted product remains not-runnable. See
+  `planning/kernel-p22-current-truth-closure-p22c.json`.
 - P21h `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `21/25 tamamlandı, P22/25 aktif`, closing P21 (security)
   with the seven real merged sub-packages — P21A binding the host boundary's real-database ALLOW

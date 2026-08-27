@@ -1,0 +1,191 @@
+{
+  "package": "P22c-current-truth-closure",
+  "title": "P22 (deploy package/staging) current-truth closure",
+  "class": "production",
+  "base": "baf59d2ad158cc83f15c06bd6d9358cbfd9280a9",
+  "baseTree": "1680af08eeb9d530fb2a7c87bf259baa9491dfd4",
+  "blindScope": "6706ceb59d3d373eaf741a89508e0552bdb6f734ac4a7cbaeed230f4a90cad92",
+  "synthesisScope": "2707408867b7da83343a9991c8eafa30dd11e18dc07bb3a2c137921a85f82960",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "atomicPackageFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p22-current-truth-closure-p22c.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "tests/kernel-roadmap-v1-current-truth.test.mjs"
+  ],
+  "testWriterAllowedFiles": ["tests/kernel-roadmap-v1-current-truth.test.mjs"],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "planning/kernel-p22-current-truth-closure-p22c.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "679802a216d673f76998894ec0626fb1003274dd26930041cdc2abf590f3ab70",
+  "testHashUnchanged": true,
+  "nonGoals": [
+    "No runtime, host, image, harness or workflow file is written or edited, and no Docker command is run.",
+    "No registry push, no environment provisioning, no deployment, promotion, tag, release or production step.",
+    "No DAG edge, denominator, family grouping, package name or readiness flag is changed.",
+    "No P23, P24 or P25 work is started.",
+    "AGENTS.md, RULES.md, versioning-policy.json, package.json and package-lock.json are untouched; no repo-root CLAUDE.md is created.",
+    "No Actionplan node writeback and no commit, push or merge by the writer.",
+    "No full-QA budget beyond the one budgeted local run recorded below."
+  ],
+  "readinessClaim": "none",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "DEPLOY_ARTIFACT_PROVEN_BY_EPHEMERAL_LIVE_AUDITED_WRITE",
+    "calistirilabilirlik": "ephemeral-live-audited-deploy-artifact-proven-hosted-product-not-runnable",
+    "notRunnable": "This truth-sync builds no image, starts no container, provisions no environment, contacts no registry, deploys nothing and selects no production host; it only projects P22's already-merged P22A1-P22B2 deploy evidence into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. Closing a package named deploy is neither deploy authority nor product readiness: deployAllowed and productionAllowed stay false and a hosted product remains not-runnable."
+  },
+  "subPackageFlagReadback": {
+    "note": "Recorded as read-back evidence from the merged sub-package manifests only. These are sub-package flags and are never roadmap readiness; no new true flag enters currentTruth.",
+    "true": ["hostServerSelectedForDeployArtifact (P22A2, P22B1, P22B2)", "networkListenerStarted (P22B1, P22B2)", "liveHttpAuditProven (P22B2)"],
+    "false": ["p22Complete", "stagingEnvironmentExists", "stagingRunPerformed", "registryPushed", "externalDeploymentPerformed", "productionHostSelected"]
+  },
+  "p22Evidence": [
+    {
+      "pkg": "P22A1",
+      "manifest": "planning/kernel-deploy-secret-boundary-p22a1.json",
+      "frozenTestPath": "tests/kernel-deploy-secret-boundary-p22a1.test.mjs",
+      "frozenTestSha256": "a5a0ede969cbf091c61c399573868f3fe1b2b615a24d0411861126691ac6c1e1",
+      "pr": 136,
+      "mergeCommit": "034d369557a3f9cf4b56bac518a475c6a293d67b",
+      "ciRun": 33036329914,
+      "securityWorkflowRun": 33036329857,
+      "substance": "host/deploy/secret_file_runner.mjs validates a mounted --config-file and --database-url-file pair fail-closed, rewrites only its own in-process process.argv and delegates to the existing audited host runner, so the credential value is never an OS-visible argument, never read from the environment and never disclosed by a refusal"
+    },
+    {
+      "pkg": "P22A2",
+      "manifest": "planning/kernel-deploy-oci-image-p22a2.json",
+      "frozenTestPath": "tests/kernel-deploy-oci-image-p22a2.test.mjs",
+      "frozenTestSha256": "fd3faecefa4547b0d600c47661738980f970600720634b7cd3272a542820a0bf",
+      "pr": 137,
+      "mergeCommit": "29c9fac3f640743db1c75b1123ef2feb5afcfe85",
+      "ciRun": 33042126138,
+      "securityWorkflowRun": 33042126097,
+      "substance": "host/deploy/Dockerfile builds the artifact from three digest-pinned multiarch bases with a lock-only npm ci production install, a hash-locked uvicorn 0.40.0 set and an offline-built host wheel, behind a deny-first build-context fence, and execs the P22A1 wrapper as a numeric non-root user on two mounted secret-file paths"
+    },
+    {
+      "pkg": "P22B1",
+      "manifest": "planning/kernel-deploy-ephemeral-environment-p22b1.json",
+      "frozenTestPath": "tests/kernel-deploy-ephemeral-environment-p22b1.test.mjs",
+      "frozenTestSha256": "aef0f0ca2eb34147f75725f8ef302d2c60ec61da2e8ca9921c8075fac69873e9",
+      "pr": 138,
+      "mergeCommit": "0587a4e8971c9ff191b7d83051075c351c87a7d9",
+      "ciRun": 33049913914,
+      "securityWorkflowRun": 33049913911,
+      "substance": "one command stands up a digest-pinned PostgreSQL 16.15 at migration head 0003_policy_decision_log under the mfk_migration / mfk_runtime NOBYPASSRLS role split, starts the unchanged P22A2 image beside it under --read-only, --cap-drop ALL and no-new-privileges with no published port, answers real HTTP from its own installed Uvicorn inside an isolated network, and proves the mounted credential reaches none of six observable surfaces"
+    },
+    {
+      "pkg": "P22B2",
+      "manifest": "planning/kernel-deploy-live-audited-write-p22b2.json",
+      "frozenTestPath": "tests/kernel-deploy-live-audited-write-p22b2.test.mjs",
+      "frozenTestSha256": "0aee9deeb1fb6491e2a67b8026f5ff3ccce4a3e1808b933087ea3be0bf63a8e4",
+      "pr": 139,
+      "mergeCommit": "baf59d2ad158cc83f15c06bd6d9358cbfd9280a9",
+      "ciRun": 33055438573,
+      "securityWorkflowRun": 33055438587,
+      "substance": "a real POST /customers over a real socket to the live listener inside the frozen image commits through the unchanged audited boundary and answers 201 with a COMMITTED CommitReceipt bound to exactly one customer_records, one audit_log and one transactional_outbox row, the authorizing decision is the independently recomputed genesis of the tenant's hash-chained policy_decision_log, and a foreign-tenant claim is refused 403 CROSS_TENANT_DENY with no business row written"
+    }
+  ],
+  "p22Residuals": [
+    "the proven environment is ephemeral and deletes itself: both containers, the database volume, the isolated network, the per-run image tag and the temporary host secret directory are removed before the run exits",
+    "no staging environment exists and no staging run was performed; an ephemeral environment that deletes itself is neither",
+    "no registry is contacted, authenticated against, tagged for or pushed to; the image exists only in a local build cache under a per-run tag",
+    "no external deployment, no promotion and no production host selection; nothing here makes the artifact deployable, releasable or production-ready",
+    "proven once, sequentially: no restart, durability, concurrency, sustained-load or noisy-neighbor proof, and no monitoring",
+    "the verification reads run as the database superuser and bypass row-level security, so they are not the application's own read path",
+    "no authentication, session, token or credential check anywhere in the path; the identity headers are claims a test process makes and the trusted principal is a mounted config file",
+    "the audit is still opt-in and default-off (--audit on)",
+    "Docker is a hard requirement, so the proof reruns only where a daemon exists",
+    "digest pins freeze security updates along with versions, and amd64 and arm64 are different artifacts whose output digests are not byte-reproducible between rebuilds",
+    "the credential still lives as a host file mount: mount permissions, rotation and the storage backing that mount are deployment-time responsibilities outside this package",
+    "no orchestration, ingress/TLS/DNS/load balancer, no secret store, no rollout or rollback drill (that is P23) and no Actionplan node writeback for this closure"
+  ],
+  "honestTension": "P22 is named deploy package/staging and no staging environment exists. P22 closes on what was actually delivered and test-verified — a deployable artifact (P22A1's secret-file argv boundary, P22A2's input-pinned OCI image) plus a proven live run of that exact frozen artifact (P22B1's ephemeral live HTTP against real migrated PostgreSQL, P22B2's live audited business write and cross-tenant refusal) — with the absent persistent staging environment carried forward as the leading named P22 residual. This is the P21 precedent applied unchanged: P21 (security) closed while the audit stayed opt-in, no DAST existed and the scan was not a required merge check.",
+  "syncSummary": "Advances roadmap.progress from 21/25 (P22 active) to 22/25 (P23 active) at asOfKernelMain baf59d2ad158cc83f15c06bd6d9358cbfd9280a9; adds four P22A1-P22B2 entries to currentTruth.implementedPieces, each naming its package label, merged PR, passing main ci.yml run, frozen test path and delivered substance; retires the stale P22 missing claim, the P22-P25 range and the unqualified no-host-server denial in favour of the qualified truth plus twelve explicit P22 residuals; every P21 residual stays asserted; all nine stronger readiness flags remain false; ownerFacing capability_delta becomes DEPLOY_ARTIFACT_PROVEN_BY_EPHEMERAL_LIVE_AUDITED_WRITE and calistirilabilirlik becomes ephemeral-live-audited-deploy-artifact-proven-hosted-product-not-runnable; the DAG, denominator, families, package names and readiness flags are untouched.",
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "measurement": {
+      "mode": "working-tree",
+      "command": "git diff --numstat against base baf59d2ad158cc83f15c06bd6d9358cbfd9280a9 across the five tracked atomicPackageFiles, plus this untracked manifest counted by wc -l as additions",
+      "perFile": {
+        "CHANGELOG.md": "+31/-0",
+        "README.md": "+18/-1",
+        "ROADMAP.md": "+21/-17",
+        "planning/roadmap-v1-current-truth.json": "+30/-19",
+        "tests/kernel-roadmap-v1-current-truth.test.mjs": "+401/-22",
+        "planning/kernel-p22-current-truth-closure-p22c.json": "+191/-0"
+      },
+      "changedFileCount": 6,
+      "grossAdditions": 692,
+      "grossDeletions": 59,
+      "measuredNet": 633,
+      "grossChurn": 751
+    },
+    "class": "production",
+    "band": "conditional",
+    "noFalseDefaultClaim": true,
+    "waiver": false,
+    "waiverNote": "The conditional band forbids a waiver; none is requested and none exists.",
+    "namedCondition": "The frozen test file the test writer handed over is +401/-22 on its own, which carries the atomic package past the default 400 net ceiling before the implementation writer's first byte. The truth sync is atomic — counter, evidence, residuals and the three projections must move together or the repository states two different truths — so it is neither widened nor split. The conditional band is declared with its seven gates rather than a false default claim.",
+    "conditionalDeliveryGates": [
+      {
+        "gate": "single-narrow-problem",
+        "state": "GREEN",
+        "evidence": "One problem only: the roadmap counter still says 21/25 with P22 active while all four P22 sub-packages are merged on main with passing CI. Nothing else is touched — no runtime, no image, no environment, no DAG, no denominator, no readiness flag."
+      },
+      {
+        "gate": "bounded-file-set",
+        "state": "GREEN",
+        "evidence": "Exactly six files, declared in atomicPackageFiles before the first write and unchanged since; five of them the implementation writer edited and the sixth is the frozen test it did not author and did not edit."
+      },
+      {
+        "gate": "no-redundant-repetition",
+        "state": "GREEN",
+        "evidence": "The evidence lives once in planning/roadmap-v1-current-truth.json; ROADMAP.md, README.md and CHANGELOG.md are its projections and the P21A-G enumeration is compressed in ROADMAP.md rather than restated a third time. The sub-package substance is referenced by manifest path and frozen-test SHA-256, not copied."
+      },
+      {
+        "gate": "no-quality-tradeoff",
+        "state": "GREEN",
+        "evidence": "Nothing is softened to fit: twelve explicit P22 residuals are added, every P21 residual stays asserted, the unqualified no-host-server denial is replaced by the qualified truth rather than deleted, and no readiness flag moves. The frozen test verifies each cited frozen test still hashes to the SHA-256 its own manifest froze."
+      },
+      {
+        "gate": "full-green",
+        "state": "GREEN",
+        "evidence": "Targeted RED-to-GREEN is the writer's; the writer's single budgeted full local QA has since run GREEN on this exact tree — npm test 1587/1587 pass, 0 fail, and npm run check GREEN across all ten checkers. The required CI full run is the second execution and is the MASTER's; the reviewer records acceptance."
+      },
+      {
+        "gate": "fresh-reviewer-accept",
+        "state": "PENDING",
+        "evidence": "A third read-only Claude session on this immutable snapshot, which wrote neither the test nor the implementation, must accept the package; any change to the snapshot invalidates the review."
+      },
+      {
+        "gate": "explicit-rollback",
+        "state": "GREEN",
+        "evidence": "Deleting planning/kernel-p22-current-truth-closure-p22c.json and reverting planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md and tests/kernel-roadmap-v1-current-truth.test.mjs to baf59d2ad158cc83f15c06bd6d9358cbfd9280a9 returns the tree to base. Nothing outside this checkout is created, so nothing outside it has to be undone."
+      }
+    ],
+    "verdict": "CONDITIONAL_BAND: files=6 (<=20), grossAdditions=692 (<=800, churnGuard grossMaxFromBand=conditional), grossDeletions=59, measuredNet=633 (<=800). Default band (maxNet 400) is exceeded and is not claimed; the seven conditional gates are named above with their honest state and no waiver is requested."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs — the implementation writer's targeted RED-to-GREEN check, with the frozen test unchanged at SHA-256 679802a216d673f76998894ec0626fb1003274dd26930041cdc2abf590f3ab70 and no test-file edit by the implementation writer",
+    "fullQa": "QA1, the writer's single budgeted full local run, is GREEN on this tree: npm test 1587 tests / 1587 pass / 0 fail, then npm run check GREEN. Honest note: an earlier full-suite attempt before QA1 failed only in tests/kernel-versioning-changelog.test.mjs because the CHANGELOG bullet named a bare version token (the Uvicorn pin) that the versioning gate refuses in that document; the bullet was reworded to a hash-locked Uvicorn requirement set with no version token and QA1 then ran clean. QA2 is the required CI full run. No bespoke probe, router-evidence script or repeat evidence package is added.",
+    "rollback": "revert planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md and tests/kernel-roadmap-v1-current-truth.test.mjs to baf59d2ad158cc83f15c06bd6d9358cbfd9280a9 and delete planning/kernel-p22-current-truth-closure-p22c.json; the merged P22A1-P22B2 deploy surfaces (host/deploy/secret_file_runner.mjs, host/deploy/Dockerfile, host/deploy/Dockerfile.dockerignore, host/deploy/requirements-uvicorn.txt, tests/_harness/*, their frozen tests and their manifests) stay untouched by this package"
+  }
+}

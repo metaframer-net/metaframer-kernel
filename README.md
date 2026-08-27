@@ -667,7 +667,24 @@ package/staging) as the active package; this adds the
 `KERNEL_BOUNDARY_SECURITY_AUDIT_AND_SUPPLY_CHAIN_GATE` capability delta, leaves the audit opt-in
 and default-off, selects no host server, starts no network listener, scans no Git history, is not
 a required status check under branch protection, and a hosted product remains not-runnable with
-no global readiness flag under **Current status** moved.
+no global readiness flag under **Current status** moved. A further roadmap current-truth package has
+since synced the counter again to `22/25 tamamlandı, P23/25 aktif`, closing P22 (deploy
+package/staging) with four merged sub-packages — P22A1 handing the deploy artifact its database
+credential as a mounted file (`--config-file`, `--database-url-file`,
+`host/deploy/secret_file_runner.mjs`; PR #136, CI run 33036329914), P22A2 putting that wrapper in
+an input-pinned OCI image (`host/deploy/Dockerfile`, digest-pinned bases, a lock-only `npm ci`,
+hash-locked Uvicorn 0.40.0; PR #137, CI run 33042126138), P22B1 standing that image up beside a
+digest-pinned PostgreSQL 16.15 at migration head `0003_policy_decision_log` under the
+`mfk_migration`/`mfk_runtime` role split and serving real HTTP with no published port (PR #138,
+CI run 33049913914), and P22B2 sending a real `POST /customers` to that live listener for a
+`201 COMMITTED` receipt bound to exactly one `customer_records`, one `audit_log` and one
+`transactional_outbox` row plus a `403 CROSS_TENANT_DENY` refusal that writes nothing (PR #139,
+CI run 33055438573) — with P23 (HA/DR/upgrade rollback) as the active package; this adds the
+`DEPLOY_ARTIFACT_PROVEN_BY_EPHEMERAL_LIVE_AUDITED_WRITE` capability delta, and the environment
+that carried it is ephemeral and deletes itself, so no staging environment exists and no staging
+run was performed, no registry is contacted, no external deployment and no production host
+selection happens, the audit stays opt-in and default-off, and a hosted product remains
+not-runnable with no global readiness flag under **Current status** moved.
 
 ## Authorized order and what remains closed
 

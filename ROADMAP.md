@@ -31,26 +31,30 @@ never moves without a newly named plan version.
 
 ## Progress
 
-`21/25 tamamlandı, P22/25 aktif` (`roadmap.progress` in
+`22/25 tamamlandı, P23/25 aktif` (`roadmap.progress` in
 [`planning/roadmap-v1-current-truth.json`](planning/roadmap-v1-current-truth.json)). Completed
 packages: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15, P16, P17,
-P18, P19, P20, P21. P21 (security) is closed by seven merged sub-packages: P21A binds the host
-boundary's real-database ALLOW path to trusted process inputs (`--trusted-tenant-id`,
-`--trusted-actor-id`; PR #128, CI run 32997140154); P21B proves the authorization deny path writes
-nothing on a real PostgreSQL 16 substrate (PR #129, CI run 33003288720); P21C appends every
-boundary decision to the append-only, `prev_hash`-chained `policy_decision_log` before the
-invariant stage (PR #130, CI run 33010709401); P21D carries that audited boundary to the ASGI
-callable via `createAuditedCustomerAsgiComposition` (PR #131, CI run 33015412681); P21E audits
-identity-guard refusals via `createAuditedCustomerComposition` (PR #132, CI run 33019320390);
-P21F adds the opt-in `--audit on` audited host runner (PR #133, CI run 33023129130); and P21G
-adds `.github/workflows/security.yml` running `npm audit`, `pip-audit` and a digest-pinned
-TruffleHog scan of the current tracked tree (PR #134, CI run 33027876043 plus its separate
-Security workflow run 33027876143). The audit stays opt-in and default-off, no host server is
-selected, no network listener exists, the Git history is unscanned, and
+P18, P19, P20, P21, P22. P21 (security) is closed by seven merged sub-packages (P21A–P21G,
+PRs #128–#134, CI runs 32997140154 through 33027876043 plus the separate Security workflow run
+33027876143), whose full evidence is preserved in [README.md](README.md) `## Current status` and
+`CHANGELOG.md`; the audit stays opt-in and default-off, the Git history is unscanned, and
 `supply-chain-and-secret-scan` is not a required status check under branch protection. P22
-(deploy package/staging) is the active package and the next explicit gap; none of this makes a
-hosted product runnable and none of it moves any global readiness flag under
-[README.md](README.md) `## Current status`.
+(deploy package/staging) is closed by four merged sub-packages: P22A1 hands the deploy artifact
+its database credential as a mounted file (`--config-file`, `--database-url-file`,
+`host/deploy/secret_file_runner.mjs`; PR #136, CI run 33036329914); P22A2 puts that wrapper in an
+input-pinned OCI image (`host/deploy/Dockerfile`, digest-pinned bases, a lock-only `npm ci`,
+hash-locked Uvicorn 0.40.0; PR #137, CI run 33042126138); P22B1 stands that image up beside a
+digest-pinned PostgreSQL 16.15 at migration head `0003_policy_decision_log` under the
+`mfk_migration`/`mfk_runtime` role split and serves real HTTP with no published port (PR #138,
+CI run 33049913914); and P22B2 sends a real `POST /customers` to that live listener, which
+answers `201 COMMITTED` with exactly one `customer_records`, one `audit_log` and one
+`transactional_outbox` row and refuses a foreign-tenant claim `403 CROSS_TENANT_DENY` writing
+nothing (PR #139, CI run 33055438573). The environment that carried it is ephemeral and deletes
+itself: no staging environment exists and no staging run was performed, no registry is contacted,
+no external deployment and no production host selection happens, and the proof is one sequential
+request with no restart, durability, concurrency or load evidence. P23 (HA/DR/upgrade rollback)
+is the active package and the next explicit gap; none of this makes a hosted product runnable and
+none of it moves any global readiness flag under [README.md](README.md) `## Current status`.
 
 ## Approved dependency DAG
 
