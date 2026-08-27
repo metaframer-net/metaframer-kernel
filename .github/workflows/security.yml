@@ -53,6 +53,13 @@ jobs:
             --require-hashes \
             --disable-pip \
             -r "${RUNNER_TEMP}/db-requirements.txt"
+      - name: Audit the hash-locked deploy image requirement set
+        run: |
+          set -euo pipefail
+          uvx --from pip-audit==2.10.1 pip-audit \
+            --require-hashes \
+            --disable-pip \
+            -r host/deploy/requirements-uvicorn.txt
       - name: Materialise the tracked snapshot outside the checkout
         run: |
           set -euo pipefail

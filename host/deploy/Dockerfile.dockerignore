@@ -1,0 +1,29 @@
+# host/deploy/Dockerfile.dockerignore — P22A2, the deny-first build-context fence for
+# host/deploy/Dockerfile alone.
+#
+# BuildKit reads <dockerfile>.dockerignore in preference to a root .dockerignore, so this fence is
+# scoped to this one image: no other build in this repository is affected, and no shared root file
+# has to satisfy two builds with different needs at once.
+#
+# The first rule denies the ENTIRE context. Everything the image legitimately needs is then
+# re-included one explicit path at a time. A deny list would do the opposite — it would admit every
+# file added to this repository from tomorrow on unless somebody remembers to deny it, which is
+# exactly how a fixture, a planning document, a .git directory or a credential reaches an image
+# layer by default. Deny-first fails the other way: a path nobody named simply never arrives, and
+# the build says so.
+#
+# What is re-included is the runtime closure and nothing beyond it: the npm lock pair for `npm ci`,
+# the real src/ boundary the P22A1 wrapper ultimately reaches through host/js_asgi, the Python host
+# distribution's own build inputs, and the two host/deploy files the image installs from. tests,
+# planning, db, docs, consumers, .git, .github and node_modules are deliberately absent from this
+# list and therefore stay outside the context.
+*
+
+!package.json
+!package-lock.json
+!src
+!host/pyproject.toml
+!host/python_asgi
+!host/js_asgi
+!host/deploy/secret_file_runner.mjs
+!host/deploy/requirements-uvicorn.txt
