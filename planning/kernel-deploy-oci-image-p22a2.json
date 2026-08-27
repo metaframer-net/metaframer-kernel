@@ -1,6 +1,6 @@
 {
   "package": "kernel-deploy-oci-image-p22a2",
-  "title": "P22A2 — the reproducible OCI image for the deploy artifact",
+  "title": "P22A2 — the input-pinned OCI image for the deploy artifact",
   "class": "security-test-conformance",
   "base": "034d369557a3f9cf4b56bac518a475c6a293d67b",
   "baseTree": "205c6855e7ac00f3b07495f58d7de676995853d8",
@@ -15,8 +15,8 @@
     "host/deploy/requirements-uvicorn.txt",
     ".github/workflows/security.yml"
   ],
-  "problem": "P22A1 fixed the argument shape a mounted credential travels in, but left the deploy artifact with nothing to run in. The boundary needs two runtimes at once — Node, because the audited kernel boundary is JS, and Python, because the ASGI host that will front it is Python — and nothing in this repository yet said which versions, from which bases, installed how. Without a frozen answer, every build would be a different build: a floating tag can be republished under the same name, an unlocked install can resolve a version the lock never recorded, and an unfenced build context copies whatever happens to be lying in the checkout, including tests, planning documents and the .git directory, into an immutable image layer.",
-  "solution": "One host/deploy/Dockerfile builds a three-stage image whose three bases are pinned to frozen multiarch INDEX digests (node 22.23.2, python 3.12.14, uv 0.11.1). The Node stage installs the production JS dependency set with npm ci from package-lock.json; the Python stage installs exactly uvicorn 0.40.0 and its transitive set from the hash-locked host/deploy/requirements-uvicorn.txt with --require-hashes, then builds the host distribution offline from host/pyproject.toml with the pinned uv build backend and installs it as a real wheel into site-packages. The runtime stage keeps neither package manager, declares a numeric non-root user, and execs the EXISTING P22A1 wrapper on a fixed pair of mounted secret-file paths. host/deploy/Dockerfile.dockerignore fences the context deny-first — `*` before any re-inclusion — so only the named runtime closure can reach a layer. One additive blocking step in .github/workflows/security.yml audits the new hash-locked requirement set with the same pinned pip-audit 2.10.1 the existing db audit already uses.",
+  "problem": "P22A1 fixed the argument shape a mounted credential travels in, but left the deploy artifact with nothing to run in. The boundary needs two runtimes at once — Node, because the audited kernel boundary is JS, and Python, because the ASGI host that will front it is Python — and nothing in this repository yet said which versions, from which bases, installed how. Without a frozen answer, every build could read different inputs: a floating tag can be republished under the same name, an unlocked install can resolve a version the lock never recorded, and an unfenced build context copies whatever happens to be lying in the checkout, including tests, planning documents and the .git directory, into an immutable image layer.",
+  "solution": "One host/deploy/Dockerfile builds a three-stage image whose three bases are pinned to frozen multiarch INDEX digests (node 22.23.2, python 3.12.14, uv 0.11.1). The Node stage installs the production JS dependency set with npm ci from package-lock.json; the Python stage installs exactly uvicorn 0.40.0 and its transitive set from the hash-locked host/deploy/requirements-uvicorn.txt with --require-hashes, then builds the host distribution offline from host/pyproject.toml with the pinned uv build backend and installs it as a real wheel into site-packages. The runtime stage carries forward no npm, no uv and no build toolchain — pip still ships with the Python slim base and with the copied venv, and Debian package metadata is still present, but no runtime command invokes any of them — declares a numeric non-root user, and execs the EXISTING P22A1 wrapper on a fixed pair of mounted secret-file paths. host/deploy/Dockerfile.dockerignore fences the context deny-first — `*` before any re-inclusion — so only the explicitly named top-level paths, and whatever lies inside them, can reach a layer. One additive blocking step in .github/workflows/security.yml audits the new hash-locked requirement set with the same pinned pip-audit 2.10.1 the existing db audit already uses.",
   "acceptanceScenarios": [
     {
       "id": "P22A2-1",
@@ -31,7 +31,7 @@
     {
       "id": "P22A2-3",
       "title": "under a read-only, capability-dropped, network-isolated runtime every bad mount fails closed without disclosing the credential and a valid pair reaches the existing runner and stops there",
-      "asserts": "With --read-only, --cap-drop ALL, --security-opt no-new-privileges and --network none, an absent, empty, unreadable or malformed mount exits non-zero, names the missing mounted path where one is missing, never discloses the mounted credential, never attempts PostgreSQL contact and never starts a network listener; an inline credential offered as a container argument is refused without being echoed; and a valid pair of mounts reaches the EXISTING audited runner, which fails on its own malformed-envelope refusal rather than on malformed CLI args, proving the image starts that boundary and nothing else."
+      "asserts": "With --read-only, --tmpfs /tmp, --cap-drop ALL, --security-opt no-new-privileges and --network none, an absent, empty, unreadable or malformed mount exits non-zero, names the missing mounted path where one is missing, never discloses the mounted credential, never attempts PostgreSQL contact and never starts a network listener; an inline credential offered as a container argument is refused without being echoed; and a valid pair of mounts reaches the EXISTING audited runner, which fails on its own malformed-envelope refusal rather than on malformed CLI args, proving the image starts that boundary and nothing else."
     },
     {
       "id": "P22A2-4",
@@ -63,7 +63,7 @@
     "uvReference": "ghcr.io/astral-sh/uv:0.11.1@sha256:fc93e9ecd7218e9ec8fba117af89348eef8fd2463c50c13347478769aaedd0ce",
     "uvDigest": "sha256:fc93e9ecd7218e9ec8fba117af89348eef8fd2463c50c13347478769aaedd0ce",
     "digestKind": "multiarch-index",
-    "whyIndexDigest": "A tag is a mutable pointer and can be republished under the same name; a per-architecture manifest digest would pin one architecture and let the others drift. The multiarch index digest is the only reference that makes the same build the same build on every architecture that pulls it."
+    "whyIndexDigest": "A tag is a mutable pointer and can be republished under the same name; a per-architecture manifest digest would pin one architecture and let the others drift. The multiarch index digest is the only reference that makes every architecture pull the same frozen release, so a rebuild reads the inputs this package was reviewed against. It pins inputs, not outputs: the amd64 and arm64 images are different artifacts by construction, and build timestamps and file mtimes mean two rebuilds are not promised the same output digest."
   },
   "greenEvidence": {
     "targetedTest": "node --test tests/kernel-deploy-oci-image-p22a2.test.mjs",
@@ -81,16 +81,16 @@
     "band": "conditional",
     "ceilingSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
     "actual": {
-      "grossAdditions": 714,
+      "grossAdditions": 730,
       "grossDeletions": 0,
-      "net": 714,
+      "net": 730,
       "changedFiles": 6
     },
     "conditionalDeliveryGates": [
       {
         "gate": "single-narrow-problem",
         "state": "GREEN",
-        "evidence": "One problem only: what the deploy artifact runs inside, expressed as a reproducible image. No listener, no database, no migration, no registry, no deployment, no roadmap edit."
+        "evidence": "One problem only: what the deploy artifact runs inside, expressed as an image whose build inputs are pinned and verified. No listener, no database, no migration, no registry, no deployment, no roadmap edit."
       },
       {
         "gate": "bounded-file-set",
@@ -105,7 +105,7 @@
       {
         "gate": "no-quality-tradeoff",
         "state": "GREEN",
-        "evidence": "Every base is digest-pinned, every install reads a lock or a hash, the context is denied first and re-included by name, the runtime ships no package manager, the user is numeric and non-root, the entrypoint is exec-form, and the new CI gate is blocking with no excused finding."
+        "evidence": "Every base is digest-pinned, every install reads a lock or a hash, the context is denied first and re-included by explicit path, the runtime carries forward no npm, no uv and no build toolchain and invokes no package manager at run time (pip and Debian package metadata still ship with the base and the venv), the user is numeric and non-root, the entrypoint is exec-form, and the new CI gate is blocking with no excused finding."
       },
       {
         "gate": "full-green",
@@ -180,24 +180,25 @@
     "No current-truth closure is written; P22C alone closes P22 in the roadmap current truth.",
     "No production host is selected and no readiness flag beyond the declared set is introduced."
   ],
-  "capabilityDelta": "DEPLOY_OCI_IMAGE: the deploy artifact now has a reproducible container to run in. Three digest-pinned bases, a lock-only npm install, a hash-locked uvicorn 0.40.0 set and an offline-built host wheel produce the same image on every architecture and every rebuild; a deny-first context fence keeps tests, planning, db, docs, consumers, .git, .github and node_modules out of every layer; and the image runs as a numeric non-root user that execs the existing P22A1 wrapper on nothing but two mounted secret-file paths. This is a reproducible artifact only: it starts nothing, serves nothing, connects to nothing and is pushed nowhere.",
+  "capabilityDelta": "DEPLOY_OCI_IMAGE: the deploy artifact now has a container to run in whose build inputs are pinned. Three multiarch index-digest bases, a lock-only npm install, a hash-locked uvicorn 0.40.0 set and an offline-built host wheel mean every rebuild reads the same frozen, verified inputs on amd64 and arm64 alike; the two architectures still produce different artifacts, and build timestamps and file mtimes mean output digests are not guaranteed identical between rebuilds. A deny-first context fence keeps tests, planning, db, docs, consumers, .git and .github out of every layer, and keeps the checkout's own pre-existing node_modules out of the build context so no local install can ride into an image — the runtime does carry /app/node_modules, and deliberately so: it is a fresh production-only tree that stage 1 installed from package-lock.json with npm ci, never the developer directory. The image runs as a numeric non-root user that execs the existing P22A1 wrapper on nothing but two mounted secret-file paths. This is an input-pinned artifact only: it starts nothing, serves nothing, connects to nothing and is pushed nowhere.",
   "productClaim": {
-    "runnable": "The image builds today with `docker build --file host/deploy/Dockerfile .` and runs today under `--read-only --cap-drop ALL --security-opt no-new-privileges --network none` with a read-only secret mount: it refuses every absent, empty, unreadable or malformed mount without disclosing the credential, refuses an inline credential argument outright, and on a valid pair reaches the existing audited runner, which then waits for its stdin envelope exactly as it already did.",
+    "runnable": "The image builds today with `docker build --file host/deploy/Dockerfile .` and runs today under `--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges --network none` with a read-only secret mount: it refuses every absent, empty, unreadable or malformed mount without disclosing the credential, refuses an inline credential argument outright, and on a valid pair reaches the existing audited runner, which then waits for its stdin envelope exactly as it already did.",
     "notRunnable": "There is still no runnable product. Nothing here starts a listener, serves an HTTP request, provisions an environment, contacts PostgreSQL or writes an audit row. A user cannot submit a form, save a record or see a decision on record as a result of this package; that needs P22B and P22C, and every readiness flag beyond runtimeImplementationStarted and hostServerSelectedForDeployArtifact stays false."
   },
   "userJourney": {
     "once": "Önceden elimizde çalıştırılabilir bir paket yoktu. Programı bir sunucuya götürmek isteyen kişi her seferinde makineye Node ve Python'u elle kurmak zorundaydı; iki makinede iki farklı sürüm çıkabildiği için 'bende çalışıyordu' durumu kaçınılmazdı ve kurulum hiç denenemiyordu.",
-    "simdi": "Şimdi tek bir taşınabilir kutu üretiliyor. Kutunun içine hangi Node, hangi Python, hangi sunucu ve hangi kütüphane sürümünün gireceği parmak izi düzeyinde sabitlendi; aynı komut yarın da, başka bir bilgisayarda da bit bit aynı kutuyu üretiyor.",
+    "simdi": "Şimdi tek bir taşınabilir kutu üretiliyor. Kutunun içine hangi Node, hangi Python, hangi sunucu ve hangi kütüphane sürümünün gireceği parmak izi düzeyinde sabitlendi; aynı komut yarın da, başka bir bilgisayarda da tam olarak aynı malzemeleri okuyor. Sabitlenen şey malzemeler: kutu Intel ve ARM işlemciler için ayrı ayrı üretiliyor, üretim saati gibi ayrıntılar da değiştiği için iki kutunun parmak izi bire bir aynı çıkmayabilir. Verilen söz, içine giren her parçanın hep aynı ve doğrulanmış olması.",
     "fark": "Fark üç yerde: kutuya sadece adı tek tek yazılmış dosyalar giriyor, geri kalan her şey baştan reddediliyor; kutu yönetici (root) yetkisiyle değil, yetkisiz bir numarayla çalışıyor; ve parola kutunun içine hiç gömülmüyor, dışarıdan bağlanan bir dosyadan okunuyor.",
     "kullaniciYolculugu": "Bir CRM kullanıcısı müşteri formunu doldurup kaydet dediğinde isteğin gideceği bir sunucu programının bir yerde ayakta olması gerekir. Bu paket o programın içinde duracağı kutuyu üretiyor; ama kutu henüz açılıp dinlemeye başlamıyor, veritabanına da bağlanmıyor, dolayısıyla form hâlâ kaydedilemiyor.",
     "kalanEngel": "Kalan engel iki adım: P22B geçici PostgreSQL 16 ortamında gerçek bir HTTP isteğini ve denetim kaydını kanıtlayacak, P22C ise yol haritasındaki güncel gerçeği kapatacak. Bunlar bitmeden hiçbir gerçek kullanıcı hiçbir formu kaydedemez."
   },
   "residualRisks": [
-    "A digest pin freezes the base, which also freezes its security updates. The image is reproducible precisely because it does not float; keeping it current is a deliberate, separately reviewed pin bump, and the blocking CI audits are what make a stale pin visible rather than silent.",
+    "A digest pin freezes the base, which also freezes its security updates. The inputs are frozen precisely because they do not float; keeping it current is a deliberate, separately reviewed pin bump, and the blocking CI audits are what make a stale pin visible rather than silent.",
     "The uvicorn requirement set is hash-locked but is not the host distribution's lock. host/pyproject.toml still declares no dependencies on purpose, so a future package that genuinely needs uvicorn as a library dependency must add it there under its own frozen test rather than relying on this image's requirement file.",
     "uvicorn is installed and pinned but never started here. That the chosen server actually serves the boundary correctly is P22B's proof; hostServerSelectedForDeployArtifact records a selection, never a working listener.",
     "The runtime copies the Node binary onto a Python base, so the two runtimes share one C library. Both bases are the same Debian release, which is what makes this sound; a future pin bump that moves one base to a different release must re-prove it rather than assume it.",
-    "The deny-first context fence must be extended by hand whenever the runtime closure genuinely grows. That is the intended trade: a forgotten re-inclusion fails the build loudly, whereas a forgotten denial in a deny-list would ship silently."
+    "The deny-first context fence is a path allowlist, not a file allowlist. It must be extended by hand only when a genuinely NEW top-level runtime path appears; growth inside an already re-included directory such as src/ or host/python_asgi enters the context automatically, because a named directory admits everything beneath it. That cuts both ways, and is the intended trade: a forgotten re-inclusion fails the build loudly, whereas a forgotten denial in a deny-list would ship silently — but anything dropped inside a directory that is already named arrives in a layer without a further edit here.",
+    "Inputs are pinned; the output is not byte-reproducible, and this package never claims it is. The amd64 and arm64 images are different artifacts by construction, and build timestamps and file mtimes mean two rebuilds of the same commit are not promised the same image digest. Anything that needs a byte-identical rebuild — a reproducible-build attestation, for instance — is a separate package with its own proof; what is proven here is frozen multiarch release selection and verified dependency inputs."
   ],
   "reviewInstructions": {
     "snapshotHash": "recompute over the working tree at review time; a changed snapshot invalidates the review",

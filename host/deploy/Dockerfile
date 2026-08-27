@@ -10,16 +10,21 @@
 # Four properties are load-bearing, and each is a choice against a cheaper alternative:
 #
 #   - Every base is pinned to a frozen MULTIARCH INDEX digest, not a tag. A tag is a mutable
-#     pointer: `node:22.23.2-bookworm-slim` can be republished, and then "the same build" is not the
-#     same build. An index digest also keeps amd64 and arm64 pulling the same release rather than
-#     whatever each architecture's tag happened to resolve to.
+#     pointer: `node:22.23.2-bookworm-slim` can be republished, and then a rebuild no longer reads
+#     the inputs this package was reviewed against. An index digest also keeps amd64 and arm64
+#     pulling the same frozen release rather than whatever each architecture's tag happened to
+#     resolve to. That pins the INPUTS, and only the inputs. It does not make the outputs identical:
+#     the amd64 and arm64 images are different artifacts, and build timestamps and file mtimes mean
+#     two rebuilds are not promised the same output digest. No bit-for-bit claim is made here.
 #   - Nothing is fetched unverified. There is no network download of a toolchain, no piped install
 #     script, and every install reads a lock: `npm ci` refuses to resolve outside package-lock.json,
 #     pip refuses any artifact whose sha256 is not in requirements-uvicorn.txt, and the host wheel is
 #     built offline from host/pyproject.toml by the pinned uv build backend.
-#   - The build is multi-stage. The toolchains that install (npm, uv, pip) stay in the build stages;
-#     the runtime image receives only their outputs, so a compiler or a package manager is never a
-#     thing an attacker finds already installed in the shipped image.
+#   - The build is multi-stage. npm, uv and the build toolchains stay in the build stages and are
+#     not copied forward; the runtime image receives only their outputs. That is the exact claim,
+#     and it is narrower than "no package manager": the Python slim base and the venv copied onto
+#     it both still carry pip, and Debian's dpkg/apt package metadata is still present. What is
+#     true is that no runtime command invokes any of them — the entrypoint is the P22A1 wrapper.
 #   - The runtime declares a NUMERIC non-root user and an exec-form entrypoint. Numeric, so no
 #     /etc/passwd lookup inside the image decides who this runs as; exec-form, so no shell sits
 #     between a supervisor's signal and the process it means to signal.
@@ -73,17 +78,20 @@ RUN uv build --wheel --offline --out-dir ./dist ./host \
     && /opt/runtime/bin/pip install --no-cache-dir --no-input --no-deps --no-index ./dist/*.whl
 
 # -------------------------------------------------------------------------------------
-# Stage 3 — the runtime: two runtimes, one boundary, no toolchain
+# Stage 3 — the runtime: two runtimes, one boundary, no build toolchain carried forward
 #
 # The runtime keeps the Python base and receives the Node binary as a file, rather than the other
 # way round: the Python distribution is an installed venv that belongs to this exact interpreter,
 # while Node is a single self-contained executable that only needs the C/C++ runtime libraries this
-# base already carries. Neither npm nor uv nor a build toolchain is copied forward.
+# base already carries. Neither npm nor uv nor a build toolchain is copied forward. pip is a
+# separate matter and is deliberately not claimed away: it ships with the Python slim base and with
+# the venv, along with Debian's package metadata. Nothing this image runs calls any of them.
 #
 # Only the runtime closure is copied from the context: the real src/ boundary, the existing
 # host/js_asgi runner, and the existing P22A1 wrapper — which this package does not modify. Nothing
 # else in the repository is even inside the build context; host/deploy/Dockerfile.dockerignore
-# denies it first and re-includes these paths by name.
+# denies the whole context first and then re-includes these top-level paths by name, each named
+# path admitting everything beneath it.
 # -------------------------------------------------------------------------------------
 FROM python:3.12.14-slim-bookworm@sha256:0f5b26b9518d002b6173fd61daad821fa340635ebfec5bba471013f9ca114579 AS runtime
 
