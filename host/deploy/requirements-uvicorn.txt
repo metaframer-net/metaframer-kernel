@@ -1,0 +1,28 @@
+# host/deploy/requirements-uvicorn.txt — P22A2, the one hash-locked Python requirement set the
+# deploy image installs, and nothing else.
+#
+# uvicorn is an IMAGE requirement here, never a distribution requirement. host/pyproject.toml still
+# declares `dependencies = []`, so the host wheel stays framework-independent and nothing is added
+# to the host distribution or to any host lock: the image, not the library, chooses its server.
+#
+# Every distribution below — uvicorn's own transitive set included — carries the sha256 of every
+# artifact pip is allowed to install, so `pip install --require-hashes` refuses anything that is
+# not byte-for-byte one of these, even if the index later serves a different file under the same
+# name and version. A version range would not be a lock; a version pin without a hash would still
+# trust whatever the index hands back.
+#
+# Resolved once against the pinned python:3.12.14 base with the pinned uv 0.11.1. To regenerate,
+# from the single input line `uvicorn==0.40.0`:
+#   uv pip compile --generate-hashes --no-header <input> -o host/deploy/requirements-uvicorn.txt
+
+click==8.5.0 \
+    --hash=sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360 \
+    --hash=sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34
+    # via uvicorn
+h11==0.16.0 \
+    --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
+    --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
+    # via uvicorn
+uvicorn==0.40.0 \
+    --hash=sha256:839676675e87e73694518b5574fd0f24c9d97b46bea16df7b8c05ea1a51071ea \
+    --hash=sha256:c6c8f55bc8bf13eb6fa9ff87ad62308bbbc33d0b67f84293151efe87e0d5f2ee

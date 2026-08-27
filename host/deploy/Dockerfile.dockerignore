@@ -1,0 +1,36 @@
+# host/deploy/Dockerfile.dockerignore — P22A2, the deny-first build-context fence for
+# host/deploy/Dockerfile alone.
+#
+# BuildKit reads <dockerfile>.dockerignore in preference to a root .dockerignore, so this fence is
+# scoped to this one image: no other build in this repository is affected, and no shared root file
+# has to satisfy two builds with different needs at once.
+#
+# The first rule denies the ENTIRE context. Everything the image legitimately needs is then
+# re-included one explicit path at a time. A deny list would do the opposite — it would admit every
+# file added to this repository from tomorrow on unless somebody remembers to deny it, which is
+# exactly how a fixture, a planning document, a .git directory or a credential reaches an image
+# layer by default. Deny-first fails the other way: a path nobody named simply never arrives, and
+# the build says so.
+#
+# What is re-included is stated at path granularity, not file granularity. Each `!` line below names
+# one explicit runtime path, and a named DIRECTORY admits everything inside it — `!src` admits the
+# whole src/ tree, including any file added under it tomorrow, and the same holds for host/python_asgi
+# and host/js_asgi. The named set is the npm lock pair for `npm ci`, the real src/ boundary the P22A1
+# wrapper ultimately reaches through host/js_asgi, the Python host distribution's own build inputs,
+# and the two host/deploy files the image installs from.
+#
+# Everything that is not one of those paths, or inside one of them, stays excluded by the leading `*`:
+# tests, planning, db, docs, consumers, .git, .github and node_modules are deliberately absent from
+# the list below and therefore never enter the context. So growth INSIDE a named directory needs no
+# edit here and reaches a layer automatically; only a genuinely new top-level runtime path has to be
+# added by hand, and until it is, the build fails loudly rather than shipping it silently.
+*
+
+!package.json
+!package-lock.json
+!src
+!host/pyproject.toml
+!host/python_asgi
+!host/js_asgi
+!host/deploy/secret_file_runner.mjs
+!host/deploy/requirements-uvicorn.txt
