@@ -16,6 +16,35 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P21h `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `21/25 tamamlandı, P22/25 aktif`, closing P21 (security)
+  with the seven real merged sub-packages — P21A binding the host boundary's real-database ALLOW
+  path to trusted process inputs `--trusted-tenant-id` / `--trusted-actor-id`
+  (PR #128 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/32997140154)),
+  P21B proving the authorization deny path writes nothing on a real PostgreSQL 16 substrate
+  (PR #129 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33003288720)),
+  P21C appending every boundary decision to the append-only, `prev_hash`-chained
+  `policy_decision_log` before the invariant stage
+  (PR #130 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33010709401)),
+  P21D carrying that audited boundary to the ASGI callable via
+  `createAuditedCustomerAsgiComposition`
+  (PR #131 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33015412681)),
+  P21E auditing identity-guard refusals via `createAuditedCustomerComposition`
+  (PR #132 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33019320390)),
+  P21F adding the opt-in `--audit on` audited host runner
+  (PR #133 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33023129130)),
+  and P21G adding `.github/workflows/security.yml` with `npm audit`, `pip-audit` and a
+  digest-pinned TruffleHog scan of the current tracked tree
+  (PR #134 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33027876043)
+  plus its own separate [passing Security workflow run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33027876143))
+  — with P22 (deploy package/staging) active and P22-P25 production proof named as the explicit
+  next-missing pieces. This truth-sync adds the
+  `KERNEL_BOUNDARY_SECURITY_AUDIT_AND_SUPPLY_CHAIN_GATE` capability delta; the audit stays opt-in
+  and default-off, no host server is selected, no network listener is started, the Git history is
+  unscanned, runtime secrets and any CI secret store stay outside the gate, and
+  `supply-chain-and-secret-scan` is not yet a required status check under branch protection, so it
+  stays advisory today. No global readiness flag moves and a hosted product remains not-runnable.
+  See `planning/kernel-p21-current-truth-closure-p21h.json`.
 - P20b `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `20/25 tamamlandı, P21/25 aktif`, closing P20
   (performance) with real merged evidence — `db/metaframer_kernel_db/performance.py`'s
