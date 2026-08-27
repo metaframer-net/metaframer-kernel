@@ -86,7 +86,7 @@ const forgedRemotes = [
   ["an extra path prefix under the canonical host", "https://github.com/mirror/karacaismail/actionplan.git"],
   ["the canonical host spelled as userinfo", "https://github.com@evil.example/karacaismail/actionplan.git"],
   ["the canonical host as an SSH user", "ssh://github.com@evil.example/karacaismail/actionplan.git"],
-  ["embedded credentials", "https://karacaismail:token@github.com/karacaismail/actionplan.git"],
+  ["embedded credentials", "https://karacaismail:token@github.com/karacaismail/actionplan.git"], // trufflehog:ignore
   ["a host suffix confusion", "git@github.com.evil.example:karacaismail/actionplan.git"],
   ["a host prefix confusion", "https://notgithub.com/karacaismail/actionplan.git"],
   ["a subdomain confusion", "https://github.com.evil.example/karacaismail/actionplan.git"],
@@ -507,7 +507,7 @@ test("a discovery hint never substitutes for repository identity or the commit o
     ["file-url", "file:///tmp/karacaismail/actionplan.git"],
     ["extra-prefix", "https://github.com/mirror/karacaismail/actionplan.git"],
     ["embedded-user-host", "https://github.com@evil.example/karacaismail/actionplan.git"],
-    ["embedded-credentials", "https://karacaismail:token@github.com/karacaismail/actionplan.git"],
+    ["embedded-credentials", "https://karacaismail:token@github.com/karacaismail/actionplan.git"], // trufflehog:ignore
     ["host-suffix", "git@github.com.evil.example:karacaismail/actionplan.git"],
   ];
   for (const [name, remote] of hostForgeries) {

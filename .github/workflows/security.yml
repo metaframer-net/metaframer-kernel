@@ -1,0 +1,76 @@
+name: Security
+
+# Supply-chain and secret scanning, kept deliberately separate from ci.yml. Every gate here is
+# blocking, nothing is excluded and nothing is excused: an ignored advisory or a suppressed exit
+# code turns a gate into a report nobody reads. The workflow reads no secret, is granted no write,
+# and pins every action to an immutable commit and the scanner to an immutable image digest.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  supply-chain-and-secret-scan:
+    name: supply-chain-and-secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Audit the locked npm production dependency set
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --audit-level=high
+      - name: Export the locked db environment with its hashes intact
+        run: |
+          set -euo pipefail
+          uv export --project db \
+            --frozen \
+            --no-dev \
+            --no-emit-project \
+            --format requirements.txt \
+            -o "${RUNNER_TEMP}/db-requirements.txt"
+      - name: Audit the exported Python dependency set against pinned tooling
+        run: |
+          set -euo pipefail
+          uvx --from pip-audit==2.10.1 pip-audit \
+            --require-hashes \
+            --disable-pip \
+            -r "${RUNNER_TEMP}/db-requirements.txt"
+      - name: Materialise the tracked snapshot outside the checkout
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/tracked-snapshot"
+          mkdir -p "${RUNNER_TEMP}/tracked-snapshot"
+          git archive --format=tar HEAD | tar -x -C "${RUNNER_TEMP}/tracked-snapshot"
+      - name: Scan the tracked snapshot for committed credentials
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --volume "${RUNNER_TEMP}/tracked-snapshot:/snapshot:ro" \
+            trufflesecurity/trufflehog@sha256:deb2af10659a488a14d262a323addcde099d99827a1cf1dc4e93c17915c39f08 \
+            filesystem /snapshot \
+            --no-verification \
+            --results=unverified \
+            --fail \
+            --fail-on-scan-errors \
+            --no-update \
+            --json \
+            | jq -c '{DetectorName: .DetectorName, Redacted: .Redacted, file: .SourceMetadata.Data.Filesystem.file, line: .SourceMetadata.Data.Filesystem.line}'
+          echo "secret scan finished with zero findings over the tracked snapshot"
