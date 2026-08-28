@@ -11,9 +11,11 @@ import { renderConsumerDiagnosticsDistribution } from "../tools/generate-consume
 // repository itself. The answer is AGPL-3.0-only, proven by the FSF's verbatim agpl-3.0.txt bytes, a real
 // regular file and never a symlink pointing somewhere unreviewed, carrying Section 13 — the remote-network
 // clause that is the entire reason this is AGPL and not GPL. The other side is the commercial one: the SDK
-// bytes an external consumer receives must carry NO license text at all. The MIT grant intended for those
-// bytes is `pending` — DECIDED, NOT GRANTED — so this package relicenses nothing, and the CLA is `inactive`
-// the same way. NOT P24: no team, no readiness flag moved, no host, release or publish, generators frozen.
+// bytes an external consumer receives carried NO license text at all, because the MIT grant intended for
+// those bytes was `pending` — DECIDED, NOT GRANTED — so this package relicensed nothing and the CLA is
+// `inactive` the same way. That `pending` was later granted by P24E2, which owns the MIT text now in the
+// generated module; this record stays historical and unrewritten, and what it still enforces is that the
+// repository's own copyleft never reached a consumer. NOT P24: no team, no readiness flag, no release.
 
 const at = (rel) => new URL(`../${rel}`, import.meta.url);
 const [read, sha256] = [(rel) => readFile(at(rel), "utf8"), (text) => createHash("sha256").update(text, "utf8").digest("hex")];
@@ -21,8 +23,7 @@ const [ARTIFACT, SPDX] = ["planning/kernel-license-boundary-p24e1.json", "AGPL-3
 const LICENSE_SHA256 = "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0";
 const SECTION_13 = "  13. Remote Network Interaction; Use with the GNU General Public License.";
 const CLA_PATHS = Object.freeze(["CLA.md", "CLA.txt", "CLA", "docs/cla.md", ".github/CLA.md", "CONTRIBUTOR_LICENSE_AGREEMENT.md"]);
-const FROZEN = Object.freeze({
-  "tools/generate-action-sdk.mjs": "1fe9dd8619ee6d13d869fc4c8a1b7c8ec949eb20acc7640d58d60a758867c0af",
+const FROZEN = Object.freeze({ // tools/generate-action-sdk.mjs left this map when P24E2 became its authorized editor; the two wrappers stay pinned
   "tools/generate-versioned-action-sdk-distribution.mjs": "5218cd717caa5fc96b0fef6223d11cc3aeb0bcfad521ac069a8330e7a06b85c1",
   "tools/generate-consumer-diagnostics-distribution.mjs": "93a605945bc8f341a86016a8588f58f51271d3a70da4fb06d11d5acae804bce2",
 });
@@ -63,8 +64,9 @@ test("no CLA exists, and nothing claims one is signed or in force", async () => 
   assert.ok(!/\bCLA\b/.test(await read("LICENSE")), "the AGPL text is verbatim and mentions no CLA");
 });
 
-test("SDK bytes carry no license text, and the generator surfaces stay frozen", async () => {
+test("stating the repository's copyleft leaked none of it into consumer bytes, and the generator surfaces this package froze stay frozen", async () => {
   for (const [rel, digest] of Object.entries(FROZEN)) assert.equal(sha256(await read(rel)), digest, `${rel} must not be edited by the license package`);
   const bytes = [renderVersionedActionSdkDistribution(CONTRACT, "1.0.0"), renderConsumerDiagnosticsDistribution(CONTRACT, "1.0.0")].flatMap((payload) => Object.values(payload.files)).join("\n");
-  assert.equal(bytes.match(/affero|AGPL|GPL|copyleft|copyright|licen[cs]e/gi), null, "a consumer's bytes must state no grant while MIT is pending");
+  assert.equal(bytes.match(/affero|AGPL|GPL|copyleft/gi), null, "the repository is AGPL-3.0-only and that copyleft must never reach a consumer's bytes");
+  assert.match(bytes, /^\/\/ SPDX-License-Identifier: MIT$/m, "the `pending` this package recorded was later granted by P24E2, which owns those bytes; nothing here relicensed them and this record stays historical");
 });
