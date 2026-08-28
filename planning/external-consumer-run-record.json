@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "external-consumer-run-record",
+  "governedBy": "external-consumer-intake",
+  "recordClosed": true,
+  "recordFields": [
+    "schemaVersion",
+    "runId",
+    "teamId",
+    "participantKind",
+    "payloadVersion",
+    "outcome",
+    "outcomeReason",
+    "ownerHelpCount",
+    "helpEvents",
+    "evidence"
+  ],
+  "helpEventFields": [
+    "at",
+    "channel",
+    "question",
+    "answer"
+  ],
+  "evidenceFields": [
+    "path",
+    "sha256"
+  ],
+  "acceptedOutcome": "completed",
+  "acceptedParticipant": "real-independent-team",
+  "neverCounted": [
+    "agent",
+    "employee",
+    "probe",
+    "worker"
+  ],
+  "digest": {
+    "algorithm": "sha256",
+    "encoding": "hex-lowercase",
+    "evidenceInput": "evidence-file-bytes-unmodified",
+    "recordInput": "canonical-json-utf8",
+    "canonicalJson": {
+      "keyOrder": "schema-declared",
+      "indent": 2,
+      "trailingNewline": true
+    }
+  },
+  "dispositionByOutcome": {
+    "completed": [
+      "accepted",
+      "observed:owner-help"
+    ],
+    "abandoned": [
+      "not-accepted:abandoned"
+    ],
+    "void": [
+      "void:hidden-owner-help",
+      "void:non-team-participant",
+      "void:mutated-evidence"
+    ]
+  },
+  "voidReasons": [
+    "hidden-owner-help",
+    "non-team-participant",
+    "mutated-evidence"
+  ],
+  "teamsCountedToDate": {
+    "requires": [
+      "outcome:completed",
+      "disposition:accepted",
+      "participantKind:real-independent-team",
+      "ownerHelpCount:0",
+      "evidenceDigestVerified"
+    ],
+    "distinctBy": "teamId",
+    "duplicatesCountOnce": true,
+    "derivedFromSuppliedRecordsOnly": true,
+    "projectTotal": 0
+  },
+  "failCodes": [
+    "MISSING_ARGUMENT",
+    "RECORD_UNREADABLE",
+    "RECORD_SCHEMA_VIOLATION",
+    "OUTCOME_REASON_INCOHERENT",
+    "PARTICIPANT_NEVER_COUNTED",
+    "HELP_EVENT_OMITTED",
+    "HELP_COUNT_CONTRADICTION",
+    "EVIDENCE_UNREADABLE",
+    "EVIDENCE_DIGEST_MISMATCH"
+  ],
+  "checker": "tools/check-external-consumer-run-record.mjs",
+  "verdict": "WELL_FORMED",
+  "claims": {
+    "validationIsAcceptance": false,
+    "teamsCountedToDate": 0,
+    "recordAloneIsProof": false
+  }
+}

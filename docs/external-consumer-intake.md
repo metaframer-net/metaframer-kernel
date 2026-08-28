@@ -153,6 +153,24 @@ Every help event is recorded, with four fields: `at`, `channel`, `question`, `an
 exactly where a measurement like this rots. Omitting a help event from the helpEvents record
 falsifies the run outright.
 
+Where a run is written down, `planning/external-consumer-run-record.json` is the closed shape it is
+written in, and `tools/check-external-consumer-run-record.mjs` is the file that reads it. A record
+names the run it is (`runId`) and the team that ran it (`teamId`), and it declares one of three
+outcomes. A run the team finished is `completed`; a run the team stopped is `abandoned`, kept with
+its reason and labelled `not-accepted:abandoned`; a run one of the three falsification conditions
+below destroyed is `void`, kept and labelled with the id it was falsified by. Only a `completed`
+run can be `accepted`, and only when nobody helped it. A completed run whose help is fully written
+down is well formed and is labelled `observed:owner-help` — kept as the different measurement it is,
+never rounded down to zero. A help event missing one of its four fields, and a tally that disagrees
+with the events beside it, are both `void:hidden-owner-help`, and each keeps its own distinct code
+so the two are never collapsed into one; a run by a participant the protocol never counts is
+`void:non-team-participant`, and evidence edited after its digest was taken is
+`void:mutated-evidence`. A record declaring itself void must show that falsification in its own
+fields: a void nobody can see is refused, not believed. Neither the schema nor the checker joins the
+seven required inputs above: a record is what a run produces, not something a team is handed. The
+checker says a record is well formed and derives a number from records; it accepts nothing, because
+acceptance is not a program's decision.
+
 ## Falsification
 
 Three conditions falsify a run, meaning the run is void and cannot be counted, repaired or
@@ -171,6 +189,16 @@ Evidence is immutable. Each accepted run's evidence is digested with sha256 at a
 not editable afterwards. A correction is a new record that references the old one; it never
 overwrites it. If a digest no longer matches its evidence, that evidence is mutated evidence and
 falls under falsification above.
+
+What is hashed is exact, so two honest record stores cannot disagree about it. A run's evidence is
+sha256 over the evidence file's own bytes, unmodified. A record's identity is sha256 over one
+canonical serialization of the record — the schema's declared key order, a two-space indent, one
+trailing newline, UTF-8 — so the same record with its keys shuffled is the same record, while one
+changed value is a different one. That identity is the record's, never the team's. The bar this
+protocol sets is three independent TEAMS, so the count is taken over distinct `teamId` values among
+the accepted records handed to the checker: one team that runs twice is one team, and every run
+that was helped, abandoned or voided counts zero. That derivation is over those records only. It is
+never the project's total, which is still 0, and no program may raise it.
 
 ## What this is not
 
