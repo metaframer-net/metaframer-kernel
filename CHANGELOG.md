@@ -16,6 +16,33 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24A `tools/generate-consumer-diagnostics-distribution.mjs`: ships the P09 clean-consumer check
+  inside the distribution payload itself instead of leaving it behind in `tests/fixtures`, as an
+  additive wrapper that never edits the P08 generator whose manifest text its own merged test
+  freezes byte for byte. The wrapper reads the P08 payload back, keeps its `integrity`, manifest
+  values and generated module bytes verbatim, and adds exactly one file — a builtins-only
+  `diagnose.mjs` — plus a `manifest.diagnostics` digest over
+  `{schemaVersion, distributionVersion, coordinate, integrity, diagnosticsPath, diagnosticsSource}`
+  that records that runner's exact bytes next to the payload it shipped with, so the runner and
+  the module drift independently
+  rather than as one opaque blob. Run from a materialized payload root with the expected version,
+  the runner walks ten ordered gates — `manifest_present`, `manifest_parsed`, `manifest_shape`,
+  `distribution_version`, `module_path_safety`, `diagnostics_path_safety`, `module_present`,
+  `module_integrity`, `diagnostics_integrity`, `module_evaluation` — and either prints one
+  deterministic healthy JSON report on stdout with nothing on stderr, or prints nothing on stdout
+  and refuses with exit 1 and exactly one `CONSUMER_DIAGNOSTICS_ERROR:<CODE>` line, always before
+  the generated module is evaluated. The unchanged P09 fixture still runs GREEN against the
+  augmented payload. The claim is deliberately narrow: an honest, unreplaced runner detects
+  ACCIDENTAL drift — a truncated, half-copied or hand-edited file on one side only. It is not
+  tamper-proof and it is not a signature. A replaced runner cannot self-authenticate, because
+  `diagnose.mjs` compares its own bytes against a `manifest.diagnostics` value that travels in the
+  same payload, so anyone able to rewrite the module can rewrite the runner and the digest
+  together and still get a healthy report. The digest only becomes binding when an EXTERNAL
+  verifier pins the expected sha256 out of band and compares it before the runner is invoked. This
+  is boundary preparation only and is NOT P24: no external, independent or counted team exists,
+  the team count stays 0, `ownerHelpCount` is unmeasured, the roadmap counter stays
+  `23/25 tamamlandı, P24/25 aktif`, every strong readiness flag stays false, and no host,
+  container, database, release or deployment is involved.
 - P23d `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `23/25 tamamlandı, P24/25 aktif`, closing P23 (HA/DR/upgrade
   rollback) with the three real merged sub-packages — P23A taking a credential-free, owner-only
