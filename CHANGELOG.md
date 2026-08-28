@@ -16,6 +16,19 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24E2 the MIT grant applied to `tools/generate-action-sdk.mjs`, plus
+  `planning/kernel-sdk-mit-grant-p24e2.json`: the grant P24E1 recorded as `pending` — DECIDED and
+  NOT GRANTED — now lands in the bytes an external consumer actually receives. Every generated
+  action SDK module opens with one SPDX id and the verbatim OSI MIT text in its canonical 21-line
+  wrap, filled in for İsmail Karaca, then one blank line, then the module body unchanged from its
+  first byte. Both the text and the rendered notice are frozen by sha256 in the test, so no later
+  edit may reword, reflow or quietly widen the grant. Exactly one file receives it. The notice sits
+  INSIDE the P08 integrity envelope — stripping it breaks the digest — while the P08 layout, the
+  P24A manifest schema and both digest formulas are preserved byte for byte. `diagnose.mjs` and
+  `manifest.json` stay outside the grant deliberately, with the ungranted runner recorded as open
+  follow-up. The repository stays AGPL-3.0-only and is not relicensed; P24E1 still reads `pending`,
+  superseded rather than rewritten. Permission is not use: no consumer ran anything, no CLA opened,
+  no readiness flag, version or release moved, and P24 stays open at 0 of 3.
 - P24E1 `LICENSE`, a `license` key in `package.json` and
   `planning/kernel-license-boundary-p24e1.json`: the license boundary, stated once and enforced
   from both sides. The repository is AGPL-3.0-only, proven by the FSF's verbatim `agpl-3.0.txt`
