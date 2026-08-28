@@ -16,6 +16,33 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24D `planning/external-consumer-run-record.json` and
+  `tools/check-external-consumer-run-record.mjs`, plus prose under the existing Owner help and
+  Evidence headings of `docs/external-consumer-intake.md`: the record layer the intake protocol
+  never had. P24B froze the protocol and P24CR repaired the handover until P24C's probes measured
+  it SUFFICIENT; what was still missing was the thing a run is written down in, and the arithmetic
+  that turns records into the one number the acceptance bar is stated in. The schema is one closed
+  artifact — ten record fields, four help-event fields, two evidence fields, three outcomes — and it
+  is additive: the fenced protocol block is unmoved to the byte, and neither new file joins the
+  seven required inputs, because a record is what a run PRODUCES, not an input a team is handed.
+  Digests are exact: evidence is sha256 over the evidence file's bytes unmodified, and a record's
+  identity is sha256 over ONE canonical serialization — schema-declared key order, two-space indent,
+  trailing newline, UTF-8 — so the same record with its keys shuffled has the same identity while
+  one changed value does not. Every outcome carries its own dispositions and only `completed` can be
+  `accepted`: a run the team stopped is `abandoned` and `not-accepted:abandoned`, a run destroyed by
+  one of the protocol's three falsification conditions is `void` and labelled by the id it was
+  falsified by, each keeping its own distinct fail code, and a record declaring itself void must
+  show that falsification in its own fields or be refused. Help written down in full is
+  `observed:owner-help`, recorded rather than laundered to zero. And the count is DERIVED at the bar
+  the protocol actually set: distinct accepted `teamId` values among the supplied records, so one
+  team's two runs are one team. The checker is the portable half — builtins only, no repository
+  import, no ambient environment, no clock or random source, evidence resolved against the record's
+  own directory — so a team copies that single file out and two runs anywhere produce a
+  byte-identical transcript carrying no host path. It validates and derives; it never accepts,
+  because acceptance is not a program's decision. This is NOT P24: no external, independent or
+  counted team consumed anything, the counted team total stays 0, owner help stays UNMEASURED rather
+  than zero, P24 stays open, every readiness flag stays false, and no host, container, database or
+  release was started.
 - P24CR `tools/materialize-distribution-payload.mjs`, plus an ADDITION-ONLY amendment to
   `docs/external-consumer-intake.md`: the repair of the handover P24C measured and found not
   closed. The fenced protocol block changes in exactly one way — three entries are APPENDED to
