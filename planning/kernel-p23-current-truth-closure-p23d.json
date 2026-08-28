@@ -1,0 +1,214 @@
+{
+  "package": "P23d-current-truth-closure",
+  "title": "P23 (HA/DR/upgrade rollback) current-truth closure",
+  "class": "production",
+  "base": "c5f7e210f4f896ce606b351333bf9c08d49840f1",
+  "baseTree": "baaefeb1c3c06d9540f43f6df4809053b5cae665",
+  "actionplanPin": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+  "scopeSynthesisName": "P23D_SCOPE_SYNTHESIS",
+  "scopeSynthesisId": "ce0327d3",
+  "scopeSynthesisNote": "The reconciled synthesis was handed to this writer by MASTER as the frozen scope for the package; its identifier is recorded here as evidence. Its concrete expression is the frozen test file below, which this writer did not author and did not edit.",
+  "frozenTestPath": "tests/kernel-roadmap-v1-current-truth.test.mjs",
+  "frozenTestSha256": "9505248026c7ac5244c7ce261fbdc00cb12934b63598e22c5af240dd5f7d2448",
+  "testHashUnchanged": false,
+  "frozenTestProvenance": {
+    "supersededSha256": "121cbcdc769ac7db99dd1372020d84d3feaae43bc181c71703dd73db40879686",
+    "currentSha256": "9505248026c7ac5244c7ce261fbdc00cb12934b63598e22c5af240dd5f7d2448",
+    "changeClass": "semantic-correction",
+    "authoredBy": "the Claude test writer, re-issued on MASTER adjudication; this implementation writer neither authored nor edited either version",
+    "defectCode": "TURKISH_NE_NE_NEGATION_REGEX_DEFECT",
+    "defect": "The superseded frozen test's TABLE_NAME_HIDING guard recognised the Turkish hiding-claim only in its negative-verb shape (gostermiyor | gizliyor | sakliyor | aciklamiyor). Turkish also carries the same claim in the paired \"ne ... ne de ...\" frame, which negates a POSITIVE verb: \"hata mesaji ne parolayi ne de eksik tablonun adini gosteriyor\" asserts the hiding just as strongly while writing gosteriyor, not gostermiyor. The frozen P23C sentence uses exactly that second shape, so a negative-verb-only guard read it as honest.",
+    "consequence": "Scenario P23D-5's read-back assertion - the one that proves this closure corrects a real frozen sentence rather than inventing a correction - could never match, so P23D-5 stayed RED on any tree regardless of what the five allowed files said, and the same blind spot would have let a genuine \"ne ... ne de ...\" overclaim through the projection deny-list unseen.",
+    "correction": "The corrected frozen test adds a second alternative to TABLE_NAME_HIDING[2]: \\bne\\b(?=[^.]{0,120}\\bne de\\b)[^.]{0,120}tablo(?:nun)?\\s+ad[\\u0131i]n[\\u0131i][^.]{0,60}(g[o\\u00f6]steriyor|gizliyor|sakl[\\u0131i]yor|a[c\\u00e7][\\u0131i]kl[\\u0131i]yor), which requires the ne ... ne de frame by lookahead before accepting the positive verb. The negative-verb alternative is unchanged, so no previously-caught shape is lost.",
+    "verifiedOnThisTree": "The superseded pattern returns false against planning/kernel-migration-rollback-p23c.json#userJourney.kullaniciYolculugu; the corrected pattern returns true against the identical byte-unchanged sentence. The corrected pattern still denies all five projections, so the guard was widened for the read-back and not weakened for the deny-list.",
+    "scopeUnchanged": "The correction changes only how the frozen test recognises one Turkish negation shape. The counter, the capability delta, the readiness flags, the allowed-file set and the non-goals of this package are untouched by it."
+  },
+  "atomicPackageFiles": [
+    "tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p23-current-truth-closure-p23d.json"
+  ],
+  "implementationWriterAllowedFiles": [
+    "planning/roadmap-v1-current-truth.json",
+    "ROADMAP.md",
+    "README.md",
+    "CHANGELOG.md",
+    "planning/kernel-p23-current-truth-closure-p23d.json"
+  ],
+  "nonGoals": [
+    "No runtime, host, image, migration, harness or workflow file is written or edited, and no state-changing standalone Docker action, backup, standby, migration drill or package-created environment is run outside canonical QA1. QA1 itself did run the 16 Docker-dependent live suites as part of canonical `npm test`, preceded by one read-only `docker info` availability probe; both are recorded under qa.fullQaRun and neither is a package-created environment or a state-changing action of this package.",
+    "No registry push, no environment provisioning, no deployment, promotion, tag, release or production step.",
+    "No DAG edge, denominator, family grouping, package name or readiness flag is changed.",
+    "No P24 or P25 work is started, and no merged P23A/P23B/P23C artifact is edited.",
+    "AGENTS.md, RULES.md, versioning-policy.json, package.json and package-lock.json are untouched; no repo-root CLAUDE.md is created.",
+    "No Actionplan node writeback and no commit, push or merge by the writer.",
+    "No full-QA budget beyond the one budgeted local run recorded below."
+  ],
+  "readinessClaim": "Closing a package named HA/DR/upgrade rollback is neither high availability nor a disaster-recovery plan. Every stronger readiness flag stays false, no resilience flag is introduced true into currentTruth, and a hosted product remains not-runnable.",
+  "capabilityDelta": {
+    "strongerFlags": {
+      "kernelReady": false,
+      "sdkReady": false,
+      "appBuildable": false,
+      "releaseAllowed": false,
+      "deployAllowed": false,
+      "productionAllowed": false,
+      "gapClosed": false,
+      "oneGoldenSliceReady": false,
+      "runnableProduct": false
+    },
+    "ownerFacing": "MANUAL_EPHEMERAL_RECOVERY_FAILOVER_AND_MIGRATION_ROLLBACK_DRILLED",
+    "calistirilabilirlik": "manual-ephemeral-dr-failover-and-migration-rollback-drilled-hosted-product-not-runnable",
+    "notRunnable": "This truth-sync runs no drill, starts no container, provisions no environment, takes no backup, promotes no standby and migrates no schema; it only projects P23's already-merged P23A-P23C evidence into the roadmap counter, ROADMAP.md, README.md and CHANGELOG.md. Three proven drills on a single ephemeral host are not high availability, not a disaster-recovery plan, not point-in-time recovery and not a zero-downtime migration."
+  },
+  "p23Evidence": [
+    {
+      "pkg": "P23A",
+      "pr": "#141",
+      "merge": "738a42511ff62481e5a92e9a6e4ed2a78b666d34",
+      "base": "aa15580462d6d261e693c0c617fcac15f75be593",
+      "ciRun": "33072032144",
+      "securityRun": "33072032056",
+      "manifest": "planning/kernel-disaster-recovery-backup-restore-p23a.json",
+      "frozenTestPath": "tests/kernel-disaster-recovery-backup-restore-p23a.test.mjs",
+      "frozenTestSha256": "b59540ee938eac8fc18e2acd25fe98a000c231525351f73814ef347436d51d43",
+      "probePath": "tests/_harness/live-recovery-probe.mjs",
+      "probeSha256": "e13a0e5be9fc4066c74fb8dbc11279c1e72a2359287195865db1f08ee834c63b",
+      "probeWitness": "planning/kernel-high-availability-standby-failover-p23b.json#preservedHashes",
+      "substance": "One verified owner-only custom-format backup, one total loss of the database container and its data volume, one restore into a fresh volume with the migration head, the four-table row truth, the two non-superuser roles, forced row-level security and the recomputable decision chain all back, and one further write chaining onto the pre-disaster genesis."
+    },
+    {
+      "pkg": "P23B",
+      "pr": "#142",
+      "merge": "8cf90a6ec7cef16e0b65050bed8199c1b56049c6",
+      "base": "738a42511ff62481e5a92e9a6e4ed2a78b666d34",
+      "ciRun": "33081640429",
+      "securityRun": "33081640670",
+      "manifest": "planning/kernel-high-availability-standby-failover-p23b.json",
+      "frozenTestPath": "tests/kernel-high-availability-standby-failover-p23b.test.mjs",
+      "frozenTestSha256": "4706927aa718a58980f2944768d5b52bf003f9a6ed039190efac76acd76d689e",
+      "probePath": "tests/_harness/live-standby-failover-probe.mjs",
+      "probeSha256": "3bef68f7e35c530404025678c48fc47ec3c29a501a6f66ea231d833b5d26cf23",
+      "probeWitness": "planning/kernel-migration-rollback-p23c.json#preservedHashes",
+      "substance": "One real physical standby cloned with pg_basebackup under a replication-only role, sharing the primary's system identifier, streaming and refusing standby writes; the primary destroyed and its absence verified; the standby promoted by an operator and given the db alias so the never-restarted listener continues the same chain."
+    },
+    {
+      "pkg": "P23C",
+      "pr": "#143",
+      "merge": "c5f7e210f4f896ce606b351333bf9c08d49840f1",
+      "base": "8cf90a6ec7cef16e0b65050bed8199c1b56049c6",
+      "ciRun": "33152068364",
+      "securityRun": "33152068502",
+      "manifest": "planning/kernel-migration-rollback-p23c.json",
+      "frozenTestPath": "tests/kernel-migration-rollback-p23c.test.mjs",
+      "frozenTestSha256": "547b0561eae2bd215887701d21f66e048a59241d678e4dc02527afe9d70e6c90",
+      "probePath": "tests/_harness/live-migration-rollback-probe.mjs",
+      "probeSha256": "da5d822cfbd4a5de29f786d5e78724dfd884ef5b0e8390a76898cd7e09846d94",
+      "probeWitness": "self (planning/kernel-migration-rollback-p23c.json#probeSha256)",
+      "substance": "The repository's own locked alembic head revision run backwards to 0002_customer_records as the non-superuser migration role and re-applied, with the three earlier business tables surviving row-for-row, the never-restarted listener failing closed in between, and the decision history the rolled-back revision owned destroyed for good."
+    }
+  ],
+  "mergeOrderReadback": "Each sub-package was cut from the commit the previous one merged as: P23B.base equals P23A.merge, P23C.base equals P23B.merge, and P23C.merge is the commit this counter is read as of. The order is checkable from the frozen records, not claimed.",
+  "subPackageFlagReadback": {
+    "counterFrozenAt": "All three merged manifests still record splitEvidence.counter = 22/25 and readinessFlags.p23Complete = false: none of them moved the counter, each left the closure to this package.",
+    "falseInEveryManifest": ["highAvailabilityProven", "pointInTimeRecoveryProven", "offsiteBackupExists", "automatedBackupScheduleExists", "recoveryObjectivesAgreed", "stagingEnvironmentExists", "stagingRunPerformed", "productionHostSelected", "registryPushed", "externalDeploymentPerformed", "p23Complete"],
+    "falseWhereverDeclared": ["automaticFailoverProven", "splitBrainProtectionProven", "synchronousReplicationProven", "zeroDowntimeMigrationProven", "backwardCompatibleMigrationProven", "dataMigrationRollbackProven", "disasterRecoveryPlanExists"]
+  },
+  "p23Residuals": [
+    "All three drills are one manual, operator-driven run each on a single host inside the same self-deleting ephemeral environment; nothing detects a failure, nothing recovers on its own, nothing is monitored and Docker on that one machine is required.",
+    "P23A: no backup schedule, no retention policy, no offsite or second-machine copy, no WAL archiving and therefore no point-in-time recovery; no recovery objective (RPO or RTO) is agreed; the cluster-level roles return only because the restore re-creates them; verification reads run as the database superuser.",
+    "P23B: replication is asynchronous so unstreamed writes are lost on a real crash; there is no automatic failover, no synchronous replication, no zero-loss guarantee and no quorum, fencing or witness against split-brain; clients follow the promotion only because one container alias was moved by hand.",
+    "P23C: the rollback is a destructive maintenance-window outage, not a zero-downtime or online migration; no expand-and-contract or backward-compatible pattern exists, no data migration is attempted, and the re-upgrade brings the structure back and not one of those audit rows.",
+    "P23C: the refusal that maintenance window produces is the unchanged bridge's anonymous subprocess_failed 502 whose message is the runner's raw stderr, so PostgreSQL's own relation-does-not-exist text can reach the HTTP client; only the credential half of the owner-facing sentence is proven."
+  ],
+  "correctedClaim": {
+    "code": "FALSE_TABLE_NAME_HIDING_SENTENCE",
+    "source": "planning/kernel-migration-rollback-p23c.json#userJourney.kullaniciYolculugu",
+    "frozenText": "hata mesaji ne parolayi ne de eksik tablonun adini gosteriyor",
+    "finding": "The credential half is proven and the table-name half is not. The bridge is unchanged and answers a generic subprocess_failed 502 built from the runner's raw stderr, so PostgreSQL's own \"relation ... does not exist\" text - the missing table's name - can reach the client.",
+    "correctedIn": "planning/roadmap-v1-current-truth.json#currentTruth.notImplementedPieces and #ownerFacing.fark, projected into ROADMAP.md, README.md and CHANGELOG.md",
+    "frozenSourceNotEdited": "The P23C manifest is merged evidence and is left byte-identical; the correction is recorded here and in the current truth, never by rewriting the frozen record."
+  },
+  "syncSummary": {
+    "counter": "22/25 with P23 active -> 23/25 with P24 active, read as of kernel main c5f7e210f4f896ce606b351333bf9c08d49840f1",
+    "denominator": "25, unmoved",
+    "dag": "unchanged; P24 already depended only on the completed P16 and already belonged to F7",
+    "retired": ["the P23 HA/DR/upgrade-rollback missing claim", "the P23-P25 remaining-proof range"],
+    "preserved": ["every P22 residual", "every P21 residual", "the P22-P25 range retirement", "the qualified live entrypoint/host wiring denial"]
+  },
+  "budget": {
+    "canonicalSource": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "measurement": {
+      "mode": "working-tree",
+      "command": "git diff --numstat against base c5f7e210f4f896ce606b351333bf9c08d49840f1 across the five tracked atomicPackageFiles, plus this untracked manifest counted by wc -l as additions",
+      "perFile": {
+        "CHANGELOG.md": "+28/-0",
+        "README.md": "+27/-1",
+        "ROADMAP.md": "+33/-20",
+        "planning/roadmap-v1-current-truth.json": "+25/-18",
+        "tests/kernel-roadmap-v1-current-truth.test.mjs": "+335/-85",
+        "planning/kernel-p23-current-truth-closure-p23d.json": "+214/-0"
+      },
+      "changedFileCount": 6,
+      "grossAdditions": 662,
+      "grossDeletions": 124,
+      "measuredNet": 538,
+      "grossChurn": 786,
+      "netCreditFloorApplied": false,
+      "netCreditFloorNote": "measuredNet is positive, so the netCreditFloor of 0 does not clamp it and no deletion earns budget credit."
+    },
+    "class": "production",
+    "band": "conditional",
+    "noFalseDefaultClaim": true,
+    "waiver": false,
+    "waiverNote": "The conditional band forbids a waiver; none is requested and none exists.",
+    "namedCondition": "The frozen test file the test writer handed over is +335/-85 on its own, which carries the atomic package past the default 400 net ceiling before the implementation writer's first byte. The truth sync is atomic - counter, evidence, residuals and the three projections must move together or the repository states two different truths - so it is neither widened nor split. The conditional band is declared with its seven gates rather than a false default claim.",
+    "conditionalDeliveryGates": [
+      { "gate": "single-narrow-problem", "state": "GREEN", "evidence": "One problem only: the roadmap counter still said 22/25 with P23 active while all three P23 sub-packages were merged on main with passing CI and Security runs. Nothing else is touched - no runtime, no image, no environment, no DAG, no denominator, no readiness flag." },
+      { "gate": "bounded-file-set", "state": "GREEN", "evidence": "Exactly six files, declared in atomicPackageFiles before the first write and unchanged since; five of them the implementation writer edited and the sixth is the frozen test it did not author and did not edit." },
+      { "gate": "no-redundant-repetition", "state": "GREEN", "evidence": "The evidence lives once in planning/roadmap-v1-current-truth.json; ROADMAP.md, README.md and CHANGELOG.md are its projections and the P21A-G and P22A1-B2 enumerations are compressed in ROADMAP.md rather than restated a third time. Sub-package substance is referenced by manifest path, merge commit and frozen SHA-256, not copied." },
+      { "gate": "no-quality-tradeoff", "state": "GREEN", "evidence": "Nothing is softened to fit: five explicit P23 residuals are added, every P22 and P21 residual stays asserted, the stale P23 claim is replaced by the qualified truth rather than deleted, no readiness flag moves, and the one false owner-facing sentence P23C froze is corrected in the current truth instead of being inherited or quietly dropped." },
+      { "gate": "full-green", "state": "GREEN", "evidence": "All 30 scenarios in the corrected frozen test pass on this tree (tests 30, pass 30, fail 0), including the sixteen counter-bound ones and P23D-5, whose read-back assertion the superseded test could not express. The earlier FROZEN_TEST_PATTERN_MISMATCH blocker is resolved at source by the re-issued frozen test recorded in frozenTestProvenance, not by editing the frozen P23C manifest or relaxing any assertion. The writer's one budgeted full local QA is recorded in qa.fullQaRun." },
+      { "gate": "fresh-reviewer-accept", "state": "PENDING", "evidence": "A third read-only Claude session on this immutable snapshot, which wrote neither the test nor the implementation, must accept the package; any change to the snapshot invalidates the review." },
+      { "gate": "explicit-rollback", "state": "GREEN", "evidence": "Deleting planning/kernel-p23-current-truth-closure-p23d.json and reverting planning/roadmap-v1-current-truth.json, ROADMAP.md, README.md, CHANGELOG.md and tests/kernel-roadmap-v1-current-truth.test.mjs to c5f7e210f4f896ce606b351333bf9c08d49840f1 returns the tree to base. Nothing outside this checkout is created, so nothing outside it has to be undone." }
+    ],
+    "verdict": "CONDITIONAL_BAND: files=6 (<=20 maxChangedFiles), grossAdditions=662, grossDeletions=124, measuredNet=538 (<=800 conditional maxNet), grossChurn=786 (<=800, the gross ceiling churnGuard derives from the conditional band). The default band (maxNet 400) is exceeded and is not claimed; all seven conditional gates are named above, six GREEN and fresh-reviewer-accept PENDING as the one gate a writer can never close for itself, and no waiver is requested or permitted in this band."
+  },
+  "qa": {
+    "targeted": "node --test tests/kernel-roadmap-v1-current-truth.test.mjs",
+    "fullQaExecutionsAllowed": 2,
+    "fullQaByWriter": "npm test && npm run check",
+    "fullQaBySecondGate": "CI",
+    "resolvedBlocker": {
+      "code": "FROZEN_TEST_PATTERN_MISMATCH",
+      "state": "RESOLVED",
+      "rootCauseCode": "TURKISH_NE_NE_NEGATION_REGEX_DEFECT",
+      "scenario": "P23D-5",
+      "assertion": "assert.match(readManifest('planning/kernel-migration-rollback-p23c.json').userJourney.kullaniciYolculugu, TABLE_NAME_HIDING[2])",
+      "expectedBySupersededPattern": "gostermiyor | gizliyor | sakliyor | aciklamiyor",
+      "presentInFrozenManifest": "ne parolayi ne de eksik tablonun adini gosteriyor",
+      "wasConsequence": "While the superseded frozen test stood, the read-back assertion that proves this closure corrects a real frozen sentence could never match, so P23D-5 stayed RED regardless of what the five allowed files said. The substance the pattern looked for was present; only the negation shape differed.",
+      "writerCouldNotFix": "Neither side was in this writer's allowed set: tests/kernel-roadmap-v1-current-truth.test.mjs is the frozen test this writer must not author or edit, and planning/kernel-migration-rollback-p23c.json is merged evidence from another package.",
+      "escalatedTo": "MASTER",
+      "precedent": "P23C's own provenance.scopeCorrection records MASTER adjudicating a frozen-test defect on snapshot 315ea5af and issuing a corrected frozen test; the same adjudication path was followed here.",
+      "resolution": "MASTER adjudicated the defect and the test writer re-issued the frozen test, superseding sha256 121cbcdc769ac7db99dd1372020d84d3feaae43bc181c71703dd73db40879686 with sha256 9505248026c7ac5244c7ce261fbdc00cb12934b63598e22c5af240dd5f7d2448. See frozenTestProvenance for the old-to-new semantic-correction record. The frozen P23C manifest is byte-identical to its merged form and no assertion was relaxed: TABLE_NAME_HIDING gained the ne ... ne de alternative and kept every negative-verb shape it already caught.",
+      "verifiedOutcome": "P23D-5 is GREEN on this tree, and the corrected pattern still denies all five projections."
+    },
+    "fullQaRun": {
+      "budgetedExecutions": 1,
+      "of": 2,
+      "remainingForCi": 1,
+      "targetedNote": "Targeted RED was established at base (the counter-bound scenarios failing). The corrected frozen test was run targeted once on the final tree - tests 30, pass 30, fail 0 - before the budget was spent; targeted checks do not spend the full-QA budget.",
+      "command": ["npm test", "npm run check"],
+      "commandNote": "One QA1 execution, run as two sequential shell commands in this order, not as a single literal combined command. Both completed and both were GREEN; the pair together is the one budgeted full local QA.",
+      "npmTest": { "tests": 1611, "pass": 1611, "fail": 0, "cancelled": 0, "skipped": 0, "todo": 0, "durationMs": 65795.851458 },
+      "npmTestScope": "node --test tests/*.test.mjs over every suite in the repository. Docker was available on this machine, so the 16 Docker-dependent live suites ran as part of the gate rather than being fenced out, and they passed unchanged; no state-changing standalone Docker action or environment was started outside canonical npm test.",
+      "dockerProbe": "A single read-only `docker info` availability probe ran before npm test, to characterise whether the Docker-dependent live suites would run or be fenced out. It reports daemon availability only: it starts, stops, builds, pulls and removes nothing, and changes no state.",
+      "npmRunCheck": { "checkers": 10, "result": "GREEN", "note": "The ten checkers are chained with &&, and the final checker (check-kernel-runtime-pilot-consumer-sync) printed its OK line, so every checker before it exited 0. No checker reads this manifest; only the frozen test does." },
+      "readinessNote": "Both gates GREEN is a governance result, not product readiness: no readiness flag moved, and a hosted SaaS user journey is still not runnable."
+    }
+  }
+}

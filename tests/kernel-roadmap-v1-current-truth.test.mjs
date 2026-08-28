@@ -108,31 +108,32 @@ function sha256File(rel) {
   return createHash('sha256').update(readFileSync(path.join(repoRoot, rel))).digest('hex');
 }
 
-// ---------------------------------------------------------------------------
-// P22C shared constants.
-//
-// This closure package advances the single roadmap counter from 21/25 to 22/25.
-// The counter-bound assertions that already existed in this file and the seven
-// P22C scenarios below read the same constants, so the counter, the capability
-// delta and the remaining-proof range cannot drift between them.
-// ---------------------------------------------------------------------------
+// P23D shared constants: this closure advances the single counter from 22/25 to 23/25, and every
+// counter-bound assertion in this file reads them, so the counter, the capability delta and the
+// remaining-proof range cannot drift apart. P22C_* below is preserved history, not a stale alias.
 
-const P22C_COMPLETED = 22;
-const P22C_TOTAL = 25;
-const P22C_COMPLETED_PACKAGES = Array.from({ length: P22C_COMPLETED }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
-const P22C_ACTIVE_PACKAGE = 'P23';
-const P22C_AS_OF_KERNEL_MAIN = 'baf59d2ad158cc83f15c06bd6d9358cbfd9280a9';
+const P23D_COMPLETED = 23;
+const P23D_TOTAL = 25;
+const P23D_COMPLETED_PACKAGES = Array.from({ length: P23D_COMPLETED }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
+const P23D_ACTIVE_PACKAGE = 'P24';
+const P23D_AS_OF_KERNEL_MAIN = 'c5f7e210f4f896ce606b351333bf9c08d49840f1';
+const P23D_STATUS_LINE = '23/25 tamamlandı, P24/25 aktif';
+const P23D_CAPABILITY_DELTA = 'MANUAL_EPHEMERAL_RECOVERY_FAILOVER_AND_MIGRATION_ROLLBACK_DRILLED';
+const P23D_CALISTIRILABILIRLIK = 'manual-ephemeral-dr-failover-and-migration-rollback-drilled-hosted-product-not-runnable';
+const P23D_CLOSURE_MANIFEST = 'planning/kernel-p23-current-truth-closure-p23d.json';
+
+// Preserved history from the closure this one supersedes.
 const P22C_STATUS_LINE = '22/25 tamamlandı, P23/25 aktif';
-const P22C_CAPABILITY_DELTA = 'DEPLOY_ARTIFACT_PROVEN_BY_EPHEMERAL_LIVE_AUDITED_WRITE';
-const P22C_CALISTIRILABILIRLIK = 'ephemeral-live-audited-deploy-artifact-proven-hosted-product-not-runnable';
 const P22C_CLOSURE_MANIFEST = 'planning/kernel-p22-current-truth-closure-p22c.json';
 
-// The production-proof range that remains once P22 closes, and the stale range it replaces.
-const REMAINING_PROOF_RANGE = /P23-P25|P23–P25/;
+// The production-proof range that remains once P23 closes, and the two stale ranges it replaces.
+const REMAINING_PROOF_RANGE = /P24-P25|P24–P25/;
 const STALE_P22_PROOF_RANGE = /P22-P25|P22–P25/;
+const STALE_P23_PROOF_RANGE = /P23-P25|P23–P25/;
 
-// The nine stronger readiness flags. P22C introduces no new true flag into currentTruth:
-// closing a package named "deploy" is neither deploy authority nor product readiness.
+// The nine stronger readiness flags. Neither P22C nor P23D introduces a new true flag into
+// currentTruth: closing a package named "deploy" is not deploy authority, and closing a package
+// named "HA/DR/upgrade rollback" is neither high availability nor a disaster-recovery plan.
 const STRONGER_READINESS_FLAGS = [
   'kernelReady', 'sdkReady', 'appBuildable', 'releaseAllowed', 'deployAllowed',
   'productionAllowed', 'gapClosed', 'oneGoldenSliceReady', 'runnableProduct',
@@ -176,6 +177,51 @@ const P22_DEPLOY_EVIDENCE = [
   },
 ];
 
+// P23A-P23C merged HA/DR/upgrade-rollback evidence: sub-package -> pull request, the merge commit
+// it produced on main, the base it was cut from, the ci.yml and Security runs on that merge, its
+// manifest, and the two files that manifest froze by SHA-256. `probeBy` is the second, independent
+// witness for the probe hash - the NEXT package's preservedHashes, or 'self' for the one manifest
+// that carries its own probeSha256 - so a probe cannot be edited after the fact without
+// contradicting a record its author did not write.
+const P23_EVIDENCE = [
+  { pkg: 'P23A', pr: '#141', merge: '738a42511ff62481e5a92e9a6e4ed2a78b666d34', base: 'aa15580462d6d261e693c0c617fcac15f75be593',
+    ci: '33072032144', sec: '33072032056', manifest: 'planning/kernel-disaster-recovery-backup-restore-p23a.json',
+    test: 'tests/kernel-disaster-recovery-backup-restore-p23a.test.mjs', testSha: 'b59540ee938eac8fc18e2acd25fe98a000c231525351f73814ef347436d51d43',
+    probe: 'tests/_harness/live-recovery-probe.mjs', probeSha: 'e13a0e5be9fc4066c74fb8dbc11279c1e72a2359287195865db1f08ee834c63b',
+    probeBy: 'planning/kernel-high-availability-standby-failover-p23b.json' },
+  { pkg: 'P23B', pr: '#142', merge: '8cf90a6ec7cef16e0b65050bed8199c1b56049c6', base: '738a42511ff62481e5a92e9a6e4ed2a78b666d34',
+    ci: '33081640429', sec: '33081640670', manifest: 'planning/kernel-high-availability-standby-failover-p23b.json',
+    test: 'tests/kernel-high-availability-standby-failover-p23b.test.mjs', testSha: '4706927aa718a58980f2944768d5b52bf003f9a6ed039190efac76acd76d689e',
+    probe: 'tests/_harness/live-standby-failover-probe.mjs', probeSha: '3bef68f7e35c530404025678c48fc47ec3c29a501a6f66ea231d833b5d26cf23',
+    probeBy: 'planning/kernel-migration-rollback-p23c.json' },
+  { pkg: 'P23C', pr: '#143', merge: 'c5f7e210f4f896ce606b351333bf9c08d49840f1', base: '8cf90a6ec7cef16e0b65050bed8199c1b56049c6',
+    ci: '33152068364', sec: '33152068502', manifest: 'planning/kernel-migration-rollback-p23c.json',
+    test: 'tests/kernel-migration-rollback-p23c.test.mjs', testSha: '547b0561eae2bd215887701d21f66e048a59241d678e4dc02527afe9d70e6c90',
+    probe: 'tests/_harness/live-migration-rollback-probe.mjs', probeSha: 'da5d822cfbd4a5de29f786d5e78724dfd884ef5b0e8390a76898cd7e09846d94',
+    probeBy: 'self' },
+];
+
+// Flags every merged P23 manifest must still record false; the second list is checked only where a
+// manifest declares it, because a package that never made the claim does not have to deny it.
+const P23_FALSE_FLAGS = ['highAvailabilityProven', 'pointInTimeRecoveryProven', 'offsiteBackupExists',
+  'automatedBackupScheduleExists', 'recoveryObjectivesAgreed', 'stagingEnvironmentExists', 'stagingRunPerformed',
+  'productionHostSelected', 'registryPushed', 'externalDeploymentPerformed', 'p23Complete'];
+const P23_FALSE_IF_DECLARED = ['automaticFailoverProven', 'splitBrainProtectionProven', 'synchronousReplicationProven',
+  'zeroDowntimeMigrationProven', 'backwardCompatibleMigrationProven', 'dataMigrationRollbackProven', 'disasterRecoveryPlanExists'];
+
+// P23C's manifest tells the owner the maintenance-window refusal shows neither the password nor the
+// missing table's name. Only the first half is proven: the unchanged bridge answers a generic
+// subprocess_failed 502 built from the runner's raw stderr. Affirmative shapes only, so an accurate
+// negated sentence still passes. Turkish carries the claim in two shapes: a negative verb
+// ("gostermiyor", "gizliyor"), and the paired "ne ... ne de ..." frame, which negates a POSITIVE
+// verb - "ne parolayi ne de eksik tablonun adini gosteriyor" asserts the hiding just as strongly.
+// The frozen P23C sentence uses the second, so a negative-verb-only guard would read it as honest.
+const TABLE_NAME_HIDING = [
+  /(?<!\b(?:not|never|no|neither|nor)\b[^.]{0,40})\b(hides?|hid|conceals?|masks?|redacts?|suppresses?)\b[^.]{0,60}\btable(?:'s)? name\b/i,
+  /\b(does not|do not|never)\s+(show|reveal|disclose|expose|leak|include|contain|carry|name)\b[^.]{0,60}\btable(?:'s)? name\b/i,
+  /tablo(?:nun)?\s+ad[\u0131i]n[\u0131i][^.]{0,60}(g[o\u00f6]stermiyor|gizliyor|sakl[\u0131i]yor|a[c\u00e7][\u0131i]klam[\u0131i]yor)|\bne\b(?=[^.]{0,120}\bne de\b)[^.]{0,120}tablo(?:nun)?\s+ad[\u0131i]n[\u0131i][^.]{0,60}(g[o\u00f6]steriyor|gizliyor|sakl[\u0131i]yor|a[c\u00e7][\u0131i]kl[\u0131i]yor)/i,
+];
+
 // Overclaim shapes the three markdown projections must never carry. Each pattern is written
 // so the honest denial ("no staging environment exists", "not ... releasable, deployable ...
 // or production-ready") does not trip it; only a positive claim does.
@@ -187,6 +233,16 @@ const OVERCLAIM_PATTERNS = [
   [/(?<!\bno\s)(?<!\bnot\s)\bstaging run (was|is|were) (performed|executed)\b/i, 'a staging-run claim'],
   [/\b(blocks|blocking|prevents) (the )?merges?\b/i, 'a merge-blocking claim'],
   [/merges? (is|are) blocked\b/i, 'a merge-blocking claim'],
+  // P23-specific overclaims. Every pattern is a positive claim shape, so the honest denials this
+  // closure must carry ("no high availability exists", "no automatic failover", "no zero-downtime
+  // migration and no online migration", "no RPO and no RTO is agreed") do not trip them.
+  [/(?<!\bno\s)\bhigh availability (exists|is (proven|achieved|in place|ready))\b/i, 'a high-availability claim'],
+  [/(?<!\bno\s)\bautomatic failover (exists|is (proven|implemented|configured|available))\b/i, 'an automatic-failover claim'],
+  [/(?<!\bno\s)\bpoint[- ]in[- ]time recovery (exists|is (proven|available|configured|supported))\b/i, 'a point-in-time-recovery claim'],
+  [/(?<!\bno\s)\bzero[- ]downtime\b[^.]{0,60}\b(is|was) (?!not\b)(proven|achieved|supported|guaranteed)\b/i, 'a zero-downtime claim'],
+  [/(?<!\bno\s)\b(RPO|RTO)\b[^.]{0,60}\b(is|are|was|were) (?!not\b)(agreed|met|guaranteed|measured)\b/i, 'an agreed recovery-objective claim'],
+  [/(?<!\bno\s)\bdisaster[- ]recovery plan (exists|is in place)\b/i, 'a disaster-recovery-plan claim'],
+  [/(?<!\bno\s)\bbackups? (are|is) (scheduled|automated|monitored)\b/i, 'a backup-schedule claim'],
 ];
 
 function currentTruthText(t) {
@@ -200,15 +256,16 @@ function changelogUnreleased() {
   return text.slice(idx);
 }
 
-// The Unreleased section is cumulative: every earlier closure bullet stays as written history,
-// stale ranges included. The newest entry is therefore everything above the preserved P21h
-// bullet, and only that slice is held to the new truth.
-function changelogNewestEntry() {
+// The Unreleased section is cumulative: every earlier closure bullet stays as written history, stale
+// ranges included, so each closure is held only to the slice above the first preserved bullet below it.
+function changelogSince(marker) {
   const unreleased = changelogUnreleased();
-  const idx = unreleased.indexOf('- P21h ');
-  assert.ok(idx >= 0, 'the preserved P21h Unreleased bullet delimits the newest CHANGELOG entry');
+  const idx = unreleased.indexOf(marker);
+  assert.ok(idx >= 0, `the preserved ${marker.trim()} Unreleased bullet must delimit the newer CHANGELOG slice`);
   return unreleased.slice(0, idx);
 }
+const changelogP22cAndNewer = () => changelogSince('- P21h ');
+const changelogNewestEntry = () => changelogSince('- P22c ');
 
 test('roadmap is 25 atomic packages across 8 delivery phases/families, never called "25 phases", across all four projections', () => {
   const doc = loadRoadmap();
@@ -373,17 +430,17 @@ test('execution model caps writer lanes at 3 and declares shared locks', () => {
   assert.ok(Array.isArray(doc.execution.sharedLocks) && doc.execution.sharedLocks.length > 0);
 });
 
-test('owner-facing fields declare the current capability_delta at 22/25 with P23 active, hosted SaaS still not-runnable', () => {
+test('owner-facing fields declare the current capability_delta at 23/25 with P24 active, hosted SaaS still not-runnable', () => {
   const doc = loadRoadmap();
   const o = doc.ownerFacing;
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, P22C_CAPABILITY_DELTA);
-  assert.equal(o.calistirilabilirlik, P22C_CALISTIRILABILIRLIK);
+  assert.equal(o.capability_delta, P23D_CAPABILITY_DELTA);
+  assert.equal(o.calistirilabilirlik, P23D_CALISTIRILABILIRLIK);
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /22\/25/);
-  assert.match(ownerText, /P23/);
+  assert.match(ownerText, /23\/25/);
+  assert.match(ownerText, /P24/);
   assert.match(ownerText, /hosted/i);
   assert.match(ownerText, /not-runnable|calismaz|calismiyor|çalışmıyor/i);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
@@ -412,18 +469,18 @@ test('CHANGELOG records the P01 correction under Unreleased', () => {
   assert.match(text.slice(unreleasedIdx), /roadmap-v1-current-truth/);
 });
 
-test('roadmap.progress carries the exact 22/25 completed truth with P22 closed and P23 active', () => {
+test('roadmap.progress carries the exact 23/25 completed truth with P23 closed and P24 active', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
-  assert.equal(progress.completed, P22C_COMPLETED);
-  assert.equal(progress.total, P22C_TOTAL);
-  assert.deepEqual([...progress.completedPackages].sort(), [...P22C_COMPLETED_PACKAGES].sort());
+  assert.equal(progress.completed, P23D_COMPLETED);
+  assert.equal(progress.total, P23D_TOTAL);
+  assert.deepEqual([...progress.completedPackages].sort(), [...P23D_COMPLETED_PACKAGES].sort());
   assert.equal(progress.completedPackages.length, progress.completed);
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length);
-  assert.equal(progress.activePackage, P22C_ACTIVE_PACKAGE);
-  assert.equal(progress.asOfKernelMain, P22C_AS_OF_KERNEL_MAIN);
-  assert.equal(progress.statusLine, P22C_STATUS_LINE);
+  assert.equal(progress.activePackage, P23D_ACTIVE_PACKAGE);
+  assert.equal(progress.asOfKernelMain, P23D_AS_OF_KERNEL_MAIN);
+  assert.equal(progress.statusLine, P23D_STATUS_LINE);
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
@@ -437,7 +494,7 @@ test('roadmap.progress carries the exact 22/25 completed truth with P22 closed a
   }
 });
 
-test('currentTruth reflects P21 (security) as implemented through the merged P21A-G evidence bound to its frozen manifests, with P23-P25 production proof still missing, all readiness flags false, and hosted SaaS still not-runnable', () => {
+test('currentTruth reflects P21 (security) as implemented through the merged P21A-G evidence bound to its frozen manifests, with P24-P25 production proof still missing, all readiness flags false, and hosted SaaS still not-runnable', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
   const implemented = t.implementedPieces.join(' | ');
@@ -488,10 +545,11 @@ test('currentTruth reflects P21 (security) as implemented through the merged P21
   assert.doesNotMatch(missing, /\(P21\)/, 'P21 is closed and must not be listed as not implemented');
   assert.doesNotMatch(missing, /P21-P25|P21–P25/, 'the P21-P25 range claim is stale at 21/25');
   assert.doesNotMatch(missing, /P20-P25|P20–P25/);
-  assert.match(missing, REMAINING_PROOF_RANGE, 'the remaining production-proof range is P23-P25');
+  assert.match(missing, REMAINING_PROOF_RANGE, 'the remaining production-proof range is P24-P25');
   for (const [term, label] of [
-    [/deploy package|staging/i, 'P22 deploy package/staging'],
-    [/HA\/DR|upgrade rollback/i, 'P23 HA/DR/upgrade rollback'],
+    // P22's and P23's own residuals keep the deploy/staging and recovery vocabulary alive here;
+    // the closed-package claims themselves are retired by P22C-4 and P23D-4.
+    [/deploy package|staging/i, 'P22 deploy package/staging residual vocabulary'],
     [/consumer teams|external proof/i, 'P24 external consumer proof'],
     [/promotion gate/i, 'P25 promotion gates'],
     [/production proof/i, 'production proof'],
@@ -533,10 +591,10 @@ test('currentTruth reflects P21 (security) as implemented through the merged P21
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, P22C_CAPABILITY_DELTA);
+  assert.equal(o.capability_delta, P23D_CAPABILITY_DELTA);
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /22\/25/);
-  assert.match(ownerText, /P23/);
+  assert.match(ownerText, /23\/25/);
+  assert.match(ownerText, /P24/);
   assert.match(ownerText, /hosted/i);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 
@@ -548,13 +606,15 @@ test('currentTruth reflects P21 (security) as implemented through the merged P21
 
 test('ROADMAP.md projects the current status line while README.md and CHANGELOG.md preserve the P21A-G closure evidence, with no runnable, readiness or merge-blocking overclaim', () => {
   const roadmap = readText('ROADMAP.md');
-  assert.ok(roadmap.includes(P22C_STATUS_LINE), 'ROADMAP.md must project the current status line');
+  assert.ok(roadmap.includes(P23D_STATUS_LINE), 'ROADMAP.md must project the current status line');
+  assert.ok(!roadmap.includes(P22C_STATUS_LINE), 'ROADMAP.md projects exactly one counter, so the 22/25 line is gone');
   assert.match(roadmap, /P21/);
   assert.match(roadmap, /P22/);
   assert.doesNotMatch(roadmap, /\bis runnable\b/i);
 
   const readme = readText('README.md');
-  assert.ok(readme.includes(P22C_STATUS_LINE), 'README.md must project the current status line');
+  assert.ok(readme.includes(P23D_STATUS_LINE), 'README.md must project the current status line');
+  assert.ok(readme.includes(P22C_STATUS_LINE), 'README.md is cumulative: the 22/25 paragraph stays as written history');
   assert.doesNotMatch(readme, /\bis runnable\b/i);
 
   const changelog = readText('CHANGELOG.md');
@@ -577,41 +637,46 @@ test('ROADMAP.md projects the current status line while README.md and CHANGELOG.
 
 // ===========================================================================
 // P22C - current-truth closure for P22 (deploy package/staging).
-// Seven focused scenarios. Each fails at base baf59d2a and passes only after
-// the implementation writer syncs the five non-test allowed files.
+// Seven scenarios, preserved through the P23D closure. Their P22-specific
+// substance - the merged sub-package evidence, the delivered deploy substance,
+// the retired stale claims and the explicit deploy residuals - is unchanged
+// written proof and stays asserted here forever. Only the parts that were
+// counter-bound have moved onto the P23D constants, because the counter this
+// file owns is single and now reads 23/25.
 // ===========================================================================
 
-test('P22C-1: roadmap.progress advances to 22/25 with P22 completed, P23 active, and every dependency of a completed or active package already completed', () => {
+test('P22C-1 (preserved at 23/25): P22 stays completed inside the single counter, the P23->P22 DAG edge is unchanged, and every dependency of a completed or active package is itself completed', () => {
   const doc = loadRoadmap();
   const progress = doc.roadmap.progress;
   assert.ok(progress, 'roadmap.progress must exist');
 
-  assert.equal(progress.completed, P22C_COMPLETED);
-  assert.equal(progress.total, P22C_TOTAL);
-  assert.equal(doc.roadmap.denominator, P22C_TOTAL, 'the fixed 25-package denominator never moves');
+  assert.equal(progress.completed, P23D_COMPLETED);
+  assert.equal(progress.total, P23D_TOTAL);
+  assert.equal(doc.roadmap.denominator, P23D_TOTAL, 'the fixed 25-package denominator never moves');
 
-  assert.deepEqual([...progress.completedPackages].sort(), [...P22C_COMPLETED_PACKAGES].sort(),
+  assert.deepEqual([...progress.completedPackages].sort(), [...P23D_COMPLETED_PACKAGES].sort(),
     'completedPackages must be exactly P01..P22');
   assert.equal(progress.completedPackages.length, progress.completed,
     'completedPackages length must equal the counter');
   assert.equal(new Set(progress.completedPackages).size, progress.completedPackages.length,
     'completedPackages must be unique');
 
-  assert.equal(progress.activePackage, P22C_ACTIVE_PACKAGE);
-  assert.equal(progress.asOfKernelMain, P22C_AS_OF_KERNEL_MAIN);
-  assert.equal(progress.statusLine, P22C_STATUS_LINE);
+  assert.equal(progress.activePackage, P23D_ACTIVE_PACKAGE);
+  assert.equal(progress.asOfKernelMain, P23D_AS_OF_KERNEL_MAIN);
+  assert.equal(progress.statusLine, P23D_STATUS_LINE);
 
   const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
   const completedSet = new Set(progress.completedPackages);
+  assert.ok(completedSet.has('P22'), 'P22 was closed by P22C and stays closed');
   for (const id of progress.completedPackages) {
     for (const dep of byId[id].dependsOn) {
       assert.ok(completedSet.has(dep), `completed package ${id} depends on incomplete ${dep}`);
     }
   }
-  assert.deepEqual([...byId[P22C_ACTIVE_PACKAGE].dependsOn].sort(), ['P22'],
-    'P23 depends on P22 and the DAG edge is unchanged');
-  for (const dep of byId[P22C_ACTIVE_PACKAGE].dependsOn) {
-    assert.ok(completedSet.has(dep), `active package ${P22C_ACTIVE_PACKAGE} depends on incomplete ${dep}`);
+  assert.deepEqual([...byId.P23.dependsOn].sort(), ['P22'],
+    'P23 depends on P22 and the DAG edge P22C asserted is unchanged');
+  for (const dep of byId[P23D_ACTIVE_PACKAGE].dependsOn) {
+    assert.ok(completedSet.has(dep), `active package ${P23D_ACTIVE_PACKAGE} depends on incomplete ${dep}`);
   }
 });
 
@@ -675,7 +740,7 @@ test('P22C-3: currentTruth names the delivered P22 substance, not only the sub-p
   }
 });
 
-test('P22C-4: the stale P22 missing claim, the P22-P25 range and the unqualified no-host-server denial are retired, while P23, P24 and P25 stay named as missing', () => {
+test('P22C-4 (preserved at 23/25): the stale P22 missing claim, the P22-P25 range and the unqualified no-host-server denial stay retired, while P24 and P25 stay named as missing', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
   const missing = t.notImplementedPieces.join(' | ');
@@ -688,16 +753,14 @@ test('P22C-4: the stale P22 missing claim, the P22-P25 range and the unqualified
 
   assert.doesNotMatch(truthText, STALE_P22_PROOF_RANGE, 'the P22-P25 range claim is stale once P22 closes');
   assert.doesNotMatch(JSON.stringify(doc.ownerFacing), STALE_P22_PROOF_RANGE);
-  assert.match(missing, REMAINING_PROOF_RANGE, 'the remaining production-proof range is P23-P25');
+  assert.match(missing, REMAINING_PROOF_RANGE, 'the remaining production-proof range is P24-P25');
 
   // ROADMAP.md and README.md carry no historical range claim, so they are checked whole.
   assert.doesNotMatch(readText('ROADMAP.md'), STALE_P22_PROOF_RANGE);
   assert.doesNotMatch(readText('README.md'), STALE_P22_PROOF_RANGE);
-  assert.doesNotMatch(changelogNewestEntry(), STALE_P22_PROOF_RANGE);
+  assert.doesNotMatch(changelogP22cAndNewer(), STALE_P22_PROOF_RANGE);
 
   for (const [term, label] of [
-    [/P23/, 'P23 HA/DR/upgrade rollback still missing'],
-    [/HA\/DR|upgrade rollback/i, 'P23 substance still missing'],
     [/P24/, 'P24 external consumer proof still missing'],
     [/consumer teams|external proof/i, 'P24 substance still missing'],
     [/P25/, 'P25 promotion gates still missing'],
@@ -795,7 +858,7 @@ test('P22C-5: notImplementedPieces carries the explicit P22 residuals, the sub-p
   }
 });
 
-test('P22C-6: closing P22 moves no readiness flag - deployAllowed and productionAllowed stay false by name - and the owner-facing fields declare the ephemeral live audited write without a runnable claim', () => {
+test('P22C-6 (preserved at 23/25): closing P22 moved no readiness flag - deployAllowed and productionAllowed stay false by name - and the owner-facing fields still carry the five plain-Turkish fields with no runnable claim', () => {
   const doc = loadRoadmap();
   const t = doc.currentTruth;
 
@@ -809,12 +872,12 @@ test('P22C-6: closing P22 moves no readiness flag - deployAllowed and production
   for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
     assert.ok(typeof o[key] === 'string' && o[key].trim().length > 0, `owner field ${key} missing`);
   }
-  assert.equal(o.capability_delta, P22C_CAPABILITY_DELTA);
-  assert.equal(o.calistirilabilirlik, P22C_CALISTIRILABILIRLIK);
+  assert.equal(o.capability_delta, P23D_CAPABILITY_DELTA);
+  assert.equal(o.calistirilabilirlik, P23D_CALISTIRILABILIRLIK);
 
   const ownerText = JSON.stringify(o);
-  assert.match(ownerText, /22\/25/);
-  assert.match(ownerText, /P23/);
+  assert.match(ownerText, /23\/25/);
+  assert.match(ownerText, /P24/);
   assert.match(ownerText, /hosted/i);
   assert.doesNotMatch(ownerText, /\bis runnable\b/i);
 
@@ -822,32 +885,219 @@ test('P22C-6: closing P22 moves no readiness flag - deployAllowed and production
   assert.match(t.notRunnableProductClaim, /live entrypoint|hosted/i,
     'the not-runnable claim still names the missing hosted/live entrypoint');
   assert.match(t.notRunnableProductClaim, REMAINING_PROOF_RANGE,
-    'the not-runnable claim ends at the remaining P23-P25 range');
+    'the not-runnable claim ends at the remaining P24-P25 range');
 });
 
-test('P22C-7: ROADMAP.md, README.md and the newest CHANGELOG entry project 22/25 with the full P22 evidence and no runnable, deploy-authority, staging or merge-blocking overclaim', () => {
+test('P22C-7 (preserved at 23/25): README.md and the preserved P22c CHANGELOG entry still carry the full P22 evidence and its closure manifest, with no runnable, deploy-authority, staging or merge-blocking overclaim', () => {
   const roadmap = readText('ROADMAP.md');
   const readme = readText('README.md');
-  const newestEntry = changelogNewestEntry();
+  const newestEntry = changelogP22cAndNewer();
 
-  for (const [name, text] of [['ROADMAP.md', roadmap], ['README.md', readme], ['the newest CHANGELOG entry', newestEntry]]) {
-    assert.ok(text.includes(P22C_STATUS_LINE), `${name} must project '${P22C_STATUS_LINE}'`);
+  // ROADMAP.md projects only the current counter; the cumulative README and CHANGELOG keep P22C's line.
+  assert.ok(roadmap.includes(P23D_STATUS_LINE), `ROADMAP.md must project '${P23D_STATUS_LINE}'`);
+  for (const [name, text] of [['README.md', readme], ['the preserved P22c CHANGELOG entry', newestEntry]]) {
+    assert.ok(text.includes(P22C_STATUS_LINE), `${name} must preserve '${P22C_STATUS_LINE}'`);
   }
 
   for (const e of P22_DEPLOY_EVIDENCE) {
-    assert.ok(newestEntry.includes(e.pr), `the newest CHANGELOG entry must cite ${e.pkg} PR ${e.pr}`);
-    assert.ok(newestEntry.includes(e.ciRun), `the newest CHANGELOG entry must cite the ${e.pr} CI run ${e.ciRun}`);
+    assert.ok(newestEntry.includes(e.pr), `the preserved P22c CHANGELOG entry must cite ${e.pkg} PR ${e.pr}`);
+    assert.ok(newestEntry.includes(e.ciRun), `the preserved P22c CHANGELOG entry must cite the ${e.pr} CI run ${e.ciRun}`);
   }
-  assert.match(newestEntry, /host\/deploy\/Dockerfile/, 'the newest CHANGELOG entry must name the deploy Dockerfile');
-  assert.match(newestEntry, /secret[- ]file/i, 'the newest CHANGELOG entry must name the mounted secret-file boundary');
-  assert.match(newestEntry, /mount/i, 'the newest CHANGELOG entry must name the mounted secret-file boundary');
-  assert.ok(newestEntry.includes(P22C_CLOSURE_MANIFEST), `the newest CHANGELOG entry must reference ${P22C_CLOSURE_MANIFEST}`);
-  assert.match(newestEntry, /roadmap-v1-current-truth\.json/, 'the newest CHANGELOG entry must reference the sole machine-readable source');
+  assert.match(newestEntry, /host\/deploy\/Dockerfile/, 'the preserved P22c CHANGELOG entry must name the deploy Dockerfile');
+  assert.match(newestEntry, /secret[- ]file/i, 'the preserved P22c CHANGELOG entry must name the mounted secret-file boundary');
+  assert.match(newestEntry, /mount/i, 'the preserved P22c CHANGELOG entry must name the mounted secret-file boundary');
+  assert.ok(newestEntry.includes(P22C_CLOSURE_MANIFEST), `the preserved P22c CHANGELOG entry must reference ${P22C_CLOSURE_MANIFEST}`);
+  assert.match(newestEntry, /roadmap-v1-current-truth\.json/, 'the preserved P22c CHANGELOG entry must reference the sole machine-readable source');
   assert.ok(existsSync(path.join(repoRoot, P22C_CLOSURE_MANIFEST)), `${P22C_CLOSURE_MANIFEST} must exist, not be a dangling reference`);
 
-  for (const [name, text] of [['ROADMAP.md', roadmap], ['README.md', readme], ['the newest CHANGELOG entry', newestEntry]]) {
+  for (const [name, text] of [['ROADMAP.md', roadmap], ['README.md', readme], ['the preserved P22c CHANGELOG entry', newestEntry]]) {
     for (const [pattern, label] of OVERCLAIM_PATTERNS) {
       assert.doesNotMatch(text, pattern, `${name} must not carry ${label}`);
     }
+  }
+});
+
+// ===========================================================================
+// P23D - current-truth closure for P23 (HA/DR/upgrade rollback). Seven scenarios, each failing at
+// base c5f7e210 / tree baaefeb1 and passing only once the non-test allowed files are synced. All
+// three merged sub-packages are DRILLS: a lost database restored, a lost node failed over from, a
+// bad revision taken back out - each once, by hand, in an environment that deletes itself. None is
+// high availability, a DR plan, PITR, a zero-downtime migration or an agreed recovery objective.
+// ===========================================================================
+
+const need = (text, patterns, ctx) => { for (const re of patterns) assert.match(text, re, `${ctx} must carry ${re}`); };
+const deny = (text, patterns, ctx) => { for (const re of patterns) assert.doesNotMatch(text, re, `${ctx} must not carry ${re}`); };
+function readManifest(rel) {
+  const file = path.join(repoRoot, rel);
+  assert.ok(existsSync(file), `${rel} must exist as frozen evidence`);
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+const projectionsOf = (doc) => [['currentTruth', currentTruthText(doc.currentTruth)], ['ownerFacing', JSON.stringify(doc.ownerFacing)],
+  ['ROADMAP.md', readText('ROADMAP.md')], ['README.md', readText('README.md')], ['the newest CHANGELOG entry', changelogNewestEntry()]];
+
+test('P23D-1: roadmap.progress advances to 23/25 with P23 completed and P24 active, the fixed denominator unmoved, P24 depending only on the already-completed P16, and the three merged sub-package manifests still recording the counter they deliberately did not move', () => {
+  const doc = loadRoadmap();
+  const progress = doc.roadmap.progress;
+  assert.ok(progress, 'roadmap.progress must exist');
+  assert.equal(progress.completed, P23D_COMPLETED);
+  assert.equal(progress.total, P23D_TOTAL);
+  assert.equal(doc.roadmap.denominator, P23D_TOTAL, 'the fixed 25-package denominator never moves');
+  assert.deepEqual([...progress.completedPackages].sort(), [...P23D_COMPLETED_PACKAGES].sort(), 'completedPackages must be exactly P01..P23');
+  assert.equal(new Set(progress.completedPackages).size, progress.completed, 'completedPackages must be unique and match the counter');
+  assert.equal(progress.activePackage, P23D_ACTIVE_PACKAGE);
+  assert.equal(progress.asOfKernelMain, P23D_AS_OF_KERNEL_MAIN, 'the counter is read as of the P23C merge, the newest commit on main');
+  assert.equal(progress.statusLine, P23D_STATUS_LINE);
+
+  const byId = Object.fromEntries(doc.roadmap.phases.map((p) => [p.id, p]));
+  const completed = new Set(progress.completedPackages);
+  for (const id of [...progress.completedPackages, P23D_ACTIVE_PACKAGE]) {
+    for (const dep of byId[id].dependsOn) assert.ok(completed.has(dep), `${id} depends on incomplete ${dep}`);
+  }
+  // P24 leaves the F6 enterprise-operations chain entirely: it hangs off P16, not off P23.
+  assert.deepEqual([...byId[P23D_ACTIVE_PACKAGE].dependsOn], ['P16'], 'the approved P24 edge is unchanged by this closure');
+  assert.equal(byId[P23D_ACTIVE_PACKAGE].family, 'F7', 'the active package moves out of F6 into the external-proof family');
+
+  // None of the three merged sub-packages moved the counter itself; each left the closure to this package.
+  for (const e of P23_EVIDENCE) {
+    const m = readManifest(e.manifest);
+    assert.equal(m.splitEvidence.counter, '22/25', `${e.pkg} froze the counter at 22/25 and never advanced it`);
+    assert.equal(m.readinessFlags.p23Complete, false, `${e.pkg} must still record p23Complete=false`);
+  }
+});
+
+test('P23D-2: currentTruth binds each merged P23 sub-package to its PR, its merge commit, its main ci.yml run and its Security-workflow run, and every manifest-frozen test and probe still hashes to the SHA-256 two independent frozen records agree on', () => {
+  const implemented = loadRoadmap().currentTruth.implementedPieces.join(' | ');
+  const closure = JSON.stringify(readManifest(P23D_CLOSURE_MANIFEST));
+  for (const e of P23_EVIDENCE) {
+    for (const v of [e.pkg, e.pr, e.ci, e.sec, e.test, e.probe]) {
+      assert.ok(implemented.includes(v), `implementedPieces must cite ${e.pkg} evidence ${v}`);
+    }
+    for (const v of [e.pkg, e.pr, e.merge, e.ci, e.sec, e.testSha, e.probeSha]) {
+      assert.ok(closure.includes(v), `${P23D_CLOSURE_MANIFEST} must record ${e.pkg} evidence ${v}`);
+    }
+    const m = readManifest(e.manifest);
+    assert.equal(m.base, e.base, `${e.pkg} manifest base mismatch`);
+    assert.equal(m.frozenTestPath, e.test, `${e.pkg} manifest frozenTestPath mismatch`);
+    assert.equal(m.frozenTestSha256, e.testSha, `${e.pkg} manifest frozenTestSha256 mismatch`);
+    assert.equal(sha256File(e.test), e.testSha, `${e.pkg} frozen test ${e.test} has drifted from its manifest SHA-256`);
+    assert.ok(m.allowedFiles.includes(e.probe), `${e.pkg} must have declared ${e.probe} in its allowed files`);
+    assert.equal(sha256File(e.probe), e.probeSha, `${e.pkg} probe ${e.probe} has drifted from the SHA-256 its package froze`);
+    const witness = e.probeBy === 'self' ? m.probeSha256 : readManifest(e.probeBy).preservedHashes[e.probe];
+    assert.equal(witness, e.probeSha, `${e.probeBy} must independently re-freeze ${e.probe} at the same SHA-256`);
+  }
+  // The merge order is checkable, not claimed: each package was cut from the commit the previous merged as.
+  const [a, b, c] = P23_EVIDENCE;
+  assert.equal(b.base, a.merge, 'P23B was cut from the commit P23A merged as');
+  assert.equal(c.base, b.merge, 'P23C was cut from the commit P23B merged as');
+  assert.equal(c.merge, P23D_AS_OF_KERNEL_MAIN, 'P23C is the merge this counter is read as of');
+});
+
+test('P23D-3: currentTruth names the delivered P23 substance - a real verified backup and restore, a real streaming standby and promotion, a real reverse and re-apply of the head revision - and not only the sub-package labels, while P22, P21 and P20 stay named', () => {
+  const implemented = loadRoadmap().currentTruth.implementedPieces.join(' | ');
+  need(implemented, [/pg_dump|custom[- ]format/i, /sha256|recomputed digest/i, /0600|owner-only/i, /data volume/i, /fails? closed/i,
+    /0003_policy_decision_log/, /mfk_migration/, /mfk_runtime/, /forced/i, /prev_hash|chains? onto|one chain/i],
+    'implementedPieces (P23A backup, total loss, restore)');
+  need(implemented, [/pg_basebackup/i, /system identifier/i, /replication (role|slot)|streams? from/i, /promot/i, /alias/i,
+    /never[- ]restarted/i], 'implementedPieces (P23B streaming standby and manual promotion)');
+  need(implemented, [/alembic/i, /downgrade|backwards|reverse/i, /0002_customer_records/, /re-?upgrade|re-?appl/i, /append-only/i,
+    /new genesis|new chain|fresh genesis/i], 'implementedPieces (P23C rollback and re-upgrade)');
+  need(implemented, [/P22/, /P21/, /P20/], 'implementedPieces (earlier closures still named)');
+});
+
+test('P23D-4: the stale P23 missing claim and the P23-P25 range are retired everywhere this closure writes, the P22-P25 range stays retired, and P24 and P25 stay named as missing', () => {
+  const doc = loadRoadmap();
+  const missing = doc.currentTruth.notImplementedPieces.join(' | ');
+  deny(missing, [/no high-availability, disaster-recovery or upgrade rollback drill exists yet/i, /\(P23\)/,
+    /P23 HA\/DR\/upgrade rollback production proof/i], 'notImplementedPieces (retired P23 claims)');
+  for (const [name, text] of projectionsOf(doc)) deny(text, [STALE_P23_PROOF_RANGE, STALE_P22_PROOF_RANGE], `${name} (stale ranges)`);
+  // Retiring the claim is not retiring the vocabulary: what P23 did NOT deliver keeps its own names,
+  // or this closure would read as if high availability and disaster recovery were now solved.
+  need(missing, [REMAINING_PROOF_RANGE, /P24/, /consumer teams|external proof/i, /P25/, /promotion gate/i, /production proof/i,
+    /live entrypoint\/host wiring/i, /high[- ]availability/i, /disaster[- ]recovery/i], 'notImplementedPieces (what stays missing)');
+});
+
+test('P23D-5: notImplementedPieces carries the explicit P23 residuals - including the anonymous raw-stderr 502 that does NOT hide the missing table name - the merged manifests still record every resilience flag false, and no P21 residual is dropped', () => {
+  const doc = loadRoadmap();
+  const pieces = doc.currentTruth.notImplementedPieces;
+  const missing = pieces.join(' | ');
+  need(missing, [/ephemeral/i, /deletes itself|removed before the run exits/i, /once, by hand|proven once|manual|operator/i, /monitor/i,
+    /docker/i, /one host|single host|same machine|one node/i], 'notImplementedPieces (shared drill residuals)');
+  need(missing, [/backup schedule|no schedule/i, /retention/i, /offsite|off-site/i, /point-in-time|PITR/i, /WAL archiv/i, /\bRPO\b/,
+    /\bRTO\b/, /recovery objective/i, /cluster-level role|re-created on the restored/i, /superuser/i], 'notImplementedPieces (P23A residuals)');
+  need(missing, [/asynchronous|async replication/i, /automatic failover/i, /detect/i, /split.?brain|quorum|fencing|witness/i,
+    /synchronous replication/i, /connection pooler|virtual IP|client-side failover/i], 'notImplementedPieces (P23B residuals)');
+  need(missing, [/zero.?downtime|online migration/i, /expand and contract|backward.?compatible/i, /data migration/i,
+    /maintenance window|outage/i, /decision history|audit history/i,
+    /structure, never the rows|not one of those (audit )?rows|re-?upgrade (brings|restores)/i], 'notImplementedPieces (P23C residuals)');
+
+  // The one residual this closure must get RIGHT rather than inherit: the refused write really answers the
+  // unchanged bridge's generic subprocess_failed 502, whose message is the runner's raw stderr, so
+  // PostgreSQL's own "relation ... does not exist" text - the missing table's name - can reach the client.
+  const stderr502 = pieces.find((piece) => /\b502\b/.test(piece));
+  assert.ok(stderr502, 'notImplementedPieces must carry the residual for the 502 the refused write really answers with');
+  need(stderr502, [/subprocess_failed/, /stderr/i, /anonymous|generic|undifferentiated|says nothing about/i,
+    /table name|name of the missing table|relation/i, /not hidden|is not concealed|can reach|reaches the (HTTP )?client|may appear|is disclosed/i,
+    /credential|password|connection string/i], 'the raw-stderr 502 residual');
+  for (const [name, text] of projectionsOf(doc)) deny(text, TABLE_NAME_HIDING, `${name} (the false table-name-hiding claim)`);
+  // Read-back proving this is a correction and not an invention: P23C's frozen manifest really carries it.
+  assert.match(readManifest(P23_EVIDENCE[2].manifest).userJourney.kullaniciYolculugu, TABLE_NAME_HIDING[2],
+    'the P23C manifest is the frozen source of the false sentence this closure corrects');
+
+  for (const e of P23_EVIDENCE) {
+    const flags = readManifest(e.manifest).readinessFlags;
+    for (const f of P23_FALSE_FLAGS) assert.equal(flags[f], false, `${e.pkg} must still record ${f}=false`);
+    for (const f of P23_FALSE_IF_DECLARED) if (f in flags) assert.equal(flags[f], false, `${e.pkg} declares ${f} and must record it false`);
+  }
+  // P22C-5 owns the P22 residual set and the P22 manifest read-back; these are the P21 residuals no closure may drop.
+  need(missing, [/--audit on/, /login/i, /managed policy/i, /Git history/i, /detector/i, /advisory databas|moving floor/i,
+    /omit=dev|development-only depend/i, /branch.?protection/i, /DAST/i, /Actionplan/i, /writeback|write-back|write back/i],
+    'notImplementedPieces (P21 residuals preserved)');
+});
+
+test('P23D-6: closing P23 moves no readiness flag - every stronger flag stays false and no high-availability, point-in-time-recovery or zero-downtime flag is introduced true - and the owner-facing fields declare the drilled capability without a runnable claim', () => {
+  const doc = loadRoadmap();
+  const t = doc.currentTruth;
+  for (const key of STRONGER_READINESS_FLAGS) assert.equal(t[key], false, `${key} must remain false`);
+  assert.equal(t.runtimeImplementationStarted, true, 'the one true flag is unchanged by this closure');
+  // A drill is not a capability flag: one of these introduced true would make the roadmap read as if
+  // the system were highly available, recoverable to a point in time, or migratable live.
+  for (const f of [...P23_FALSE_IF_DECLARED, ...P23_FALSE_FLAGS]) {
+    if (f in t) assert.equal(t[f], false, `${f} must be false if currentTruth declares it at all`);
+  }
+  const o = doc.ownerFacing;
+  for (const key of ['once', 'simdi', 'fark', 'kullaniciYolculugu', 'kalanEngel']) {
+    assert.ok(typeof o[key] === 'string' && o[key].trim().length > 0, `owner field ${key} missing`);
+  }
+  assert.equal(o.capability_delta, P23D_CAPABILITY_DELTA);
+  assert.equal(o.calistirilabilirlik, P23D_CALISTIRILABILIRLIK);
+  // The owner must be told the cost, not only the capability: a schema rollback over the audit table
+  // destroys the decision history, and every drill was one manual, operator-driven run.
+  need(JSON.stringify(o), [/23\/25/, /P24/, /hosted/i, /karar (gecmisi|geçmişi)|decision history/i, /elle|manuel|operat[oö]r|by hand/i], 'ownerFacing');
+  deny(JSON.stringify(o), [/\bis runnable\b/i], 'ownerFacing');
+  need(t.notRunnableProductClaim, [/No SaaS user journey.*runnable end-to-end/is, /live entrypoint|hosted/i, /P23/, REMAINING_PROOF_RANGE],
+    'the not-runnable claim');
+  deny(t.notRunnableProductClaim, [STALE_P23_PROOF_RANGE], 'the not-runnable claim');
+});
+
+test('P23D-7: ROADMAP.md, README.md and the newest CHANGELOG entry project 23/25 with the full P23 evidence and its closure manifest, and carry no runnable, readiness, high-availability, recovery-objective or merge-blocking overclaim', () => {
+  const [roadmap, readme, newestEntry] = [readText('ROADMAP.md'), readText('README.md'), changelogNewestEntry()];
+  const projections = [['ROADMAP.md', roadmap], ['README.md', readme], ['the newest CHANGELOG entry', newestEntry]];
+  for (const [name, text] of projections) assert.ok(text.includes(P23D_STATUS_LINE), `${name} must project '${P23D_STATUS_LINE}'`);
+  assert.match(newestEntry, /^\s*-\s*P23d\s/m, 'the newest CHANGELOG entry must be one P23d bullet, keeping the section append-only');
+  for (const e of P23_EVIDENCE) {
+    for (const [name, text, values] of [['ROADMAP.md', roadmap, [e.pr]], ['README.md', readme, [e.pr, e.ci, e.sec]],
+      ['the newest CHANGELOG entry', newestEntry, [e.pr, e.ci]]]) {
+      for (const v of values) assert.ok(text.includes(v), `${name} must cite ${e.pkg} evidence ${v}`);
+    }
+  }
+  need(newestEntry, [/backup/i, /restore/i, /standby/i, /failover/i, /rollback/i, /roadmap-v1-current-truth\.json/], 'the newest CHANGELOG entry');
+  assert.ok(newestEntry.includes(P23D_CLOSURE_MANIFEST), `the newest CHANGELOG entry must reference ${P23D_CLOSURE_MANIFEST}`);
+  assert.ok(existsSync(path.join(repoRoot, P23D_CLOSURE_MANIFEST)), `${P23D_CLOSURE_MANIFEST} must exist, not be a dangling reference`);
+  // The honest denial must be present, not merely absent by luck.
+  for (const [name, text] of [['ROADMAP.md', roadmap], ['the newest CHANGELOG entry', newestEntry]]) {
+    need(text, [/ephemeral|deletes itself/i, /no (high availability|automatic failover)|manual|operator/i], name);
+  }
+  for (const [name, text] of projections) {
+    for (const [pattern, label] of OVERCLAIM_PATTERNS) assert.doesNotMatch(text, pattern, `${name} must not carry ${label}`);
   }
 });
