@@ -16,6 +16,44 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24B `docs/external-consumer-intake.md` and `examples/external-consumer/reference-consumer.mjs`:
+  the intake protocol for an outside team taking the distribution payload, plus the runnable
+  reference consumer that team is handed. P24A put `diagnose.mjs` inside the payload but nothing
+  said who may be counted as an external team, what they receive, or what voids a run, and no
+  example consumed the payload end to end. The protocol is carried by exactly one fenced json
+  block in the document, so it is machine-readable and cannot drift from its own prose: exactly
+  one participant kind counts (`real-independent-team`); `agent`, `employee`, `probe` and
+  `worker` never count; the handover is exactly four ordered inputs, each naming a file that
+  exists here; acceptance is three independent teams at `ownerHelpCount` 0 with every help event
+  recorded under `at`, `channel`, `question`, `answer`; hidden owner help, a non-team participant
+  and mutated evidence each falsify a run outright; accepted evidence is sha256-digested and not
+  editable afterwards. The reference consumer is builtins-only, imports nothing from this
+  repository, contains no repository path, and runs the payload's own `diagnose.mjs` as a
+  separate process FIRST — so the payload is checked by its own gates before THIS reference
+  consumer imports the generated module — then imports that module and prints one deterministic
+  sample report with no host path in it. That ordering is scoped to this reference consumer and
+  to its own process, and is not a claim that the module is never evaluated anywhere: the shipped
+  P24A runner carries its own `module_evaluation` gate, which imports a copy of the generated
+  module source as a `data:` URL inside its own process once the payload's bytes verify. Whether
+  a refused payload was evaluated therefore depends on which gate refused it, which is exactly
+  why nothing here is recorded as the module's first-ever import and no refusal is described as
+  never evaluated — only as never imported by this consumer.
+  Every refusal exits 1, prints nothing on stdout and emits exactly one
+  `EXTERNAL_CONSUMER_ERROR:<CODE>` line: `MISSING_ARGUMENT` for a missing payload directory or
+  expected distribution version, `DIAGNOSTICS_FAILED` when the shipped runner is absent, refuses
+  or reports anything but a healthy payload, and `MODULE_UNUSABLE` should a runner-accepted
+  module still fail to import or expose its action surface. Where each refusal sits relative to
+  this consumer's own import is stated exactly, not broadly: `MISSING_ARGUMENT` and
+  `DIAGNOSTICS_FAILED` are decided strictly before this consumer imports the generated module,
+  while `MODULE_UNUSABLE` occurs only after that import attempt has begun and never before it.
+  It is not recorded as always loaded, because it is not: if the import itself throws the module
+  may not have loaded at all in this process, and otherwise it did load here and export
+  validation ran after that load. It still exits 1,
+  still prints nothing on stdout and still carries one stable error line, but it is not a
+  pre-import refusal and is not recorded as one. This is BOUNDARY PREPARATION, not
+  P24. Writing the protocol down is proof of nothing: no external, independent or counted team
+  consumed anything, the counted team total stays 0, owner help is unmeasured, no readiness flag
+  moved, and no host, container, database or release was started.
 - P24A `tools/generate-consumer-diagnostics-distribution.mjs`: ships the P09 clean-consumer check
   inside the distribution payload itself instead of leaving it behind in `tests/fixtures`, as an
   additive wrapper that never edits the P08 generator whose manifest text its own merged test

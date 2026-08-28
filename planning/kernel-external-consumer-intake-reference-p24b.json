@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-external-consumer-intake-reference-p24b",
+  "base": { "commit": "ce3649768d5134af5b541793805342b2d28e4e37", "tree": "38676c39b1e8fc83f395b728ac70dfad06db6287" },
+  "scopeHashes": {
+    "scope": "407885b85be2f0c9b333f804cc408fc1a48dacd1553a3ce6b9accc184ed07822",
+    "scopeIsAbbreviated": false,
+    "scopeNote": "the full frozen MASTER scope sha256 was supplied in the final-precision handoff and replaces the abbreviated 407885b8 this record previously carried. It is a scope-record digest, not a git object in this repository, so it is recorded as supplied and is not resolvable with git rev-parse",
+    "synthesis": "47453a8c59091589791624b5b73d1640096e3fbe3a2caa50ddbe12a111d4c5a7",
+    "synthesisIsAbbreviated": false,
+    "synthesisNote": "expanded from the abbreviated 47453a8c supplied in the handoff against the same full value recorded in planning/kernel-consumer-diagnostics-p24a.json"
+  },
+  "packageFiles": [
+    "tests/kernel-external-consumer-intake-reference-p24b.test.mjs",
+    "docs/external-consumer-intake.md",
+    "examples/external-consumer/reference-consumer.mjs",
+    "planning/kernel-external-consumer-intake-reference-p24b.json",
+    "CHANGELOG.md"
+  ],
+  "implementationAllowedFiles": [
+    "docs/external-consumer-intake.md",
+    "examples/external-consumer/reference-consumer.mjs",
+    "planning/kernel-external-consumer-intake-reference-p24b.json",
+    "CHANGELOG.md"
+  ],
+  "fileSetNote": "packageFiles is the whole five-file package the reviewer and the rollback act on; implementationAllowedFiles is the strictly smaller four-file set this implementation writer was permitted to open for write. The difference is exactly the frozen test, which a different writer authored",
+  "readOnlyHandoff": "tests/kernel-external-consumer-intake-reference-p24b.test.mjs was handed off frozen at sha256 e35a0288cfd174d7165248fc91941abedc05340d1704eeaaf6f755e19d44ecf1 and was not edited, in the implementation pass or in the claim correction; it is a package file this writer did not author",
+  "nonGoals": [
+    "no edit to the frozen test, at any point and for any reason",
+    "no edit to tools/generate-consumer-diagnostics-distribution.mjs, tools/generate-versioned-action-sdk-distribution.mjs, tools/generate-action-sdk.mjs or any P07/P08/P09/P24A file",
+    "no src/, tests/ (other than the frozen test arriving), package.json, lockfile, versioning-policy.json, dependency, CI or config change",
+    "no dependency, network, worker thread, loader escape hatch, clock or random source in the reference consumer",
+    "no behaviour change in the claim correction; only what is claimed about the behaviour was corrected",
+    "no current-truth, ROADMAP.md or README.md change; the roadmap counter is not moved here",
+    "no external, independent or counted consumer team; this is not P24",
+    "no host, container, database, release, tag, deploy or publish",
+    "no readiness flag movement and no readiness vocabulary in the document, the example or its output",
+    "no commit, push, merge, Docker run, agent spawn or release by Claude"
+  ],
+  "design": {
+    "problem": "P24A shipped diagnose.mjs INSIDE the payload, but nothing said who may be counted as an external team, what they are handed, or what invalidates a run, and no runnable example consumed the payload end to end. This package adds both, and nothing else",
+    "singleMachineReadableProtocol": "docs/external-consumer-intake.md carries exactly ONE fenced json block. That block is the protocol and is compared as a closed record, so the rules cannot drift from the prose that restates them; the prose carries the same rules in the same order under six ordered headings and states no readiness claim",
+    "protocolRules": {
+      "acceptedParticipant": "real-independent-team, the only kind that counts",
+      "neverCounted": ["agent", "employee", "probe", "worker"],
+      "requiredInputs": "exactly four ordered inputs — docs, sdk, example, diagnostics — each naming a file that exists in this repository today",
+      "acceptance": "three independent teams at ownerHelpCount 0, every help event recorded under at, channel, question, answer",
+      "falsification": "hidden-owner-help, non-team-participant and mutated-evidence each void a run outright; a void run is kept and labelled void, never deleted",
+      "evidence": "sha256-digested at acceptance and not editable afterwards; a correction is a new record referencing the old one"
+    },
+    "referenceConsumer": "examples/external-consumer/reference-consumer.mjs — one ESM file, node builtins only (node:child_process, node:path, node:url), no non-builtin specifier, no repository path, no relative parent path, no require. It takes a materialized payload directory and the expected distribution version",
+    "orderOfOperations": "the payload's own diagnose.mjs is spawned FIRST as a separate process rooted at the payload directory, so the payload passes its own ten P24A gates before THIS reference consumer trusts it. Only on a healthy report does this consumer import the generated module, via a file URL resolved from the modulePath the runner itself reported, and only then is one sample report printed. The ordering is scoped to this consumer and to its own process. It is NOT a claim that the module has never been imported or evaluated anywhere: the shipped P24A runner carries its own module_evaluation gate, which imports a copy of the generated module source as a data: URL inside its own process, on verified bytes, before it reports healthy. On the healthy path the source has therefore already been evaluated once, elsewhere, by the time this consumer imports anything; on a refusing path whether it was evaluated depends on which of the runner's ten gates refused, since the earlier integrity gates fire before module_evaluation. Either way, no wording in this package claims a first-ever import, and none claims a refused payload was never evaluated — only that this consumer never imported it",
+    "codeMap": {
+      "MISSING_ARGUMENT": "no payload directory, or no expected distribution version, was supplied. Decided before THIS consumer imports the generated module",
+      "DIAGNOSTICS_FAILED": "the shipped diagnose.mjs could not be run, refused, printed no JSON report, or reported anything other than a healthy payload with a generated module path. Decided before THIS consumer imports the generated module. The shipped runner may already have evaluated a copy of the module source at its own module_evaluation gate, so this is a not-imported-here property, not a never-evaluated one",
+      "MODULE_UNUSABLE": "a runner-accepted module still failed to import into THIS consumer, or imported and did not expose its declared action surface. It occurs only after this consumer's import attempt has begun, and never before it. Two distinct states sit under this one code and are not flattened into each other: if the import itself throws, the module may not have loaded at all; otherwise the module did load and export validation ran after that load. It is never claimed that the module is always loaded when this code fires. No case in the frozen test reaches it, because every failure that test exercises is caught by the shipped runner first; it exists so the example refuses instead of crashing with a stack trace"
+    },
+    "failClosed": "every refusal exits 1, writes nothing to stdout, and emits exactly one EXTERNAL_CONSUMER_ERROR:<CODE> line at the start of a stderr line. The refusals do NOT share one position relative to the import, and the record states the difference instead of generalising it: MISSING_ARGUMENT and DIAGNOSTICS_FAILED are decided strictly before THIS reference consumer imports the generated module, so a payload its own runner rejects is never imported by this consumer — which is deliberately not stated as never evaluated, because the shipped P24A runner has its own module_evaluation gate that imports a copy of that module source in its own process, and whether it reached that gate before refusing is the runner's business, not a property this record may assert; MODULE_UNUSABLE occurs only after this consumer's import attempt has begun and never before it, covering two states that are recorded separately — if the import throws the module may not have loaded at all, and otherwise the module loaded and export validation ran after that load. It is not described as a refusal taken with the module always loaded, because that is not true of the throwing case",
+    "orderingProof": "the frozen test prepends an observable side-effect marker to the generated module in every refusal case it exercises. The marker never appears, which proves the pre-import ordering for exactly the refusals that test drives: MISSING_ARGUMENT and DIAGNOSTICS_FAILED. It proves nothing about MODULE_UNUSABLE, which no test case reaches and which by construction cannot be pre-import",
+    "reportShape": "one deterministic JSON object — schemaVersion, status ok, coordinate, distributionVersion, action, the runner's own diagnostics report embedded byte for byte, and a sample section (request, outcome, outcomeAccepted, errorEnvelope, errorEnvelopeAccepted) derived from the generated module's exports. No host path, no timestamp, no readiness term"
+  },
+  "claims": {
+    "corrected": true,
+    "supersededClaim": "EVERY_REFUSAL_HAPPENS_BEFORE_THE_GENERATED_MODULE_IS_IMPORTED — withdrawn as false. It was true of MISSING_ARGUMENT and DIAGNOSTICS_FAILED and false of MODULE_UNUSABLE, which can only be decided once the import has been attempted. The broad wording generalised a property the frozen test proves for two refusals into a claim about all three",
+    "honest": [
+      "The protocol is written down before the first run, so whoever runs it later cannot loosen it afterwards. That is the whole of what a written protocol delivers.",
+      "The reference consumer is genuinely copy-and-run: the frozen test copies the file OUT of this repository into a temporary directory, runs it from an unrelated working directory with an empty environment, and it still works, so the only way it reaches the payload is the argument it was given.",
+      "Running the payload's own runner first is a real ordering property for the refusals it governs: MISSING_ARGUMENT and DIAGNOSTICS_FAILED are proved to fire before THIS consumer imports the generated module, so a payload its own gates reject is never imported or evaluated by this reference consumer. It says nothing about evaluation in the shipped runner's own process.",
+      "MODULE_UNUSABLE is a genuine exception to that ordering and is recorded as one. It occurs only after the import attempt has begun: a throw from the import itself may leave the module never loaded, while past that point the module loaded and export validation ran on it. What still holds in both states, and is stated separately because it is a separate property: exit 1, empty stdout, exactly one stable EXTERNAL_CONSUMER_ERROR line."
+    ],
+    "notClaimed": [
+      "the protocol alone is proof of nothing, and adding it proves nothing about whether anyone outside can use the payload",
+      "no external, independent or counted team consumed anything; teamsCountedToDate is 0",
+      "owner help has never been measured, so ownerHelpCount today is unmeasured, not 0",
+      "not claimed that the example refuses before importing in every case; MODULE_UNUSABLE does not, and no wording in this package says otherwise any more",
+      "not claimed that MODULE_UNUSABLE always fires with the module loaded; when the import itself throws the module may never have loaded, and no wording in this package says otherwise any more",
+      "not claimed that MODULE_UNUSABLE is exercised by any test; it is unreached by the frozen test and its behaviour rests on construction and inspection, not on a passing case",
+      "the reference consumer is an example, not a product, a service or a supported client library",
+      "the shipped runner it invokes detects accidental drift only; it is not tamper-proof and not a signature, exactly as P24A recorded",
+      "not claimed that this consumer performs the module's first-ever import; the shipped P24A runner evaluates a copy of the module source in its own process before this consumer imports anything, and no wording in this package says otherwise any more",
+      "not claimed that a refused payload is never evaluated; the pre-import property is scoped to this reference consumer, which never imports it, and says nothing about evaluation elsewhere"
+    ]
+  },
+  "gates": [
+    { "n": 1, "name": "red", "command": "node --test tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=3, pass=0, fail=3", "outcome": "RED", "note": "docs/external-consumer-intake.md and examples/external-consumer/reference-consumer.mjs did not exist; every test failed at its first read" },
+    { "n": 2, "name": "green-targeted", "command": "node --test tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=3, pass=3, fail=0", "outcome": "GREEN" },
+    { "n": 3, "name": "green-targeted-regression-p07-p08-p09-p24a-p24b", "command": "node --test tests/kernel-consumer-diagnostics-p24a.test.mjs tests/kernel-versioned-action-sdk-distribution.test.mjs tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs tests/kernel-generic-action-sdk-generator.test.mjs tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=19, pass=19, fail=0", "outcome": "GREEN", "note": "the P24A payload, the P08 distribution and the P09 clean-consumer conformance are untouched by an additive document and example" },
+    { "n": 4, "name": "frozen-test-untouched", "command": "shasum -a 256 tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "e35a0288cfd174d7165248fc91941abedc05340d1704eeaaf6f755e19d44ecf1", "outcome": "GREEN", "note": "byte-identical to the frozen handoff, before and after the claim correction" },
+    { "n": 5, "name": "existing-sources-unmodified", "command": "git diff --stat -- tools/ src/ tests/", "result": "0 changed files", "outcome": "GREEN", "note": "no generator, no runtime source and no existing test was opened for write; the only new file under tests/ is the frozen test that arrived with the handoff" },
+    { "n": 6, "name": "qa1-full-local-test", "command": "npm test", "result": "tests=1617, pass=1617, fail=0", "outcome": "GREEN", "note": "1614 before this package plus the 3 frozen P24B tests. Ran ONCE, on the pre-correction snapshot; not rerun for the claim correction" },
+    { "n": 7, "name": "qa1-full-local-check", "command": "npm run check", "result": "all 10 chained checkers OK; kernel-versioning version=0.1.0-alpha.1 unreleased=1 categories=4 releases=0; no readiness flag moved", "outcome": "GREEN", "note": "the pre-correction run, paired with gate 6 as the single QA1 execution" },
+    { "n": 8, "name": "claim-correction-targeted-p24b", "command": "node --test tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=3, pass=3, fail=0", "outcome": "GREEN", "note": "run on the corrected snapshot. tests/kernel-external-consumer-intake-reference-p24b.test.mjs is the ONLY file under tests/, tools/ or src/ that references docs/external-consumer-intake.md or examples/external-consumer/reference-consumer.mjs, verified by grep -rln external-consumer over tests/ tools/ src/, so this targeted run re-covers the entire changed executable surface" },
+    { "n": 9, "name": "claim-correction-check-recheck", "command": "npm run check", "result": "all 10 chained checkers OK on the corrected snapshot; check-versioning-changelog accepted the rewritten Unreleased bullet; version=0.1.0-alpha.1, unreleased=1, categories=4, releases=0; no readiness flag moved", "outcome": "GREEN", "note": "npm run check only. npm test was NOT rerun for the correction, by instruction, and no second full test result is claimed anywhere in this record" },
+    { "n": 10, "name": "final-precision-targeted-p24b", "command": "node --test tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=3, pass=3, fail=0", "outcome": "GREEN", "note": "run on the final-precision snapshot, after the MODULE_UNUSABLE wording was tightened. Still the only test that reads either changed file" },
+    { "n": 11, "name": "final-precision-check-recheck", "command": "npm run check", "result": "all 10 chained checkers OK; kernel-versioning version=0.1.0-alpha.1, unreleased=1, categories=4, releases=0, releaseTags=0, private=true; no readiness flag moved", "outcome": "GREEN", "note": "npm run check only. npm test was again NOT rerun, by instruction" },
+    { "n": 12, "name": "review-blocker-regression-sanity-p24b", "command": "node --test tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=3, pass=3, fail=0", "outcome": "GREEN", "note": "a behavioural regression sanity check, NOT coverage of a changed byte, and the earlier note here claiming otherwise was false. This pass wrote only CHANGELOG.md and this planning file. The P24B test reads docs/external-consumer-intake.md and examples/external-consumer/reference-consumer.mjs, and it reads neither of the two files this pass changed, so passing 3/3 proves only that the unchanged consumer and document still behave as recorded at their unchanged sha256 values. What actually covers this pass is stated where it belongs: gate 13 for CHANGELOG.md, and a JSON parse plus direct inspection for this planning record" },
+    { "n": 13, "name": "review-blocker-check-recheck", "command": "npm run check", "result": "all 10 chained checkers OK; kernel-versioning version=0.1.0-alpha.1, unreleased=1, categories=4, releases=0, releaseTags=0, private=true; no readiness flag moved", "outcome": "GREEN", "note": "this is the gate that actually covers CHANGELOG.md, because check-versioning-changelog is what reads it. It does not cover this planning record, which no checker reads; that record is covered by a JSON parse (node/python json.load succeeds, so the file is well-formed) plus direct inspection of the fields written. npm run check only. npm test was NOT rerun, by instruction; the full-QA budget stays at 1 of 2" },
+    { "n": 14, "name": "doc-scope-fix-targeted-p24b", "command": "node --test tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "result": "tests=3, pass=3, fail=0", "outcome": "GREEN", "note": "run on the doc-scope-fix snapshot. Unlike gate 12 this IS coverage of a changed byte: this pass changed docs/external-consumer-intake.md, and this test reads that document, so the 3/3 covers the changed file. It does not cover this planning record, which no test reads" },
+    { "n": 15, "name": "doc-scope-fix-check-recheck", "command": "npm run check", "result": "all 10 chained checkers OK; kernel-versioning version=0.1.0-alpha.1, unreleased=1, categories=4, releases=0, releaseTags=0, private=true; no readiness flag moved", "outcome": "GREEN", "note": "npm run check only. npm test was NOT rerun, by instruction; the full-QA budget stays at 1 of 2" }
+  ],
+  "budget": {
+    "source": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "class": "production",
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 20,
+    "files": {
+      "tests/kernel-external-consumer-intake-reference-p24b.test.mjs": { "grossAdditions": 219, "grossDeletions": 0, "note": "frozen handoff, authored by the test writer, not by this writer" },
+      "docs/external-consumer-intake.md": { "grossAdditions": 113, "grossDeletions": 0, "note": "104 at implementation, 110 after the claim correction, untouched by the final-precision and review-blocker passes, 113 after the doc-scope fix, which rewrote one paragraph of prose and added 3 lines. The fenced protocol json block was not touched in any pass" },
+      "examples/external-consumer/reference-consumer.mjs": { "grossAdditions": 115, "grossDeletions": 0, "note": "105 at implementation, 113 after the claim correction, 115 after the final-precision pass; every added line is header or inline comment, no executable line changed in either pass" },
+      "planning/kernel-external-consumer-intake-reference-p24b.json": { "grossAdditions": 281, "grossDeletions": 0, "note": "self-reference recorded post-write; planning cannot self-hash. 160 at implementation, 187 after the claim correction, 204 after the final-precision pass, 251 after the review-blocker correction, which added the reviewBlockerCorrection record, three nonblockingRisks entries and two gates, 252 after the evidence-only follow-up, which rewrote the false gate 12 note and added one minorsFixed line, and 281 after the doc-scope fix, which added the docScopeFix record, resolved one risk, widened one risk, added two new nonblocking findings and added gates 14 and 15" },
+      "CHANGELOG.md": { "grossAdditions": 38, "grossDeletions": 0, "note": "23 at implementation, 29 after the claim correction, 30 after the final-precision pass, 38 after the review-blocker correction, which scopes every import claim to this reference consumer and names the shipped runner's own module_evaluation gate. Verified with git diff --numstat: 38 added, 0 deleted" }
+    },
+    "grossAdditions": 766,
+    "grossDeletions": 0,
+    "netLines": 766,
+    "changedFileCount": 5,
+    "headroom": "766 of 800 net, 34 lines of headroom, 5 of a permitted 20 changed files. Reconciled three times: the claim correction grew four files by 6, 8, 27 and 6 lines; the final-precision pass grew three more by 2, 17 and 1; the review-blocker correction grew exactly two, CHANGELOG.md by 8 and this planning file by 47, and opened no other file. Recount after the doc-scope fix, which grew docs/external-consumer-intake.md by 3 lines and this planning file by 29 lines, and opened no other file: 219 test + 113 docs + 115 example + 281 planning + 38 CHANGELOG = 766. The conditional ceiling is still not exceeded, the package is inside the 790 net bound this pass was given, and no waiver is requested or permitted in this band"
+  },
+  "conditionalDeliveryGates": {
+    "band": "conditional",
+    "bandCeiling": 800,
+    "waiver": "none — requesting one is forbidden in this band by the canonical field; the 800 ceiling is earned by the seven conditions below and by nothing else",
+    "requiredConditions": [
+      { "id": "single-narrow-problem", "outcome": "GREEN", "evidence": "one problem only: nothing said who counts as an external team, what they receive or what voids a run, and no runnable example consumed the payload. The package adds one document and one example and nothing else" },
+      { "id": "bounded-file-set", "outcome": "GREEN", "evidence": "packageFiles is 5 and implementationAllowedFiles is 4, both declared before the write and unchanged by the claim correction; gate 5 shows no generator, runtime source or existing test was opened; 5 of a permitted 20 changed files" },
+      { "id": "no-redundant-repetition", "outcome": "GREEN", "evidence": "the intake rules exist in exactly one machine-readable authority — the single fenced json block — and the prose references them rather than redefining them. The earlier wording of this evidence was wrong about the example and is corrected here: the three refusal codes are NOT each written once. They are inline string literals repeated across eight fail() call sites — MISSING_ARGUMENT twice, DIAGNOSTICS_FAILED four times, MODULE_UNUSABLE twice — because each site carries its own detail text. What is genuinely single is the fail path: all eight sites route through the one fail(code, detail) helper, which owns the sole stderr write, the sole ERROR_PREFIX constant and the sole process.exit(1), so the refusal shape cannot drift between call sites. The entry-point filename (DIAGNOSTICS_PATH) and the error prefix (ERROR_PREFIX) are each a single constant. This is admitted repetition of a short code literal, not a duplicated rule" },
+      { "id": "no-quality-tradeoff", "outcome": "GREEN", "evidence": "no test weakened, skipped or rewritten; the frozen test is byte-identical (gate 4); P07/P08/P09/P24A are untouched and still GREEN (gate 3); the example takes no dependency, no network, no worker thread, no loader escape hatch, no clock and no random source. The claim correction narrowed a claim and changed no behaviour, which is a quality gain, not a trade" },
+      { "id": "full-green", "outcome": "GREEN", "evidence": "gate 6 npm test 1617/1617 and gate 7 npm run check on the pre-correction snapshot, plus gates 8 and 10 targeted 3/3 as coverage of the corrected and final-precision snapshots, gate 12 as a regression sanity check only, and gates 9, 11 and 13 npm run check on all three snapshots. CI QA2 is the separate required run and is still pending, so full-green is claimed locally only" },
+      { "id": "fresh-reviewer-accept", "outcome": "PENDING", "evidence": "no independent reviewer has read this package yet. The reviewer must be a separate read-only session that did not write it, working on the review-blocker snapshot; a changed snapshot invalidates the review" },
+      { "id": "explicit-rollback", "outcome": "GREEN", "evidence": "the rollback field names the single atomic five-file revert and the reason it cannot regress P07, P08, P09 or P24A; nothing was committed, so the rollback is currently a working-tree discard" }
+    ],
+    "greenCount": 6,
+    "pendingCount": 1,
+    "allConditionsMet": false,
+    "verdict": "NOT_YET_DELIVERABLE — six of seven conditional-band conditions are GREEN and fresh-reviewer-accept is PENDING. The package stands at 734 net, which needs the conditional band, so it may not be delivered until that reviewer returns GREEN on the review-blocker snapshot. Failing that, the package must be split under the 400 default ceiling; it may not be moved to the waiver band"
+  },
+  "qa": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "spent": 1,
+    "qa1FullLocal": "GREEN — npm test 1617/1617 and npm run check all 10 checkers OK, run once in that order on the pre-correction snapshot",
+    "qa2CI": "pending",
+    "qa1SnapshotNote": "exact sequence, no rounding. npm test ran ONCE, before the claim correction, and has not run since; no second full test result is claimed. The claim correction, and then the final-precision pass, edited docs/external-consumer-intake.md, examples/external-consumer/reference-consumer.mjs and CHANGELOG.md, which IS part of the surface npm test covers, so it was re-covered by the two narrower gates instead of by a second full run: gates 8 and 10 reran the only test that reads either file (grep -rln external-consumer over tests/ tools/ src/ returns that one test and nothing else) and gates 9 and 11 reran npm run check in full, which is what reads CHANGELOG.md. This planning file was written afterwards and is read by no test and no checker — no planning directory enumeration exists and this filename is referenced nowhere under tools/ or tests/. The review-blocker correction is NOT re-covered the same way, and saying so earlier was false: it wrote only CHANGELOG.md and this planning file, and the P24B test reads neither of them. Its coverage is gate 13, npm run check, which is what reads CHANGELOG.md, plus a JSON parse and direct inspection for this planning record, which no test and no checker reads. Gate 12 ran as a behavioural regression sanity check on the unchanged consumer and document, not as coverage of a changed byte. The same evidence-only correction was applied to this note and to gate 12 without rerunning any test, because no executable or checked file changed. The doc-scope fix DID change a file the P24B test reads, docs/external-consumer-intake.md, and is covered accordingly by gate 14 (targeted 3/3) and gate 15 (npm run check); this planning record is again covered by a JSON parse plus direct inspection, and npm test was not rerun. Establishing RED (gate 1) was targeted and spends no budget. The local full-QA budget therefore stands at 1 of 2, and the honest residual risk is named rather than hidden: no full npm test has run on the exact final bytes, and CI QA2 is the run that closes that gap"
+  },
+  "fileHashesSha256": {
+    "tests/kernel-external-consumer-intake-reference-p24b.test.mjs": "e35a0288cfd174d7165248fc91941abedc05340d1704eeaaf6f755e19d44ecf1",
+    "docs/external-consumer-intake.md": "5161c1eb753486bbb5082fcfd1c686b1d479663fa5ba1f7f931649d9f79a1850",
+    "examples/external-consumer/reference-consumer.mjs": "8969708ec0ca7a512ab2508c8c8b74a3c6c7ce481f466e34c39c75e9cf5e5fc7",
+    "CHANGELOG.md": "77ff704300c8292ba2eb1dc9cd60abe5af1af0cf1483f3b31f5d1823bf1a1caf"
+  },
+  "fileHashesNote": "four of the five package files are digested. CHANGELOG.md was added in this review-blocker correction and is digested on its corrected bytes. planning/kernel-external-consumer-intake-reference-p24b.json is absent because a file cannot contain its own digest",
+  "claimCorrection": {
+    "marker": "P24B_CLAIM_CORRECTED",
+    "date": "2026-08-28",
+    "writtenFiles": [
+      "docs/external-consumer-intake.md",
+      "examples/external-consumer/reference-consumer.mjs",
+      "planning/kernel-external-consumer-intake-reference-p24b.json",
+      "CHANGELOG.md"
+    ],
+    "whatWasWrong": "the example header, the CHANGELOG entry and this record's failClosed field each said, in one broad sentence, that every refusal happens before the generated module is imported. That is true of MISSING_ARGUMENT and DIAGNOSTICS_FAILED and false of MODULE_UNUSABLE, which is decided during the import or after export validation and therefore cannot precede it",
+    "whatItSaysNow": "the two pre-import refusals and the one post-import-attempt refusal are stated separately, in all three places. What MODULE_UNUSABLE still shares with the others — exit 1, empty stdout, exactly one stable EXTERNAL_CONSUMER_ERROR line — is stated as its own property rather than folded back into an ordering claim. The wording was tightened again in the final-precision pass; see finalPrecision below",
+    "noBehaviourChange": "comments and prose only. No executable statement, constant, code string, control-flow branch or output byte changed; the frozen test is untouched and still passes 3/3 (gate 8), and the reference consumer's refusal codes, exit statuses and report bytes are identical",
+    "gatesRun": "gate 8 targeted P24B and gate 9 npm run check. npm test was deliberately not rerun"
+  },
+  "finalPrecision": {
+    "marker": "P24B_FINAL_PRECISION_GREEN",
+    "date": "2026-08-28",
+    "writtenFiles": [
+      "examples/external-consumer/reference-consumer.mjs",
+      "planning/kernel-external-consumer-intake-reference-p24b.json",
+      "CHANGELOG.md"
+    ],
+    "whatWasStillWrong": "after the claim correction the example header, the CHANGELOG entry and this record still said MODULE_UNUSABLE refuses with the module already loaded. That holds only for the export-validation branch. When the import itself throws, the module may never have loaded, so the wording still overstated one of the two states it covers",
+    "whatItSaysNow": "MODULE_UNUSABLE occurs only after the import attempt has begun, and never before it. If the import throws, the module may not have loaded; otherwise the module loaded and export validation occurred after that load. It is never claimed to be always loaded",
+    "scopeHashExpansion": "the abbreviated 407885b8 was replaced by the full frozen MASTER scope sha256 407885b85be2f0c9b333f804cc408fc1a48dacd1553a3ce6b9accc184ed07822 supplied in this handoff, and the abbreviation notes were removed with it",
+    "noBehaviourChange": "comments, prose and metadata only. No executable statement, constant, code string, control-flow branch or output byte changed; docs/external-consumer-intake.md was not opened, the frozen test is untouched at the same sha256 and still passes 3/3 (gate 10)",
+    "gatesRun": "gate 10 targeted P24B and gate 11 npm run check. npm test was deliberately not rerun"
+  },
+  "reviewBlockerCorrection": {
+    "marker": "P24B_REVIEW_BLOCKER_FIXED",
+    "date": "2026-08-28",
+    "writtenFiles": ["CHANGELOG.md", "planning/kernel-external-consumer-intake-reference-p24b.json"],
+    "preservedFiles": "docs/external-consumer-intake.md, examples/external-consumer/reference-consumer.mjs and the frozen test were NOT opened in this pass; their sha256 values are unchanged from the final-precision snapshot and are recorded under fileHashesSha256",
+    "blocker": {
+      "wasWrong": "the CHANGELOG said the payload is checked by its own gates before the generated module 'is ever imported', and this record's orderOfOperations and failClosed said a payload its own runner rejects 'is never evaluated'. Both are absolute claims about the module across all processes, and both are false: the shipped P24A diagnose.mjs has a module_evaluation gate that imports a copy of the generated module source as a data: URL inside its own process, on verified bytes, before it ever reports healthy. On every healthy run the source has already been evaluated once before this consumer imports anything, so neither a first-ever import nor a never-evaluated property was ever this package's to claim",
+      "saysNow": "every import and evaluation claim is scoped to this reference consumer and its own process. The pre-import property is stated as 'never imported by this consumer', never as a first-ever import and never as never evaluated. orderOfOperations, failClosed and the three codeMap entries all carry the scope, and the CHANGELOG states outright that the shipped runner evaluates a copy of the module source first",
+      "noBehaviourChange": "prose and metadata only. No executable statement, constant, code string, control-flow branch or output byte changed; the frozen test is untouched at the same sha256"
+    },
+    "minorsFixed": [
+      "no-redundant-repetition evidence no longer claims the three refusal codes each appear once. It admits eight inline fail() call sites repeating the code literals (2 + 4 + 2) and cites the single genuinely-shared fail path: one fail(code, detail) helper owning the sole stderr write, the sole ERROR_PREFIX constant and the sole process.exit(1)",
+      "fileHashesSha256 now carries CHANGELOG.md at its corrected bytes, so four of the five package files are digested; only this self-referencing planning file is absent, with the reason recorded in fileHashesNote",
+      "evidence-only follow-up, planning record alone: gate 12 claimed the P24B test was the only test reading a changed file in this pass, which was false because the two files this pass changed are CHANGELOG.md and this record, and that test reads neither. Gate 12 is now recorded as a behavioural regression sanity check on the unchanged consumer and document, gate 13 as the gate covering CHANGELOG.md, and a JSON parse plus direct inspection as what covers this record. No test was rerun, and no doc, example, test or CHANGELOG byte changed"
+    ]
+  },
+  "docScopeFix": {
+    "marker": "P24B_DOC_SCOPE_FIXED",
+    "date": "2026-08-28",
+    "writtenFiles": ["docs/external-consumer-intake.md", "planning/kernel-external-consumer-intake-reference-p24b.json"],
+    "preservedFiles": "the fenced protocol json block inside the document, examples/external-consumer/reference-consumer.mjs, CHANGELOG.md and the frozen test were NOT opened; the block's bytes are unchanged and the other three files keep the sha256 values recorded under fileHashesSha256",
+    "wasWrong": "the document's ordering paragraph said 'so a payload that fails its own gates is never evaluated'. That was the last UNSCOPED never-evaluated claim in the package, and it is false in the same way the CHANGELOG's was: the shipped P24A runner has a module_evaluation gate that imports a copy of the generated module source inside its own process",
+    "saysNow": "'is never imported or evaluated by THIS reference consumer', followed by one sentence stating that the property is scoped to this consumer's own process and is not a claim that the module was never evaluated anywhere, because the shipped runner carries its own module evaluation gate and runs it inside its own process",
+    "noBehaviourChange": "prose only, in one paragraph of one document. No executable statement, constant, code string, control-flow branch or output byte changed anywhere; the protocol block is byte-identical and the frozen test is untouched at the same sha256",
+    "gatesRun": "gate 14 targeted P24B and gate 15 npm run check. npm test was deliberately not rerun, by instruction",
+    "remainingHereScopedWording": "examples/external-consumer/reference-consumer.mjs still reads 'is never evaluated here' in its header comment, and this record's claims.honest entry read the same way until this pass rewrote it. The example's clause is scoped by 'here' and is therefore not the unscoped claim this pass removed; the example was outside this pass's write set and was preserved byte for byte. This record's own entry now names the reference consumer explicitly rather than relying on 'here'"
+  },
+  "nonblockingRisks": [
+    {
+      "id": "stderr-write-then-exit-truncation",
+      "where": "examples/external-consumer/reference-consumer.mjs, the fail() helper: process.stderr.write(...) is followed immediately by process.exit(1)",
+      "risk": "when stderr is a pipe rather than a TTY, Node may buffer that write asynchronously, and process.exit does not flush pending asynchronous writes. A refusal line could in principle be truncated or lost for a caller reading stderr through a pipe",
+      "decision": "recorded, NOT fixed. No code change was made in this pass, by instruction, and the example's behaviour is deliberately untouched",
+      "whyNonblocking": "the frozen test drives every refusal it exercises through a pipe and reads the full EXTERNAL_CONSUMER_ERROR line each time, 3/3 GREEN, so the failure has not been observed here; the exit status is 1 regardless, which is what a consumer's automation branches on; and stdout, which carries the report, is empty on every refusal so nothing consumable is at stake",
+      "ifItEverBites": "the fix is local to fail() and would be a separate package: write synchronously, or set process.exitCode and let the process end naturally"
+    },
+    {
+      "id": "unscoped-never-evaluated-sentence-in-the-document",
+      "where": "docs/external-consumer-intake.md, the ordering paragraph: formerly 'so a payload that fails its own gates is never evaluated'",
+      "risk": "read in isolation that clause carried the same absolute wording the review-blocker correction removed from the CHANGELOG and this record. In context its subject was the reference consumer's own refusals, but the clause itself was not scoped",
+      "decision": "RESOLVED in the doc-scope fix. The clause now reads 'is never imported or evaluated by THIS reference consumer' and is followed by one sentence stating outright that the property is scoped to this consumer's own process and is not a claim that the module was never evaluated anywhere, because the shipped runner carries its own module evaluation gate inside its own process",
+      "resolvedBy": "P24B_DOC_SCOPE_FIXED",
+      "residual": "none. The document, the CHANGELOG and this record now carry the same scoped wording; no absolute never-evaluated claim survives in any file this package writes"
+    },
+    {
+      "id": "unscoped-wording-in-the-frozen-test-header-and-title",
+      "where": "tests/kernel-external-consumer-intake-reference-p24b.test.mjs in two places, not one: the file header comment, which ends 'and happens before the generated module is ever imported', and the third test's title, 'each refuse with one stable code before the generated module is imported'. A third instance sits in the same test's final assertion message, 'must refuse before the generated module is imported'",
+      "risk": "the unscoped phrasing removed from the CHANGELOG, this record and now the document survives in the frozen test in three spots, two of which a reader sees on every run — the header when reading the file, the title in test output. The header wording is the broader of the two: it says 'every refusal', which also carries the superseded EVERY_REFUSAL_HAPPENS_BEFORE_THE_IMPORT claim that MODULE_UNUSABLE falsifies",
+      "decision": "recorded, NOT fixed and NOT fixable here. The test is frozen, was authored by a different writer, and editing it is the first non-goal of this package. Widening the entry from the title alone to header, title and assertion message is the only change made here",
+      "whyNonblocking": "what the test actually asserts is scoped correctly by construction — it prepends a side-effect marker to the generated module and proves the marker never appears in THIS consumer's run — so all three sentences overstate a sound assertion rather than resting on a false one. None of the three is read by any checker and none carries protocol authority; the authority is the fenced json block, which makes no import or evaluation claim at all",
+      "flaggedFor": "the fresh reviewer and MASTER, who own any decision to unfreeze a test header, title or message"
+    },
+    {
+      "id": "required-inputs-cannot-alone-materialize-a-payload",
+      "where": "docs/external-consumer-intake.md, the requiredInputs list in the fenced json block and the 'Required inputs' prose; examples/external-consumer/reference-consumer.mjs, which takes an already-materialized payload directory as its first argument",
+      "risk": "the four listed inputs are the document, two generator modules and the example. The generators return an in-memory file map and need both an ActionContract instance from src/application/action-contract.mjs and a caller that writes the map to disk, and tools/generate-consumer-diagnostics-distribution.mjs additionally imports tools/generate-versioned-action-sdk-distribution.mjs, which imports tools/generate-action-sdk.mjs — neither of those two is on the list. A team handed exactly the four inputs and nothing else therefore has no payload directory to point the example at",
+      "decision": "recorded, NOT fixed. Changing requiredInputs would change the protocol block, which is the authority this pass preserved, and this pass was scoped to a wording correction",
+      "whyNonblocking": "the protocol already anticipates this exact outcome and routes it correctly: 'If a team needed something that is not on this list, that is a finding about the payload, and it is recorded as one.' Nothing is falsified by the gap, no counted run exists to invalidate, and the frozen test never exercises the handover path — it materializes the payload itself. The honest reading is that the four inputs are a handover list, not yet a from-zero recipe",
+      "flaggedFor": "the fresh reviewer and MASTER, who own whether the protocol block gains a materialization step or a fifth input before the first real team is handed anything"
+    },
+    {
+      "id": "refusal-case-6-does-not-pin-the-gate-it-names",
+      "where": "tests/kernel-external-consumer-intake-reference-p24b.test.mjs, the refusal CASES table, sixth entry: 'the manifest diagnostics digest no longer matches the runner'",
+      "risk": "the loop prepends the side-effect marker to the generated module in EVERY case before applying that case's own mutation, so by the time case 6 corrupts manifest.diagnostics the module bytes are already tampered. Whichever of the shipped runner's integrity gates fires first, the code this consumer emits is DIAGNOSTICS_FAILED, which is the same code case 7 asserts. Case 6 therefore proves a DIAGNOSTICS_FAILED refusal, not specifically a diagnostics-digest refusal, and is not distinguishable from case 7 by its assertions",
+      "decision": "recorded, NOT fixed and NOT fixable here. The test is frozen and editing it is the first non-goal of this package",
+      "whyNonblocking": "no assertion in the case is false — it exits 1, writes nothing on stdout, emits exactly one anchored DIAGNOSTICS_FAILED line and never shows the marker, all of which genuinely hold. The gap is coverage precision, not a wrong claim, and the gate it was meant to pin is P24A's, already covered by the P24A test suite (gate 3, 19/19). This record does not claim case 6 as evidence for any specific runner gate",
+      "flaggedFor": "the fresh reviewer, who may decide a future package should apply the mutation without the universal module tamper"
+    }
+  ],
+  "reviewer": "pending",
+  "rollback": "single atomic five-file package; discard docs/external-consumer-intake.md, examples/external-consumer/reference-consumer.mjs (and the now-empty examples/external-consumer directory), planning/kernel-external-consumer-intake-reference-p24b.json, the CHANGELOG.md Unreleased bullet and the frozen test together. Every added file is new and no existing file except the CHANGELOG was modified, so reverting cannot regress P07, P08, P09 or P24A. The claim correction added no new file and no new rollback step",
+  "packageState": "qa1-green-claim-corrected-final-precision-review-blocker-fixed-doc-scope-fixed-awaiting-reviewer-and-ci",
+  "readinessFlags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "p24Truth": {
+    "isP24": false,
+    "role": "boundary preparation only",
+    "independentTeamCount": 0,
+    "ownerHelpCount": "unmeasured",
+    "note": "no external, independent or counted team consumed anything. A written intake protocol and a runnable example are the preconditions for P24, not P24 itself; the protocol says so on its own face"
+  },
+  "roadmapProgress": { "completed": 23, "total": 25, "active": "P24" },
+  "ownerFacing": {
+    "once": "Paketi disaridan alacak bir ekip icin hicbir kural yaziliydi degildi. Kimin 'disaridan bagimsiz ekip' sayilacagi, ekibe tam olarak neyin verilecegi ve bir denemeyi neyin gecersiz kilacagi belli degildi. Calisan ornek de yoktu: paketi bastan sona tuketen tek bir dosya bile bulunmuyordu.",
+    "simdi": "Iki sey eklendi. Birincisi, tek bir makine tarafindan okunabilir blok halinde yazili giris protokolu: sadece gercek bagimsiz ekip sayilir; ajan, calisan, otomatik sonda ve isci asla sayilmaz; ekibe tam dort girdi verilir; kabul cizgisi uc bagimsiz ekip ve sifir sahip yardimi, her yardim olayi kayitli; gizlenen sahip yardimi, ekip olmayan katilimci ve sonradan degistirilen kanit denemeyi gecersiz kilar; kabul edilen kanit sha256 ile muhurlenir ve sonradan degistirilemez. Ikincisi, tek dosyalik calisan ornek tuketici: hicbir bagimliligi yok, depomuzdan hicbir sey almiyor, once paketin kendi kontrol dosyasini ayri bir surec olarak calistiriyor, ancak saglikli raporu aldiktan SONRA modulu yukluyor ve tek bir ornek rapor yaziyor.",
+    "fark": "Protokol kurallar yazildiktan sonra gevsetilemeyecek sekilde tek bir blokta duruyor. Ornek dosya depodan disari kopyalanip alakasiz bir klasorden, bos bir ortamla calistirildi ve calisti. P07/P08/P09/P24A dosyalarina tek bayt dokunulmadi. Ayrica iki turda iki yanlis cumle duzeltildi: once 'her reddedis modul yuklenmeden once olur' (ucun ikisi icin dogru, ucuncusu icin yanlisti), sonra 'ucuncu red modul zaten yuklenmisken olur' (modul yuklenirken hata firlarsa modul hic yuklenmemis olabilir). Ikisi de artik oldugu gibi yaziyor. Ucuncu turda ise yukleme iddialari bu ornege daraltildi: paketin kendi kontrol dosyasi modulun bir kopyasini kendi surecinde zaten calistirdigi icin artik hicbir yerde 'ilk yukleme' ya da 'hic calistirilmadi' denmiyor. Dorduncu turda ayni daraltma dokumanin kendisine de islendi: 'kendi kontrolunden kalan paket hic calistirilmaz' cumlesi artik 'BU ornek tuketici onu hic yuklemez ve calistirmaz' diyor, arkasindan da bunun sadece bu surece ait bir ozellik oldugu yaziyor.",
+    "durustSinir": "Kural yazmak kanit degildir. Bugune kadar disaridan tek bir ekip bile paketi almadi, sayac 0, sahibin ne kadar yardim ettigi hic olculmedi. Reddedislerin sirasi da artik oldugu gibi yaziyor, ama sadece BU ornek icin: eksik argumanda ve paket kendi kontrolunden kalinca BU ORNEK modulu HIC yuklemiyor. Bu, 'modul hicbir yerde hic calistirilmadi' demek degil, cunku paketin kendi kontrol dosyasi modulun bir kopyasini kendi surecinde zaten calistiriyor; artik ne 'ilk defa burada yukleniyor' ne de 'hic calistirilmadi' diyoruz, sadece 'bu ornek yuklemedi' diyoruz. ucuncu red ise ancak yukleme denemesi BASLADIKTAN sonra olabiliyor, oncesinde asla. Bu redde iki ayri durum var ve ikisi tek cumleye sikistirilmiyor: yukleme sirasinda hata firlarsa modul hic yuklenmemis olabilir; firlamazsa modul yuklenmistir ve arayuz kontrolu o yuklemeden sonra yapilir. 'Her zaman yuklenmis olur' demiyoruz, cunku dogru degil. O ucuncu durumda da program 1 ile cikiyor, ekrana rapor yazmiyor ve tek sabit hata satirini veriyor — ama 'yuklenmeden once reddediyor' demek yanlis olurdu, o yuzden artik demiyoruz. O ucuncu durumu calistiran bir test de yok; davranis kodun kendisinden okunuyor, gecen bir testten degil. Duzeltmeden sonra tam test takimi bilerek tekrar kosulmadi; sadece bu paketin kendi testi ve 10 kontrolcu kosuldu, geri kalanini CI kapatacak. Ayrica uc yeni kucuk bulgu kayda gecti, hicbiri engelleyici degil: donmus testin baslik ve basligi disinda dosya basindaki aciklamasi da ayni genis ifadeyi tasiyor; protokolun 'dort girdi' listesi tek basina calistirilabilir bir paket klasoru uretmeye yetmiyor; ve testin altinci reddedis vakasi adinda gecen kapiyi tek basina kanitlamiyor.",
+    "kullaniciYolculugu": "Bir CRM'in 'kayit olustur' aksiyonunu paketleyip disaridaki bir ekibe verdigimizi dusunun. Once o ekip paketi aliyordu ve elinde ne bir kural ne de calisan bir ornek vardi; bir sey tutmayinca bize soruyordu, biz de yardim ediyorduk ve o yardim hicbir yere yazilmiyordu. Simdi ekip tam dort dosya aliyor, ornegi tek komutla calistiriyor: paket saglamsa ekranda tek bir ornek rapor beliriyor (ornek istek, kabul edilen sonuc, hata zarfi), bozuksa hicbir rapor cikmiyor ve tek satirlik sabit bir kod cikiyor. Bize sordugu her soru da artik zaman, kanal, soru ve cevap olarak kayda gecmek zorunda; gizlenirse deneme gecersiz sayiliyor. Yine de bu calistirilabilir bir urun degil: sunucu yok, veritabani yok, gercek kullanici akisi yok, ve henuz hicbir ekip bunu denemedi.",
+    "kalanEngel": "Paketi yazmayan taze bir reviewer onayi bekliyor; kosullu bandin yedi kosulundan altisi yesil, yedincisi beklemede, bu yuzden paket henuz teslim edilebilir degil. CI QA2 bekliyor, commit atilmadi. Asil P24 hala eksik: disaridan bagimsiz uc ekip yok, ekip sayisi 0, sahip yardimi olculmedi. Yol haritasi sayaci 23/25 tamamlandi, P24 aktif.",
+    "capability_delta": "EXTERNAL_CONSUMER_INTAKE_PROTOCOL_AND_RUNNABLE_REFERENCE_CONSUMER_ONLY",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
