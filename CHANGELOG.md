@@ -16,6 +16,14 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24E1 `LICENSE`, a `license` key in `package.json` and
+  `planning/kernel-license-boundary-p24e1.json`: the license boundary, stated once and enforced
+  from both sides. The repository is AGPL-3.0-only, proven by the FSF's verbatim `agpl-3.0.txt`
+  bytes carrying Section 13 — the remote-network clause that is why this is AGPL and not GPL —
+  installed as a real regular file, never a symlink. The SDK bytes an external consumer receives
+  carry no license text at all: the MIT grant intended for them is `pending`, DECIDED and NOT
+  GRANTED, so nothing is relicensed and no CLA is opened. Generators, version and readiness
+  flags are unmoved; a grant is permission, not evidence of use, and P24 stays open at 0 of 3.
 - P24D `planning/external-consumer-run-record.json` and
   `tools/check-external-consumer-run-record.mjs`, plus prose under the existing Owner help and
   Evidence headings of `docs/external-consumer-intake.md`: the record layer the intake protocol
