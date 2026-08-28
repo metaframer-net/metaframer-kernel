@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-consumer-diagnostics-p24a",
+  "base": { "commit": "647f5734", "tree": "8d5ab8f1045c4255e2509c7d49f019ac87e70f3b" },
+  "scopeHashes": {
+    "master": "820ebd3546a36de66a4af79a7b2e58bb74c5de90b2d738e1b3f9883c9ec1bd76",
+    "blind": "563cfd2ab66a039c62473f1915441c8c0546a3fa63598da74fc9213949b97fa7",
+    "synthesis": "47453a8c59091589791624b5b73d1640096e3fbe3a2caa50ddbe12a111d4c5a7"
+  },
+  "packageFiles": [
+    "tests/kernel-consumer-diagnostics-p24a.test.mjs",
+    "tools/generate-consumer-diagnostics-distribution.mjs",
+    "planning/kernel-consumer-diagnostics-p24a.json",
+    "CHANGELOG.md"
+  ],
+  "implementationAllowedFiles": [
+    "tools/generate-consumer-diagnostics-distribution.mjs",
+    "planning/kernel-consumer-diagnostics-p24a.json",
+    "CHANGELOG.md"
+  ],
+  "fileSetNote": "packageFiles is the whole four-file package the reviewer and the rollback act on; implementationAllowedFiles is the strictly smaller three-file set this implementation writer was permitted to open for write. The difference is exactly the frozen test, which a different writer authored",
+  "readOnlyHandoff": "tests/kernel-consumer-diagnostics-p24a.test.mjs was handed off frozen at sha256 33d2b211ac887f1446639f133c24a67578849cca439eb2ddf4807c3cab52d989 and was not edited; it is a package file this writer did not author",
+  "nonGoals": [
+    "no edit to tools/generate-versioned-action-sdk-distribution.mjs, whose manifest text its own merged P08 test freezes byte for byte",
+    "no edit to tests/fixtures/versioned-sdk-clean-consumer.mjs or any P09 file",
+    "no change to manifest.integrity, its digest input or any legacy manifest value",
+    "no dependency, network, subprocess, environment, clock or random source in the shipped runner",
+    "no src/, package.json, lockfile, versioning-policy.json, dependency, CI or config change",
+    "no current-truth, ROADMAP.md or README.md change; the roadmap counter is not moved here",
+    "no external, independent or counted consumer team; this is not P24",
+    "no host, container, database, release, tag, deploy or publish",
+    "no readiness flag movement and no readiness vocabulary in the shipped runner or its output",
+    "no signing key, no certificate, no trust root and no attestation; the diagnostics digest is a plain hash and is not a signature",
+    "no commit, push or merge by Claude"
+  ],
+  "design": {
+    "additiveWrapper": "renderConsumerDiagnosticsDistribution(contract, distributionVersion) calls renderVersionedActionSdkDistribution, parses the manifest text it returned, and re-emits it with exactly two added keys; the generated module bytes are passed through unchanged and the P08 generator is not touched",
+    "diagnosticsDigest": "sha256 over JSON.stringify({schemaVersion:1, distributionVersion, coordinate, integrity, diagnosticsPath, diagnosticsSource}) in that key order. It records the shipped runner's exact bytes next to the payload that carries it, separately from manifest.integrity. Both the digest and the runner it covers travel inside the same payload, so the digest is a drift record, not a trust anchor",
+    "shippedRunner": "diagnose.mjs, embedded in the generator via String.raw, ESM, node builtins only (node:crypto, node:fs/promises, node:path), no repository path, no relative import, no subprocess and no network",
+    "gateOrder": ["manifest_present", "manifest_parsed", "manifest_shape", "distribution_version", "module_path_safety", "diagnostics_path_safety", "module_present", "module_integrity", "diagnostics_integrity", "module_evaluation"],
+    "codeMap": {
+      "manifest_present": "MISSING_FILE",
+      "manifest_parsed": "MALFORMED_MANIFEST",
+      "manifest_shape": "MALFORMED_MANIFEST",
+      "distribution_version": "VERSION_MISMATCH",
+      "module_path_safety": "UNSAFE_PATH",
+      "diagnostics_path_safety": "UNSAFE_PATH",
+      "module_present": "MISSING_FILE",
+      "module_integrity": "INTEGRITY_MISMATCH",
+      "diagnostics_integrity": "DIAGNOSTICS_MISMATCH",
+      "module_evaluation": "MODULE_EVALUATION_FAILED"
+    },
+    "failClosed": "every refusal exits 1, writes nothing to stdout and emits exactly one CONSUMER_DIAGNOSTICS_ERROR:<CODE> line at the start of a stderr line, always before the generated module is evaluated; the healthy path exits 0, is silent on stderr and prints one deterministic JSON report that leaks no host path"
+  },
+  "claims": {
+    "corrected": true,
+    "supersededClaim": "SELF_VERIFYING_DISTRIBUTION_PAYLOAD — withdrawn as overstated; the earlier wording implied the payload could vouch for itself",
+    "honest": [
+      "An honest, unreplaced runner detects accidental drift. If the generated module, the manifest or diagnose.mjs itself is corrupted in transit, truncated, partially copied or edited by hand on one side only, the run refuses with one fixed code before the module is evaluated. That is the property this package actually delivers.",
+      "A replaced runner cannot self-authenticate. diagnose.mjs reads its own bytes from the payload and compares them with manifest.diagnostics, which sits in the same payload; anyone able to rewrite the module can rewrite the runner and the manifest digest together and the run will report healthy. Verification by a component of the artifact it verifies is circular and is not tamper-proof against a deliberate editor.",
+      "Only an external verifier makes the digest binding. The diagnostics digest becomes trustworthy exactly when a party outside the payload pins the expected sha256 for that exact payload out of band — a trusted publisher record, a registry entry or a release record — and compares it before running diagnose.mjs. No such external pin exists today, so the digest is currently a consistency check, not an authenticity check."
+    ],
+    "notClaimed": [
+      "not tamper-proof, not tamper-resistant and not attested against a deliberate attacker who can rewrite the payload",
+      "not a signature, not a chain of trust and not a substitute for a signed release",
+      "not evidence that any external party ran it; no team consumed this payload"
+    ],
+    "externalPin": {
+      "howToUse": "a party outside the payload records the expected manifest.diagnostics sha256 for one exact payload, then compares the shipped manifest against that recorded value before invoking diagnose.mjs",
+      "pinnedToday": "nothing. No concrete manifest.diagnostics value is pinned anywhere today — not in this planning record, not in the CHANGELOG entry, not in any registry, release record or distribution channel. The earlier claim that this record and the CHANGELOG pin such a value was wrong and is withdrawn",
+      "whyNoSingleValueCanBePinnedHere": "the digest is not one constant. It is derived per payload from schemaVersion, distributionVersion, coordinate, integrity, diagnosticsPath and diagnosticsSource, so it varies with the contract and the distributionVersion passed to renderConsumerDiagnosticsDistribution. Any single value written into this record would be wrong for every other payload",
+      "deliveredHere": "this package makes the exact value derivable and observable, and nothing more: the runner bytes are one constant in the generator, the digest key order is fixed, and manifest.diagnostics is emitted in every payload, so the expected digest for a given payload can be recomputed deterministically and read off",
+      "stillRequired": "a future trusted publisher, registry or release record must pin the exact digest for each payload out of band before diagnose.mjs is invoked. Until that exists there is no external pin, and the honest claim above stands unreduced"
+    }
+  },
+  "redGate": {
+    "command": "node --test tests/kernel-consumer-diagnostics-p24a.test.mjs",
+    "result": "tests=3, pass=0, fail=3, reason: tools/generate-consumer-diagnostics-distribution.mjs did not exist, import failed in every test"
+  },
+  "greenGate": {
+    "command": "node --test tests/kernel-consumer-diagnostics-p24a.test.mjs",
+    "result": "tests=3, pass=3, fail=0"
+  },
+  "targetedCombinedGate": {
+    "command": "node --test tests/kernel-versioned-action-sdk-distribution.test.mjs tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs tests/kernel-generic-action-sdk-generator.test.mjs tests/kernel-consumer-diagnostics-p24a.test.mjs",
+    "result": "tests=16, pass=16, fail=0"
+  },
+  "fileHashesSha256": {
+    "tests/kernel-consumer-diagnostics-p24a.test.mjs": "33d2b211ac887f1446639f133c24a67578849cca439eb2ddf4807c3cab52d989",
+    "tools/generate-consumer-diagnostics-distribution.mjs": "93a605945bc8f341a86016a8588f58f51271d3a70da4fb06d11d5acae804bce2"
+  },
+  "budget": {
+    "source": "actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374:src/data/standards/short-code.json#changePackageBudget",
+    "class": "production",
+    "band": "conditional",
+    "maxNet": 800,
+    "maxChangedFiles": 20,
+    "files": {
+      "tests/kernel-consumer-diagnostics-p24a.test.mjs": { "grossAdditions": 229, "grossDeletions": 0, "note": "frozen handoff, authored by the test writer, not by this writer" },
+      "tools/generate-consumer-diagnostics-distribution.mjs": { "grossAdditions": 240, "grossDeletions": 0 },
+      "planning/kernel-consumer-diagnostics-p24a.json": { "grossAdditions": 205, "grossDeletions": 0, "note": "self-reference recorded post-write; planning cannot self-hash. 187 before P24A_PIN_TRUTH_CORRECTED, 205 after; the +18 is planning prose only" },
+      "CHANGELOG.md": { "grossAdditions": 27, "grossDeletions": 0 }
+    },
+    "grossAdditions": 701,
+    "grossDeletions": 0,
+    "netLines": 701,
+    "changedFileCount": 4,
+    "headroom": "701 of 800; reconciled after P24A_PIN_TRUTH_CORRECTED grew this planning file from 187 to 205 lines. The conditional ceiling is still not exceeded and no waiver is requested or permitted in this band"
+  },
+  "conditionalDeliveryGates": {
+    "band": "conditional",
+    "bandCeiling": 800,
+    "waiver": "none — requesting one is forbidden in this band by the canonical field; the 800 ceiling is earned by the seven conditions below and by nothing else",
+    "requiredConditions": [
+      { "id": "single-narrow-problem", "outcome": "GREEN", "evidence": "one problem only: the P09 clean-consumer check lived in tests/fixtures and never reached whoever received the payload. The package ships that check inside the payload and adds nothing else" },
+      { "id": "bounded-file-set", "outcome": "GREEN", "evidence": "packageFiles is 4 and implementationAllowedFiles is 3, both declared before the write; gate 5 shows the P08/P09 sources were never opened; 4 of a permitted 20 changed files" },
+      { "id": "no-redundant-repetition", "outcome": "GREEN", "evidence": "the generator embeds diagnose.mjs once as a single String.raw source and derives the digest from that same constant; the ten gate names, their codes and the digest key order each appear in exactly one authority and are referenced, not restated" },
+      { "id": "no-quality-tradeoff", "outcome": "GREEN", "evidence": "no test weakened, skipped or rewritten; the frozen test is byte-identical (gate 4), P08 manifest text and manifest.integrity are untouched, the unchanged P09 fixture still runs GREEN, and the runner takes no dependency, network, subprocess, clock or random source" },
+      { "id": "full-green", "outcome": "GREEN", "evidence": "gate 6 npm test 1614/1614 and gate 7 npm run check all 10 chained checkers OK on this snapshot; CI QA2 is the separate required run and is still pending, so full-green is claimed locally only" },
+      { "id": "fresh-reviewer-accept", "outcome": "PENDING", "evidence": "no independent reviewer has read this package yet. The reviewer must be a separate read-only session that did not write it, working on this exact snapshot; a changed snapshot invalidates the review" },
+      { "id": "explicit-rollback", "outcome": "GREEN", "evidence": "the rollback field names the single atomic four-file revert and the reason it cannot regress P08 or P09; nothing was committed, so the rollback is currently a working-tree discard" }
+    ],
+    "greenCount": 6,
+    "pendingCount": 1,
+    "allConditionsMet": false,
+    "verdict": "NOT_YET_DELIVERABLE — six of seven conditional-band conditions are GREEN and fresh-reviewer-accept is PENDING. The package stands at 701 net, which needs the conditional band, so it may not be delivered until that reviewer returns GREEN. Failing that, the package must be split under the 400 default ceiling; it may not be moved to the waiver band"
+  },
+  "gates": [
+    { "n": 1, "name": "red", "command": "node --test tests/kernel-consumer-diagnostics-p24a.test.mjs", "result": "tests=3, pass=0, fail=3", "outcome": "RED", "note": "implementation module absent; every test failed at import" },
+    { "n": 2, "name": "green-targeted", "command": "node --test tests/kernel-consumer-diagnostics-p24a.test.mjs", "result": "tests=3, pass=3, fail=0", "outcome": "GREEN" },
+    { "n": 3, "name": "green-targeted-combined-p07-p08-p09-p24a", "command": "node --test tests/kernel-versioned-action-sdk-distribution.test.mjs tests/kernel-versioned-sdk-clean-consumer-conformance.test.mjs tests/kernel-generic-action-sdk-generator.test.mjs tests/kernel-consumer-diagnostics-p24a.test.mjs", "result": "tests=16, pass=16, fail=0", "outcome": "GREEN", "note": "no P08/P09 regression from the additive wrapper" },
+    { "n": 4, "name": "frozen-test-untouched", "command": "shasum -a 256 tests/kernel-consumer-diagnostics-p24a.test.mjs", "result": "33d2b211ac887f1446639f133c24a67578849cca439eb2ddf4807c3cab52d989", "outcome": "GREEN", "note": "byte-identical to the frozen handoff; this writer did not author or edit it" },
+    { "n": 5, "name": "p08-p09-sources-unmodified", "command": "git diff --stat -- tools/generate-versioned-action-sdk-distribution.mjs tools/generate-action-sdk.mjs tests/fixtures/", "result": "0 changed files", "outcome": "GREEN", "note": "the P08 generator whose manifest text is frozen by its own merged test was never opened for write" },
+    { "n": 6, "name": "qa1-full-local-test", "command": "npm test", "result": "tests=1614, pass=1614, fail=0", "outcome": "GREEN" },
+    { "n": 7, "name": "qa1-full-local-check", "command": "npm run check", "result": "all 10 chained checkers OK; kernel-versioning OK; no readiness flag moved", "outcome": "GREEN" },
+    { "n": 8, "name": "metadata-correction-recheck", "command": "npm run check", "result": "all 10 chained checkers OK on the corrected snapshot; check-versioning-changelog accepted the rewritten Unreleased bullet; version 0.1.0-alpha.1, unreleased=1, categories=4, releases=0, no readiness flag moved", "outcome": "GREEN", "note": "npm run check only; npm test was NOT rerun here and this gate reports no test count. It confirms the metadata correction did not break the changelog checker. Not a new full-QA execution, since no file under tools/, tests/ or src/ changed and both recorded digests still match byte for byte, so the QA budget stays at 1 of 2" }
+  ],
+  "qa": {
+    "fullQaExecutionsPerChangePackage": 2,
+    "spent": 1,
+    "qa1FullLocal": "GREEN — npm test 1614/1614 and npm run check all gates OK; both ran on the executable snapshot before any metadata edit",
+    "qa2CI": "pending",
+    "qa1SnapshotNote": "exact sequence, no rounding: npm test ran ONCE, before the scopeHashes correction and before every later metadata edit, on executable files that are byte-identical to the ones shipped now — both recorded sha256 digests in fileHashesSha256 still match. npm test did NOT run a second time on any later snapshot and no second npm test result is claimed. The final metadata snapshot got npm run check only (gate 8), which is a checker re-run and not a test run. The metadata edits touch only planning/kernel-consumer-diagnostics-p24a.json and the CHANGELOG.md Unreleased prose, which no test and no checker reads (no planning/ directory enumeration exists, this filename is referenced nowhere under tools/ or tests/, and no checker asserts on CHANGELOG prose), so the executable surface npm test covered is unchanged and the local full-QA budget stays at 1 of 2"
+  },
+  "reviewer": "pending",
+  "rollback": "single atomic four-file package; revert tools/generate-consumer-diagnostics-distribution.mjs, planning/kernel-consumer-diagnostics-p24a.json, the CHANGELOG.md Unreleased bullet and the frozen test together; no other repository state was touched and P08/P09 files were never modified, so reverting cannot regress them",
+  "packageState": "qa1-green-awaiting-reviewer-and-ci",
+  "metadataCorrection": {
+    "marker": "P24A_METADATA_CORRECTED",
+    "date": "2026-08-28",
+    "writtenFiles": ["planning/kernel-consumer-diagnostics-p24a.json", "CHANGELOG.md"],
+    "changes": [
+      "budget.source repinned to actionplan@f25018d937557381cf8f8dd1012c29a2e48ba374",
+      "packageFiles (4) and implementationAllowedFiles (3) declared explicitly, replacing the single ambiguous allowedFiles list",
+      "conditionalDeliveryGates added with all seven canonical conditional-band conditions, reviewer PENDING, six GREEN, waiver explicitly none",
+      "the SELF_VERIFYING claim withdrawn and replaced by three honest claims: accidental-drift detection, no self-authentication by a replaced runner, external pinning required",
+      "capability_delta corrected to PORTABLE_DIAGNOSTICS_AND_EXTERNALLY_PINNABLE_RUNNER_BYTES_ONLY"
+    ],
+    "noExecutableChange": "no file under tools/, tests/ or src/ was opened; the runner, the frozen test and every digest are unchanged"
+  },
+  "pinTruthCorrection": {
+    "marker": "P24A_PIN_TRUTH_CORRECTED",
+    "date": "2026-08-28",
+    "writtenFiles": ["planning/kernel-consumer-diagnostics-p24a.json"],
+    "changes": [
+      "claims.externalPin.pinnedIn withdrawn as false: it implied this planning record and the CHANGELOG entry pin an expected manifest.diagnostics value. No concrete digest value is pinned anywhere today",
+      "recorded why no single value can be pinned in this record at all: the digest is derived per payload and varies with the contract and the distributionVersion",
+      "restated the delivered property honestly: this package only makes the exact value derivable and observable, not pinned",
+      "recorded the outstanding requirement: a future trusted publisher, registry or release record must pin the exact digest for each payload out of band before diagnose.mjs is invoked",
+      "claims.honest[2] reworded to stop naming this planning record as an out-of-band pinning place and to state that no external pin exists today",
+      "qa wording made exact: npm test ran once on byte-identical executable files before the metadata edits, and the final metadata snapshot got npm run check only, not a second npm test; gate 8 now says so on its face",
+      "ownerFacing.durustSinir now states plainly in Turkish that no concrete value is written down anywhere today and why"
+    ],
+    "noExecutableChange": "no file under tools/, tests/ or src/ was opened; the runner, the frozen test and every recorded digest are unchanged. Only jq empty and git diff --check were run for this correction; npm test and npm run check were not rerun and no new gate result is claimed"
+  },
+  "readinessFlags": {
+    "kernelReady": false,
+    "sdkReady": false,
+    "appBuildable": false,
+    "releaseAllowed": false,
+    "deployAllowed": false,
+    "productionAllowed": false,
+    "gapClosed": false,
+    "oneGoldenSliceReady": false,
+    "runnableProduct": false
+  },
+  "p24Truth": {
+    "isP24": false,
+    "role": "boundary preparation only",
+    "independentTeamCount": 0,
+    "ownerHelpCount": "unmeasured",
+    "note": "no external, independent or counted team consumed anything; a shipped drift check is not evidence of a team"
+  },
+  "roadmapProgress": { "completed": 23, "total": 25, "active": "P24" },
+  "ownerFacing": {
+    "once": "Dagitim paketini disaridan alan biri, paketin yolda bozulup bozulmadigini kendi basina anlayamiyordu. Kontrol eden dosya bizim depomuzun test klasorunde duruyordu; paketi alan kisiye hic gitmiyordu.",
+    "simdi": "Paketin icine, kimseye bagimliligi olmayan tek bir kontrol dosyasi (diagnose.mjs) kondu. Paketi acan kisi onu calistiriyor: her sey yerindeyse tek bir saglikli JSON raporu yaziyor, kazara bozulmus bir sey varsa hicbir sey yazmadan tek ve sabit bir hata koduyla duruyor ve bozuk modulu asla calistirmiyor.",
+    "fark": "P08 uretecine tek bayt dokunulmadi; yeni sarmalayici eski manifesti okuyup uzerine sadece iki alan ekliyor, eski butunluk imzasi ayni kaliyor ve degistirilmemis P09 kanit dosyasi hala GREEN calisiyor. Hedefli 16/16 test yesil.",
+    "durustSinir": "Bu kontrol KAZA yakalar, KOTU NIYET yakalamaz. Kontrol dosyasi kendi baytlarini yine ayni paketin icindeki ozet degeriyle karsilastiriyor; paketi bilerek degistirebilen biri hem modulu, hem kontrol dosyasini, hem de ozet degerini birlikte degistirir ve rapor yine saglikli cikar. Bir dosyanin kendi kendini onaylamasi kanit degildir. Gercek guvence icin ozet degerin paketin DISINDA bir yerde yazili olmasi ve calistirmadan once oradan karsilastirilmasi gerekir. Bugun boyle bir yer YOK: ne bu kayitta ne CHANGELOG'da ne baska bir yerde somut bir ozet degeri yazili degil, cunku deger her paket icin (sozlesmeye ve dagitim surumune gore) degisiyor. Bu paketin yaptigi tek sey o degerin kesin olarak hesaplanabilir ve gorulebilir olmasi; degeri paket basina disarida sabitlemek ileride guvenilir bir yayinci, kayit defteri veya surum kaydinin isi. Bu bir imza degildir.",
+    "kullaniciYolculugu": "Bir CRM formunun 'kaydet' aksiyonunu paketleyip disari verdigimizi dusunun. Once karsi taraf paketi acinca elinde sadece dosyalar oluyordu ve dosyalarin yolda bozulup bozulmadigini anlamanin yolu yoktu. Simdi ayni paketin icinde kendi kontrolu var: yarim kopyalanmis ya da bozulmus bir modul geldiginde acan kisi onu calistirmadan once duruyor ve tam olarak neyin bozuk oldugunu tek satirlik sabit bir kodla goruyor. Ama paketi kasitli degistiren birine karsi bu tek basina yetmez; oradaki koruma, ozet degerin paketin disinda ayrica tutulmasidir. Yine de bu calistirilabilir bir urun degil: sunucu yok, veritabani yok, gercek bir kullanici akisi yok.",
+    "kalanEngel": "Bagimsiz reviewer onayi bekliyor; kosullu bandin yedi kosulundan altisi yesil, yedincisi (paketi yazmayan taze reviewer) beklemede, bu yuzden paket henuz teslim edilebilir degil. CI QA2 de bekliyor, commit atilmadi. Asil P24 hala eksik: disaridan, bagimsiz, sayilabilir uc ekip yok, ekip sayisi 0, sahibin ne kadar yardim ettigi olculmedi. Yol haritasi sayaci 23/25 tamamlandi, P24/25 aktif olarak kaliyor.",
+    "capability_delta": "PORTABLE_DIAGNOSTICS_AND_EXTERNALLY_PINNABLE_RUNNER_BYTES_ONLY",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
