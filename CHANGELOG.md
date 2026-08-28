@@ -16,6 +16,34 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P23d `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
+  machine-readable roadmap counter to `23/25 tamamlandı, P24/25 aktif`, closing P23 (HA/DR/upgrade
+  rollback) with the three real merged sub-packages — P23A taking a credential-free, owner-only
+  `pg_dump` backup of the live business database, destroying the database container and its data
+  volume, then running a restore of that archive into a fresh volume with the migration head, the
+  exact rows, the two non-superuser roles, forced row-level security and an independently
+  recomputable decision chain all back, then chaining one further audited write onto that genesis
+  (PR #141 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33072032144)),
+  P23B cloning a real physical standby with `pg_basebackup`, proving it carries the primary's
+  system identifier, streams and refuses standby writes, then destroying the primary and having an
+  operator promote the standby and move the `db` alias so the never-restarted listener commits
+  again on the same chain
+  (PR #142 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33081640429)),
+  and P23C running the repository's own locked alembic head revision backwards to
+  `0002_customer_records` and re-applying it, with the three earlier business tables surviving
+  row-for-row and the decision history that revision owned really destroyed
+  (PR #143 with [a passing CI run](https://github.com/metaframer-net/metaframer-kernel/actions/runs/33152068364))
+  — with P24 (three independent consumer teams) active and P24-P25 production proof named as the
+  explicit next-missing pieces. This truth-sync adds the
+  `MANUAL_EPHEMERAL_RECOVERY_FAILOVER_AND_MIGRATION_ROLLBACK_DRILLED` capability delta; all three
+  are one manual, operator-driven drill each on a single host inside an environment that deletes
+  itself, so no high availability exists, no automatic failover exists, nothing detects a failure,
+  replication is asynchronous, there is no WAL archiving and therefore no point-in-time recovery,
+  no recovery objective is agreed, and the schema rollback is a destructive maintenance-window
+  outage whose refusal is still the bridge's anonymous `subprocess_failed` 502 built from raw
+  stderr, so the missing table's name is not hidden. No global readiness flag moves —
+  `deployAllowed` and `productionAllowed` stay `false` — and a hosted product remains
+  not-runnable. See `planning/kernel-p23-current-truth-closure-p23d.json`.
 - P22c `planning/roadmap-v1-current-truth.json`, `ROADMAP.md`, `README.md`: syncs the sole
   machine-readable roadmap counter to `22/25 tamamlandı, P23/25 aktif`, closing P22 (deploy
   package/staging) with the four real merged sub-packages — P22A1 handing the deploy artifact its

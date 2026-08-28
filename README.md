@@ -684,7 +684,33 @@ CI run 33055438573) — with P23 (HA/DR/upgrade rollback) as the active package;
 that carried it is ephemeral and deletes itself, so no staging environment exists and no staging
 run was performed, no registry is contacted, no external deployment and no production host
 selection happens, the audit stays opt-in and default-off, and a hosted product remains
-not-runnable with no global readiness flag under **Current status** moved.
+not-runnable with no global readiness flag under **Current status** moved. A further roadmap
+current-truth package has since synced the counter again to `23/25 tamamlandı, P24/25 aktif`,
+closing P23 (HA/DR/upgrade rollback) with three merged sub-packages — P23A taking a verified
+owner-only `pg_dump` backup of the live business database, destroying the database container and
+its data volume, and restoring the archive into a fresh volume with the migration head, the exact
+rows, the `mfk_migration`/`mfk_runtime` roles, forced row-level security and an independently
+recomputable decision chain all back, then chaining one further write onto the pre-disaster
+genesis (PR #141, CI run 33072032144 plus its separate Security workflow run 33072032056), P23B
+cloning a real physical standby with `pg_basebackup` under a replication-only role, proving it
+carries the primary's system identifier, streams and refuses standby writes, then destroying the
+primary and having an operator promote the standby and move the `db` alias so the never-restarted
+listener commits again on the same chain (PR #142, CI run 33081640429 plus its separate Security
+workflow run 33081640670), and P23C running the repository's own locked alembic head revision
+backwards to `0002_customer_records` as the non-superuser migration role and re-applying it, with
+the three earlier business tables surviving row-for-row, the listener failing closed in between,
+and the decision history that revision owned really destroyed (PR #143, CI run 33152068364 plus
+its separate Security workflow run 33152068502) — with P24 (three independent consumer teams) as
+the active package; this adds the
+`MANUAL_EPHEMERAL_RECOVERY_FAILOVER_AND_MIGRATION_ROLLBACK_DRILLED` capability delta, and all
+three are one manual, operator-driven drill each on a single host inside an environment that
+deletes itself, so no high availability exists, no automatic failover exists, nothing detects a
+failure, replication is asynchronous, there is no WAL archiving and therefore no point-in-time
+recovery, no recovery objective is agreed, the schema rollback is a destructive maintenance-window
+outage that costs the decision history, the refusal it produces is still the bridge's anonymous
+`subprocess_failed` 502 built from the runner's raw stderr so the missing table's name is not
+hidden, and a hosted product remains not-runnable with no global readiness flag under **Current
+status** moved.
 
 ## Authorized order and what remains closed
 
