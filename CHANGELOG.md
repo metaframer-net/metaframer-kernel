@@ -16,6 +16,31 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24C `tools/probe-declared-input-closure.mjs`, `tools/probe-contract-construction.mjs` and
+  `tools/probe-payload-materialization.mjs`: three independent probes that MEASURE whether the
+  P24B handover — the four files its single fenced block declares — is actually enough to run the
+  payload. It never had been measured. Each probe owns its own isolation, spawn and transcript
+  code, imports nothing but `node:` builtins and shares no helper with the other two, so one bug
+  cannot produce three agreeing verdicts. Each prints exactly one deterministic JSON transcript
+  line with its temp tree redacted; exit 0 means a measurement completed, so `INSUFFICIENT` is a
+  result, and exit 1 is a refusal to measure — nothing on stdout and one
+  `BOUNDARY_PROBE_ERROR:<CODE>` line — because a probe states no verdict over facts it could not
+  read. Measured, not asserted: the four declared inputs are NOT closed under their own imports
+  (`src/application/action-contract.mjs` and `tools/generate-action-sdk.mjs` are declared nowhere,
+  and a tree holding only the declared four fails to load the handed-over generator with
+  `ERR_MODULE_NOT_FOUND` on `./generate-action-sdk.mjs`); zero of the six `ActionContract` option
+  names are documented anywhere in the handover, and on the COMPLETE closure the generator still
+  refuses the plain object a doc-following team would build with
+  `renderActionSdk requires an exact ActionContract instance`, while the same six values are
+  accepted by the type itself; and the payload bridge is missing, since the generators return an
+  in-memory file map, no handed-over file writes it to disk, and the reference consumer runs
+  healthy on a payload materialized OUT OF BAND by the probe while refusing the way a team
+  actually holds it, with the overloaded `DIAGNOSTICS_FAILED` code that names none of its four
+  distinct upstream conditions. These probes MEASURE the gap and do not close it: the fenced block
+  is pinned by a merged frozen test and unfreezing it is not a writer's call. This is NOT P24 and
+  is not laundered into it — a probe is on the protocol's own never-counted list, the counted team
+  total stays 0, owner help is UNMEASURED here rather than zero, P24 stays open, every readiness
+  flag stays false, and no host, container, database or release was started.
 - P24B `docs/external-consumer-intake.md` and `examples/external-consumer/reference-consumer.mjs`:
   the intake protocol for an outside team taking the distribution payload, plus the runnable
   reference consumer that team is handed. P24A put `diagnose.mjs` inside the payload but nothing

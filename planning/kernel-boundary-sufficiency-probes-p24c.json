@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-boundary-sufficiency-probes-p24c",
+  "base": { "commit": "176c2534cb4e4b0f21e075035aff8244d1e8d74e", "tree": "1bc4d6c9db359b4920e06d182db21c5801333a75" },
+  "scopeHashes": { "synthesis": "ed50773b", "synthesisIsAbbreviated": true, "synthesisNote": "recorded exactly as supplied to this implementation writer. It is a MASTER scope-record digest, not a git object in this repository, so it is not resolvable with git rev-parse and was not expanded here" },
+  "packageFiles": ["tests/kernel-boundary-sufficiency-probes-p24c.test.mjs", "tools/probe-declared-input-closure.mjs", "tools/probe-contract-construction.mjs", "tools/probe-payload-materialization.mjs", "planning/kernel-boundary-sufficiency-probes-p24c.json", "CHANGELOG.md"],
+  "implementationAllowedFiles": ["tools/probe-declared-input-closure.mjs", "tools/probe-contract-construction.mjs", "tools/probe-payload-materialization.mjs", "planning/kernel-boundary-sufficiency-probes-p24c.json", "CHANGELOG.md"],
+  "fileSetNote": "packageFiles is the whole six-file package the reviewer and the rollback act on; implementationAllowedFiles is the strictly smaller five-file set this writer was permitted to open. The difference is exactly the frozen test, authored by a different writer",
+  "readOnlyHandoff": "tests/kernel-boundary-sufficiency-probes-p24c.test.mjs arrived frozen at sha256 8310d78bfc1d16d3c5fa2f008af14e88360bf410733d49de05024f6cad41ecbd, was verified byte-identical at that digest before and after the implementation, and was never opened for write",
+  "design": {
+    "problem": "P24B froze an intake protocol declaring exactly four requiredInputs and a reference consumer an outside team is meant to run from them. Nobody had measured whether that handover is closed. The gap was argued, never measured",
+    "threeIndependentProbes": "one shared isolation helper would let a single bug produce three false verdicts at once, so each probe owns its own copy of its fenced-block reader, closure walk, isolation, spawn and transcript code and imports nothing but node: builtins. The duplication is mandated by the frozen test's own purity assertion, not incidental",
+    "transcript": "one JSON line on stdout, keys dynamic/notCounted/probe/schemaVersion/static/verdict, schemaVersion 1, isolatedRoot redacted, byte-identical on a second run, carrying no repository path and no temp path",
+    "failClosed": "exit 1, empty stdout, exactly one anchored BOUNDARY_PROBE_ERROR:<CODE> line and no verdict anywhere. Codes: INTAKE_BLOCK_UNREADABLE, CLOSURE_UNREADABLE, ENTRY_NOT_DECLARED, CONSTRUCTION_UNMEASURED, CONSUMER_UNREADABLE, GENERATOR_UNREADABLE, HANDOVER_UNREADABLE, PAYLOAD_UNMATERIALIZED",
+    "exitZeroMeansMeasured": "exit 0 means a measurement completed whatever the verdict; INSUFFICIENT and INSUFFICIENT_BRIDGE are successes, not failures. Every verdict is computed from the measurement, never hardcoded: each probe reports SUFFICIENT if the measured facts ever change"
+  },
+  "measuredInsufficiency": {
+    "probe1": { "name": "declared-input-closure", "verdict": "INSUFFICIENT",
+      "static": "the transitive non-builtin closure of the four declared inputs is six files; src/application/action-contract.mjs and tools/generate-action-sdk.mjs are declared nowhere in the handover",
+      "dynamic": "a fresh tree holding ONLY the declared four runs the handed-over versioned distribution generator and it exits 1 with ERR_MODULE_NOT_FOUND on its own first relative specifier ./generate-action-sdk.mjs",
+      "why": "an absent-file list is an argument; a generator that will not load is a measurement, and the verdict rests on the second" },
+    "probe2": { "name": "contract-construction", "verdict": "INSUFFICIENT",
+      "static": "the six ActionContract option names are read out of the type itself; 0 of 6 are documented anywhere in the four handed-over files, and the type and its module are named in none of them",
+      "documentedCriterion": "an option counts as documented only where the handover names the type that demands it. Bare kind, name and version do occur inside a handed-over generator, as properties it reads off a contract it was already given; that is a consumer of the type and teaches a reading team nothing about what to construct",
+      "dynamic": "on the COMPLETE closure, past probe 1's gap, the generator refuses the plain object a doc-following team would build with TypeError renderActionSdk requires an exact ActionContract instance, while the same six values are accepted by the type itself",
+      "why": "the refusal is about the missing type, not about the values, and the probe proves that in the same run" },
+    "probe3": { "name": "payload-materialization", "verdict": "INSUFFICIENT_BRIDGE",
+      "static": "the consumer takes payload-directory and expected-distribution-version; the generator returns an in-memory file map; no handed-over file carries any filesystem write primitive, so materializerInHandover is false and materializerStep is null",
+      "dynamic": "materialized OUT OF BAND by the probe the payload is sound (exit 0, status ok, one report line); held the way the handover actually leaves it the consumer exits 1, prints nothing on stdout and emits one DIAGNOSTICS_FAILED line, a code raised at 4 distinct sites in the consumer and therefore naming none of them",
+      "why": "a sound payload a team cannot assemble is a missing STEP, not an unsound payload, and the verdict says which. The probe supplying the missing step is recorded as out-of-band and never as the handover supplying it" }
+  },
+  "claims": {
+    "honest": ["the three probes MEASURE the boundary gap and close none of it", "the P24B fenced block is pinned by a merged frozen test; unfreezing or editing it is not a writer's call and was not done", "no generator, runtime source, document, example or existing test was opened for write"],
+    "notClaimed": ["no external, independent or counted team consumed anything; this is not P24", "no host, container, database, release, tag, deploy or publish", "no readiness flag movement and no readiness vocabulary in any probe or its output", "a GREEN gate is not product readiness and is not presented as such"]
+  },
+  "notCountedBlock": { "isP24": false, "participantKind": "probe", "countedTowardAcceptance": false, "independentTeamCount": 0, "ownerHelpCount": "unmeasured", "p24Open": true },
+  "ownerHelpNote": "ownerHelpCount is the string unmeasured and never 0. Nothing in this package measures a person, and recording 0 would be a measurement nobody made",
+  "nonGoals": [
+    "no edit to the frozen test, at any point and for any reason",
+    "no edit to docs/external-consumer-intake.md, its fenced block, examples/external-consumer/reference-consumer.mjs or any P07/P08/P24A generator",
+    "no src/, existing tests/, package.json, lockfile, dependency, CI or config change",
+    "no shared helper module between the three probes, and no non-builtin import in any of them",
+    "no network, worker thread, loader escape hatch, clock or random source in any probe",
+    "no current-truth, ROADMAP.md or README.md change; the roadmap counter is not moved here",
+    "no commit, push, merge, Docker run, agent spawn, release or deploy by Claude"
+  ],
+  "budget": {
+    "class": "production", "band": "conditional", "ceiling": 760,
+    "files": {
+      "tests/kernel-boundary-sufficiency-probes-p24c.test.mjs": { "grossAdditions": 185, "note": "frozen handoff, authored by the test writer, not by this writer" },
+      "tools/probe-declared-input-closure.mjs": { "grossAdditions": 120 },
+      "tools/probe-contract-construction.mjs": { "grossAdditions": 148 },
+      "tools/probe-payload-materialization.mjs": { "grossAdditions": 176 },
+      "CHANGELOG.md": { "grossAdditions": 25 },
+      "planning/kernel-boundary-sufficiency-probes-p24c.json": { "grossAdditions": 98, "note": "self-reference recorded post-write; planning cannot self-hash" }
+    },
+    "grossAdditions": 752, "grossDeletions": 0, "netLines": 752, "changedFileCount": 6,
+    "headroom": "752 of a 760 conditional ceiling, 8 lines of headroom, 6 changed files. The three probes were compacted once, from 550 lines to 444, and this record from 142 to 98, specifically to hold that ceiling"
+  },
+  "conditionalDeliveryGates": {
+    "band": "conditional", "bandCeiling": 760, "waiver": "none requested",
+    "requiredConditions": [
+      { "id": "single-narrow-problem", "outcome": "GREEN", "evidence": "one problem only: whether the P24B handover is sufficient had never been measured. The package adds three probes that measure it and nothing else" },
+      { "id": "bounded-file-set", "outcome": "GREEN", "evidence": "packageFiles is 6 and implementationAllowedFiles is 5, both declared before the write; no generator, document, example, runtime source or existing test was opened" },
+      { "id": "no-redundant-repetition", "outcome": "GREEN", "evidence": "the fenced-block reader, closure walk and isolation code ARE repeated across the three probes. That repetition is mandated by the frozen test's purity assertion, which forbids a shared helper precisely so one bug cannot yield three agreeing verdicts. Inside each probe every rule is single: one refuse(), one transcript write, one notCounted constant" },
+      { "id": "no-quality-tradeoff", "outcome": "GREEN", "evidence": "no test weakened, skipped or rewritten; the frozen test is byte-identical at 8310d78b; every verdict is computed from a measurement rather than hardcoded" },
+      { "id": "full-green", "outcome": "GREEN", "evidence": "QA1 local: npm test then npm run check, run once in that order on the final bytes. CI QA2 is the separate required run and is pending, so full-green is claimed locally only" },
+      { "id": "rollback-known", "outcome": "GREEN", "evidence": "single atomic six-file package; delete the three probes and this record, revert the CHANGELOG entry, and the tree is the base at 176c2534 with nothing else touched" },
+      { "id": "fresh-reviewer-accept", "outcome": "PENDING", "evidence": "no reviewer has read this package. The writer may not review what it wrote" }
+    ],
+    "greenCount": 6, "pendingCount": 1, "allConditionsMet": false,
+    "verdict": "NOT_YET_DELIVERABLE — six of seven conditional-band conditions are GREEN and fresh-reviewer-accept is PENDING"
+  },
+  "qa": { "fullQaExecutionsPerChangePackage": 2, "spent": 1, "qa1FullLocal": "GREEN", "qa2CI": "pending", "qa1SnapshotNote": "run once, in the order npm test then npm run check, on the final bytes recorded in fileHashesSha256; not rerun afterwards" },
+  "fileHashesSha256": {
+    "tests/kernel-boundary-sufficiency-probes-p24c.test.mjs": "8310d78bfc1d16d3c5fa2f008af14e88360bf410733d49de05024f6cad41ecbd",
+    "tools/probe-declared-input-closure.mjs": "41e7919251809e21989c6df3e449195c9015df60f0bcb6fcd417032403d95fe2",
+    "tools/probe-contract-construction.mjs": "10125096a9d0006e7db9e248a7cfab7f3f02daac232a834e6ba64a478201287a",
+    "tools/probe-payload-materialization.mjs": "e73f320c67774707fdf32b68fd1a81e74d26587930841f47d8a5b4bac001d0d4",
+    "CHANGELOG.md": "542153fd2c8ec30da4e777d7dc3912f4dbf408d865500ed47c1459f689547fe8"
+  },
+  "fileHashesNote": "five of the six package files are digested. This record is the sixth and cannot self-hash",
+  "reviewer": "pending",
+  "rollback": "single atomic six-file package. Delete tools/probe-declared-input-closure.mjs, tools/probe-contract-construction.mjs, tools/probe-payload-materialization.mjs and this record, revert the P24C CHANGELOG entry, and drop the frozen test if the whole package is withdrawn. Nothing else in the tree was touched, so the rollback target is exactly base commit 176c2534",
+  "packageState": "qa1-green-awaiting-reviewer-and-ci",
+  "readinessFlags": { "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false, "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false },
+  "p24Truth": { "isP24": false, "role": "boundary measurement only", "independentTeamCount": 0, "ownerHelpCount": "unmeasured", "p24Open": true, "note": "a probe is on the protocol's own neverCounted list. Measuring the gap is not closing it, and nothing here may be laundered into P24" },
+  "roadmapProgress": { "completed": 23, "total": 25, "active": "P24" },
+  "ownerFacing": {
+    "once": "P24B'de disaridaki bir ekibe verilecek dort dosya yazildi ama o dort dosyanin gercekten yetip yetmedigi hic olculmemisti. Yeter mi sorusu tartisiliyordu, olculmuyordu.",
+    "simdi": "Uc bagimsiz olcum araci var. Her biri kendi kopyasini tasiyor, birbirinden hicbir yardimci kod paylasmiyor, bu yuzden birinde cikan bir hata ucunde ayni yanlis sonucu veremiyor. Her biri tek satirlik, makinece okunabilir bir olcum tutanagi yaziyor.",
+    "fark": "Uc olcum de ayni cevabi verdi: dort dosya yetmiyor. Eksik olan iki dosya adiyla, sozlesme nesnesinin nasil kurulacagini hicbir yerde yazmadigimiz, ve paketi diske yazacak adimin hic bulunmadigi artik yazili kanit.",
+    "kullaniciYolculugu": "Bir CRM'in 'musteri olustur' aksiyonunu paketleyip disaridaki bir ekibe verdigimizi dusunun. O ekip elindeki dort dosyayi acip uretici dosyayi calistirdiginda program daha ilk satirda duruyor: yaninda olmasi gereken iki dosya kutuya hic konmamis. Ikinci engel, uretici 'bana sozlesme nesnesi ver' diyor ama o nesnenin nasil kuruldugu dort dosyanin hicbirinde yazmiyor. Ucuncu engel, uretici paketi bellekte uretiyor, ornek tuketici ise diskte bir klasor istiyor, arada 'bunu diske yaz' adimi yok. Bu paket o uc engeli kapatmiyor; ilk kez saglam bicimde olcuyor.",
+    "kalanEngel": "Paketi yazmayan taze bir reviewer onayi ve CI'daki ikinci tam QA bekleniyor. Uc bosluk hala acik, P24 hala acik, disaridan sayilmis ekip sayisi hala 0, sahibin ne kadar yardim ettigi hala olculmedi.",
+    "capability_delta": "BOUNDARY_GAP_MEASURED_NOT_CLOSED",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
