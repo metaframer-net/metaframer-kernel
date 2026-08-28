@@ -16,6 +16,36 @@ planning placeholder it replaced, 0.0.0-planning, was never released either.
 ## [Unreleased]
 
 ### Added
+- P24CR `tools/materialize-distribution-payload.mjs`, plus an ADDITION-ONLY amendment to
+  `docs/external-consumer-intake.md`: the repair of the handover P24C measured and found not
+  closed. The fenced protocol block changes in exactly one way — three entries are APPENDED to
+  `requiredInputs`, for the contract type `src/application/action-contract.mjs`, the renderer
+  `tools/generate-action-sdk.mjs` that demands it, and the materializer CLI. No key is added to
+  that block, none is removed, reworded or reordered, and no acceptance number moves. The document
+  now states plainly what the block is and is not, correcting a claim it used to make about itself:
+  the block stays the authority on who counts, on acceptance, on falsification and on evidence, and
+  it declares WHICH files are handed over — but it does not carry the rules for using them. What a
+  team must LEARN is prose and becomes no key in the block: the type it constructs, that type's six
+  rules in the type's own declared order, the payload layout `manifest.json`, `diagnose.mjs` and
+  `actions/<name>/v<version>.mjs`, and the CLI's verbatim usage line. The CLI is the STEP that was missing: it reads a contract JSON, lets
+  `ActionContract` itself decide whether it is acceptable, renders the P24A payload and puts those
+  exact bytes in a directory the team already created and left empty. It never creates that
+  directory, never overwrites what is already there, checks every generated path BEFORE the first
+  byte so a payload that would climb out of the target leaves it untouched, reads no ambient
+  environment and consults no clock or random source, so the same three arguments produce the same
+  bytes and the same one-line report every time. Every refusal exits 1, prints nothing on stdout
+  and carries exactly one `MATERIALIZE_ERROR:<CODE>` line: `MISSING_ARGUMENT`,
+  `CONTRACT_UNREADABLE`, `CONTRACT_REFUSED`, `TARGET_NOT_EMPTY` and `PATH_ESCAPE`. Re-measured by
+  the three P24C probes, unedited and pinned to their own sha256 digests, all three verdicts moved
+  to `SUFFICIENT` (this implementation writer opened no probe and no test; the two frozen tests in
+  this package were authored and changed by the test writer): the declared set is now closed under
+  its own imports and the handed-over
+  generator loads from the handover alone, all six option names are documented against the type
+  that demands them, and a handed-over file carries the disk-writing step. This is still NOT P24
+  and is not laundered into it: SUFFICIENT means the handover loads and materializes, never that
+  anyone outside has used it. The counted team total stays 0, owner help stays UNMEASURED rather
+  than zero, P24 stays open, every readiness flag stays false, and no host, container, database or
+  release was started.
 - P24C `tools/probe-declared-input-closure.mjs`, `tools/probe-contract-construction.mjs` and
   `tools/probe-payload-materialization.mjs`: three independent probes that MEASURE whether the
   P24B handover — the four files its single fenced block declares — is actually enough to run the

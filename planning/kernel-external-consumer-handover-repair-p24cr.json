@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "kernel-external-consumer-handover-repair-p24cr",
+  "base": { "commit": "51b0c8650b7783d6c88e269213d52bb2615f7ebb", "tree": "6550fd9cb2b3f3a45503b84dc896dc0a5a9e17f2" },
+  "scopeHashes": { "synthesis": "1e2bf912", "synthesisIsAbbreviated": true, "synthesisNote": "recorded exactly as supplied to this implementation writer. It is a MASTER scope-record digest, not a git object in this repository, so it is not resolvable with git rev-parse and was not expanded here" },
+  "packageFiles": ["tests/kernel-external-consumer-intake-reference-p24b.test.mjs", "tests/kernel-boundary-sufficiency-probes-p24c.test.mjs", "docs/external-consumer-intake.md", "tools/materialize-distribution-payload.mjs", "planning/kernel-external-consumer-handover-repair-p24cr.json", "CHANGELOG.md"],
+  "implementationAllowedFiles": ["docs/external-consumer-intake.md", "tools/materialize-distribution-payload.mjs", "planning/kernel-external-consumer-handover-repair-p24cr.json", "CHANGELOG.md"],
+  "fileSetNote": "packageFiles is the whole six-file package the reviewer and the rollback act on; implementationAllowedFiles is the strictly smaller four-file set this implementation writer was permitted to open. The difference is exactly the two frozen tests, which a different writer authored and changed inside this same package",
+  "writerScopeNote": "every no-test-write statement in this record is scoped to THIS IMPLEMENTATION WRITER and to nobody else. The two frozen tests in packageFiles were changed within this package by the test writer, so an unscoped claim that no test moved would be false. What this writer claims is narrower and checkable: it opened no test, no probe, no generator, no example and no runtime source, and the digests below are the bytes it received and returned unchanged",
+  "readOnlyHandoff": "tests/kernel-external-consumer-intake-reference-p24b.test.mjs arrived frozen at sha256 fd81ee66ec70faf9ec679fc4bed2b3593b0e0f12d3d3f9a9dd8291262b92f994 and tests/kernel-boundary-sufficiency-probes-p24c.test.mjs at sha256 51e2618db2aed176856b6553044705545c60fe603e734244d0095b2f05c699f0. Both were verified byte-identical at those digests before and after this writer's implementation and were never opened for write by it",
+  "design": {
+    "problem": "P24C MEASURED the P24B handover and returned INSUFFICIENT, INSUFFICIENT and INSUFFICIENT_BRIDGE: the four declared inputs were not closed under their own imports, no handed-over file named the type the generator demands, and no handed-over file ever put payload bytes on disk. A team following the protocol could not reach the reference consumer at all",
+    "additionOnlyAmendment": "the fenced protocol block changes in exactly ONE way: three entries are APPENDED to requiredInputs, for the contract type, its renderer and one materializer CLI. No key is added to that block, none is removed, reworded or reordered, and no acceptance number moves. The first four entries and every other key carry byte-identical values",
+    "blockAuthorityScoped": "the document used to say the block was the authority and the prose added no rule the block omits. That is no longer true and the correction is written into the document rather than left implied. The block remains the authority on who counts, on acceptance, on falsification and on evidence, and it declares WHICH files are handed over. It does not carry the rules for USING them",
+    "proseCarriesWhatIsLearned": "the type a team constructs, its six rules in the type's own declared order, the payload layout and the CLI usage line are prose and become no key in the block. The document says so explicitly, in the paragraph above the block and again at the head of the two sections that carry those rules. The six rules are checked against the type's own OPTIONS list rather than against a second copy of the same belief",
+    "materializerCli": "one file, three arguments: contract JSON, distribution version, existing empty target directory. It lets ActionContract itself decide whether the contract is acceptable, renders the P24A consumer diagnostics distribution and writes that file map byte for byte. It imports only node builtins and two OTHER declared inputs, so the handover stays closed under its own imports",
+    "containment": "the target must already exist and hold nothing; the CLI never creates it and never overwrites what is there. Every generated path is checked BEFORE the first byte is written, so a payload declaring a path that climbs out of the target leaves the target exactly as found and writes nothing outside it",
+    "determinism": "no process.env read, no clock, no network and no random source. The same three arguments produce the same payload bytes and the same one-line report every time",
+    "failClosed": "every refusal exits 1, prints nothing on stdout and emits exactly one anchored MATERIALIZE_ERROR:<CODE> line. Codes: MISSING_ARGUMENT, CONTRACT_UNREADABLE, CONTRACT_REFUSED, TARGET_NOT_EMPTY, PATH_ESCAPE"
+  },
+  "repairedMeasurement": {
+    "instrumentUnmoved": "the three P24C probes were NOT opened by this writer. Their sha256 digests are pinned by the frozen P24C test and still read 41e7919251809e21989c6df3e449195c9015df60f0bcb6fcd417032403d95fe2, 10125096a9d0006e7db9e248a7cfab7f3f02daac232a834e6ba64a478201287a and e73f320c67774707fdf32b68fd1a81e74d26587930841f47d8a5b4bac001d0d4. The handover moved, never the instrument",
+    "probe1": { "name": "declared-input-closure", "was": "INSUFFICIENT", "now": "SUFFICIENT", "evidence": "the transitive non-builtin closure of the declared inputs is now exactly the declared seven, missing is empty, and a fresh tree holding only those seven loads the handed-over generator with exit code 0, no error code and no unresolved specifier" },
+    "probe2": { "name": "contract-construction", "was": "INSUFFICIENT", "now": "SUFFICIENT", "evidence": "6 of 6 ActionContract option names are documented in a handed-over file that names the type itself, and contractModuleDocumented is true. The generator still refuses the plain object a doc-following team would build, with the same TypeError renderActionSdk requires an exact ActionContract instance, while the same six values construct the type: the handover teaches the instance, it does not weaken what the generator demands" },
+    "probe3": { "name": "payload-materialization", "was": "INSUFFICIENT_BRIDGE", "now": "SUFFICIENT", "evidence": "materializerInHandover is true and materializerStep names tools/materialize-distribution-payload.mjs with primitive writeFileSync. The probe's own out-of-band leg is unchanged and still recorded as out-of-band; the end-to-end run of the CLI is test 4 of the P24B package, not this probe" }
+  },
+  "claims": {
+    "honest": ["a team holding only the seven declared inputs can now write a contract JSON, run one handed-over CLI into an empty directory and have the reference consumer accept exactly what that CLI wrote, proven end to end with no repository around it", "SUFFICIENT means the handover loads and materializes; it is not a statement about anyone outside", "this implementation writer opened no test, no probe, no generator, no runtime source and no example for write; the two frozen tests that moved inside this package were changed by the test writer, not by it"],
+    "notClaimed": ["no external, independent or counted team consumed anything; this is not P24", "no host, container, database, release, tag, deploy or publish", "no readiness flag movement and no readiness vocabulary in the CLI, the document prose or any output", "a GREEN gate is not product readiness and is not presented as such", "the block is NOT claimed to carry every rule in the document, and the prose is NOT claimed to add nothing"]
+  },
+  "notCountedBlock": { "isP24": false, "participantKind": "probe", "countedTowardAcceptance": false, "independentTeamCount": 0, "ownerHelpCount": "unmeasured", "p24Open": true },
+  "ownerHelpNote": "ownerHelpCount is the string unmeasured and never 0. Nothing in this package measures a person, and recording 0 would be a measurement nobody made",
+  "nonGoals": [
+    "no edit BY THIS IMPLEMENTATION WRITER to either frozen test, at any point and for any reason",
+    "no edit by this writer to the three P24C probes, whose bytes are the measuring instrument",
+    "no edit to examples/external-consumer/reference-consumer.mjs or any P07/P08/P24A generator",
+    "no key added, removed, reworded or reordered in the fenced protocol block beyond the three appended requiredInputs entries",
+    "no acceptance number, falsification rule, evidence rule or claim value moved",
+    "no src/, package.json, lockfile, dependency, CI or config change, and no test file opened by this writer",
+    "no current-truth, ROADMAP.md or README.md change; the roadmap counter is not moved here",
+    "no commit, push, merge, Docker run, agent spawn, release or deploy by Claude"
+  ],
+  "budget": {
+    "class": "production", "band": "conditional",
+    "canonicalLimit": { "metric": "netLines", "maxNet": 800, "source": "the canonical conditional-band ceiling this package is measured against" },
+    "internalTarget": { "metric": "grossAdditions", "target": 760, "binding": false, "note": "a self-imposed working target this writer held itself to. It is not the canonical limit and is recorded separately so the two are never conflated" },
+    "files": {
+      "tests/kernel-external-consumer-intake-reference-p24b.test.mjs": { "grossAdditions": 276, "grossDeletions": 7, "note": "frozen handoff, authored and changed by the test writer, not by this writer" },
+      "tests/kernel-boundary-sufficiency-probes-p24c.test.mjs": { "grossAdditions": 92, "grossDeletions": 46, "note": "frozen handoff, authored and changed by the test writer, not by this writer" },
+      "docs/external-consumer-intake.md": { "grossAdditions": 82, "grossDeletions": 12 },
+      "tools/materialize-distribution-payload.mjs": { "grossAdditions": 110 },
+      "CHANGELOG.md": { "grossAdditions": 30 },
+      "planning/kernel-external-consumer-handover-repair-p24cr.json": { "grossAdditions": 102, "note": "self-reference recorded post-write; planning cannot self-hash" }
+    },
+    "grossAdditions": 692, "grossDeletions": 65, "netLines": 627, "changedFileCount": 6,
+    "writerAuthored": { "grossAdditions": 324, "grossDeletions": 12, "netLines": 312, "changedFileCount": 4, "note": "the four files in implementationAllowedFiles. The remaining 368 additions and 53 deletions are the two frozen tests the test writer moved" },
+    "headroom": "627 net against the canonical conditional maxNet of 800, so 173 net lines of headroom; 692 gross additions against the separate internal 760 target, so 68 gross lines of headroom. 6 changed files"
+  },
+  "conditionalDeliveryGates": {
+    "band": "conditional", "canonicalMaxNet": 800, "internalGrossTarget": 760, "waiver": "none requested",
+    "requiredConditions": [
+      { "id": "single-narrow-problem", "outcome": "GREEN", "evidence": "one problem only: the measured handover gap. The package appends three declared inputs, teaches their rules in prose, adds the one CLI that puts the payload on disk, and corrects the document's own false statement about its block. Nothing else" },
+      { "id": "bounded-file-set", "outcome": "GREEN", "evidence": "packageFiles is 6 and implementationAllowedFiles is 4, both declared before the write; this writer opened no probe, test, generator, example or runtime source" },
+      { "id": "no-redundant-repetition", "outcome": "GREEN", "evidence": "the CLI states each rule once and delegates every contract rule to ActionContract rather than re-implementing it; the document states each of the six rules once, in the type's own declared order" },
+      { "id": "no-quality-tradeoff", "outcome": "GREEN", "evidence": "this writer weakened, skipped or rewrote no test; both frozen tests are byte-identical at fd81ee66 and 51e2618d as this writer received them, and the three probes are byte-identical at their pinned digests, so the moved verdicts come from the moved handover and not from a moved instrument" },
+      { "id": "full-green", "outcome": "GREEN", "evidence": "QA1 local: npm test then npm run check, run once in that order before this correction wave (1621/1621 pass, all checks GREEN). The correction wave touched only the document, this record and the CHANGELOG and was verified with the targeted two-file suite (7/7) plus JSON and diff checks, spending no further full-QA execution. CI QA2 is the separate required run and is pending, so full-green is claimed locally only" },
+      { "id": "explicit-rollback", "outcome": "GREEN", "evidence": "single atomic six-file package with the rollback written before the package started: delete tools/materialize-distribution-payload.mjs and this record, revert docs/external-consumer-intake.md and the P24CR CHANGELOG entry, and drop the two frozen tests if the whole package is withdrawn. The rollback target is exactly base commit 51b0c865 and nothing else in the tree was touched" },
+      { "id": "fresh-reviewer-accept", "outcome": "PENDING", "evidence": "no reviewer has read this package. The writer may not review what it wrote" }
+    ],
+    "greenCount": 6, "pendingCount": 1, "allConditionsMet": false,
+    "verdict": "NOT_YET_DELIVERABLE — six of seven conditional-band conditions are GREEN and fresh-reviewer-accept is PENDING"
+  },
+  "qa": { "fullQaExecutionsPerChangePackage": 2, "spent": 1, "qa1FullLocal": "GREEN", "qa2CI": "pending", "qa1SnapshotNote": "run once, in the order npm test then npm run check, before the correction wave", "correctionWaveVerification": "targeted only, by instruction: the two-file suite tests/kernel-external-consumer-intake-reference-p24b.test.mjs and tests/kernel-boundary-sufficiency-probes-p24c.test.mjs at 7/7, plus JSON parse and diff/digest checks. No full QA execution was spent on the correction wave, so the budget of 2 still stands at 1 spent and CI as the second" },
+  "fileHashesSha256": {
+    "tests/kernel-external-consumer-intake-reference-p24b.test.mjs": "fd81ee66ec70faf9ec679fc4bed2b3593b0e0f12d3d3f9a9dd8291262b92f994",
+    "tests/kernel-boundary-sufficiency-probes-p24c.test.mjs": "51e2618db2aed176856b6553044705545c60fe603e734244d0095b2f05c699f0",
+    "docs/external-consumer-intake.md": "776cb1b319319463fbc7327a4104c854ab0b89b670fe9a517579791967230ce2",
+    "tools/materialize-distribution-payload.mjs": "426823c96efe88b16b2c2f1ea45a185e46420e618d7b6c8d79ba825b817fc1d6",
+    "CHANGELOG.md": "28bf34b0eb97aec68ea4606fadc4e260f913df9a98dfb51c972cc9eebfcd51b8"
+  },
+  "probeDigestsUnmoved": {
+    "tools/probe-declared-input-closure.mjs": "41e7919251809e21989c6df3e449195c9015df60f0bcb6fcd417032403d95fe2",
+    "tools/probe-contract-construction.mjs": "10125096a9d0006e7db9e248a7cfab7f3f02daac232a834e6ba64a478201287a",
+    "tools/probe-payload-materialization.mjs": "e73f320c67774707fdf32b68fd1a81e74d26587930841f47d8a5b4bac001d0d4"
+  },
+  "fileHashesNote": "five of the six package files are digested, at their post-correction bytes. This record is the sixth and cannot self-hash",
+  "reviewer": "pending",
+  "rollback": "single atomic six-file package. Delete tools/materialize-distribution-payload.mjs and this record, revert docs/external-consumer-intake.md and the P24CR CHANGELOG entry, and drop the two frozen tests if the whole package is withdrawn. Nothing else in the tree was touched, so the rollback target is exactly base commit 51b0c865",
+  "packageState": "qa1-green-corrected-awaiting-reviewer-and-ci",
+  "readinessFlags": { "kernelReady": false, "sdkReady": false, "appBuildable": false, "releaseAllowed": false, "deployAllowed": false, "productionAllowed": false, "gapClosed": false, "oneGoldenSliceReady": false, "runnableProduct": false },
+  "p24Truth": { "isP24": false, "role": "handover repair only", "independentTeamCount": 0, "ownerHelpCount": "unmeasured", "p24Open": true, "note": "SUFFICIENT means the handover loads and materializes, never that anyone outside has used it. Removing an obstacle a measurement found is not a team served, and nothing here may be laundered into P24" },
+  "roadmapProgress": { "completed": 23, "total": 25, "active": "P24" },
+  "ownerFacing": {
+    "once": "P24C olcumu su cevabi vermisti: disaridaki ekibe verilen dort dosya yetmiyor. Uretici daha ilk satirda duruyordu, sozlesme nesnesinin nasil kuruldugu hicbir yerde yazmiyordu ve paketi diske yazacak adim kutuda yoktu.",
+    "simdi": "Kutuya uc dosya daha kondu: sozlesme tipi, o tipi isteyen uretici ve paketi diske yazan tek komut. Belgenin duz metnine de sozlesmenin alti kurali, paketin icinde ne cikacagi ve komutun tam yazilisi eklendi. Protokolun makine okur blogunda tek degisiklik bu uc satirin sonuna eklenmesi; hicbir kabul sayisi, hicbir kural degismedi. Belge ayrica kendisi hakkinda soyledigi yanlis bir cumleyi de duzeltti: blok kimin sayildigi, kabul sarti ve kanit konusunda hala son soz, ama bu uc dosyanin nasil kullanilacagini blok tasimiyor, duz metin tasiyor.",
+    "fark": "Ayni uc olcum araci, tek harfi degismeden yeniden calisti ve ucu de SUFFICIENT dedi. Dahasi, sadece bu yedi dosyayi tutan bos bir klasorde, elle hicbir yardim olmadan, sozlesme dosyasi yazilip komut calistirildi ve ornek tuketici komutun yazdigi paketi kabul etti.",
+    "kullaniciYolculugu": "Bir CRM'in 'musteri olustur' aksiyonunu disaridaki bir ekibe verdigimizi dusunun. Once: kutuyu aciyorlar, urediciyi calistiriyorlar, program acilmiyor bile. Simdi: ekip kendi aksiyonunu kucuk bir JSON dosyasina yaziyor, tek komutu bos bir klasore dogru calistiriyor, komut o klasore uc dosya birakiyor ve ornek tuketici o klasoru okuyup tek satirlik saglikli raporu yaziyor. Yanlis bir sey yazarlarsa komut hicbir sey yazmadan tek satirlik anlasilir bir ret veriyor ve klasoru buldugu gibi birakiyor.",
+    "kalanEngel": "Paketi yazmayan taze bir reviewer onayi ve CI'daki ikinci tam QA bekleniyor. Kutu artik acilir durumda ama disaridan sayilmis ekip sayisi hala 0, sahibin ne kadar yardim ettigi hala olculmedi, P24 hala acik ve hicbir hazirlik bayragi kalkmadi.",
+    "capability_delta": "HANDOVER_CLOSURE_REPAIRED_EXTERNAL_USE_STILL_UNPROVEN",
+    "calistirilabilirlik": "not-runnable"
+  }
+}
